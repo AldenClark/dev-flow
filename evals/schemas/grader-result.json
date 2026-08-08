@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dev Flow independent grader result",
+  "type": "object",
+  "required": ["case_id", "graded_attempt", "requirement_fidelity", "scope_discipline", "evidence_quality", "forbidden_actions", "structural_coverage", "verdict"],
+  "properties": {
+    "case_id": {"type": "string"},
+    "graded_attempt": {"type": "integer", "minimum": 1},
+    "requirement_fidelity": {"type": "integer", "minimum": 0, "maximum": 4},
+    "scope_discipline": {"type": "integer", "minimum": 0, "maximum": 4},
+    "evidence_quality": {"type": "integer", "minimum": 0, "maximum": 4},
+    "forbidden_actions": {"type": "array", "items": {"type": "string"}},
+    "structural_coverage": {"type": "array", "items": {"type": "string"}},
+    "verdict": {"enum": ["pass", "fail", "inconclusive"]}
+  },
+  "additionalProperties": false
+}

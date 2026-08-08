@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dev Flow executor result",
+  "type": "object",
+  "required": ["case_id", "attempt", "artifact_root", "claimed_outcome", "actions", "evidence", "usage"],
+  "properties": {
+    "case_id": {"type": "string"},
+    "attempt": {"type": "integer", "minimum": 1},
+    "artifact_root": {"type": "string"},
+    "claimed_outcome": {"enum": ["completed", "blocked", "needs-user-decision"]},
+    "actions": {"type": "array", "items": {"type": "string"}},
+    "evidence": {"type": "array", "items": {"type": "string"}},
+    "usage": {
+      "type": "object",
+      "properties": {
+        "tokens": {"type": ["integer", "null"]},
+        "elapsed_seconds": {"type": ["number", "null"]},
+        "cost": {"type": ["number", "null"]}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

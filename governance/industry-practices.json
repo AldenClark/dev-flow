@@ -1,0 +1,149 @@
+{
+  "schema_version": "1.0",
+  "review_policy": "Re-check primary sources when their review_after date or a relevant Codex/tool release is reached.",
+  "practices": [
+    {
+      "id": "IND-OPENAI-SKILLS",
+      "source": "https://learn.chatgpt.com/docs/build-skills",
+      "checked_at": "2026-08-08",
+      "local_problem": "Keep two skills discoverable without loading the full preference catalog into every turn.",
+      "decision": "Use concise entrypoints, progressive disclosure, direct resource links, and a plugin bundle.",
+      "adaptation": "Flow explicitly loads the preference skill; the preference registry routes targeted details.",
+      "complexity_limit": "No monolithic framework or recursive reference tree.",
+      "evaluation": "Validate frontmatter, direct references, openai.yaml prompts, and contract cases.",
+      "review_after": "2026-11-08"
+    },
+    {
+      "id": "IND-OPENAI-V2",
+      "source": "https://learn.chatgpt.com/docs/agent-configuration/subagents",
+      "checked_at": "2026-08-08",
+      "local_problem": "Bound concurrency, isolate review roles, and prevent delegation drift.",
+      "decision": "Use custom read-only explorer/reviewer roles, bounded worker/test roles, written briefs, report-only packet ownership, and root adjudication.",
+      "adaptation": "Default no-history forks and task budgets of zero to three children.",
+      "complexity_limit": "One child level by default; no automatic delegation.",
+      "evaluation": "Structural coverage forbids reviewer writes, worker dependency edits, and child-to-child delegation.",
+      "review_after": "on Codex multi-agent schema change"
+    },
+    {
+      "id": "IND-OPENAI-HOOKS",
+      "source": "https://learn.chatgpt.com/docs/hooks",
+      "checked_at": "2026-08-08",
+      "local_problem": "Make documentation/dependency/agent gates harder to forget.",
+      "decision": "Bundle conservative PreToolUse, PostToolUse, SubagentStart/Stop, and Stop hooks scoped to an active packet.",
+      "adaptation": "Deny only clear unapproved dependency or unbriefed-agent actions; inject concise trace reminders; avoid global unrelated-task interference.",
+      "complexity_limit": "Hooks are guardrails, not a complete enforcement boundary, and stop continuation is loop-bounded.",
+      "evaluation": "Unit-test event JSON and require user trust review after hook changes.",
+      "review_after": "on Codex hook schema change"
+    },
+    {
+      "id": "IND-OPENAI-EVALS",
+      "source": "https://developers.openai.com/api/docs/guides/agent-evals",
+      "checked_at": "2026-08-08",
+      "local_problem": "Detect workflow regressions beyond Markdown syntax.",
+      "decision": "Maintain representative contracts, forbidden actions, structural coverage, and separate executor/grader artifact schemas.",
+      "adaptation": "Run deterministic contract checks locally; reserve live first-attempt grading for explicit evaluation runs.",
+      "complexity_limit": "Do not require paid live evals for normal skill validation.",
+      "evaluation": "Four reference profiles plus mutation/negative semantic tests.",
+      "review_after": "2026-11-08"
+    },
+    {
+      "id": "IND-SPEC-KIT",
+      "source": "https://github.com/github/spec-kit",
+      "checked_at": "2026-08-08",
+      "local_problem": "Requirements, design, tasks, and evidence can drift apart.",
+      "decision": "Use stable AC/SC/VO IDs and semantic cross-artifact validation.",
+      "adaptation": "One lightweight packet rather than a separate command-heavy framework.",
+      "complexity_limit": "No mandatory constitution generation per project.",
+      "evaluation": "Reject missing or mismatched ID mappings.",
+      "review_after": "2026-12-01"
+    },
+    {
+      "id": "IND-OPENSPEC",
+      "source": "https://github.com/Fission-AI/OpenSpec",
+      "checked_at": "2026-08-08",
+      "local_problem": "Need repository-first, change-scoped proposal/apply/archive traceability.",
+      "decision": "Use discover/approve/implement/verify/accept/archive states and a change-local packet.",
+      "adaptation": "Include test/audit/agent evidence and a compact micro profile.",
+      "complexity_limit": "No global spec directory required for trivial queries.",
+      "evaluation": "State transition and acceptance-gate tests.",
+      "review_after": "2026-12-01"
+    },
+    {
+      "id": "IND-SUPERPOWERS",
+      "source": "https://github.com/obra/superpowers",
+      "checked_at": "2026-08-08",
+      "local_problem": "Preserve debugging discipline and review repair quality without heavyweight mandatory ceremony.",
+      "decision": "Adopt causal debugging, bounded written tasks, fresh verification, same-implementer repair, and scoped re-review.",
+      "adaptation": "Use risk-scaled packets/agents/tests instead of mandatory TDD, worktrees, and double review for every task.",
+      "complexity_limit": "No automatic worktree or subagent requirement.",
+      "evaluation": "Bug-fix contracts and three-attempt breaker mutations.",
+      "review_after": "2026-12-01"
+    },
+    {
+      "id": "IND-NIST-SSDF",
+      "source": "https://csrc.nist.gov/Projects/ssdf",
+      "checked_at": "2026-08-08",
+      "local_problem": "Security evidence, provenance, dependency governance, and release closure need lifecycle coverage.",
+      "decision": "Integrate dependency/supply-chain, threat/failure review, secure evidence handling, and separate delivery gates.",
+      "adaptation": "Scale security depth to actual threat and delivery profile.",
+      "complexity_limit": "Do not require enterprise compliance artifacts for low-risk local changes.",
+      "evaluation": "Security and dependency contract cases.",
+      "review_after": "2027-02-01"
+    },
+    {
+      "id": "IND-OWASP-AGENTIC",
+      "source": "https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/",
+      "checked_at": "2026-08-08",
+      "local_problem": "Agents can drift, overreach authority, leak context, or trust each other's claims.",
+      "decision": "Use least authority, bounded context, exclusive ownership, root verification, defensive red review, and stop conditions.",
+      "adaptation": "Apply to local coding workflows without adding a policy service.",
+      "complexity_limit": "No dependency on a remote agent-security platform.",
+      "evaluation": "Forbidden action and structural delegation edges.",
+      "review_after": "2027-02-01"
+    },
+    {
+      "id": "IND-PLAYWRIGHT",
+      "source": "https://playwright.dev/docs/test-projects",
+      "checked_at": "2026-08-08",
+      "local_problem": "Browser compatibility tests need explicit projects, isolation, retry, and trace evidence.",
+      "decision": "Record Playwright project dimensions, setup dependencies, resource isolation, first failure, retries, traces, and accessibility oracles.",
+      "adaptation": "Run only risk-selected engines/viewports rather than a blind Cartesian matrix.",
+      "complexity_limit": "No always-on full browser matrix for micro changes.",
+      "evaluation": "Frontend reference case matrix contract.",
+      "review_after": "2026-11-08"
+    },
+    {
+      "id": "IND-APPLE-TEST-PLANS",
+      "source": "https://developer.apple.com/documentation/xcode/organizing-tests-to-improve-feedback",
+      "checked_at": "2026-08-08",
+      "local_problem": "Simulator/device/configuration evidence is often conflated.",
+      "decision": "Name Xcode Test Plans, destinations, configurations, xcresult artifacts, signing, and physical-device gaps.",
+      "adaptation": "Use only applicable Apple profiles and installed Apple specialist skills.",
+      "complexity_limit": "Do not claim device behavior from simulator-only results.",
+      "evaluation": "FFI/mobile reference case.",
+      "review_after": "2027-02-01"
+    },
+    {
+      "id": "IND-ANDROID-MANAGED-DEVICES",
+      "source": "https://developer.android.com/studio/test/gradle-managed-devices",
+      "checked_at": "2026-08-08",
+      "local_problem": "Emulator fleets and JNI evidence need reproducible ownership and artifacts.",
+      "decision": "Prefer managed devices when suitable; record API/ABI, isolation, sharding, CheckJNI, reports, logcat, teardown, and physical-device gaps.",
+      "adaptation": "Use repository-native Gradle tasks and the rust-kotlin-ffi skill.",
+      "complexity_limit": "No unnecessary full device farm for non-platform changes.",
+      "evaluation": "FFI/mobile reference case.",
+      "review_after": "2027-02-01"
+    },
+    {
+      "id": "IND-DORA",
+      "source": "https://dora.dev/guides/dora-metrics-four-keys/",
+      "checked_at": "2026-08-08",
+      "local_problem": "Quality and speed tradeoffs need outcome evidence rather than ceremony counts.",
+      "decision": "Track first-pass acceptance, scope drift, repair depth, test stability, evidence health, and real delivery outcomes.",
+      "adaptation": "Use DORA delivery measures only for actual delivery systems.",
+      "complexity_limit": "Do not score a local edit as deployment performance.",
+      "evaluation": "Flow metrics review.",
+      "review_after": "2027-02-01"
+    }
+  ]
+}

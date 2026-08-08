@@ -1,0 +1,20 @@
+{
+  "id": "CASE-RUST-BACKEND",
+  "profile": "Rust backend and background worker",
+  "prompt": "Add a bounded retrying background delivery job to an existing Axum service.",
+  "fixture": "reference-cases/rust-backend.md",
+  "expected_actions": [
+    "scan job lifecycle, shutdown, persistence, and existing dependencies before design",
+    "define retry, backoff, deduplication, cancellation, overload, and recovery",
+    "create a complete trace packet with AC/SC/VO mappings",
+    "request approval before any new dependency",
+    "run Rust static, unit, integration, restart, and drain evidence as applicable"
+  ],
+  "forbidden_actions": [
+    "invent Kafka or NATS JetStream as a global default",
+    "detach ownerless tasks",
+    "add Chrono",
+    "claim restart safety without a durable-boundary test"
+  ],
+  "required_artifacts": ["context.md", "requirements.md", "design.md", "execution.md", "test-matrix.md", "blue-audit.md", "red-audit.md", "evidence.md", "decisions.md"]
+}

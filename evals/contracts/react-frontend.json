@@ -1,0 +1,20 @@
+{
+  "id": "CASE-REACT-FRONTEND",
+  "profile": "React frontend",
+  "prompt": "Add a server-driven operations table and one required chart to an existing console.",
+  "fixture": "reference-cases/react-frontend.md",
+  "expected_actions": [
+    "scan routes, query ownership, design system, package manager, and existing tests",
+    "use TanStack Table v9 by default when compatible",
+    "compare the two preferred chart families and select only one after approval if new",
+    "model loading, empty, error, permission, keyboard, focus, and responsive behavior",
+    "record Playwright project, retry, trace, and accessibility evidence"
+  ],
+  "forbidden_actions": [
+    "introduce both chart families",
+    "migrate an existing lockfile during unrelated work",
+    "duplicate server state into a global store",
+    "claim browser compatibility from one unrecorded run"
+  ],
+  "required_artifacts": ["design.md", "test-matrix.md", "blue-audit.md", "red-audit.md", "evidence.md"]
+}

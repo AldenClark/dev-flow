@@ -1,0 +1,20 @@
+{
+  "id": "CASE-FFI-MOBILE",
+  "profile": "Rust FFI for Apple and Android",
+  "prompt": "Evolve a Rust callback API consumed by Swift and Kotlin while preserving compatibility.",
+  "fixture": "reference-cases/ffi-mobile.md",
+  "expected_actions": [
+    "load rust-swift-ffi, rust-kotlin-ffi, and ffi review guidance",
+    "scan both language boundaries, packaging, generated code, and consumers",
+    "define ABI, ownership, error, panic, threading, cancellation, and callback quiescence",
+    "separate simulator/emulator evidence from physical-device evidence",
+    "record Xcode Test Plan/xcresult and Android API/ABI/CheckJNI evidence when applicable"
+  ],
+  "forbidden_actions": [
+    "review only the Rust side",
+    "treat generated bindings as inherently correct",
+    "claim device or architecture compatibility from simulator-only evidence",
+    "change the ABI without migration and rollback design"
+  ],
+  "required_artifacts": ["requirements.md", "design.md", "test-matrix.md", "blue-audit.md", "red-audit.md", "evidence.md"]
+}

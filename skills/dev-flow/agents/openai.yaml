@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dev Flow"
+  short_description: "轻量高质量的 Codex Multi-Agent V2 开发流程"
+  default_prompt: "Use $dev-flow to inspect this repository, clarify and design the requested change, implement it with controlled Multi-Agent V2 delegation, and verify the result."

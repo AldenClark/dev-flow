@@ -1,0 +1,21 @@
+{
+  "name": "dev-flow",
+  "interface": {
+    "displayName": "Dev Flow"
+  },
+  "plugins": [
+    {
+      "name": "dev-flow",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/AldenClark/dev-flow.git",
+        "ref": "v0.2.0"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

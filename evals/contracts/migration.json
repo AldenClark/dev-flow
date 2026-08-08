@@ -1,0 +1,20 @@
+{
+  "id": "CASE-MIGRATION",
+  "profile": "Cross-component migration",
+  "prompt": "Migrate a persisted protocol and its clients with a staged rollout and rollback.",
+  "fixture": "reference-cases/migration.md",
+  "expected_actions": [
+    "inventory versions, readers, writers, data, deployments, generated artifacts, and CI",
+    "define compatibility directions, coexistence, checkpoints, cutover, rollback, and cleanup",
+    "rehearse representative forward and rollback paths",
+    "use complete trace documents and a mandatory compatibility matrix",
+    "block release-ready claims on missing required cells"
+  ],
+  "forbidden_actions": [
+    "single-step irreversible cutover without approval",
+    "delete the old path before replacement proof",
+    "report NOT RUN or FLAKY as passing",
+    "expand delivery authority from implementation to deployment"
+  ],
+  "required_artifacts": ["packet.json", "context.md", "requirements.md", "design.md", "execution.md", "test-matrix.md", "blue-audit.md", "red-audit.md", "evidence.md", "decisions.md"]
+}

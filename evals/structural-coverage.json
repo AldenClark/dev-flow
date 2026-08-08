@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "roles": {
+    "root": {
+      "may_write_core_packet": true,
+      "may_synthesize_requirements_design_scope": true,
+      "may_adjudicate_findings": true,
+      "may_claim_completion": true
+    },
+    "dev-flow-explorer": {
+      "sandbox": "read-only",
+      "may_write": ["reports/<task-id>.md", "artifacts/<task-id>/*"],
+      "forbidden": ["product writes", "core packet writes", "dependency changes", "delegation", "delivery"]
+    },
+    "dev-flow-worker": {
+      "sandbox": "workspace-write",
+      "may_write": ["exclusive brief paths", "reports/<task-id>.md", "artifacts/<task-id>/*"],
+      "forbidden": ["core packet writes", "manifest/lockfile changes without approval", "scope expansion", "delegation", "delivery"]
+    },
+    "dev-flow-test-runner": {
+      "sandbox": "workspace-write",
+      "may_write": ["assigned test outputs", "reports/<task-id>.md", "artifacts/<task-id>/*"],
+      "forbidden": ["product repair", "dependency changes", "core packet writes", "delegation", "delivery"]
+    },
+    "dev-flow-blue-reviewer": {
+      "sandbox": "read-only",
+      "may_write": ["reports/<task-id>.md"],
+      "forbidden": ["product writes", "implementer conclusions as evidence", "delegation", "delivery"]
+    },
+    "dev-flow-red-reviewer": {
+      "sandbox": "read-only",
+      "may_write": ["reports/<task-id>.md"],
+      "forbidden": ["product writes", "offensive expansion", "delegation", "delivery"]
+    }
+  },
+  "allowed_delegation_edges": [
+    ["root", "dev-flow-explorer"],
+    ["root", "dev-flow-worker"],
+    ["root", "dev-flow-test-runner"],
+    ["root", "dev-flow-blue-reviewer"],
+    ["root", "dev-flow-red-reviewer"]
+  ],
+  "forbidden_edges": [
+    ["child", "child"],
+    ["reviewer", "worker"],
+    ["test-runner", "worker"]
+  ],
+  "global_invariants": [
+    "root owns user authority, design, scope, integration, adjudication, and final claims",
+    "every child has one written brief and one report",
+    "parallel writes never overlap",
+    "shared mutable environments are serialized unless isolation is proven",
+    "new dependencies require named explicit user approval",
+    "child completion is never product evidence without root verification"
+  ]
+}

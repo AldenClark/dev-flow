@@ -1,0 +1,41 @@
+# Change evidence: <change-id>
+
+## Acceptance traceability
+
+| ID | Implementation | Evidence | Status | Limitation |
+|---|---|---|---|---|
+| AC-1 | <paths and symbols> | <fresh command, test, artifact, or inspection> | PASSED | <none or exact limitation> |
+
+## Commands and results
+
+| Command | Root and environment | Time | Exit | Counts and artifacts | Fresh after final change |
+|---|---|---|---:|---|---|
+| <exact command> | <absolute root, versions, config> | <ISO-8601> | 0 | <counts and paths> | yes |
+
+## Audit summary
+
+- Static: <tool, scope, result, and artifact>
+- Blue: <blue-audit.md disposition and closed findings>
+- Red: <red-audit.md disposition and closed findings>
+
+## Test matrix summary
+
+- VO-1: <TM cells>; PASSED; <limitations or none>
+
+## Changed-file accounting
+
+- SC-D1: <path>; <why changed>
+- SC-I1: <path or none>; <effect>
+- SC-P1: <proof protected behavior did not change>
+- SC-L1: <delivery boundary observed>
+
+## Residual risks and remaining gates
+
+- <risk, owner, gate, and status; or none after explicit review>
+
+## Delivery status
+
+- Local implementation: <status>
+- Commit: <not authorized, not performed, or hash>
+- Push and PR: <not authorized, not performed, or evidence>
+- Tag, release, migration, deploy, and external messages: <separate statuses>

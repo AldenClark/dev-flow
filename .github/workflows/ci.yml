@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.11", "3.14"]
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Run behavioral tests
+        run: python -m unittest discover -s evals -v
+
+      - name: Run structural contracts
+        run: python evals/run_contract_checks.py
+
+      - name: Validate plugin repository
+        run: python skills/dev-flow/scripts/dev-flow.py check --plugin-root .
+
+      - name: Compile Python sources
+        run: python -m compileall -q hooks skills evals
+
+      - name: Confirm tests did not modify tracked files
+        run: git diff --exit-code
