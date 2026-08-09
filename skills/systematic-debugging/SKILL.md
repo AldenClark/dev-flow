@@ -5,6 +5,8 @@ description: Reproduce and diagnose incorrect behavior through competing causal 
 
 # Systematic Debugging
 
+If diagnosis reaches a missing user-owned fact or semantic boundary, remain in Default mode and follow `../requirements-design/references/user-interaction.md`.
+
 Trace the earliest incorrect state rather than patching the final symptom.
 
 ## Procedure

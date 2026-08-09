@@ -5,6 +5,8 @@ description: Independently review a frozen requirement/design/scope and final ch
 
 # Change Review
 
+Return user-owned findings to the root; any resulting checkpoint remains in Default mode and follows `../requirements-design/references/user-interaction.md`.
+
 Review intent fidelity and failure risk independently from implementation narration.
 
 ## Procedure

@@ -5,6 +5,8 @@ description: Determine whether an implemented change is verified, accepted, rele
 
 # Delivery Readiness
 
+For delivery authority or residual-risk acceptance, remain in Default mode and follow `../requirements-design/references/user-interaction.md`; discussion does not imply approval.
+
 Keep implementation, verification, acceptance, release readiness, and delivery as distinct claims.
 
 ## Procedure

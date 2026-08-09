@@ -5,6 +5,8 @@ description: Assess, scaffold, create, validate, explain, diff, promote, retire,
 
 # Manage Engineering Profiles
 
+For profile ownership, write, promotion, suppression, or waiver decisions, remain in Default mode and follow `../requirements-design/references/user-interaction.md`.
+
 Manage preference assets without turning current code frequency, installed Skills, or personal taste into unreviewed team policy.
 
 ## Procedure

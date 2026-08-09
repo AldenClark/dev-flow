@@ -22,6 +22,8 @@ Escalate when a dependency/public contract appears, scope crosses components/roo
 
 No slice closes until progress, decision/drift, scope mapping, verification, and changed-file evidence are durable.
 
+At every user-owned stop, remain in Default mode and apply `../../requirements-design/references/user-interaction.md`. Native structured input is a host adapter for bounded choices, not a collaboration-mode transition or a substitute for approval/secret channels.
+
 ## Task routing
 
 - Micro: compact trace, exact file/caller/test, no delegation; escalate on uncertainty or contract risk.

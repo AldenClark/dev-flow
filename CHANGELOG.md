@@ -15,6 +15,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Backward-compatible packet schema 1.1 plus new-product UI, protected-IA UI, and nested-instruction evaluation contracts.
 - Backward-compatible packet schema 1.2 with structured `AMB-n` semantic ambiguity records, authority-aware resolution commands, requirement revision/digest binding, and scoped late-ambiguity reopening.
 - A focused semantic clarification protocol, audit finding classification, agent role constraints, and evaluation coverage for complete designs, product requirements, short requests, sparse bug reports, and late audit ambiguity.
+- A suite-wide Default-mode user-interaction contract that prefers host-native `request_user_input` through App Server `item/tool/requestUserInput`, with capability-safe text fallback and separate approval/secret channels.
 
 ### Changed
 
@@ -23,6 +24,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Frontend guidance now separates non-visual, preserve, and material product/UX work instead of treating UI as an implementation-only profile.
 - Packet templates, agent briefs, independent review, metrics, governance records, and public usage documentation now carry instruction, collaboration, and UX evidence.
 - Requirement Ready now proves that material ambiguity has an authorized disposition and that approval matches the current requirement content; schema 1.0/1.1 retain their original validation contract.
+- Every focused Skill now preserves Default mode at user-owned checkpoints; cancellation, malformed answers, missing tool capability, and protocol lifecycle ownership have explicit non-defaulting behavior.
 
 ### Removed
 

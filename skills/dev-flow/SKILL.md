@@ -7,6 +7,8 @@ description: Orchestrate evidence-first software work across authority, packet l
 
 Act as the thin orchestration kernel. Preserve user authority and integrate versioned specialist outputs; do not become an engineering handbook or duplicate specialist manuals.
 
+If any routed work reaches a user-owned checkpoint, remain in Default mode and follow `../requirements-design/references/user-interaction.md`; never switch modes or author App Server protocol frames.
+
 ## Start
 
 1. Resolve this Skill's directory and run `python3 scripts/dev-flow.py preflight --tool-surface-confirmed`.
@@ -44,7 +46,7 @@ Activate only the owners needed by the task. A direct focused request does not r
 
 ## Orchestrate
 
-Read `references/orchestration.md` for classification, task graph, implementation loop, drift, integration, and stopping rules. Read `references/artifact-schemas.md` for the packet contract.
+Read `references/orchestration.md` for classification, task graph, implementation loop, drift, integration, and stopping rules. Read `references/artifact-schemas.md` for the packet contract. Before a material question, approval, waiver, or authority checkpoint, read `../requirements-design/references/user-interaction.md`.
 
 Before delegation, read `references/multi-agent-v2-orchestration.md`. Keep the root as sole owner of user authority, requirement/design synthesis, scope, integration, finding adjudication, and final claims. Delegate only bounded independent work with exclusive ownership and independently verify reports.
 

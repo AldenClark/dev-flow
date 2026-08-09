@@ -48,6 +48,7 @@ Authority: <authority>
 - Repository-resolvable facts: <facts Codex must investigate rather than ask the user>
 - User-owned semantics: <material behavior, contract, scope, compatibility, acceptance, or delivery decisions>
 - Clarification strategy: <highest-value one-to-three questions, recommendation, and affected AC, SC, or VO IDs>
+- Interaction route: <Default mode; native request_user_input availability, bounded-choice eligibility, fallback, and unresolved-answer behavior>
 - Late-discovery rule: <conditions that reopen the requirement baseline before affected work continues>
 
 ## Current behavior or reproduction

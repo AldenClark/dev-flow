@@ -8,6 +8,8 @@
 
 UI impact and collaboration mode are independent. Use `none`, `preserve`, or `material` for UI; material UI requires UX Ready.
 
+Interaction surface and collaboration profile are also independent. Keep every profile in Default mode and use `user-interaction.md` to route bounded choices, open discussion, approvals, secrets, unavailable tools, and cancellations.
+
 ## Requirement model
 
 Capture actor/caller, trigger/preconditions, input and trust boundary, validation, output/state transition, errors, cancellation, retry, timeout, recovery, authorization/privacy, compatibility/migration, performance/resources, observability/support, observable acceptance, and non-goals.

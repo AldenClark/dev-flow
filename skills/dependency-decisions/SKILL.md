@@ -5,6 +5,8 @@ description: Govern adding, enabling, updating, replacing, removing, vendoring, 
 
 # Dependency Decisions
 
+For named dependency approval, remain in Default mode and follow `../requirements-design/references/user-interaction.md`; an ordinary answer never replaces the host's authorization surface when one is required.
+
 Treat dependency cost and authority as part of the public engineering contract.
 
 ## Procedure

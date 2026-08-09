@@ -135,6 +135,17 @@
       "review_after": "2027-08-09"
     },
     {
+      "id": "IND-OPENAI-REQUEST-USER-INPUT",
+      "source": "https://github.com/openai/codex/blob/646f7c0a91b8e327d263335da68ae8ef212895ce/codex-rs/app-server/README.md#request_user_input",
+      "checked_at": "2026-08-09",
+      "local_problem": "Material user checkpoints need native structured interaction without changing collaboration mode or coupling a Skill to App Server lifecycle internals.",
+      "decision": "Remain in Default mode, invoke the host-exposed request_user_input tool, and let App Server and its client own item/tool/requestUserInput transport and cleanup.",
+      "adaptation": "Use the effective current-turn tool surface for capability detection, retain a concise Default-mode text fallback, preserve native approval and secure-secret channels, and record answers against semantic scope.",
+      "complexity_limit": "No raw protocol frames, lifecycle identifiers, global feature mutation, silent default on cancellation, or Plan-mode switch.",
+      "evaluation": "Structured-input route contract plus positive, unavailable-tool, free-form, approval, secret, cancellation, and invalid-answer cases.",
+      "review_after": "on Codex App Server request_user_input or Default-mode feature maturity change"
+    },
+    {
       "id": "IND-AMBIG-CODING-EVALS",
       "source": "https://arxiv.org/abs/2502.13069",
       "checked_at": "2026-08-09",

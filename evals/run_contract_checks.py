@@ -68,16 +68,50 @@ def validate_contract(path: Path, data: object, *, root: Path = ROOT) -> list[st
     return errors
 
 
+def evaluate_user_interaction_case(case: dict[str, object]) -> str:
+    kind = case.get("kind")
+    if kind == "response":
+        if case.get("question_id") != case.get("expected_question_id"):
+            return "ignored-stale-or-unknown"
+        if case.get("requirement_revision") != case.get("current_requirement_revision"):
+            return "ignored-stale-or-unknown"
+        answers = case.get("answers")
+        if not isinstance(answers, list) or len(answers) != 1:
+            return "unresolved-invalid"
+        answer = answers[0]
+        if not isinstance(answer, str) or not answer.strip():
+            return "unresolved-invalid"
+        options = case.get("options")
+        if not isinstance(options, list) or any(not isinstance(option, str) for option in options):
+            return "unresolved-invalid"
+        if answer in options:
+            return "accepted-option"
+        if case.get("other_enabled") is True:
+            return "accepted-other"
+        return "unresolved-invalid"
+    if kind == "lifecycle":
+        event = case.get("event")
+        if event in {"user-cancelled", "client-interrupted", "request-cleared"}:
+            return "unresolved-no-reprompt"
+        if event in {"tool-unavailable", "invocation-failed-before-presentation"}:
+            attempts = case.get("fallback_attempts")
+            if isinstance(attempts, int) and attempts < 1 and case.get("host_allows_plain_text") is True:
+                return "fallback-nonenumerated"
+            return "unresolved-blocked"
+    return "invalid-case"
+
+
 def main() -> int:
     errors: list[str] = []
     contracts = sorted((ROOT / "evals" / "contracts").glob("*.json"))
-    if len(contracts) < 8:
-        errors.append("at least eight representative contracts are required")
+    if len(contracts) < 9:
+        errors.append("at least nine representative contracts are required")
     required_contract_ids = {
         "CASE-FRONTEND-NEW-PRODUCT",
         "CASE-FRONTEND-PRESERVE-IA",
         "CASE-REPOSITORY-INSTRUCTIONS",
         "CASE-SEMANTIC-CLARIFICATION",
+        "CASE-STRUCTURED-USER-INPUT",
     }
     observed_contract_ids: set[str] = set()
     for path in contracts:
@@ -125,6 +159,121 @@ def main() -> int:
             if output in output_owners:
                 errors.append(f"primary output {output} has multiple owners: {output_owners[output]} and {item.get('skill')}")
             output_owners[output] = str(item.get("skill"))
+
+    interaction = json.loads((ROOT / "governance" / "user-interaction-contract.json").read_text(encoding="utf-8"))
+    if interaction.get("schema_version") != "1.0":
+        errors.append("user interaction contract schema_version must be 1.0")
+    mode_policy = interaction.get("mode_policy", {})
+    if mode_policy.get("required_mode") != "Default":
+        errors.append("user interaction must remain in Default mode")
+    if mode_policy.get("switch_to_plan_for_interaction") != "forbidden":
+        errors.append("Plan-mode switching for interaction must be forbidden")
+    host_adapter = interaction.get("host_adapter", {})
+    expected_adapter = {
+        "tool": "request_user_input",
+        "app_server_request": "item/tool/requestUserInput",
+        "raw_protocol_frames": "forbidden",
+        "feature_detection": "effective current-turn tool surface",
+        "global_config_mutation": "forbidden",
+    }
+    for field, expected in expected_adapter.items():
+        if host_adapter.get(field) != expected:
+            errors.append(f"user interaction host adapter {field} must be {expected!r}")
+    if host_adapter.get("protocol_lifecycle_owner") != "Codex App Server and client":
+        errors.append("Codex App Server and client must own request lifecycle")
+    if host_adapter.get("protocol_maturity") != "experimental":
+        errors.append("request_user_input protocol maturity must remain explicit")
+    if interaction.get("question_policy", {}).get("maximum_batch_size") != 3:
+        errors.append("structured user input must limit a batch to three questions")
+    expected_routes = {
+        "bounded-choice-native": ("available", "request_user_input", "item/tool/requestUserInput"),
+        "bounded-choice-fallback": ("unavailable-or-failed", "one focused non-enumerated Default-mode question or explicit blocker", "normal conversation"),
+        "open-ended": ("irrelevant", "normal conversation", "normal conversation"),
+        "command-or-file-approval": ("irrelevant", "host native approval surface", "host owned"),
+        "secret": ("secure-surface-dependent", "host-approved secure input including request_user_input secret mode, or stop", "host owned"),
+    }
+    observed_routes: dict[str, tuple[object, object, object]] = {}
+    for route in interaction.get("routes", []):
+        if not isinstance(route, dict) or not isinstance(route.get("id"), str):
+            errors.append("user interaction route must be an object with an id")
+            continue
+        route_id = route["id"]
+        if route_id in observed_routes:
+            errors.append(f"duplicate user interaction route {route_id}")
+        observed_routes[route_id] = (
+            route.get("tool_availability"),
+            route.get("route"),
+            route.get("transport"),
+        )
+    if observed_routes != expected_routes:
+        errors.append("user interaction routes do not match the approved capability-safe matrix")
+    response_policy = interaction.get("response_policy", {})
+    expected_response_policy = {
+        "option_answer": "accept exactly one presented non-empty option",
+        "other_answer": "accept exactly one non-empty free-form answer only when Other is enabled",
+        "unknown_question_or_stale_revision": "ignore and leave unresolved",
+        "multiple_or_conflicting_answers": "leave unresolved as invalid",
+        "cancel_or_interrupt": "leave unresolved without immediate re-prompt",
+        "empty_omitted_or_malformed": "leave unresolved",
+        "tool_unavailable_or_invocation_failed": "allow at most one focused non-enumerated Default-mode fallback when the host permits, otherwise block",
+    }
+    for field, expected in expected_response_policy.items():
+        if response_policy.get(field) != expected:
+            errors.append(f"user interaction response policy {field} must be {expected!r}")
+    if response_policy.get("fallback_attempt_limit") != 1:
+        errors.append("user interaction text fallback must be limited to one attempt")
+    if response_policy.get("silent_recommendation_default") != "forbidden":
+        errors.append("structured interaction must forbid silent recommendation defaults")
+    for field in ("validate_question_ids", "validate_answer_values", "record_semantic_scope"):
+        if response_policy.get(field) is not True:
+            errors.append(f"user interaction response policy {field} must be true")
+
+    interaction_reference = ROOT / "skills" / "requirements-design" / "references" / "user-interaction.md"
+    reference_text = interaction_reference.read_text(encoding="utf-8") if interaction_reference.is_file() else ""
+    for token in ("Default mode", "request_user_input", "item/tool/requestUserInput", "isBlocking", "isSecret", "None of these outcomes select the recommendation"):
+        if token not in reference_text:
+            errors.append(f"user interaction reference is missing {token}")
+    for skill_name in EXPECTED_SKILLS:
+        skill_text = (ROOT / "skills" / skill_name / "SKILL.md").read_text(encoding="utf-8")
+        if "user-interaction.md" not in skill_text or "Default mode" not in skill_text:
+            errors.append(f"{skill_name}: missing suite interaction invariant")
+    context_template = (ROOT / "skills" / "dev-flow" / "templates" / "context.md").read_text(encoding="utf-8")
+    if "Interaction route:" not in context_template:
+        errors.append("context template must record the selected user interaction route")
+
+    interaction_cases = json.loads((ROOT / "evals" / "user-interaction-cases.json").read_text(encoding="utf-8"))
+    if interaction_cases.get("schema_version") != "1.0":
+        errors.append("user interaction cases schema_version must be 1.0")
+    observed_case_ids: set[str] = set()
+    for case in interaction_cases.get("cases", []):
+        if not isinstance(case, dict) or not isinstance(case.get("id"), str):
+            errors.append("user interaction case must be an object with an id")
+            continue
+        case_id = case["id"]
+        if case_id in observed_case_ids:
+            errors.append(f"duplicate user interaction case {case_id}")
+        observed_case_ids.add(case_id)
+        actual = evaluate_user_interaction_case(case)
+        if actual != case.get("expected"):
+            errors.append(f"user interaction case {case_id}: expected {case.get('expected')!r}, observed {actual!r}")
+    required_case_ids = {
+        "valid-option",
+        "valid-other",
+        "outside-option-without-other",
+        "empty-answer",
+        "conflicting-answers",
+        "unknown-question",
+        "stale-revision",
+        "user-cancelled",
+        "client-interrupted",
+        "request-cleared",
+        "tool-unavailable-fallback",
+        "invocation-failed-fallback",
+        "fallback-exhausted",
+        "plain-text-disallowed",
+    }
+    if observed_case_ids != required_case_ids:
+        errors.append("user interaction response/lifecycle cases are incomplete")
 
     migration = json.loads((ROOT / "governance" / "content-migration-v1.json").read_text(encoding="utf-8"))
     if migration.get("status") != "complete" or not migration.get("records"):

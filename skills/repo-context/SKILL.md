@@ -5,6 +5,8 @@ description: Establish repository-grounded context and task-relative Engineering
 
 # Repository Context
 
+If a context gap truly requires user input, remain in Default mode and follow `../requirements-design/references/user-interaction.md`; inspect repository-resolvable facts instead of asking.
+
 Establish facts before recommendations. Keep observed facts, inference, owner decisions, preferences, and volatile ecosystem claims separate.
 
 ## Procedure

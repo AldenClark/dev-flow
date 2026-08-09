@@ -7,6 +7,8 @@ description: Resolve material requirement semantics and produce an approval-boun
 
 Own user-visible semantics and the content-bound approval baseline; do not substitute technical preference for an unresolved product choice.
 
+At every user-owned checkpoint, remain in Default mode and follow `references/user-interaction.md`; prefer the native `request_user_input` tool when the effective host surface exposes it.
+
 ## Procedure
 
 1. Consume a fresh `context.snapshot.v1`. Scan unresolved repository facts before asking questions.
@@ -18,7 +20,7 @@ Own user-visible semantics and the content-bound approval baseline; do not subst
 7. Define direct, indirect, conditional, protected, out-of-scope, and delivery scopes with stable `SC-*` IDs.
 8. Bind Requirement Ready and design approval to the current revision and digest. Reopen affected approval when late material ambiguity changes the baseline.
 
-Read `references/semantic-and-scope.md` for ambiguity ownership, collaboration modes, scope, drift, and approval rules.
+Read `references/semantic-and-scope.md` for ambiguity ownership, collaboration modes, scope, drift, and approval rules. Read `references/user-interaction.md` before asking a material question or requesting approval.
 
 ## Output contract
 

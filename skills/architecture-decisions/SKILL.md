@@ -5,6 +5,8 @@ description: Make repository-grounded, language-native architecture and implemen
 
 # Architecture Decisions
 
+If architecture evidence exposes a user-owned semantic choice, return it to the root in Default mode and follow `../requirements-design/references/user-interaction.md`.
+
 Choose the smallest coherent architecture that satisfies the approved requirement and repository contracts.
 
 ## Procedure

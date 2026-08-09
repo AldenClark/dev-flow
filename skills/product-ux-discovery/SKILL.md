@@ -5,6 +5,8 @@ description: Establish product intent, information architecture, user flows, sta
 
 # Product and UX Discovery
 
+For product questions or UX Ready, remain in Default mode and follow `../requirements-design/references/user-interaction.md`; use native structured input only for faithful bounded choices.
+
 Establish what the interface must preserve or change before implementation details anchor the result.
 
 ## Procedure

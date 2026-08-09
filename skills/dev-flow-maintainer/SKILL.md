@@ -5,6 +5,8 @@ description: Explicit-only maintenance of the public Dev Flow Skill suite, inclu
 
 # Dev Flow Maintainer
 
+For public-contract or breaking-migration decisions, remain in Default mode and follow `../requirements-design/references/user-interaction.md`.
+
 Maintain the suite as a versioned product with measurable trigger, context, safety, and compatibility behavior.
 
 ## Procedure

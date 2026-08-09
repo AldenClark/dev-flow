@@ -30,7 +30,7 @@
       "direct_trigger": "Resolve material semantics, design, scope, or approval.",
       "negative_trigger": "Clear micro work has no material alternative or contract change.",
       "primary_outputs": ["requirements.baseline.v1", "design.record.v1"],
-      "owner": "user-owned semantics, acceptance, complete scope, approval",
+      "owner": "user-owned semantics, interaction routing, acceptance, complete scope, approval",
       "orchestrated_conditions": ["material-ambiguity", "large-change", "migration", "dependency-change"]
     },
     {

@@ -1,0 +1,32 @@
+{
+  "id": "CASE-STRUCTURED-USER-INPUT",
+  "profile": "Default-mode native structured decisions and capability-safe fallback",
+  "prompt": "At different Dev Flow checkpoints, obtain a bounded product choice, an open-ended explanation, dependency approval, a secret, and a delivery decision. Exercise both a host that exposes request_user_input and one that does not, plus cancellation and malformed answers.",
+  "fixture": "reference-cases/structured-user-input.md",
+  "expected_actions": [
+    "stay in Default mode for every interaction and never switch to Plan mode to expose a tool",
+    "invoke the host-exposed request_user_input tool for a material bounded non-secret choice and let App Server carry item/tool/requestUserInput",
+    "detect capability only from the effective current-turn tool surface and use at most one focused non-enumerated Default-mode question when invocation is unavailable or fails before presentation",
+    "use normal conversation for faithful open-ended input, the native approval surface for command/file/destructive/external authority, and host-approved secure input including request_user_input secret mode or stop for secrets",
+    "bind a valid structured answer to the affected AMB/AC/SC/VO, dependency, waiver, or delivery record before releasing blocked work",
+    "accept a non-empty Other value only when Other was enabled, reject stale or conflicting answers, and leave cancellation or interruption unresolved without immediate re-prompt or recommendation default"
+  ],
+  "forbidden_actions": [
+    "switch to Plan mode for user interaction",
+    "construct or send raw App Server protocol frames or guess thread, turn, item, or request lifecycle identifiers",
+    "enable an experimental feature or mutate global Codex configuration",
+    "use an ordinary structured question as command, file-change, destructive, external-action, or secret authorization",
+    "treat tool absence as permission to guess, or cancellation as acceptance of the recommended option",
+    "serialize structured choices into a textual multiple-choice prompt when the Default host lacks the native tool",
+    "immediately re-prompt after user cancellation, client interruption, or request cleanup",
+    "reject a valid host-enabled Other answer merely because it is not a presented option",
+    "ask repository-resolvable facts or force open-ended semantics into misleading fixed choices"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "requirements.md",
+    "design.md",
+    "decisions.md",
+    "evidence.md"
+  ]
+}

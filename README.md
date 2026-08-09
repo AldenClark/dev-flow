@@ -27,6 +27,7 @@ Dev Flow 是一套面向 Codex 的中立、可组合、证据驱动工程工作�
 - 以 T0-T3 Engineering Context Readiness 检查当前任务真正需要的上下文，而不是按文件存在性评分；
 - 以 EQAC 优先使用编译器、类型检查、lint、测试、CI 等原生控制，再按当前宿主准入最小化路由专业 Skills；
 - 缺少个人 Profile、`AGENTS.md` 或某个具名 Skill 不会单独构成阻断，也不会触发自动安装。
+- 所有用户交互始终留在 Default mode；适合的封闭选择优先调用宿主原生 `request_user_input`，由 App Server 承载 `item/tool/requestUserInput`，不会为提问切换 Plan mode 或自行拼装协议帧。
 
 ## 运行要求
 
@@ -109,6 +110,14 @@ python3 skills/manage-engineering-profiles/scripts/profile-tool.py \
 ```
 
 Profile 工具默认只输出 review-first 提案；明确审核后才添加 `--write`。它不会自动创建团队规则、安装专业 Skill 或修改依赖。
+
+### 用户确认与结构化输入
+
+Dev Flow 把“为什么要问”和“如何展示问题”分开：只有仓库调查后仍然存在、且会改变行为、契约、依赖、兼容性、范围、风险、验收或权限的用户自有决策，才进入确认流程。对一至三个能够准确表达为封闭选项的非秘密决策，当前 Default-mode 宿主若暴露 `request_user_input`，就调用该原生工具；App Server/客户端负责 `item/tool/requestUserInput` 的线程、轮次、item、阻塞、响应关联、渲染和清理生命周期。
+
+Skill 不直接发送 App Server 帧，也不根据版本号、已安装能力或记忆推断工具可用，更不会自动修改全局 Codex feature 配置。当前 turn 没有暴露该工具、或在展示前调用失败时，流程保持 Default mode；若宿主允许，只退化为一次聚焦的非枚举文字问题，否则明确报告阻断，不把多选框伪装成文字选项。开放式说明继续使用普通对话；命令、文件变更、破坏性或外部动作使用宿主原生批准界面；秘密只通过宿主认可的安全输入通道收集，否则停止请求。
+
+合法回答是一个已展示的非空选项，或在该问题启用 Other 时的一条非空补充；未知问题、空值、多值冲突、未启用 Other 的越界值和过期修订回答都无效。取消、清理、中断、漏答或无效回答保持“未决”，不立即换通道重问，也绝不会自动采用推荐项；只有新的用户意图或明确重试才重新发问。有效回答会回写受影响的 `AMB/AC/SC/VO`、依赖、豁免或交付记录及需求修订/摘要。App Server 当前仍把这项协议标记为 experimental，因此实时原生交互和静态契约验证会分开报告。
 
 CLI 初始化也支持显式分类：
 

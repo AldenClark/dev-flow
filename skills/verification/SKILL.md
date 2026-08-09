@@ -5,6 +5,8 @@ description: Derive risk-based verification obligations, select and execute repo
 
 # Verification
 
+If an environment choice, waiver, or manual user action is required, remain in Default mode and follow `../requirements-design/references/user-interaction.md`.
+
 Prove observable behavior and risk with the smallest sufficient fresh evidence set.
 
 ## Procedure
