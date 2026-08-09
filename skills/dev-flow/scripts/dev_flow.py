@@ -18,7 +18,11 @@ from typing import Any, Iterable
 
 
 MIN_CODEX = (0, 147, 0)
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
+SUPPORTED_SCHEMA_VERSIONS = {"1.0", "1.1"}
+COLLABORATION_PROFILES = {"execute", "checkpointed", "co-design"}
+UI_IMPACTS = {"none", "preserve", "material"}
+READINESS_APPROVAL_IDS = {"requirements": "REQ-READY", "ux": "UX-READY"}
 STATES = {
     "discovering",
     "awaiting-approval",
@@ -138,6 +142,18 @@ FULL_HEADINGS = {
         "Superseded decisions",
     ),
 }
+SCHEMA_1_1_HEADINGS = {
+    "context.md": (
+        "Instruction and convention ledger",
+        "Collaboration and readiness",
+    ),
+    "requirements.md": (
+        "User and product outcome",
+        "Requirement Ready gate",
+    ),
+    "design.md": ("Product and UX contract",),
+    "evidence.md": ("Instruction, collaboration, and UX evidence",),
+}
 MICRO_HEADINGS = (
     "Authority and repository facts",
     "Requirement and design",
@@ -153,6 +169,7 @@ ID_PATTERNS = {
     "scope": re.compile(r"\bSC-[DICPOL]\d+\b"),
     "verification": re.compile(r"\bVO-\d+\b"),
     "dependency": re.compile(r"\bDEP-\d+\b"),
+    "instruction": re.compile(r"\bINS-\d+\b"),
 }
 STATUS_WORDS = {"PASSED", "FAILED", "FLAKY", "BLOCKED", "NOT RUN", "WAIVED"}
 VERSION_RE = re.compile(r"(?:codex-cli\s+)?(\d+)\.(\d+)\.(\d+)(?:[-+][^\s]+)?")
@@ -166,6 +183,61 @@ def utc_now() -> str:
 def emit(payload: dict[str, Any], code: int = 0) -> int:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     return code
+
+
+def concrete_readiness_records(approvals: Any, kind: str) -> list[dict[str, Any]]:
+    if not isinstance(approvals, dict):
+        return []
+    records = approvals.get(kind, [])
+    if not isinstance(records, list):
+        return []
+    expected_id = READINESS_APPROVAL_IDS[kind]
+    concrete: list[dict[str, Any]] = []
+    for record in records:
+        if not isinstance(record, dict) or record.get("id") != expected_id:
+            continue
+        if (
+            all(isinstance(record.get(field), str) and record[field].strip() for field in ("by", "note"))
+            and parsed_timestamp(record.get("at")) is not None
+        ):
+            concrete.append(record)
+    return concrete
+
+
+def concrete_design_record(approvals: Any) -> dict[str, Any] | None:
+    if not isinstance(approvals, dict):
+        return None
+    record = approvals.get("design")
+    if not isinstance(record, dict):
+        return None
+    if (
+        all(isinstance(record.get(field), str) and record[field].strip() for field in ("by", "note"))
+        and parsed_timestamp(record.get("at")) is not None
+    ):
+        return record
+    return None
+
+
+def parsed_timestamp(value: Any) -> dt.datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else None
+
+
+def history_times(metadata: dict[str, Any], target_state: str) -> list[dt.datetime]:
+    history = metadata.get("history", [])
+    if not isinstance(history, list):
+        return []
+    values = [
+        parsed_timestamp(event.get("at"))
+        for event in history
+        if isinstance(event, dict) and event.get("to") == target_state
+    ]
+    return [value for value in values if value is not None]
 
 
 def skill_root() -> Path:
@@ -322,6 +394,14 @@ def init_packet(args: argparse.Namespace) -> int:
 
     now = utc_now()
     profile = "micro" if args.task_type == "micro" else "full"
+    collaboration_profile = args.collaboration_profile
+    if collaboration_profile is None:
+        if args.ui_impact == "material":
+            collaboration_profile = "co-design"
+        elif profile == "micro":
+            collaboration_profile = "execute"
+        else:
+            collaboration_profile = "checkpointed"
     metadata: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "skill_version": plugin_version(),
@@ -334,13 +414,22 @@ def init_packet(args: argparse.Namespace) -> int:
         "repository_roots": [str(root)],
         "base_git_state": git_state(root),
         "authority": args.authority,
+        "collaboration_profile": collaboration_profile,
+        "ui_impact": args.ui_impact,
         "compatibility_required": args.compatibility_required,
         "risk_modifiers": args.risk,
         "acceptance_ids": [],
         "scope_ids": [],
         "verification_ids": [],
         "dependency_changes": [],
-        "approvals": {"design": None, "dependencies": [], "waivers": [], "delivery": []},
+        "approvals": {
+            "requirements": [],
+            "ux": [],
+            "design": None,
+            "dependencies": [],
+            "waivers": [],
+            "delivery": [],
+        },
         "history": [{"from": None, "to": "discovering", "at": now, "note": "packet created"}],
     }
     write_json(packet / "packet.json", metadata)
@@ -355,6 +444,8 @@ def init_packet(args: argparse.Namespace) -> int:
         "compatibility": "yes" if args.compatibility_required else "no",
         "profiles": ", ".join(args.profile) if args.profile else "to be established from repository evidence",
         "risk-modifiers": ", ".join(args.risk) if args.risk else "none observed during initial classification",
+        "collaboration-profile": collaboration_profile,
+        "ui-impact": args.ui_impact,
     }
     templates = skill_root() / "templates"
     filenames = ("micro-trace.md",) if profile == "micro" else FULL_FILES
@@ -382,6 +473,8 @@ def load_packet(packet: Path) -> tuple[dict[str, Any], list[str]]:
         metadata = read_json(metadata_path)
     except (OSError, json.JSONDecodeError) as exc:
         return {}, [f"invalid packet.json: {exc}"]
+    if not isinstance(metadata, dict):
+        return {}, ["invalid packet.json: top-level value must be an object"]
     return metadata, errors
 
 
@@ -392,16 +485,54 @@ def transition_packet(args: argparse.Namespace) -> int:
         return emit({"status": "invalid", "errors": errors}, 2)
     old = metadata.get("state")
     new = args.state
+    now = utc_now()
+    transition_at = parsed_timestamp(now)
+    assert transition_at is not None
     if old not in STATES or new not in TRANSITIONS.get(str(old), set()):
         return emit({"status": "invalid-transition", "from": old, "to": new}, 2)
     if new == "approved" and not args.approved_by:
         return emit({"status": "invalid", "errors": ["--approved-by is required for approved state"]}, 2)
+    if new == "approved" and metadata.get("schema_version") == "1.1":
+        approvals = metadata.get("approvals", {})
+        collaboration_profile = metadata.get("collaboration_profile")
+        ui_impact = metadata.get("ui_impact")
+        if not isinstance(approvals, dict):
+            return emit({"status": "invalid", "errors": ["approvals must be an object"]}, 2)
+        if not args.approved_by.strip() or not args.note.strip():
+            return emit({"status": "invalid", "errors": ["design approval requires non-empty actor and note"]}, 2)
+        if collaboration_profile not in COLLABORATION_PROFILES:
+            return emit(
+                {"status": "invalid", "errors": [f"invalid collaboration_profile {collaboration_profile!r}"]},
+                2,
+            )
+        if ui_impact not in UI_IMPACTS:
+            return emit({"status": "invalid", "errors": [f"invalid ui_impact {ui_impact!r}"]}, 2)
+        awaiting_times = history_times(metadata, "awaiting-approval")
+        if not awaiting_times:
+            return emit({"status": "invalid", "errors": ["approval requires an awaiting-approval history event"]}, 2)
+        awaiting_at = max(awaiting_times)
+        requirement_records = concrete_readiness_records(approvals, "requirements")
+        ux_records = concrete_readiness_records(approvals, "ux")
+        if collaboration_profile != "execute" and not any(
+            parsed_timestamp(record.get("at")) is not None
+            and awaiting_at <= parsed_timestamp(record.get("at")) <= transition_at
+            for record in requirement_records
+        ):
+            return emit(
+                {"status": "invalid", "errors": ["checkpointed and co-design work require Requirement Ready approval"]},
+                2,
+            )
+        if ui_impact == "material" and not any(
+            parsed_timestamp(record.get("at")) is not None
+            and awaiting_at <= parsed_timestamp(record.get("at")) <= transition_at
+            for record in ux_records
+        ):
+            return emit({"status": "invalid", "errors": ["material UI work requires UX Ready approval"]}, 2)
     if new == "accepted":
         report, code = validate_packet_data(packet, state_override="accepted")
         if code:
             report["status"] = "acceptance-blocked"
             return emit(report, 2)
-    now = utc_now()
     metadata["state"] = new
     metadata["updated_at"] = now
     metadata.setdefault("history", []).append({"from": old, "to": new, "at": now, "note": args.note})
@@ -420,9 +551,27 @@ def record_approval(args: argparse.Namespace) -> int:
     metadata, errors = load_packet(packet)
     if errors:
         return emit({"status": "invalid", "errors": errors}, 2)
+    if any(not value.strip() for value in (args.id, args.by, args.note)):
+        return emit({"status": "invalid", "errors": ["approval id, actor, and note must be non-empty"]}, 2)
+    if args.kind in READINESS_APPROVAL_IDS:
+        expected_id = READINESS_APPROVAL_IDS[args.kind]
+        if metadata.get("schema_version") != "1.1":
+            return emit({"status": "invalid", "errors": ["readiness approvals require schema 1.1"]}, 2)
+        if args.id != expected_id:
+            return emit({"status": "invalid", "errors": [f"{args.kind} approval id must be {expected_id}"]}, 2)
+        if metadata.get("state") != "awaiting-approval":
+            return emit(
+                {"status": "invalid", "errors": ["readiness approvals may only be recorded while awaiting approval"]},
+                2,
+            )
     record = {"id": args.id, "by": args.by, "at": utc_now(), "note": args.note}
     approvals = metadata.setdefault("approvals", {})
-    approvals.setdefault(args.kind, []).append(record)
+    if not isinstance(approvals, dict):
+        return emit({"status": "invalid", "errors": ["approvals must be an object"]}, 2)
+    records = approvals.setdefault(args.kind, [])
+    if not isinstance(records, list):
+        return emit({"status": "invalid", "errors": [f"approvals.{args.kind} must be a list"]}, 2)
+    records.append(record)
     if args.kind == "dependencies" and args.id not in metadata.setdefault("dependency_changes", []):
         metadata["dependency_changes"].append(args.id)
     metadata["updated_at"] = record["at"]
@@ -476,7 +625,8 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
         value = metadata.get(field)
         if value in (None, "", [], {}):
             errors.append(f"packet.json: missing concrete `{field}`")
-    if metadata.get("schema_version") != SCHEMA_VERSION:
+    schema_version = metadata.get("schema_version")
+    if schema_version not in SUPPORTED_SCHEMA_VERSIONS:
         errors.append(f"packet.json: unsupported schema_version {metadata.get('schema_version')!r}")
     if metadata.get("state") not in STATES:
         errors.append(f"packet.json: invalid state {metadata.get('state')!r}")
@@ -484,6 +634,13 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
         errors.append(f"packet.json: invalid task_type {metadata.get('task_type')!r}")
     if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{2,80}", str(metadata.get("change_id", ""))):
         errors.append("packet.json: invalid change_id")
+    if schema_version == "1.1":
+        collaboration_profile = metadata.get("collaboration_profile")
+        ui_impact = metadata.get("ui_impact")
+        if collaboration_profile not in COLLABORATION_PROFILES:
+            errors.append(f"packet.json: invalid collaboration_profile {collaboration_profile!r}")
+        if ui_impact not in UI_IMPACTS:
+            errors.append(f"packet.json: invalid ui_impact {ui_impact!r}")
 
     profile = metadata.get("documentation_profile")
     texts: dict[str, str] = {}
@@ -510,10 +667,36 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                 error = placeholder_error(filename, heading, heading_body(text, heading))
                 if error:
                     errors.append(error)
+            if schema_version == "1.1":
+                for heading in SCHEMA_1_1_HEADINGS.get(filename, ()):
+                    error = placeholder_error(filename, heading, heading_body(text, heading))
+                    if error:
+                        errors.append(error)
     else:
         errors.append(f"packet.json: invalid documentation_profile {profile!r}")
 
     all_text = "\n".join(texts.values())
+    if schema_version == "1.1":
+        if profile == "full":
+            context_instructions = ids(texts.get("context.md", ""), "instruction")
+            if not context_instructions:
+                errors.append("context.md: schema 1.1 requires at least one INS-n instruction record")
+            for filename in (
+                "design.md",
+                "execution.md",
+                "test-matrix.md",
+                "blue-audit.md",
+                "red-audit.md",
+                "evidence.md",
+            ):
+                downstream_instructions = ids(texts.get(filename, ""), "instruction")
+                if context_instructions != downstream_instructions:
+                    errors.append(
+                        f"schema 1.1 instruction IDs must match between context.md and {filename}; "
+                        f"context={sorted(context_instructions)}, downstream={sorted(downstream_instructions)}"
+                    )
+        elif profile == "micro" and not ids(all_text, "instruction"):
+            errors.append("trace.md: schema 1.1 requires at least one INS-n instruction record")
     required_dirs = ("briefs", "reports", "artifacts")
     for dirname in required_dirs:
         if not (packet / dirname).is_dir():
@@ -554,15 +737,79 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
             if obligation not in evidence:
                 errors.append(f"{obligation} is missing from evidence.md")
 
-    approvals = metadata.get("approvals", {})
+    approvals_value = metadata.get("approvals", {})
+    if not isinstance(approvals_value, dict):
+        errors.append("packet.json: `approvals` must be an object")
+        approvals: dict[str, Any] = {}
+    else:
+        approvals = approvals_value
+    if schema_version == "1.1":
+        for kind, expected_id in READINESS_APPROVAL_IDS.items():
+            records = approvals.get(kind, [])
+            if not isinstance(records, list):
+                errors.append(f"packet.json: `approvals.{kind}` must be a list")
+                continue
+            for record in records:
+                if not isinstance(record, dict):
+                    errors.append(f"packet.json: `approvals.{kind}` records must be objects")
+                    continue
+                if record.get("id") != expected_id:
+                    errors.append(f"packet.json: `approvals.{kind}` record id must be {expected_id}")
+                for field in ("by", "at", "note"):
+                    if not isinstance(record.get(field), str) or not record[field].strip():
+                        errors.append(f"packet.json: `approvals.{kind}` record requires non-empty {field}")
+                if parsed_timestamp(record.get("at")) is None:
+                    errors.append(f"packet.json: `approvals.{kind}` record requires a timezone-aware timestamp")
     dependency_ids = set(metadata.get("dependency_changes", []))
-    approved_dependency_ids = {item.get("id") for item in approvals.get("dependencies", []) if isinstance(item, dict)}
+    dependency_approvals = approvals.get("dependencies", [])
+    if not isinstance(dependency_approvals, list):
+        errors.append("packet.json: `approvals.dependencies` must be a list")
+        dependency_approvals = []
+    approved_dependency_ids = {item.get("id") for item in dependency_approvals if isinstance(item, dict)}
     if dependency_ids - approved_dependency_ids:
         errors.append(f"unapproved dependency changes: {sorted(dependency_ids - approved_dependency_ids)}")
 
     state = state_override or metadata.get("state")
-    if state in {"approved", "implementing", "verifying", "accepted", "archived"} and not approvals.get("design"):
-        errors.append(f"state {state} requires a design approval record")
+    if state in {"approved", "implementing", "verifying", "accepted", "archived"}:
+        if schema_version == "1.1" and concrete_design_record(approvals) is None:
+            errors.append(f"state {state} requires a concrete design approval record")
+        elif schema_version != "1.1" and not approvals.get("design"):
+            errors.append(f"state {state} requires a design approval record")
+    if schema_version == "1.1" and state in {"approved", "implementing", "verifying", "accepted", "archived"}:
+        requirement_records = concrete_readiness_records(approvals, "requirements")
+        ux_records = concrete_readiness_records(approvals, "ux")
+        if metadata.get("collaboration_profile") != "execute" and not requirement_records:
+            errors.append(f"state {state} requires Requirement Ready approval for checkpointed or co-design work")
+        if metadata.get("ui_impact") == "material" and not ux_records:
+            errors.append(f"state {state} requires UX Ready approval for material UI work")
+        approved_times = history_times(metadata, "approved")
+        awaiting_times = history_times(metadata, "awaiting-approval")
+        if not approved_times:
+            errors.append(f"state {state} requires an approved transition in history")
+        elif not awaiting_times:
+            errors.append(f"state {state} requires an awaiting-approval transition in history")
+        else:
+            approved_at = max(approved_times)
+            eligible_awaiting = [value for value in awaiting_times if value <= approved_at]
+            if not eligible_awaiting:
+                errors.append("approved transition requires an earlier awaiting-approval transition")
+                awaiting_at = None
+            else:
+                awaiting_at = max(eligible_awaiting)
+            required_records = []
+            if metadata.get("collaboration_profile") != "execute":
+                required_records.append(("Requirement Ready", requirement_records))
+            if metadata.get("ui_impact") == "material":
+                required_records.append(("UX Ready", ux_records))
+            for kind, records in required_records:
+                valid_times = [parsed_timestamp(record.get("at")) for record in records]
+                valid_times = [value for value in valid_times if value is not None]
+                if not valid_times:
+                    continue
+                if awaiting_at is not None and not any(awaiting_at <= value <= approved_at for value in valid_times):
+                    errors.append(f"{kind} approval must follow awaiting approval and predate the approved transition")
+                if any(value > approved_at for value in valid_times):
+                    errors.append(f"{kind} approval cannot be recorded after the approved transition")
     if state in {"accepted", "archived"}:
         if not declared["acceptance"] or not declared["scope"] or not declared["verification"]:
             errors.append("accepted packet requires non-empty acceptance, scope, and verification ID sets")
@@ -1007,6 +1254,8 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--authority", default="local edits and tests only")
     init.add_argument("--profile", action="append", default=[])
     init.add_argument("--risk", action="append", default=[])
+    init.add_argument("--collaboration-profile", choices=sorted(COLLABORATION_PROFILES))
+    init.add_argument("--ui-impact", choices=sorted(UI_IMPACTS), default="none")
     init.add_argument("--compatibility-required", action="store_true")
     init.add_argument("--reuse", action="store_true")
     init.set_defaults(func=init_packet)
@@ -1024,7 +1273,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     approval = sub.add_parser("record-approval")
     approval.add_argument("packet", type=Path)
-    approval.add_argument("kind", choices=("dependencies", "waivers", "delivery"))
+    approval.add_argument("kind", choices=("requirements", "ux", "dependencies", "waivers", "delivery"))
     approval.add_argument("--id", required=True)
     approval.add_argument("--by", required=True)
     approval.add_argument("--note", required=True)

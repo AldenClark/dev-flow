@@ -1,0 +1,20 @@
+{
+  "id": "CASE-FRONTEND-NEW-PRODUCT",
+  "profile": "New user-facing frontend without supplied design assets",
+  "prompt": "Build a new administration frontend from a broad product request. No UI design or brand assets were supplied.",
+  "fixture": "reference-cases/frontend-new-product.md",
+  "expected_actions": [
+    "classify the UI impact as material and select co-design unless the user chooses another safe profile",
+    "discover target users, tasks, product constraints, available assets, platform and viewport needs before production code",
+    "offer a repository-backed recommended design direction and meaningful alternatives instead of asking for abstract style vocabulary",
+    "model primary, loading, empty, partial, error, permission, destructive, recovery, responsive, keyboard, focus, and accessibility states",
+    "choose the lightest useful design artifact and record UX Ready approval before production implementation"
+  ],
+  "forbidden_actions": [
+    "start production UI implementation before UX Ready",
+    "force Figma or a high-fidelity prototype without a demonstrated need",
+    "invent product features, information architecture, or workflows to make the design look richer",
+    "treat one happy-path mockup as an implementation-ready UX contract"
+  ],
+  "required_artifacts": ["context.md", "requirements.md", "design.md", "decisions.md", "test-matrix.md", "evidence.md"]
+}

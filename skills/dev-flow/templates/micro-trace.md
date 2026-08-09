@@ -5,7 +5,8 @@
 - Objective: <objective>
 - Authority: <authority>
 - Root and base state: <repository-roots>; <base-git-state>
-- Evidence: <exact file, caller, test, and repository instruction inspected>
+- Collaboration and UI impact: <collaboration-profile>; <ui-impact>
+- Evidence: <exact file, caller, test, scoped INS IDs, and repository instruction inspected>
 
 ## Requirement and design
 

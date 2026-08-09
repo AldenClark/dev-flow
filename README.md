@@ -10,6 +10,9 @@ Dev Flow 是一套面向 Codex Multi-Agent V2 的轻量开发流程插件。它�
 ## 核心能力
 
 - 在需求和方案前扫描真实代码、运行时事实与 Git 边界；
+- 按真实 Git 根和待修改路径解析本地规范、嵌套指令、Skills、机器配置与 CI，并把有效规则映射到实现和证据；
+- 以 `execute`、`checkpointed`、`co-design` 三种协作模式控制需求、设计、漂移与验收检查点；
+- 将 UI 工作分为 `none`、`preserve`、`material`，只对重大产品/UI 变化强制 UX Ready，避免无差别设计仪式；
 - 明确记录需求、验收标准、设计、改动范围、进度、决策、测试和审计；
 - 按微小修改、日常需求、Bug 修复、大型功能、重构、迁移、安全与性能任务调整流程重量；
 - 按 Rust 后端、Web、Apple/Android/Windows 客户端、FFI、CLI/TUI 等项目形态组织验证；
@@ -75,7 +78,28 @@ python3 skills/dev-flow/scripts/dev-flow.py uninstall-runtime
 
 ## 使用方式
 
-在 Codex 中调用 `$dev-flow`，并描述目标、允许的交付范围以及兼容性要求。涉及技术选型时，流程会配合 `$engineering-preferences` 使用。
+在 Codex 中调用 `$dev-flow`，并描述目标、允许的交付范围以及兼容性要求。涉及技术选型时，流程会配合 `$engineering-preferences` 使用。流程会先建立适用规范账本，再根据风险选择协作模式；用户可显式覆盖默认模式。
+
+CLI 初始化也支持显式分类：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py init-packet \
+  --root "$PWD" --change-id console-redesign --task-type large-feature \
+  --objective "Redesign the primary console workflow" \
+  --collaboration-profile co-design --ui-impact material
+```
+
+新工作包使用向后兼容的 schema 1.1。`checkpointed`/`co-design` 在批准前记录 Requirement Ready；`material` UI 还记录 UX Ready：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py record-approval \
+  .codex/dev-flow/console-redesign requirements \
+  --id REQ-READY --by user --note "requirements approved"
+
+python3 skills/dev-flow/scripts/dev-flow.py record-approval \
+  .codex/dev-flow/console-redesign ux \
+  --id UX-READY --by user --note "product and UX direction approved"
+```
 
 非微型任务会在目标仓库建立：
 

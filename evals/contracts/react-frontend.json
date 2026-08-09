@@ -4,7 +4,8 @@
   "prompt": "Add a server-driven operations table and one required chart to an existing console.",
   "fixture": "reference-cases/react-frontend.md",
   "expected_actions": [
-    "scan routes, query ownership, design system, package manager, and existing tests",
+    "scan routes, query ownership, current rendered UI, design system, package manager, and existing tests",
+    "classify the bounded extension as preserve UI impact and record existing product and flow constraints",
     "use TanStack Table v9 by default when compatible",
     "compare the two preferred chart families and select only one after approval if new",
     "model loading, empty, error, permission, keyboard, focus, and responsive behavior",
@@ -14,7 +15,8 @@
     "introduce both chart families",
     "migrate an existing lockfile during unrelated work",
     "duplicate server state into a global store",
-    "claim browser compatibility from one unrecorded run"
+    "claim browser compatibility from one unrecorded run",
+    "change information architecture or interaction flows as incidental table or chart cleanup"
   ],
   "required_artifacts": ["design.md", "test-matrix.md", "blue-audit.md", "red-audit.md", "evidence.md"]
 }

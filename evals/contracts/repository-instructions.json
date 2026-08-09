@@ -1,0 +1,20 @@
+{
+  "id": "CASE-REPOSITORY-INSTRUCTIONS",
+  "profile": "Nested multi-root repository instructions and machine-contract conflicts",
+  "prompt": "Change files across two nested project scopes whose AGENTS files, contribution guide, formatter, CI, and nearby code do not fully agree.",
+  "fixture": "reference-cases/repository-instructions.md",
+  "expected_actions": [
+    "establish every real Git root and resolve the scoped instruction chain for each prospective touched path",
+    "inspect task-relevant project guidance, local Skills, executable formatter/linter/toolchain configuration, CI, and nearby analogues",
+    "record concise INS IDs with source, scope, authority, downstream effect, conflict, freshness, and final evidence",
+    "surface material document/config/runtime conflicts with evidence and a recommendation instead of silently guessing",
+    "map applicable instructions into requirements, design, task briefs, tests, blue review, and acceptance evidence"
+  ],
+  "forbidden_actions": [
+    "assume the top-level directory or first AGENTS file governs every nested repository",
+    "load every Markdown file or installed Skill without a task-specific reason",
+    "claim conformance merely because instruction files were listed",
+    "allow a repository instruction to widen dependency, destructive, external, or delivery authority"
+  ],
+  "required_artifacts": ["context.md", "requirements.md", "design.md", "execution.md", "blue-audit.md", "evidence.md", "decisions.md"]
+}

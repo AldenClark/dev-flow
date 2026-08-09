@@ -6,6 +6,12 @@
 |---|---|---|---|---|
 | AC-1 | <paths and symbols> | <fresh command, test, artifact, or inspection> | PASSED | <none or exact limitation> |
 
+## Instruction, collaboration, and UX evidence
+
+- Instructions: <INS IDs mapped to final diff, commands, inspections, exceptions, and conflicts>
+- Collaboration: <profile, Requirement Ready/design checkpoints, corrections, and drift decisions>
+- UX: <UI impact, protected product constraints, UX Ready approval, rendered evidence, or not applicable with rationale>
+
 ## Commands and results
 
 | Command | Root and environment | Time | Exit | Counts and artifacts | Fresh after final change |

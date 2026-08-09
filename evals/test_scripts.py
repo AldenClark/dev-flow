@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import runpy
 import subprocess
 import sys
 import tempfile
@@ -48,6 +49,11 @@ def write_valid_packet(
     packet: Path,
     *,
     state: str = "verifying",
+    schema_version: str = "1.0",
+    collaboration_profile: str = "checkpointed",
+    ui_impact: str = "none",
+    requirement_approved: bool = True,
+    ux_approved: bool = True,
     dependency_approved: bool = True,
     matrix_status: str = "PASSED",
     matrix_attempts: int = 1,
@@ -56,7 +62,7 @@ def write_valid_packet(
         (packet / folder).mkdir(parents=True, exist_ok=True)
     now = "2026-08-08T00:00:00+00:00"
     metadata = {
-        "schema_version": "1.0",
+        "schema_version": schema_version,
         "skill_version": "0.2.0",
         "change_id": "sample-change",
         "state": state,
@@ -81,6 +87,27 @@ def write_valid_packet(
         },
         "history": [{"from": None, "to": "discovering", "at": now, "note": "created"}]
     }
+    if schema_version == "1.1":
+        metadata["collaboration_profile"] = collaboration_profile
+        metadata["ui_impact"] = ui_impact
+        metadata["approvals"]["requirements"] = (
+            [{"id": "REQ-READY", "by": "user", "at": now, "note": "approved"}]
+            if requirement_approved
+            else []
+        )
+        metadata["approvals"]["ux"] = (
+            [{"id": "UX-READY", "by": "user", "at": now, "note": "approved"}]
+            if ux_approved
+            else []
+        )
+        if state in {"awaiting-approval", "approved", "implementing", "verifying", "accepted", "archived"}:
+            metadata["history"].append(
+                {"from": "discovering", "to": "awaiting-approval", "at": now, "note": "ready for approval"}
+            )
+        if state in {"approved", "implementing", "verifying", "accepted", "archived"}:
+            metadata["history"].append(
+                {"from": "awaiting-approval", "to": "approved", "at": now, "note": "approved"}
+            )
     (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     docs = {
         "context.md": section_document("Change context: sample-change", {
@@ -109,7 +136,7 @@ def write_valid_packet(
             "Approval record": "The user approved the design, dependency decision, and local-only delivery scope."
         }),
         "execution.md": section_document("Change execution: sample-change", {
-            "Task graph": "T1 maps AC-1 and SC-D1 to VO-1 and is complete under root ownership.",
+            "Task graph": "T1 maps INS-1, AC-1, and SC-D1 to VO-1 and is complete under root ownership.",
             "Progress ledger": "E1 recorded discovery; E2 recorded approval; E3 recorded implementation; E4 recorded final verification.",
             "Agent ledger": "The root performed the bounded task without child delegation.",
             "Decisions and drift": "D1 kept the change inside approved scope; no drift occurred.",
@@ -118,7 +145,7 @@ def write_valid_packet(
             "Blockers and next ready task": "No blocker remains; acceptance review is ready."
         }),
         "test-matrix.md": section_document("Test matrix: sample-change", {
-            "Dimensions and selection rationale": "The affected package and default configuration cover the bounded contract.",
+            "Dimensions and selection rationale": "INS-1 requires the affected package and default configuration to cover the bounded contract.",
             "Resource ownership": "TM-1 used an isolated temporary directory owned by root.",
             "Cells": (
                 "| Cell | Obligation | Environment | Level and oracle | Required | Attempts | Status | Evidence or blocker |\n"
@@ -131,14 +158,14 @@ def write_valid_packet(
         }),
         "blue-audit.md": section_document("Blue audit: sample-change", {
             "Audit brief": "A clean read-only brief covered the approved contracts and final diff.",
-            "Requirement and scope review": "AC-1 and SC-D1 map completely; protected behavior is unchanged.",
+            "Requirement and scope review": "INS-1, AC-1, and SC-D1 map completely; protected behavior is unchanged.",
             "Integration and maintainability review": "The change follows existing idioms, error handling, tests, and documentation.",
             "Findings": "No verified blue finding remains.",
             "Disposition": "Accepted after the final scoped review."
         }),
         "red-audit.md": section_document("Red audit: sample-change", {
             "Audit brief": "A clean read-only brief covered boundary and failure behavior.",
-            "Threat and failure hypotheses": "Invalid input and unchanged neighboring inputs were inspected.",
+            "Threat and failure hypotheses": "INS-1 requires invalid input and unchanged neighboring inputs to be inspected.",
             "Adversarial checks": "The boundary test rejects invalid input using the existing typed error.",
             "Findings": "No verified red finding remains.",
             "Disposition": "Accepted after the final adversarial check."
@@ -159,6 +186,47 @@ def write_valid_packet(
             "Superseded decisions": "No decision was superseded."
         })
     }
+    if schema_version == "1.1":
+        docs["context.md"] = section_document("Change context: sample-change", {
+            "Objective and authority": "Implement the confirmed bounded behavior with local edit and test authority.",
+            "Repository facts": "The existing module and its direct caller were inspected at the recorded base state.",
+            "Instruction and convention ledger": "INS-1 maps the repository test rule to VO-1 and final evidence.",
+            "Collaboration and readiness": "The checkpointed profile is Instruction Ready, Requirement Ready, and Design Ready; UX is not applicable.",
+            "Current behavior or reproduction": "The existing deterministic test demonstrates the missing result.",
+            "Constraints and protected behavior": "The public interface and unrelated call paths remain unchanged.",
+            "Assumptions and open questions": "No material assumption remains after repository inspection."
+        })
+        docs["requirements.md"] = section_document("Change requirements: sample-change", {
+            "User and product outcome": "The caller receives the expected bounded result without changing neighboring behavior.",
+            "Requirement delta": "The selected input now produces the confirmed output.",
+            "Acceptance criteria": "- AC-1: The selected input returns the confirmed output while existing inputs remain stable.",
+            "Non-functional requirements": "The change remains bounded and preserves existing performance.",
+            "Compatibility and exclusions": "Compatibility is preserved; unrelated cleanup is excluded.",
+            "Requirement Ready gate": "Requirement Ready is approved from repository evidence and the user decision.",
+            "Confirmation record": "The user approved the requirement and implementation scope."
+        })
+        docs["design.md"] = section_document("Change design: sample-change", {
+            "Decision": "Extend the existing branch at its current ownership boundary.",
+            "Engineering preferences applied": "INS-1 requires the repository test rule; use native idioms and the existing approved capability.",
+            "Alternatives": "A parallel abstraction was rejected because it adds no stable variation axis.",
+            "Architecture and failure behavior": "The caller retains ownership; the new branch returns the existing typed error on failure.",
+            "Product and UX contract": "UI impact is none, so UX Ready is not applicable.",
+            "Dependency decisions": "DEP-1 records the already approved exact test helper used by this fixture.",
+            "Change scope": "SC-D1 changes the bounded branch; all other files remain protected.",
+            "Compatibility, rollout, rollback, and cleanup": "Behavior is backward compatible and reverting the bounded edit restores the old path.",
+            "Verification obligations": "VO-1 proves the new case and the nearby regression suite.",
+            "Approval record": "The user approved the design, dependency decision, and local-only delivery scope."
+        })
+        docs["evidence.md"] = section_document("Change evidence: sample-change", {
+            "Acceptance traceability": "AC-1 maps to the changed branch, exact regression command, and PASSED result.",
+            "Instruction, collaboration, and UX evidence": "INS-1 is verified by VO-1; checkpointed readiness is recorded; UX is not applicable.",
+            "Commands and results": "The exact command ran at the absolute root on 2026-08-08T00:00:00+00:00 with exit 0 and one passed test.",
+            "Audit summary": "Static, blue, and red checks completed with no verified findings.",
+            "Test matrix summary": f"VO-1 maps to TM-1 with status {matrix_status}.",
+            "Changed-file accounting": "SC-D1 accounts for the only product file change.",
+            "Residual risks and remaining gates": "No residual gate remains for local acceptance.",
+            "Delivery status": "Local implementation and verification only; no commit, push, release, deploy, or external message."
+        })
     for filename, text in docs.items():
         (packet / filename).write_text(text, encoding="utf-8")
 
@@ -205,6 +273,142 @@ class PacketTests(unittest.TestCase):
             write_valid_packet(packet)
             result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+
+    def test_valid_schema_1_1_packet(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, schema_version="1.1")
+            result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+
+    def test_valid_schema_1_0_micro_packet(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            for folder in ("briefs", "reports", "artifacts"):
+                (packet / folder).mkdir(parents=True, exist_ok=True)
+            now = "2026-08-08T00:00:00+00:00"
+            metadata = {
+                "schema_version": "1.0",
+                "skill_version": "0.2.0",
+                "change_id": "legacy-micro",
+                "state": "verifying",
+                "documentation_profile": "micro",
+                "task_type": "micro",
+                "created_at": now,
+                "updated_at": now,
+                "repository_roots": [str(packet.parent)],
+                "base_git_state": "main at abc123, clean",
+                "authority": "local edits and tests",
+                "compatibility_required": False,
+                "risk_modifiers": [],
+                "acceptance_ids": ["AC-1"],
+                "scope_ids": ["SC-D1", "SC-P1", "SC-L1"],
+                "verification_ids": ["VO-1"],
+                "dependency_changes": [],
+                "approvals": {
+                    "design": {"by": "user", "at": now, "note": "approved"},
+                    "dependencies": [],
+                    "waivers": [],
+                    "delivery": [],
+                },
+                "history": [{"from": None, "to": "discovering", "at": now, "note": "created"}],
+            }
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            (packet / "trace.md").write_text(
+                section_document(
+                    "Micro change trace: legacy-micro",
+                    {
+                        "Authority and repository facts": "The root, user authority, instruction, current branch, and focused test are recorded.",
+                        "Requirement and design": "AC-1 changes the confirmed output through the smallest existing branch.",
+                        "Scope and protected behavior": "SC-D1 is the direct edit; SC-P1 preserves neighboring behavior; SC-L1 permits local tests only.",
+                        "Progress and decisions": "E1 records the bounded edit; D1 records that no dependency or expansion is needed.",
+                        "Verification": "VO-1 ran the focused regression with exit 0 and a passing oracle.",
+                        "Blue and red audit": "Blue and red checks found no verified issue in the bounded diff.",
+                        "Delivery and residual risk": "Local verification is complete; no delivery action occurred and no gate remains.",
+                    },
+                ),
+                encoding="utf-8",
+            )
+            result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+
+    def test_schema_1_1_requires_new_headings(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, schema_version="1.1")
+            context = packet / "context.md"
+            context.write_text(
+                context.read_text(encoding="utf-8").replace("## Instruction and convention ledger", "## Removed ledger"),
+                encoding="utf-8",
+            )
+            result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("Instruction and convention ledger", result.stdout)
+
+    def test_schema_1_1_requires_matching_instruction_trace(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, schema_version="1.1")
+            context = packet / "context.md"
+            context.write_text(context.read_text(encoding="utf-8").replace("INS-1", "RULE-1"), encoding="utf-8")
+            result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("instruction IDs must match", result.stdout)
+
+            evidence = packet / "evidence.md"
+            evidence.write_text(evidence.read_text(encoding="utf-8").replace("INS-1", "RULE-1"), encoding="utf-8")
+            result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("requires at least one INS-n", result.stdout)
+
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, schema_version="1.1")
+            for filename in ("design.md", "execution.md", "test-matrix.md", "blue-audit.md", "red-audit.md"):
+                path = packet / filename
+                path.write_text(path.read_text(encoding="utf-8").replace("INS-1", "RULE-1"), encoding="utf-8")
+            result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("instruction IDs must match between context.md and design.md", result.stdout)
+
+    def test_checkpointed_schema_1_1_requires_requirement_approval(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, schema_version="1.1", requirement_approved=False)
+            result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("Requirement Ready", result.stdout)
+
+    def test_material_ui_schema_1_1_requires_ux_approval(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, schema_version="1.1", ui_impact="material", ux_approved=False)
+            result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("UX Ready", result.stdout)
+
+    def test_execute_and_preserve_modes_do_not_add_unrelated_approval_gates(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            execute_packet = Path(temp) / "execute"
+            write_valid_packet(
+                execute_packet,
+                schema_version="1.1",
+                collaboration_profile="execute",
+                requirement_approved=False,
+                ux_approved=False,
+            )
+            execute_result = run(PYTHON, str(FLOW), "validate-packet", str(execute_packet))
+            self.assertEqual(execute_result.returncode, 0, execute_result.stderr or execute_result.stdout)
+
+            preserve_packet = Path(temp) / "preserve"
+            write_valid_packet(
+                preserve_packet,
+                schema_version="1.1",
+                ui_impact="preserve",
+                ux_approved=False,
+            )
+            preserve_result = run(PYTHON, str(FLOW), "validate-packet", str(preserve_packet))
+            self.assertEqual(preserve_result.returncode, 0, preserve_result.stderr or preserve_result.stdout)
 
     def test_rejects_placeholders(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -263,6 +467,292 @@ class PacketTests(unittest.TestCase):
             self.assertTrue((packet / "briefs").is_dir())
             invalid = run(PYTHON, str(FLOW), "validate-packet", str(packet))
             self.assertEqual(invalid.returncode, 2)
+
+    def test_init_selects_risk_scaled_collaboration_defaults(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            routine = run(
+                PYTHON,
+                str(FLOW),
+                "init-packet",
+                "--root",
+                str(root),
+                "--change-id",
+                "routine-change",
+                "--task-type",
+                "routine",
+                "--objective",
+                "Extend the bounded behavior",
+            )
+            self.assertEqual(routine.returncode, 0, routine.stderr or routine.stdout)
+            routine_meta = json.loads(
+                (root / ".codex" / "dev-flow" / "routine-change" / "packet.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(routine_meta["schema_version"], "1.1")
+            self.assertEqual(routine_meta["collaboration_profile"], "checkpointed")
+            self.assertEqual(routine_meta["ui_impact"], "none")
+
+            material = run(
+                PYTHON,
+                str(FLOW),
+                "init-packet",
+                "--root",
+                str(root),
+                "--change-id",
+                "material-ui",
+                "--task-type",
+                "large-feature",
+                "--objective",
+                "Redesign the primary workflow",
+                "--ui-impact",
+                "material",
+            )
+            self.assertEqual(material.returncode, 0, material.stderr or material.stdout)
+            material_meta = json.loads(
+                (root / ".codex" / "dev-flow" / "material-ui" / "packet.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(material_meta["collaboration_profile"], "co-design")
+
+            micro_material = run(
+                PYTHON,
+                str(FLOW),
+                "init-packet",
+                "--root",
+                str(root),
+                "--change-id",
+                "micro-material-ui",
+                "--task-type",
+                "micro",
+                "--objective",
+                "Make a small but product-direction-changing UI edit",
+                "--ui-impact",
+                "material",
+            )
+            self.assertEqual(micro_material.returncode, 0, micro_material.stderr or micro_material.stdout)
+            micro_material_meta = json.loads(
+                (root / ".codex" / "dev-flow" / "micro-material-ui" / "packet.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(micro_material_meta["collaboration_profile"], "co-design")
+
+    def test_transition_records_requirement_and_ux_readiness(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(
+                packet,
+                state="awaiting-approval",
+                schema_version="1.1",
+                ui_impact="material",
+                requirement_approved=False,
+                ux_approved=False,
+            )
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            metadata["approvals"]["design"] = None
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+
+            blocked = run(
+                PYTHON,
+                str(FLOW),
+                "transition",
+                str(packet),
+                "approved",
+                "--note",
+                "approve",
+                "--approved-by",
+                "user",
+            )
+            self.assertEqual(blocked.returncode, 2)
+            self.assertIn("Requirement Ready", blocked.stdout)
+
+            requirement = run(
+                PYTHON,
+                str(FLOW),
+                "record-approval",
+                str(packet),
+                "requirements",
+                "--id",
+                "REQ-READY",
+                "--by",
+                "user",
+                "--note",
+                "requirements approved",
+            )
+            self.assertEqual(requirement.returncode, 0, requirement.stderr or requirement.stdout)
+            still_blocked = run(
+                PYTHON,
+                str(FLOW),
+                "transition",
+                str(packet),
+                "approved",
+                "--note",
+                "approve",
+                "--approved-by",
+                "user",
+            )
+            self.assertEqual(still_blocked.returncode, 2)
+            self.assertIn("UX Ready", still_blocked.stdout)
+
+            ux = run(
+                PYTHON,
+                str(FLOW),
+                "record-approval",
+                str(packet),
+                "ux",
+                "--id",
+                "UX-READY",
+                "--by",
+                "user",
+                "--note",
+                "UX approved",
+            )
+            self.assertEqual(ux.returncode, 0, ux.stderr or ux.stdout)
+            approved = run(
+                PYTHON,
+                str(FLOW),
+                "transition",
+                str(packet),
+                "approved",
+                "--note",
+                "approve",
+                "--approved-by",
+                "user",
+            )
+            self.assertEqual(approved.returncode, 0, approved.stderr or approved.stdout)
+
+    def test_readiness_approvals_reject_malformed_and_late_records(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(
+                packet,
+                state="awaiting-approval",
+                schema_version="1.1",
+                ui_impact="material",
+                requirement_approved=False,
+                ux_approved=False,
+            )
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            metadata["approvals"]["design"] = None
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+
+            wrong_id = run(
+                PYTHON,
+                str(FLOW),
+                "record-approval",
+                str(packet),
+                "ux",
+                "--id",
+                "NOT-READY",
+                "--by",
+                "user",
+                "--note",
+                "not approved",
+            )
+            self.assertEqual(wrong_id.returncode, 2)
+            self.assertIn("UX-READY", wrong_id.stdout)
+
+            blank = run(
+                PYTHON,
+                str(FLOW),
+                "record-approval",
+                str(packet),
+                "ux",
+                "--id",
+                "UX-READY",
+                "--by",
+                "",
+                "--note",
+                "",
+            )
+            self.assertEqual(blank.returncode, 2)
+            self.assertIn("must be non-empty", blank.stdout)
+
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            metadata["approvals"]["requirements"] = [
+                {"id": "REQ-READY", "by": "user", "at": "2026-08-08T00:00:00+00:00", "note": "approved"}
+            ]
+            metadata["approvals"]["ux"] = [{}]
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            malformed = run(
+                PYTHON,
+                str(FLOW),
+                "transition",
+                str(packet),
+                "approved",
+                "--note",
+                "approve",
+                "--approved-by",
+                "user",
+            )
+            self.assertEqual(malformed.returncode, 2)
+            self.assertIn("UX Ready", malformed.stdout)
+
+            metadata["approvals"]["requirements"] = [
+                {"id": "REQ-READY", "by": "user", "at": "2099-01-01T00:00:00+00:00", "note": "future"}
+            ]
+            metadata["approvals"]["ux"] = [
+                {"id": "UX-READY", "by": "user", "at": "2099-01-01T00:00:00+00:00", "note": "future"}
+            ]
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            future = run(
+                PYTHON,
+                str(FLOW),
+                "transition",
+                str(packet),
+                "approved",
+                "--note",
+                "approve",
+                "--approved-by",
+                "user",
+            )
+            self.assertEqual(future.returncode, 2)
+            self.assertIn("Requirement Ready", future.stdout)
+
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(
+                packet,
+                state="implementing",
+                schema_version="1.1",
+                ui_impact="material",
+                ux_approved=False,
+            )
+            late_cli = run(
+                PYTHON,
+                str(FLOW),
+                "record-approval",
+                str(packet),
+                "ux",
+                "--id",
+                "UX-READY",
+                "--by",
+                "user",
+                "--note",
+                "late approval",
+            )
+            self.assertEqual(late_cli.returncode, 2)
+            self.assertIn("awaiting approval", late_cli.stdout)
+
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            metadata["approvals"]["ux"] = [
+                {"id": "UX-READY", "by": "user", "at": "2026-08-09T00:00:00+00:00", "note": "late"}
+            ]
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            late_manual = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(late_manual.returncode, 2)
+            self.assertIn("cannot be recorded after", late_manual.stdout)
+
+    def test_malformed_approvals_container_is_structured_invalid(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, schema_version="1.1")
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            metadata["approvals"] = []
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(result.returncode, 2, result.stderr or result.stdout)
+            self.assertEqual(result.stderr, "")
+            self.assertIn("approvals` must be an object", result.stdout)
 
 
 class RuntimeInstallerTests(unittest.TestCase):
@@ -435,6 +925,35 @@ class PreferenceAuditTests(unittest.TestCase):
 
 
 class RepositoryContractTests(unittest.TestCase):
+    def test_contract_validator_rejects_malformed_nested_content(self) -> None:
+        namespace = runpy.run_path(str(ROOT / "evals" / "run_contract_checks.py"), run_name="contract_checks_test")
+        validate_contract = namespace["validate_contract"]
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            fixture = root / "evals" / "reference-cases" / "sample.md"
+            fixture.parent.mkdir(parents=True)
+            fixture.write_text("# Sample\n", encoding="utf-8")
+            errors = validate_contract(
+                Path("invalid.json"),
+                {
+                    "id": "CASE-INVALID",
+                    "profile": "invalid nested values",
+                    "prompt": "exercise validation",
+                    "fixture": "reference-cases/sample.md",
+                    "expected_actions": [""],
+                    "forbidden_actions": [1],
+                    "required_artifacts": ["does-not-exist.md"],
+                },
+                root=root,
+            )
+            self.assertTrue(any("expected_actions items" in error for error in errors))
+            self.assertTrue(any("forbidden_actions items" in error for error in errors))
+            self.assertTrue(any("unknown required artifacts" in error for error in errors))
+
+    def test_context_template_includes_instruction_freshness(self) -> None:
+        template = (ROOT / "skills" / "dev-flow" / "templates" / "context.md").read_text(encoding="utf-8")
+        self.assertIn("| Freshness |", template)
+
     def test_contract_and_plugin_checks(self) -> None:
         contracts = run(PYTHON, str(ROOT / "evals" / "run_contract_checks.py"))
         self.assertEqual(contracts.returncode, 0, contracts.stderr or contracts.stdout)

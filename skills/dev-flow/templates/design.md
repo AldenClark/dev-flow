@@ -6,6 +6,7 @@
 
 ## Engineering preferences applied
 
+- Applicable instructions: <INS IDs and their design effects>
 - <preference ID, repository evidence, decision effect, and any exception>
 
 ## Alternatives
@@ -17,6 +18,13 @@
 ## Architecture and failure behavior
 
 <Data and control flow, ownership, state, errors, cancellation, limits, lifecycle, observability, and cleanup.>
+
+## Product and UX contract
+
+- UI impact: <none, preserve, or material>
+- Users, outcome, and protected product/IA/flow constraints: <contract or not applicable with rationale>
+- Design truth, selected direction, states, accessibility, fidelity, and evidence: <contract or not applicable with rationale>
+- UX Ready: <not applicable, pending decision, or recorded approval>
 
 ## Dependency decisions
 

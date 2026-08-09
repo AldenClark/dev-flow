@@ -22,6 +22,7 @@ Compose every applicable profile. A Rust-backed native app with a web console ma
 
 ## React web frontend
 
+- Classify UI impact with `frontend-product-and-ux-discovery.md`. Preserve current product/IA/flows for established surfaces and require UX Ready for material UI before production coding.
 - Trace route, loader/query, cache ownership, mutation, error, loading, empty, optimistic, and permission states.
 - Verify semantic HTML, keyboard, focus, accessible name, responsive layout, reduced motion, and browser-visible behavior.
 - Run typecheck, lint, unit/component tests, Playwright projects, axe checks, bundle or render measurements when relevant.
@@ -29,12 +30,14 @@ Compose every applicable profile. A Rust-backed native app with a web console ma
 
 ## Rust native desktop UI
 
+- Apply `frontend-product-and-ux-discovery.md` to visible windows, navigation, commands, and workflows before choosing framework-level UI changes.
 - Prefer GPUI with `gpui-component`; use Slint only when its platform/support tradeoff is better. Do not introduce Tauri or egui.
 - Verify windows, commands, focus, input method, accessibility, scaling, platform integration, startup, memory, and packaging.
 - Treat pre-1.0 framework API and platform gaps as compatibility risks requiring pinned versions and target-platform evidence.
 
 ## Apple or Android app
 
+- Apply `frontend-product-and-ux-discovery.md` to user-facing changes and treat platform navigation, lifecycle, and established product flows as protected behavior.
 - Include UI lifecycle, background execution, permissions, signing, entitlements, packaging, store/runtime constraints, device/simulator differences, and OS-version matrix.
 - Use platform-native Skills and debugger/test tooling.
 - Distinguish simulator/emulator evidence from physical-device evidence.

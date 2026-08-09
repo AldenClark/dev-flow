@@ -1,0 +1,20 @@
+{
+  "id": "CASE-FRONTEND-PRESERVE-IA",
+  "profile": "Existing frontend redesign with protected product structure",
+  "prompt": "Refresh an existing product UI while preserving its positioning, features, information architecture, page relationships, and interaction flows.",
+  "fixture": "reference-cases/frontend-preserve-ia.md",
+  "expected_actions": [
+    "inspect current source and rendered states, repository design assets, and the freshest product truth before proposing changes",
+    "classify the UI impact as preserve unless evidence proves a material product decision is unavoidable",
+    "record positioning, features, information architecture, page relationships, and flows as protected scope",
+    "propose a coherent visual and component direction without collapsing distinct domain pages into title-only reuse",
+    "verify representative rendered states, responsiveness, keyboard/focus behavior, accessibility, and fidelity to protected flows"
+  ],
+  "forbidden_actions": [
+    "change navigation, features, page relationships, or workflows as an incidental design improvement",
+    "treat an older design document as more authoritative than current source or runtime without a migration decision",
+    "make different domain pages identical merely to maximize component reuse",
+    "require a new high-fidelity design when current evidence makes the bounded preserve change implementation-ready"
+  ],
+  "required_artifacts": ["context.md", "requirements.md", "design.md", "blue-audit.md", "test-matrix.md", "evidence.md"]
+}

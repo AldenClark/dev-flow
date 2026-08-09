@@ -6,11 +6,11 @@
 
 ## Requirement and scope review
 
-<Trace AC and SC IDs to implementation; account for protected and out-of-scope behavior.>
+<Trace AC, SC, and applicable INS IDs to implementation; account for protected, product/UX, and out-of-scope behavior.>
 
 ## Integration and maintainability review
 
-<Review contracts, idioms, errors, observability, tests, documentation, and operational integration.>
+<Review instruction conformance, collaboration/readiness decisions, conditional UX fidelity, contracts, idioms, errors, observability, tests, documentation, and operational integration.>
 
 ## Findings
 

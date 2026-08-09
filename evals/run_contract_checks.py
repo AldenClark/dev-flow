@@ -9,21 +9,72 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+CONTRACT_TEXT_FIELDS = ("id", "profile", "prompt", "fixture")
+CONTRACT_LIST_FIELDS = ("expected_actions", "forbidden_actions", "required_artifacts")
+PACKET_ARTIFACTS = {
+    "packet.json",
+    "trace.md",
+    "context.md",
+    "requirements.md",
+    "design.md",
+    "execution.md",
+    "test-matrix.md",
+    "blue-audit.md",
+    "red-audit.md",
+    "evidence.md",
+    "decisions.md",
+}
+
+
+def validate_contract(path: Path, data: object, *, root: Path = ROOT) -> list[str]:
+    if not isinstance(data, dict):
+        return [f"{path.name}: contract must be an object"]
+    errors: list[str] = []
+    for field in CONTRACT_TEXT_FIELDS:
+        if not isinstance(data.get(field), str) or not data[field].strip():
+            errors.append(f"{path.name}: {field} must be a non-empty string")
+    for field in CONTRACT_LIST_FIELDS:
+        value = data.get(field)
+        if not isinstance(value, list) or not value:
+            errors.append(f"{path.name}: {field} must be a non-empty list")
+            continue
+        if any(not isinstance(item, str) or not item.strip() for item in value):
+            errors.append(f"{path.name}: {field} items must be non-empty strings")
+        string_items = [item for item in value if isinstance(item, str)]
+        if len(string_items) != len(set(string_items)):
+            errors.append(f"{path.name}: {field} items must be unique")
+    artifacts = data.get("required_artifacts", [])
+    if isinstance(artifacts, list):
+        unknown = sorted({item for item in artifacts if isinstance(item, str)} - PACKET_ARTIFACTS)
+        if unknown:
+            errors.append(f"{path.name}: unknown required artifacts {unknown}")
+    fixture = data.get("fixture")
+    if isinstance(fixture, str) and fixture.strip() and not (root / "evals" / fixture).is_file():
+        errors.append(f"{path.name}: missing fixture {root / 'evals' / fixture}")
+    return errors
 
 
 def main() -> int:
     errors: list[str] = []
     contracts = sorted((ROOT / "evals" / "contracts").glob("*.json"))
-    if len(contracts) < 4:
-        errors.append("at least four representative contracts are required")
+    if len(contracts) < 7:
+        errors.append("at least seven representative contracts are required")
+    required_contract_ids = {
+        "CASE-FRONTEND-NEW-PRODUCT",
+        "CASE-FRONTEND-PRESERVE-IA",
+        "CASE-REPOSITORY-INSTRUCTIONS",
+    }
+    observed_contract_ids: set[str] = set()
     for path in contracts:
         data = json.loads(path.read_text(encoding="utf-8"))
-        for field in ("id", "profile", "prompt", "fixture", "expected_actions", "forbidden_actions", "required_artifacts"):
-            if not data.get(field):
-                errors.append(f"{path.name}: missing {field}")
-        fixture = ROOT / "evals" / str(data.get("fixture", ""))
-        if not fixture.is_file():
-            errors.append(f"{path.name}: missing fixture {fixture}")
+        errors.extend(validate_contract(path, data))
+        contract_id = data.get("id") if isinstance(data, dict) else None
+        if isinstance(contract_id, str) and contract_id in observed_contract_ids:
+            errors.append(f"{path.name}: duplicate contract id {contract_id}")
+        elif isinstance(contract_id, str):
+            observed_contract_ids.add(contract_id)
+    if required_contract_ids - observed_contract_ids:
+        errors.append(f"missing workflow contracts: {sorted(required_contract_ids - observed_contract_ids)}")
 
     coverage = json.loads((ROOT / "evals" / "structural-coverage.json").read_text(encoding="utf-8"))
     expected_roles = {"root", "dev-flow-explorer", "dev-flow-worker", "dev-flow-test-runner", "dev-flow-blue-reviewer", "dev-flow-red-reviewer"}

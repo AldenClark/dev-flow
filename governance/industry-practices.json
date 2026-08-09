@@ -14,6 +14,17 @@
       "review_after": "2026-11-08"
     },
     {
+      "id": "IND-OPENAI-AGENTS",
+      "source": "https://learn.chatgpt.com/docs/agent-configuration/agents-md",
+      "checked_at": "2026-08-09",
+      "local_problem": "Repository instructions are named as a prerequisite but their scope, precedence, conflicts, and proof of integration are underspecified.",
+      "decision": "Resolve global-to-root-to-nearest-directory guidance for every touched path and record a concise instruction ledger.",
+      "adaptation": "Combine Codex instruction discovery with repository documents, machine configuration, local Skills, code analogues, and downstream INS evidence.",
+      "complexity_limit": "Load only task-relevant sources; do not scan every document or let repository text widen user authority.",
+      "evaluation": "Nested multi-root instruction and machine-contract conflict case.",
+      "review_after": "on Codex project instruction discovery change"
+    },
+    {
       "id": "IND-OPENAI-V2",
       "source": "https://learn.chatgpt.com/docs/agent-configuration/subagents",
       "checked_at": "2026-08-08",
@@ -51,11 +62,33 @@
       "source": "https://github.com/github/spec-kit",
       "checked_at": "2026-08-08",
       "local_problem": "Requirements, design, tasks, and evidence can drift apart.",
-      "decision": "Use stable AC/SC/VO IDs and semantic cross-artifact validation.",
-      "adaptation": "One lightweight packet rather than a separate command-heavy framework.",
+      "decision": "Use stable AC/SC/VO IDs, clarify material ambiguity before planning, and run semantic cross-artifact validation.",
+      "adaptation": "One lightweight packet with Requirement Ready and small evidence-backed question batches rather than a separate command-heavy framework.",
       "complexity_limit": "No mandatory constitution generation per project.",
-      "evaluation": "Reject missing or mismatched ID mappings.",
+      "evaluation": "Reject missing or mismatched ID mappings and checkpointed/co-design approval without Requirement Ready.",
       "review_after": "2026-12-01"
+    },
+    {
+      "id": "IND-GOVUK-DISCOVERY",
+      "source": "https://www.gov.uk/service-manual/agile-delivery/how-the-discovery-phase-works",
+      "checked_at": "2026-08-09",
+      "local_problem": "User-facing implementation can begin from a proposed solution without enough evidence about users, outcomes, constraints, or the wider journey.",
+      "decision": "Separate product/problem discovery from production implementation and choose design/prototype fidelity from uncertainty.",
+      "adaptation": "Classify UI impact as none, preserve, or material; require UX Ready only for material UI and protect established product/IA/flows for preserve work.",
+      "complexity_limit": "Do not require Figma, high-fidelity design, or prototypes for every frontend task.",
+      "evaluation": "New-product UI and protected-IA redesign contracts.",
+      "review_after": "2027-02-09"
+    },
+    {
+      "id": "IND-W3C-EARLY-UX",
+      "source": "https://www.w3.org/WAI/planning/involving-users/",
+      "checked_at": "2026-08-09",
+      "local_problem": "Accessibility can be reduced to a late technical checklist instead of a product and interaction concern.",
+      "decision": "Include accessibility needs, representative states, user involvement, and early evaluation in product/UX discovery and rendered verification.",
+      "adaptation": "Require applicable keyboard, focus, names, contrast, zoom, reduced motion, screen-reader, touch, and recovery obligations in the UX contract.",
+      "complexity_limit": "Scale user research and rendered environments to product risk while retaining standards-based checks.",
+      "evaluation": "Frontend material/preserve contracts and accessibility evidence requirements.",
+      "review_after": "2027-02-09"
     },
     {
       "id": "IND-OPENSPEC",

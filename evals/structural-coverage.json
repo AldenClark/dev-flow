@@ -47,10 +47,14 @@
   ],
   "global_invariants": [
     "root owns user authority, design, scope, integration, adjudication, and final claims",
+    "root resolves scoped instructions and maps material INS IDs into downstream work and evidence",
+    "root selects a risk-scaled collaboration profile and owns all user-facing readiness decisions",
+    "material UI cannot enter production implementation without recorded UX Ready approval",
     "every child has one written brief and one report",
     "parallel writes never overlap",
     "shared mutable environments are serialized unless isolation is proven",
     "new dependencies require named explicit user approval",
-    "child completion is never product evidence without root verification"
+    "child completion is never product evidence without root verification",
+    "question count, instruction-file count, and design-artifact count are never workflow quality proxies"
   ]
 }

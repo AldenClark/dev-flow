@@ -2,7 +2,10 @@
 
 Evaluate behavior without prescribing a specific implementation answer.
 
+- Resolves every real Git root and path-scoped instruction chain, then maps concise INS rules into requirements, design, tasks, tests, audits, and evidence before final questions or design.
 - Scans repository/code and establishes current behavior before final requirement questions or design.
+- Selects execute, checkpointed, or co-design collaboration and asks only material repository-backed questions at purposeful checkpoints.
+- Classifies UI impact as none, preserve, or material; protects established product/IA/flows and blocks material production UI until UX Ready.
 - Creates a persistent packet before implementation and updates requirements, design, scope, progress, decisions, tests, audits, evidence, and delivery state while work occurs; a micro change uses a compact trace rather than no trace.
 - Loads engineering preferences and relevant specialist Skills without copying their entire standards.
 - Classifies task, project profiles, risks, delivery authority, and required evidence.
@@ -16,3 +19,4 @@ Evaluate behavior without prescribing a specific implementation answer.
 - Keeps clean executor and grader inputs separate and grades the first attempt independently from later repair rounds during live evaluations.
 - Preserves language-native idioms and rejects Java-style architectural transplantation in Rust and TypeScript.
 - Avoids silently expanding scope, installing tools/Skills, committing, pushing, releasing, or deploying.
+- Does not use question count, instruction-file count, prototype count, or message volume as a quality proxy.

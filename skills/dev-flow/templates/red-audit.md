@@ -4,6 +4,8 @@
 
 <Independent reviewer, clean brief path, attack/failure surface, allowed actions, and evidence date.>
 
+- Applicable instructions: <INS IDs included in the adversarial review>
+
 ## Threat and failure hypotheses
 
 - <abuse, malformed input, authorization, concurrency, cancellation, data loss, compatibility, rollback, or resource-exhaustion hypothesis>

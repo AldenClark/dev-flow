@@ -6,7 +6,7 @@
 - Files and symbols changed: <paths or none>
 - Commands and evidence: <exact command, root/environment, time, exit, artifact>
 - Findings: <verified facts separated from inference>
-- Acceptance and scope mapping: <AC, SC, VO IDs>
+- Acceptance, scope, instruction, and UX mapping: <AC, SC, VO, INS IDs and applicable product constraints>
 - New dependency or scope need: <none or stop reason>
 - Residual risks and unrun checks: <explicit list>
 - Recommended root disposition: <accept, scoped revision, reject, or user decision>

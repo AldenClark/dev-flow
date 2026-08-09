@@ -2,6 +2,8 @@
 
 ## Task graph
 
+- Instruction mapping: <INS IDs assigned to tasks and their stop or verification effects>
+
 | Task | Depends on | Owner | Scope IDs and paths | Acceptance | Verification | Status |
 |---|---|---|---|---|---|---|
 | T1 | none | root | SC-D1; <paths> | AC-1 | VO-1 | pending |
