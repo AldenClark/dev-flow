@@ -53,7 +53,7 @@ Follow `references/core-lifecycle.md`:
 2. Select `execute`, `checkpointed`, or `co-design` collaboration using `references/collaboration-checkpoints.md`.
 3. Classify task, project profiles, risk modifiers, compatibility, documentation depth, delivery authority, and UI impact as `none`, `preserve`, or `material`.
 4. For user-facing UI work, follow `references/frontend-product-and-ux-discovery.md`; require UX Ready before production implementation of material UI.
-5. Convert the request into an explicit requirement delta, acceptance criteria, constraints, protected behavior, and a Requirement Ready decision.
+5. Follow `references/semantic-requirement-clarification.md`; investigate repository-resolvable facts, record and disposition every semantic ambiguity, then bind the requirement revision/digest at Requirement Ready.
 6. Compare designs against repository evidence and engineering preferences; write the full direct, indirect, conditional, protected, out-of-scope, and delivery scope.
 7. Confirm material design choices and every new dependency before crossing their approval boundaries.
 8. Build a dependency-aware task graph and resource ledger; give each task its applicable instruction and product/UX constraints.
@@ -69,6 +69,7 @@ Follow `references/core-lifecycle.md`:
 - Compose the applicable profiles from `references/project-profiles.md`; never average away the strictest gate.
 - Read `references/repository-instructions-and-conventions.md` for every repository task.
 - Read `references/collaboration-checkpoints.md` before requirement confirmation and select a profile.
+- Read `references/semantic-requirement-clarification.md` before every Requirement Ready decision and whenever implementation or audit evidence could change intended behavior.
 - Read `references/requirements-design-and-scope.md` before requirement confirmation or final design.
 - Read `references/frontend-product-and-ux-discovery.md` for every user-facing UI task and classify its UI impact before coding.
 - Read `references/multi-agent-v2-orchestration.md` before any delegation.

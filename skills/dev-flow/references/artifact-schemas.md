@@ -4,10 +4,11 @@ Use one packet per change under `<repo>/.codex/dev-flow/<change-id>/`. The packe
 
 ## Machine-readable state
 
-`packet.json` is the identity and state source of truth. New packets use schema 1.1; the validator must continue to accept schema 1.0 packets under their original contract. Require:
+`packet.json` is the identity and state source of truth. New packets use schema 1.2; the validator continues to accept schema 1.0 and 1.1 packets under their original contracts. Require:
 
 - `schema_version`, `skill_version`, `change_id`, `task_type`, `documentation_profile`, timestamps, repository roots, base Git state, authority, compatibility, and risk modifiers;
-- for schema 1.1, `collaboration_profile` (`execute`, `checkpointed`, or `co-design`) and `ui_impact` (`none`, `preserve`, or `material`);
+- for schema 1.1 and 1.2, `collaboration_profile` (`execute`, `checkpointed`, or `co-design`) and `ui_impact` (`none`, `preserve`, or `material`);
+- for schema 1.2, a positive `requirement_revision`, nullable/current `requirements_digest`, `ambiguity_ids`, and structured `ambiguities`;
 - declared `acceptance_ids`, `scope_ids`, `verification_ids`, and dependency changes;
 - requirement, conditional UX, design, dependency, waiver, and delivery approvals;
 - append-only state history.
@@ -20,9 +21,12 @@ discovering -> awaiting-approval -> approved -> implementing -> verifying -> acc
       +--------------> blocked <------+--------------+-------------+
 blocked -> discovering | awaiting-approval
 verifying -> implementing
+implementing | verifying -> awaiting-approval (schema 1.2 only; open material/high-risk AMB-n required)
 ```
 
 For schema 1.1, record the canonical `REQ-READY` Requirement Ready approval before `approved` in checkpointed/co-design work and the canonical `UX-READY` approval before `approved` when `ui_impact` is `material`. Readiness records require a concrete actor, note, and timezone-aware timestamp, may be created only while `awaiting-approval`, and must fall between the applicable awaiting-approval and approved history events. Record a concrete design approval before `approved`; in unambiguous `execute` work, the user's explicit implementation request may be the approval source under the conditions in `collaboration-checkpoints.md`, without a redundant acknowledgement. Do not enter `accepted` with an invalid packet, unapproved dependency, unresolved required test cell, or missing acceptance evidence.
+
+Schema 1.2 preserves those readiness rules and adds content binding. `REQ-READY` and design approval record the current requirement revision and SHA-256 digest. Full packets hash exact `requirements.md` bytes; micro packets hash the `Requirement and design` section body. All `AMB-n` records require an authorized disposition and affected trace IDs before approval. Reopening preserves prior design approval in `approvals.design_history`, increments the revision, clears the digest/current design approval, and requires a fresh matching readiness/design cycle.
 
 ## Complete documentation profile
 
@@ -43,6 +47,8 @@ Use for all non-micro implementation and non-trivial read-only audit work:
 
 For schema 1.1 full packets, require at least one `INS-n` record in `context.md` and the same instruction-ID set in `design.md`, `execution.md`, `test-matrix.md`, both audit documents, and `evidence.md`. Each downstream occurrence must explain the rule's applicable design, task, test, audit, or final-evidence effect. Micro traces require at least one `INS-n` record in the single trace document.
 
+Schema 1.2 full packets additionally require semantic input/ownership in context, requirement baseline and ambiguity ledger in requirements, baseline/reopening design, finding classification in both audits, and semantic clarification evidence. Every declared `AMB-n` must be documented; an ambiguity originating in requirements must also appear in execution and evidence.
+
 ## Compact micro profile
 
 Use `packet.json`, `trace.md`, and the three subdirectories. `trace.md` must still contain collaboration/UI classification, applicable instructions, authority/repository evidence, requirement/design, AC/SC/VO IDs, scope/protected behavior, progress/decisions, verification, a proportionate blue/red check, delivery, and residual risk.
@@ -56,6 +62,7 @@ Escalate to the complete profile when scope crosses files/components, a public c
 - `VO-n`: verification obligation; present in design, test matrix, and evidence.
 - `DEP-n`: dependency decision; approval is also recorded in `packet.json`.
 - `INS-n`: material instruction or convention; record source/scope/effect/evidence in context and trace applicable IDs through tasks, audits, and evidence.
+- `AMB-n`: semantic ambiguity; record source, competing interpretations, evidence, materiality, owner, affected AC/SC/VO IDs, recommendation, status, creation revision, and evidence-bearing resolution.
 - `Tn`, `TM-n`, `BLUE-n`, `RED-n`: task, matrix cell, and audit finding identifiers.
 
 Keep IDs stable. Supersede rather than renumber. Machine-readable ID lists must equal the documented sets.
@@ -70,4 +77,4 @@ Use only `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, or `WAIVED`. A waive
 
 The root alone writes `packet.json` and core documents. A child writes only its assigned report/artifact paths unless its brief grants an exclusive product-code boundary. Append progress at meaningful events; do not rewrite history to make execution look linear.
 
-Validate after requirement/design confirmation, each implementation wave, audit repair, final verification, and before state transitions. Use `dev-flow.py transition` and `record-approval` so history and approval records remain consistent.
+Validate after requirement/design confirmation, each implementation wave, audit repair, final verification, and before state transitions. Use `dev-flow.py transition`, `record-approval`, `record-ambiguity`, and `resolve-ambiguity` so history, semantic state, and approval records remain consistent.

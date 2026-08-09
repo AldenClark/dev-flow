@@ -16,6 +16,10 @@
 |---|---|---|---|---|
 | <RED-H1> | <safe check> | <expected invariant> | <artifact> | <supported or rejected> |
 
+## Finding classification and requirement reopening
+
+<Classify each finding as an implementation defect, design defect, evidence gap, scope change, or requirement ambiguity. A user-owned material/high-risk ambiguity must name its AMB ID, affected IDs, and reopening disposition; the reviewer must not silently turn an assumption into the requirement.>
+
 ## Findings
 
 | Finding | Severity | Evidence | Verification | Status |

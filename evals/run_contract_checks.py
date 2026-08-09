@@ -57,12 +57,13 @@ def validate_contract(path: Path, data: object, *, root: Path = ROOT) -> list[st
 def main() -> int:
     errors: list[str] = []
     contracts = sorted((ROOT / "evals" / "contracts").glob("*.json"))
-    if len(contracts) < 7:
-        errors.append("at least seven representative contracts are required")
+    if len(contracts) < 8:
+        errors.append("at least eight representative contracts are required")
     required_contract_ids = {
         "CASE-FRONTEND-NEW-PRODUCT",
         "CASE-FRONTEND-PRESERVE-IA",
         "CASE-REPOSITORY-INSTRUCTIONS",
+        "CASE-SEMANTIC-CLARIFICATION",
     }
     observed_contract_ids: set[str] = set()
     for path in contracts:

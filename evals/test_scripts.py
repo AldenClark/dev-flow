@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import runpy
 import subprocess
@@ -43,6 +44,26 @@ def section_document(title: str, headings: dict[str, str]) -> str:
     for heading, body in headings.items():
         parts.append(f"## {heading}\n\n{body}\n")
     return "\n".join(parts)
+
+
+def document_ambiguity(packet: Path, ambiguity_id: str) -> None:
+    replacements = {
+        "requirements.md": (
+            "No semantic ambiguity was found after repository inspection and user confirmation.",
+            f"{ambiguity_id} records the competing meanings, affected AC-1 and SC-D1, recommendation, and authorized resolution.",
+        ),
+        "execution.md": (
+            "No verified finding required repair.",
+            f"{ambiguity_id} was tracked to AC-1 and resolved before affected implementation continued.",
+        ),
+        "evidence.md": (
+            "no ambiguity required a question or reopening.",
+            f"{ambiguity_id} was resolved with its affected AC-1 and SC-D1 before approval.",
+        ),
+    }
+    for filename, (old, new) in replacements.items():
+        path = packet / filename
+        path.write_text(path.read_text(encoding="utf-8").replace(old, new), encoding="utf-8")
 
 
 def write_valid_packet(
@@ -87,7 +108,7 @@ def write_valid_packet(
         },
         "history": [{"from": None, "to": "discovering", "at": now, "note": "created"}]
     }
-    if schema_version == "1.1":
+    if schema_version in {"1.1", "1.2"}:
         metadata["collaboration_profile"] = collaboration_profile
         metadata["ui_impact"] = ui_impact
         metadata["approvals"]["requirements"] = (
@@ -108,6 +129,11 @@ def write_valid_packet(
             metadata["history"].append(
                 {"from": "awaiting-approval", "to": "approved", "at": now, "note": "approved"}
             )
+    if schema_version == "1.2":
+        metadata["requirement_revision"] = 1
+        metadata["requirements_digest"] = None
+        metadata["ambiguity_ids"] = []
+        metadata["ambiguities"] = []
     (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     docs = {
         "context.md": section_document("Change context: sample-change", {
@@ -186,12 +212,13 @@ def write_valid_packet(
             "Superseded decisions": "No decision was superseded."
         })
     }
-    if schema_version == "1.1":
+    if schema_version in {"1.1", "1.2"}:
         docs["context.md"] = section_document("Change context: sample-change", {
             "Objective and authority": "Implement the confirmed bounded behavior with local edit and test authority.",
             "Repository facts": "The existing module and its direct caller were inspected at the recorded base state.",
             "Instruction and convention ledger": "INS-1 maps the repository test rule to VO-1 and final evidence.",
             "Collaboration and readiness": "The checkpointed profile is Instruction Ready, Requirement Ready, and Design Ready; UX is not applicable.",
+            **({"Semantic input and ambiguity ownership": "The bounded input is complete; repository facts were investigated; no material semantic ambiguity remains."} if schema_version == "1.2" else {}),
             "Current behavior or reproduction": "The existing deterministic test demonstrates the missing result.",
             "Constraints and protected behavior": "The public interface and unrelated call paths remain unchanged.",
             "Assumptions and open questions": "No material assumption remains after repository inspection."
@@ -203,6 +230,10 @@ def write_valid_packet(
             "Non-functional requirements": "The change remains bounded and preserves existing performance.",
             "Compatibility and exclusions": "Compatibility is preserved; unrelated cleanup is excluded.",
             "Requirement Ready gate": "Requirement Ready is approved from repository evidence and the user decision.",
+            **({
+                "Requirement baseline": "Revision 1 is bound to the exact requirements document by its recorded SHA-256 digest.",
+                "Ambiguity ledger": "No semantic ambiguity was found after repository inspection and user confirmation.",
+            } if schema_version == "1.2" else {}),
             "Confirmation record": "The user approved the requirement and implementation scope."
         })
         docs["design.md"] = section_document("Change design: sample-change", {
@@ -211,6 +242,7 @@ def write_valid_packet(
             "Alternatives": "A parallel abstraction was rejected because it adds no stable variation axis.",
             "Architecture and failure behavior": "The caller retains ownership; the new branch returns the existing typed error on failure.",
             "Product and UX contract": "UI impact is none, so UX Ready is not applicable.",
+            **({"Requirement baseline and reopening": "Revision 1 is bound to the current digest; a late material ambiguity reopens approval."} if schema_version == "1.2" else {}),
             "Dependency decisions": "DEP-1 records the already approved exact test helper used by this fixture.",
             "Change scope": "SC-D1 changes the bounded branch; all other files remain protected.",
             "Compatibility, rollout, rollback, and cleanup": "Behavior is backward compatible and reverting the bounded edit restores the old path.",
@@ -220,6 +252,7 @@ def write_valid_packet(
         docs["evidence.md"] = section_document("Change evidence: sample-change", {
             "Acceptance traceability": "AC-1 maps to the changed branch, exact regression command, and PASSED result.",
             "Instruction, collaboration, and UX evidence": "INS-1 is verified by VO-1; checkpointed readiness is recorded; UX is not applicable.",
+            **({"Semantic clarification evidence": "Revision 1 and its digest match readiness and design approval; no ambiguity required a question or reopening."} if schema_version == "1.2" else {}),
             "Commands and results": "The exact command ran at the absolute root on 2026-08-08T00:00:00+00:00 with exit 0 and one passed test.",
             "Audit summary": "Static, blue, and red checks completed with no verified findings.",
             "Test matrix summary": f"VO-1 maps to TM-1 with status {matrix_status}.",
@@ -227,8 +260,24 @@ def write_valid_packet(
             "Residual risks and remaining gates": "No residual gate remains for local acceptance.",
             "Delivery status": "Local implementation and verification only; no commit, push, release, deploy, or external message."
         })
+        if schema_version == "1.2":
+            for audit in ("blue-audit.md", "red-audit.md"):
+                source = docs[audit]
+                insertion = "\n## Finding classification and requirement reopening\n\nThe review found no requirement ambiguity; no reopening is required.\n"
+                source = source.replace("\n## Findings\n", insertion + "\n## Findings\n")
+                docs[audit] = source
     for filename, text in docs.items():
         (packet / filename).write_text(text, encoding="utf-8")
+    if schema_version == "1.2":
+        digest = f"sha256:{hashlib.sha256((packet / 'requirements.md').read_bytes()).hexdigest()}"
+        metadata["requirements_digest"] = digest
+        for record in metadata["approvals"]["requirements"]:
+            record["requirement_revision"] = 1
+            record["requirements_digest"] = digest
+        if isinstance(metadata["approvals"]["design"], dict):
+            metadata["approvals"]["design"]["requirement_revision"] = 1
+            metadata["approvals"]["design"]["requirements_digest"] = digest
+        (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
 
 
 class PreflightTests(unittest.TestCase):
@@ -281,6 +330,347 @@ class PacketTests(unittest.TestCase):
             result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
 
+    def test_valid_schema_1_2_packet_and_digest_binding(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, schema_version="1.2")
+            valid = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(valid.returncode, 0, valid.stderr or valid.stdout)
+
+            requirements = packet / "requirements.md"
+            requirements.write_text(requirements.read_text(encoding="utf-8") + "\nA late semantic edit.\n", encoding="utf-8")
+            stale = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(stale.returncode, 2)
+            self.assertIn("requirements changed", stale.stdout)
+
+    def test_schema_1_2_ambiguity_requires_authorized_disposition(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, state="awaiting-approval", schema_version="1.2", requirement_approved=False)
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            metadata["approvals"]["design"] = None
+            metadata["requirements_digest"] = None
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+
+            recorded = run(
+                PYTHON, str(FLOW), "record-ambiguity", str(packet),
+                "--summary", "Whether the default changes",
+                "--source", "short user request",
+                "--interpretation", "change only explicit calls",
+                "--interpretation", "change every call",
+                "--materiality", "material",
+                "--owner", "user",
+                "--affects", "AC-1",
+                "--affects", "SC-D1",
+                "--recommendation", "preserve existing defaults",
+            )
+            self.assertEqual(recorded.returncode, 0, recorded.stderr or recorded.stdout)
+            document_ambiguity(packet, "AMB-1")
+            blocked = run(
+                PYTHON, str(FLOW), "record-approval", str(packet), "requirements",
+                "--id", "REQ-READY", "--by", "user", "--note", "approve",
+            )
+            self.assertEqual(blocked.returncode, 2)
+            self.assertIn("remains open", blocked.stdout)
+
+            resolved = run(
+                PYTHON, str(FLOW), "resolve-ambiguity", str(packet),
+                "--id", "AMB-1", "--status", "user-confirmed", "--by", "user",
+                "--resolution", "preserve the default", "--evidence", "user decision in task",
+            )
+            self.assertEqual(resolved.returncode, 0, resolved.stderr or resolved.stdout)
+            readiness = run(
+                PYTHON, str(FLOW), "record-approval", str(packet), "requirements",
+                "--id", "REQ-READY", "--by", "user", "--note", "approved resolved baseline",
+            )
+            self.assertEqual(readiness.returncode, 0, readiness.stderr or readiness.stdout)
+            approved = run(
+                PYTHON, str(FLOW), "transition", str(packet), "approved",
+                "--note", "approve design", "--approved-by", "user",
+            )
+            self.assertEqual(approved.returncode, 0, approved.stderr or approved.stdout)
+            valid = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(valid.returncode, 0, valid.stderr or valid.stdout)
+
+    def test_schema_1_2_rejects_codex_substitution_for_material_user_decision(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, state="awaiting-approval", schema_version="1.2", requirement_approved=False)
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            metadata["approvals"]["design"] = None
+            metadata["requirements_digest"] = None
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            recorded = run(
+                PYTHON, str(FLOW), "record-ambiguity", str(packet),
+                "--summary", "Product behavior", "--source", "requirement",
+                "--interpretation", "behavior A", "--interpretation", "behavior B",
+                "--materiality", "material", "--owner", "user", "--affects", "AC-1",
+                "--recommendation", "behavior A",
+            )
+            self.assertEqual(recorded.returncode, 0, recorded.stderr or recorded.stdout)
+            substituted = run(
+                PYTHON, str(FLOW), "resolve-ambiguity", str(packet), "--id", "AMB-1",
+                "--status", "resolved-by-evidence", "--by", "codex",
+                "--resolution", "choose A", "--evidence", "agent preference",
+            )
+            self.assertEqual(substituted.returncode, 2)
+            self.assertIn("user confirmation", substituted.stdout)
+
+    def test_schema_1_2_late_material_ambiguity_reopens_and_invalidates_approval(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, state="implementing", schema_version="1.2")
+            recorded = run(
+                PYTHON, str(FLOW), "record-ambiguity", str(packet),
+                "--summary", "Audit found contract ambiguity", "--source", "red audit",
+                "--interpretation", "reject legacy input", "--interpretation", "accept legacy input",
+                "--materiality", "high-risk", "--owner", "user", "--affects", "AC-1",
+                "--recommendation", "preserve legacy input pending user decision",
+            )
+            self.assertEqual(recorded.returncode, 0, recorded.stderr or recorded.stdout)
+            document_ambiguity(packet, "AMB-1")
+            reopened = run(
+                PYTHON, str(FLOW), "transition", str(packet), "awaiting-approval",
+                "--note", "late contract ambiguity", "--ambiguity-id", "AMB-1",
+            )
+            self.assertEqual(reopened.returncode, 0, reopened.stderr or reopened.stdout)
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            self.assertEqual(metadata["requirement_revision"], 2)
+            self.assertIsNone(metadata["requirements_digest"])
+            self.assertIsNone(metadata["approvals"]["design"])
+            self.assertEqual(len(metadata["approvals"]["design_history"]), 1)
+
+            resolved = run(
+                PYTHON, str(FLOW), "resolve-ambiguity", str(packet), "--id", "AMB-1",
+                "--status", "user-confirmed", "--by", "user",
+                "--resolution", "preserve legacy input", "--evidence", "user confirmation",
+            )
+            self.assertEqual(resolved.returncode, 0, resolved.stderr or resolved.stdout)
+            stale = run(
+                PYTHON, str(FLOW), "transition", str(packet), "approved",
+                "--note", "try stale approval", "--approved-by", "user",
+            )
+            self.assertEqual(stale.returncode, 2)
+            self.assertIn("Requirement Ready", stale.stdout)
+            fresh = run(
+                PYTHON, str(FLOW), "record-approval", str(packet), "requirements",
+                "--id", "REQ-READY", "--by", "user", "--note", "approve revision two",
+            )
+            self.assertEqual(fresh.returncode, 0, fresh.stderr or fresh.stdout)
+            approved = run(
+                PYTHON, str(FLOW), "transition", str(packet), "approved",
+                "--note", "approve revised design", "--approved-by", "user",
+            )
+            self.assertEqual(approved.returncode, 0, approved.stderr or approved.stdout)
+
+    def test_schema_1_2_blocked_route_cannot_bypass_late_reopening(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, state="implementing", schema_version="1.2")
+            recorded = run(
+                PYTHON, str(FLOW), "record-ambiguity", str(packet),
+                "--summary", "Blocked late ambiguity", "--source", "audit",
+                "--interpretation", "A", "--interpretation", "B",
+                "--materiality", "material", "--owner", "user", "--affects", "AC-1",
+                "--recommendation", "A",
+            )
+            self.assertEqual(recorded.returncode, 0, recorded.stderr or recorded.stdout)
+            document_ambiguity(packet, "AMB-1")
+            blocked = run(PYTHON, str(FLOW), "transition", str(packet), "blocked", "--note", "waiting")
+            self.assertEqual(blocked.returncode, 0, blocked.stderr or blocked.stdout)
+            discovery_bypass = run(
+                PYTHON, str(FLOW), "transition", str(packet), "discovering", "--note", "try discovery route"
+            )
+            self.assertEqual(discovery_bypass.returncode, 2)
+            self.assertIn("must reopen through awaiting-approval", discovery_bypass.stdout)
+            bypass = run(PYTHON, str(FLOW), "transition", str(packet), "awaiting-approval", "--note", "resume")
+            self.assertEqual(bypass.returncode, 2)
+            self.assertIn("--ambiguity-id", bypass.stdout)
+
+            reopened = run(
+                PYTHON, str(FLOW), "transition", str(packet), "awaiting-approval",
+                "--note", "resume with semantic reopening", "--ambiguity-id", "AMB-1",
+            )
+            self.assertEqual(reopened.returncode, 0, reopened.stderr or reopened.stdout)
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            self.assertEqual(metadata["requirement_revision"], 2)
+            self.assertIsNone(metadata["requirements_digest"])
+            self.assertIsNone(metadata["approvals"]["design"])
+            self.assertEqual(len(metadata["approvals"]["design_history"]), 1)
+
+    def test_schema_1_2_material_user_ambiguity_escalates_execute_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(
+                packet,
+                state="discovering",
+                schema_version="1.2",
+                collaboration_profile="execute",
+                requirement_approved=False,
+            )
+            result = run(
+                PYTHON, str(FLOW), "record-ambiguity", str(packet),
+                "--summary", "Scope boundary", "--source", "short request",
+                "--interpretation", "one caller", "--interpretation", "all callers",
+                "--materiality", "material", "--owner", "user", "--affects", "SC-D1",
+                "--recommendation", "one caller",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            self.assertEqual(json.loads(result.stdout)["collaboration_profile"], "checkpointed")
+
+    def test_schema_1_2_clear_execute_mode_avoids_ceremonial_requirement_approval(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(
+                packet,
+                state="awaiting-approval",
+                schema_version="1.2",
+                collaboration_profile="execute",
+                requirement_approved=False,
+            )
+            metadata_path = packet / "packet.json"
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            metadata["approvals"]["design"] = None
+            metadata["requirements_digest"] = None
+            metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            approved = run(
+                PYTHON, str(FLOW), "transition", str(packet), "approved",
+                "--note", "explicit implementation request authorizes the unambiguous baseline",
+                "--approved-by", "user",
+            )
+            self.assertEqual(approved.returncode, 0, approved.stderr or approved.stdout)
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            self.assertEqual(metadata["approvals"]["requirements"], [])
+            self.assertRegex(metadata["requirements_digest"], r"^sha256:[0-9a-f]{64}$")
+            self.assertEqual(
+                metadata["approvals"]["design"]["requirements_digest"],
+                metadata["requirements_digest"],
+            )
+
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(
+                packet,
+                state="awaiting-approval",
+                schema_version="1.2",
+                collaboration_profile="execute",
+                requirement_approved=False,
+            )
+            metadata_path = packet / "packet.json"
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            metadata["approvals"]["design"] = None
+            metadata["requirements_digest"] = None
+            metadata["history"][-1]["at"] = "2099-01-01T00:00:00+00:00"
+            metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            future_history = run(
+                PYTHON, str(FLOW), "transition", str(packet), "approved",
+                "--note", "invalid future history", "--approved-by", "user",
+            )
+            self.assertEqual(future_history.returncode, 2)
+            self.assertIn("history cannot be in the future", future_history.stdout)
+
+    def test_schema_1_2_malformed_ambiguity_container_is_structured_invalid(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, schema_version="1.2")
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            metadata["ambiguities"] = {"AMB-1": "bad"}
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(result.returncode, 2, result.stderr or result.stdout)
+            self.assertEqual(result.stderr, "")
+            self.assertIn("ambiguities must be a list", result.stdout)
+
+    def test_schema_1_2_rejects_future_or_out_of_window_resolution(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, state="awaiting-approval", schema_version="1.2", requirement_approved=False)
+            metadata_path = packet / "packet.json"
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            metadata["approvals"]["design"] = None
+            metadata["requirements_digest"] = None
+            metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            recorded = run(
+                PYTHON, str(FLOW), "record-ambiguity", str(packet),
+                "--summary", "Future resolution", "--source", "manual mutation",
+                "--interpretation", "A", "--interpretation", "B",
+                "--materiality", "material", "--owner", "user", "--affects", "AC-1",
+                "--recommendation", "A",
+            )
+            self.assertEqual(recorded.returncode, 0, recorded.stderr or recorded.stdout)
+            document_ambiguity(packet, "AMB-1")
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            metadata["ambiguities"][0]["status"] = "user-confirmed"
+            metadata["ambiguities"][0]["resolution"] = {
+                "by": "user",
+                "at": "2099-01-01T00:00:00+00:00",
+                "text": "A",
+                "evidence": ["manually injected future record"],
+            }
+            metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            readiness = run(
+                PYTHON, str(FLOW), "record-approval", str(packet), "requirements",
+                "--id", "REQ-READY", "--by", "user", "--note", "approve",
+            )
+            self.assertEqual(readiness.returncode, 2)
+            self.assertIn("cannot be in the future", readiness.stdout)
+            self.assertIn("awaiting-approval window", readiness.stdout)
+
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, schema_version="1.2")
+            metadata_path = packet / "packet.json"
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            metadata["approvals"]["design"]["at"] = "2099-01-01T00:00:00+00:00"
+            metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            future_design = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(future_design.returncode, 2)
+            self.assertIn("design approval must follow awaiting approval", future_design.stdout)
+
+    def test_schema_1_2_requires_ambiguity_in_requirement_ledger(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, state="awaiting-approval", schema_version="1.2", requirement_approved=False)
+            metadata_path = packet / "packet.json"
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            metadata["approvals"]["design"] = None
+            metadata["requirements_digest"] = None
+            metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            recorded = run(
+                PYTHON, str(FLOW), "record-ambiguity", str(packet),
+                "--summary", "Hidden ledger", "--source", "audit",
+                "--interpretation", "A", "--interpretation", "B",
+                "--materiality", "material", "--owner", "user", "--affects", "AC-1",
+                "--recommendation", "A",
+            )
+            self.assertEqual(recorded.returncode, 0, recorded.stderr or recorded.stdout)
+            replacements = {
+                "context.md": (
+                    "No material assumption remains after repository inspection.",
+                    "No material assumption remains after repository inspection. AMB-1 is mentioned outside the ledger.",
+                ),
+                "execution.md": ("No verified finding required repair.", "AMB-1 was resolved."),
+                "evidence.md": (
+                    "no ambiguity required a question or reopening.",
+                    "AMB-1 was resolved before approval.",
+                ),
+            }
+            for filename, (old, new) in replacements.items():
+                path = packet / filename
+                path.write_text(path.read_text(encoding="utf-8").replace(old, new), encoding="utf-8")
+            resolved = run(
+                PYTHON, str(FLOW), "resolve-ambiguity", str(packet), "--id", "AMB-1",
+                "--status", "user-confirmed", "--by", "user",
+                "--resolution", "A", "--evidence", "user decision",
+            )
+            self.assertEqual(resolved.returncode, 0, resolved.stderr or resolved.stdout)
+            readiness = run(
+                PYTHON, str(FLOW), "record-approval", str(packet), "requirements",
+                "--id", "REQ-READY", "--by", "user", "--note", "approve",
+            )
+            self.assertEqual(readiness.returncode, 2)
+            self.assertIn("requirement-ledger IDs", readiness.stdout)
+
     def test_valid_schema_1_0_micro_packet(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             packet = Path(temp) / "packet"
@@ -331,6 +721,89 @@ class PacketTests(unittest.TestCase):
             )
             result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+
+    def test_schema_1_2_micro_digest_ignores_progress_but_binds_requirement(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            for folder in ("briefs", "reports", "artifacts"):
+                (packet / folder).mkdir(parents=True, exist_ok=True)
+            now = "2026-08-08T00:00:00+00:00"
+            requirement_body = (
+                "- INS-1: Apply the repository test rule.\n"
+                "- AC-1: The selected input returns the confirmed output.\n"
+                "- Decision: Extend the existing bounded branch.\n"
+                "- Requirement baseline: revision 1 is content-bound.\n"
+                "- Ambiguity ledger: no material ambiguity remains."
+            )
+            trace = section_document(
+                "Micro change trace: semantic-micro",
+                {
+                    "Authority and repository facts": "Local edits and tests are authorized; INS-1 is the applicable repository rule.",
+                    "Requirement and design": requirement_body,
+                    "Scope and protected behavior": "SC-D1 is the bounded edit; SC-P1 preserves neighbors; SC-L1 permits local tests only.",
+                    "Progress and decisions": "E1 records implementation and D1 records the bounded choice.",
+                    "Verification": "VO-1 runs the focused regression and records PASSED evidence.",
+                    "Blue and red audit": "Blue and red checks found no defect, evidence gap, or requirement ambiguity.",
+                    "Delivery and residual risk": "SC-D1 is local; SC-L1 excludes commit and push; no residual local gate remains.",
+                },
+            )
+            (packet / "trace.md").write_text(trace, encoding="utf-8")
+            digest = f"sha256:{hashlib.sha256(requirement_body.encode('utf-8')).hexdigest()}"
+            metadata = {
+                "schema_version": "1.2",
+                "skill_version": "0.3.0",
+                "change_id": "semantic-micro",
+                "state": "implementing",
+                "documentation_profile": "micro",
+                "task_type": "micro",
+                "created_at": now,
+                "updated_at": now,
+                "repository_roots": [str(packet.parent)],
+                "base_git_state": "main at abc123, clean",
+                "authority": "local edits and tests",
+                "collaboration_profile": "checkpointed",
+                "ui_impact": "none",
+                "compatibility_required": False,
+                "risk_modifiers": [],
+                "acceptance_ids": ["AC-1"],
+                "scope_ids": ["SC-D1", "SC-P1", "SC-L1"],
+                "verification_ids": ["VO-1"],
+                "requirement_revision": 1,
+                "requirements_digest": digest,
+                "ambiguity_ids": [],
+                "ambiguities": [],
+                "dependency_changes": [],
+                "approvals": {
+                    "requirements": [{
+                        "id": "REQ-READY", "by": "user", "at": now, "note": "approved",
+                        "requirement_revision": 1, "requirements_digest": digest,
+                    }],
+                    "ux": [],
+                    "design": {
+                        "by": "user", "at": now, "note": "approved",
+                        "requirement_revision": 1, "requirements_digest": digest,
+                    },
+                    "dependencies": [], "waivers": [], "delivery": [],
+                },
+                "history": [
+                    {"from": None, "to": "discovering", "at": now, "note": "created"},
+                    {"from": "discovering", "to": "awaiting-approval", "at": now, "note": "ready"},
+                    {"from": "awaiting-approval", "to": "approved", "at": now, "note": "approved"},
+                ],
+            }
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            valid = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(valid.returncode, 0, valid.stderr or valid.stdout)
+
+            trace_path = packet / "trace.md"
+            trace_path.write_text(trace_path.read_text(encoding="utf-8").replace("E1 records", "E1 and E2 record"), encoding="utf-8")
+            progress_only = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(progress_only.returncode, 0, progress_only.stderr or progress_only.stdout)
+
+            trace_path.write_text(trace_path.read_text(encoding="utf-8").replace("confirmed output", "different output"), encoding="utf-8")
+            requirement_changed = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(requirement_changed.returncode, 2)
+            self.assertIn("requirements changed", requirement_changed.stdout)
 
     def test_schema_1_1_requires_new_headings(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -488,7 +961,7 @@ class PacketTests(unittest.TestCase):
             routine_meta = json.loads(
                 (root / ".codex" / "dev-flow" / "routine-change" / "packet.json").read_text(encoding="utf-8")
             )
-            self.assertEqual(routine_meta["schema_version"], "1.1")
+            self.assertEqual(routine_meta["schema_version"], "1.2")
             self.assertEqual(routine_meta["collaboration_profile"], "checkpointed")
             self.assertEqual(routine_meta["ui_impact"], "none")
 
@@ -754,6 +1227,18 @@ class PacketTests(unittest.TestCase):
             self.assertEqual(result.stderr, "")
             self.assertIn("approvals` must be an object", result.stdout)
 
+    def test_malformed_dependency_container_is_structured_invalid(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, schema_version="1.2")
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            metadata["dependency_changes"] = {"DEP-1": "bad"}
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(result.returncode, 2, result.stderr or result.stdout)
+            self.assertEqual(result.stderr, "")
+            self.assertIn("dependency_changes must be a list", result.stdout)
+
 
 class RuntimeInstallerTests(unittest.TestCase):
     def test_non_directory_destination_is_rejected(self) -> None:
@@ -866,6 +1351,45 @@ class HookTests(unittest.TestCase):
             payload = json.loads(result.stdout)
             self.assertEqual(payload["hookSpecificOutput"]["permissionDecision"], "deny")
 
+    def test_open_material_ambiguity_blocks_product_mutation_but_allows_packet_update(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            flow = root / ".codex" / "dev-flow"
+            packet = flow / "sample-change"
+            packet.mkdir(parents=True)
+            (flow / "current").write_text("sample-change\n", encoding="utf-8")
+            (packet / "packet.json").write_text(
+                json.dumps({
+                    "schema_version": "1.2",
+                    "state": "implementing",
+                    "ambiguities": [{"id": "AMB-1", "status": "open", "materiality": "material"}],
+                    "approvals": {"dependencies": []},
+                }),
+                encoding="utf-8",
+            )
+            env = os.environ.copy()
+            env["PLUGIN_ROOT"] = str(ROOT)
+            product_event = {
+                "cwd": str(root),
+                "hook_event_name": "PreToolUse",
+                "tool_name": "apply_patch",
+                "tool_input": {"patch": "*** Begin Patch\n*** Update File: src/app.py\n@@\n-old\n+new\n*** End Patch"},
+            }
+            blocked = run(PYTHON, str(HOOK), stdin=json.dumps(product_event), env=env)
+            self.assertEqual(blocked.returncode, 0, blocked.stderr or blocked.stdout)
+            self.assertEqual(json.loads(blocked.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
+            self.assertIn("AMB-1", blocked.stdout)
+
+            packet_event = {
+                **product_event,
+                "tool_input": {
+                    "patch": f"*** Begin Patch\n*** Update File: {packet / 'requirements.md'}\n@@\n-old\n+new\n*** End Patch"
+                },
+            }
+            allowed = run(PYTHON, str(HOOK), stdin=json.dumps(packet_event), env=env)
+            self.assertEqual(allowed.returncode, 0, allowed.stderr or allowed.stdout)
+            self.assertEqual(allowed.stdout, "")
+
     def test_subagent_report_must_be_fresh_for_run(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -953,6 +1477,17 @@ class RepositoryContractTests(unittest.TestCase):
     def test_context_template_includes_instruction_freshness(self) -> None:
         template = (ROOT / "skills" / "dev-flow" / "templates" / "context.md").read_text(encoding="utf-8")
         self.assertIn("| Freshness |", template)
+
+    def test_agent_handoff_templates_bind_semantic_baseline(self) -> None:
+        templates = ROOT / "skills" / "dev-flow" / "templates"
+        brief = (templates / "task-brief.md").read_text(encoding="utf-8")
+        report = (templates / "agent-report.md").read_text(encoding="utf-8")
+        for token in ("revision", "digest", "AMB", "user-owned"):
+            self.assertIn(token, brief)
+        for token in ("revision", "digest", "AMB", "requirement ambiguity"):
+            self.assertIn(token, report)
+        for classification in ("implementation defect", "design defect", "evidence gap", "scope change"):
+            self.assertIn(classification, report)
 
     def test_contract_and_plugin_checks(self) -> None:
         contracts = run(PYTHON, str(ROOT / "evals" / "run_contract_checks.py"))

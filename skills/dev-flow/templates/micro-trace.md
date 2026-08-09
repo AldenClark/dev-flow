@@ -13,6 +13,8 @@
 - AC-1: <observable result>
 - Decision: <smallest coherent solution and rationale>
 - Engineering preference: <applicable preference or none>
+- Requirement baseline: <revision and digest recorded by the CLI>
+- Ambiguity ledger: <no material ambiguity, or each structured AMB-n with owner, affected IDs, recommendation, and resolution>
 
 ## Scope and protected behavior
 

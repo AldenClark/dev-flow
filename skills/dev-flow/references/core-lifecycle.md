@@ -41,11 +41,12 @@ Exit when current and desired behavior can be compared concretely. If reproducti
 
 - For user-facing work, classify UI impact and follow `frontend-product-and-ux-discovery.md`; do not impose UI ceremony on `none` work.
 - Convert the request into actors, triggers, inputs, outputs, state changes, failures, compatibility, non-functional requirements, and acceptance criteria.
-- Ask only material questions that repository evidence cannot answer safely.
+- Follow `semantic-requirement-clarification.md`: normalize any input form, investigate repository-resolvable facts, and record competing interpretations as `AMB-n` rather than silently selecting one.
+- Ask only material questions that repository evidence cannot answer safely; the user is the final owner of material requirement semantics.
 - Follow `collaboration-checkpoints.md`; present discoveries and recommended decisions in small batches.
 - Persist each confirmed correction and material decision in requirements, decisions, and packet approval history.
 
-Exit at Requirement Ready when unresolved questions no longer change architecture, data, public behavior, dependency choice, scope, acceptance, or delivery. Material UI also requires UX Ready before production implementation.
+Exit at Requirement Ready when every open ambiguity has an authorized disposition, affected IDs are traceable, and the current requirement revision/digest is recorded. Material UI also requires UX Ready before production implementation.
 
 ## 5. Classification and design
 
@@ -76,6 +77,8 @@ For each ready task:
 5. Update progress, decisions, evidence, and blocked edges.
 6. Replan downstream tasks when a discovered fact invalidates an assumption.
 
+Classify late findings as implementation defects, evidence gaps, or requirement ambiguities. Reopen schema 1.2 approval for an open material/high-risk ambiguity before affected work continues; do not let implementation momentum define the requirement.
+
 Stop for user input when a change crosses approval, dependency, destructive, external, or material scope boundaries.
 No code slice is closed until its execution event, scope mapping, and verification result are durable in the packet.
 
@@ -85,6 +88,7 @@ No code slice is closed until its execution event, scope mapping, and verificati
 - Execute the test matrix in controlled waves from cheap/local to expensive/remote.
 - Use a separate blue audit for contract/scope and a red audit for failure, abuse, compatibility, concurrency, data loss, and rollback risks.
 - Keep blue/red briefs and findings in separate documents so the adversarial review is not anchored by implementer conclusions.
+- Require both audits to classify semantic findings; reviewers identify ambiguity and affected IDs but never resolve user-owned meaning.
 - Trace the final diff against the instruction ledger and, for UI work, verify rendered behavior and the approved product/UX contract.
 - Verify findings before remediation; rerun the affected slice and relevant regression gates.
 

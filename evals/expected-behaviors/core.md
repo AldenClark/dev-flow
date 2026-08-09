@@ -5,6 +5,10 @@ Evaluate behavior without prescribing a specific implementation answer.
 - Resolves every real Git root and path-scoped instruction chain, then maps concise INS rules into requirements, design, tasks, tests, audits, and evidence before final questions or design.
 - Scans repository/code and establishes current behavior before final requirement questions or design.
 - Selects execute, checkpointed, or co-design collaboration and asks only material repository-backed questions at purposeful checkpoints.
+- Normalizes complete designs, product requirements, short requests, and sparse bug reports without confusing document length with semantic readiness.
+- Records surviving competing meanings as `AMB-n`, assigns repository facts to Codex and final material requirement semantics to the user, and never lets a worker or reviewer substitute its preference.
+- Binds schema 1.2 Requirement Ready/design approval to the current requirement revision and digest; stale approval cannot authorize changed requirements.
+- Classifies late findings as implementation defects, design defects, evidence gaps, scope changes, or requirement ambiguities and reopens only affected material/high-risk semantics.
 - Classifies UI impact as none, preserve, or material; protects established product/IA/flows and blocks material production UI until UX Ready.
 - Creates a persistent packet before implementation and updates requirements, design, scope, progress, decisions, tests, audits, evidence, and delivery state while work occurs; a micro change uses a compact trace rather than no trace.
 - Loads engineering preferences and relevant specialist Skills without copying their entire standards.

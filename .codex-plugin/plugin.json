@@ -1,7 +1,7 @@
 {
   "name": "dev-flow",
-  "version": "0.2.0",
-  "description": "A lightweight, traceable, evidence-driven Codex Multi-Agent V2 development workflow with opinionated Rust and frontend engineering preferences.",
+  "version": "0.3.0",
+  "description": "A lightweight, traceable, evidence-driven Codex workflow with semantic clarification and opinionated Rust/frontend engineering preferences.",
   "author": {
     "name": "Dev Flow Contributors",
     "url": "https://github.com/AldenClark/dev-flow"
@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "Dev Flow",
     "shortDescription": "Opinionated evidence-driven development workflow for Codex.",
-    "longDescription": "Plans and executes software changes with repository-first requirement discovery, persistent proposal/design/progress/audit records, explicit scope, dependency consent, controlled Multi-Agent V2 delegation, risk-based testing, independent audits, and traceable acceptance evidence.",
+    "longDescription": "Plans and executes software changes with repository-first requirement discovery, structured ambiguity ownership, content-bound approval, persistent design/progress/audit records, explicit scope, dependency consent, controlled Multi-Agent V2 delegation, risk-based testing, independent audits, and traceable acceptance evidence.",
     "developerName": "Dev Flow Contributors",
     "category": "Developer Tools",
     "capabilities": [

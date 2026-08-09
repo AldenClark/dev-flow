@@ -12,6 +12,8 @@ Dev Flow 是一套面向 Codex Multi-Agent V2 的轻量开发流程插件。它�
 - 在需求和方案前扫描真实代码、运行时事实与 Git 边界；
 - 按真实 Git 根和待修改路径解析本地规范、嵌套指令、Skills、机器配置与 CI，并把有效规则映射到实现和证据；
 - 以 `execute`、`checkpointed`、`co-design` 三种协作模式控制需求、设计、漂移与验收检查点；
+- 把输入中的多义性记录为结构化 `AMB-n`，区分“Codex 应从仓库查明的事实”和“必须由用户定稿的需求语义”；
+- 用需求修订号与 SHA-256 摘要绑定 Requirement Ready/设计批准，后续语义变化或审计疑义会使旧批准失效；
 - 将 UI 工作分为 `none`、`preserve`、`material`，只对重大产品/UI 变化强制 UX Ready，避免无差别设计仪式；
 - 明确记录需求、验收标准、设计、改动范围、进度、决策、测试和审计；
 - 按微小修改、日常需求、Bug 修复、大型功能、重构、迁移、安全与性能任务调整流程重量；
@@ -42,7 +44,7 @@ max_concurrent_threads_per_session = 3
 
 ## 安装
 
-仓库公开并创建 `v0.2.0` 标签后，可直接添加仓库内的 marketplace 并安装固定到该标签的插件：
+发布与插件清单版本一致的标签后，可直接添加仓库内的 marketplace 并安装固定到该标签的插件。当前已发布稳定标签为 `v0.2.0`；源码中的下一版本能力需待对应标签发布后再从 marketplace 安装：
 
 ```bash
 codex plugin marketplace add https://github.com/AldenClark/dev-flow.git
@@ -89,7 +91,7 @@ python3 skills/dev-flow/scripts/dev-flow.py init-packet \
   --collaboration-profile co-design --ui-impact material
 ```
 
-新工作包使用向后兼容的 schema 1.1。`checkpointed`/`co-design` 在批准前记录 Requirement Ready；`material` UI 还记录 UX Ready：
+新工作包使用向后兼容的 schema 1.2，并继续验证旧 schema 1.0/1.1。`checkpointed`/`co-design` 在批准前记录 Requirement Ready；schema 1.2 会把批准绑定到当前需求修订与摘要，`material` UI 还记录 UX Ready：
 
 ```bash
 python3 skills/dev-flow/scripts/dev-flow.py record-approval \
@@ -99,6 +101,30 @@ python3 skills/dev-flow/scripts/dev-flow.py record-approval \
 python3 skills/dev-flow/scripts/dev-flow.py record-approval \
   .codex/dev-flow/console-redesign ux \
   --id UX-READY --by user --note "product and UX direction approved"
+```
+
+当仓库调查后仍存在会改变行为、契约、安全、兼容性、范围或验收的多义性时，先记录不同解释、责任人、受影响 ID 和建议，再由证据或用户定稿：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py record-ambiguity \
+  .codex/dev-flow/console-redesign \
+  --summary "默认行为是否变化" --source "需求文档" \
+  --interpretation "仅显式启用" --interpretation "所有用户默认启用" \
+  --materiality material --owner user --affects AC-1 \
+  --recommendation "保留现有默认值"
+
+python3 skills/dev-flow/scripts/dev-flow.py resolve-ambiguity \
+  .codex/dev-flow/console-redesign --id AMB-1 \
+  --status user-confirmed --by user --resolution "保留现有默认值" \
+  --evidence "用户在需求检查点确认"
+```
+
+实现或审计阶段若发现新的重大需求疑义，受影响工作必须先回到等待确认；旧设计批准被保留为历史，但不能复用：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py transition \
+  .codex/dev-flow/console-redesign awaiting-approval \
+  --ambiguity-id AMB-2 --note "审计发现兼容性语义存在两种解释"
 ```
 
 非微型任务会在目标仓库建立：
@@ -162,7 +188,7 @@ CI 在 Linux、macOS 和 Windows 上覆盖 Python 3.11 与当前 Python 3.14。�
 - `MINOR`：向后兼容的新流程、命令、策略或能力；
 - `PATCH`：兼容的修复、文档和规则校正。
 
-源码与 Git tag 使用稳定版本（例如 `0.2.0`）；仅本地 Codex 开发重装时才临时追加 `+codex.<cachebuster>`，不把缓存破坏后缀发布为正式版本。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+源码与 Git tag 使用稳定版本（例如 `0.3.0`）；仅本地 Codex 开发重装时才临时追加 `+codex.<cachebuster>`，不把缓存破坏后缀发布为正式版本。源码版本不代表对应标签已经发布，发布状态以 Git tag/release 为准。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 参与和安全
 

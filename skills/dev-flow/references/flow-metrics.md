@@ -7,6 +7,9 @@ Use metrics to improve the workflow, not to pressure agents into hiding risk or 
 - first-attempt acceptance: whether the first implementation reached verification without a requirement/design correction;
 - requirement churn: confirmed AC changes after design approval;
 - late clarification: material requirement, instruction, or UX decisions first discovered after their readiness gate;
+- ambiguity yield: material `AMB-n` decisions that prevented a plausible wrong implementation, with affected scope and evidence;
+- clarification precision: questions judged necessary and answerable after repository investigation; track avoidable questions separately without rewarding silence;
+- reopening cost: affected work invalidated after a late ambiguity, separated from unaffected work preserved by scoped reopening;
 - instruction health: missed sources, unresolved conflicts, justified exceptions, and final `INS-n` evidence gaps;
 - product/UX rework: user overrides or substantial UI direction corrections after UX Ready or implementation;
 - collaboration effectiveness: decisions resolved at the intended checkpoint, preventable blocking, and assumption reversals;

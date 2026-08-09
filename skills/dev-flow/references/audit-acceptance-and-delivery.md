@@ -22,6 +22,7 @@ Use a clean brief containing the approved requirement, design, scope, diff/base,
 - error, cancellation, lifecycle, compatibility, migration, telemetry, docs, and cleanup are complete;
 - changed files and generated artifacts are explained;
 - implementation does not contradict engineering preferences without a recorded exception.
+- each finding is classified as an implementation defect, design defect, evidence gap, scope change, or requirement ambiguity; any `AMB-n` is traced to affected requirements/scope and reopening state.
 
 Do not provide the implementer's self-review or expected conclusions.
 
@@ -39,6 +40,8 @@ Attack the change through applicable lenses:
 
 Rank findings by impact and evidence. Verify the causal path and applicability before remediation.
 
+Red review does not decide intended product behavior. When two materially different behaviors remain plausible, record the ambiguity, owner, affected IDs, recommendation, and evidence; require user confirmation for user-owned semantics.
+
 ## Finding loop
 
 For each verified finding:
@@ -48,6 +51,8 @@ For each verified finding:
 3. Apply the smallest root-cause correction.
 4. Run a scoped re-review and affected regression tests.
 5. Stop and escalate after three failed repair rounds or an architectural conflict.
+
+Before step 2, classify whether the finding contradicts a clear requirement or exposes an ambiguous requirement. For schema 1.2 material/high-risk ambiguity, reopen approval with the `AMB-n` record instead of applying a speculative fix.
 
 ## Acceptance traceability
 

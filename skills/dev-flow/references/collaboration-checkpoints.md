@@ -24,6 +24,8 @@ In `execute`, an explicit implementation request may serve as the requirement/de
 
 Progress updates at meaningful boundaries are informational and do not require acknowledgement. User corrections supersede prior assumptions; record the correction and re-evaluate affected requirements, scope, tasks, and evidence before continuing.
 
+Use `semantic-requirement-clarification.md` to decide whether a question is necessary, assign ambiguity ownership, and bind Requirement Ready to the current revision/digest. A late material/high-risk ambiguity is a drift checkpoint: stop affected work, return to `awaiting-approval`, and obtain a fresh decision rather than treating an audit inference as product truth.
+
 ## Ask high-value questions
 
 Before asking, inspect repository instructions, current behavior, configuration, tests, nearby analogues, and runtime evidence. Ask only when the answer changes product behavior, architecture, public/data compatibility, dependency choice, security/privacy, material UI direction, scope, acceptance, or delivery.
@@ -50,6 +52,7 @@ Do not ask the user to choose between options that are not genuinely distinct. D
 
 - **Instruction Ready:** applicable scoped rules are known, conflicts are resolved or blocking, and material rules map to downstream work.
 - **Requirement Ready:** no unresolved question changes behavior, architecture, public/data compatibility, scope, acceptance, or delivery.
+- For schema 1.2, **Requirement Ready** additionally means every `AMB-n` has an authorized disposition and the canonical approval records the current revision and digest.
 - **UX Ready:** the conditional gate in `frontend-product-and-ux-discovery.md` is satisfied.
 - **Design and Scope Ready:** material choices, dependency state, full scope, migration/rollback, and verification obligations are approved.
 

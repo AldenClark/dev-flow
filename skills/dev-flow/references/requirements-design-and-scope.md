@@ -13,6 +13,8 @@ Before asking the user to choose a requirement or design:
 
 Ask only questions that cannot be answered from the repository and whose answer would materially change behavior, architecture, scope, compatibility, dependency selection, risk, or delivery.
 
+Follow `semantic-requirement-clarification.md` before Requirement Ready. A structured `AMB-n` record is required whenever two plausible interpretations survive repository investigation. User-owned material semantics require an explicit user disposition; Codex-owned repository facts require evidence, not a questionnaire.
+
 Select and follow the collaboration profile in `collaboration-checkpoints.md`. For user-facing work, classify UI impact and follow `frontend-product-and-ux-discovery.md` before treating requirements or design as ready.
 
 ## Requirement model
@@ -51,6 +53,8 @@ The approved design must include:
 
 It must also identify the collaboration profile, Instruction Ready evidence, Requirement Ready decision, conditional UX Ready decision, and the drift conditions that return work to discovery.
 
+For schema 1.2, bind the design to the current requirement revision and SHA-256 digest, trace disposed `AMB-n` records into the selected behavior, and specify how a late material ambiguity reopens approval.
+
 Confirm high-impact sections with the user before calling the design final. Do not hide major decisions inside an implementation plan.
 
 ## Mandatory change scope
@@ -75,5 +79,7 @@ During implementation, classify every newly discovered change as:
 - defect in the approved design;
 - unrelated opportunity;
 - material scope expansion requiring user approval.
+
+Also distinguish a clear implementation defect from missing evidence and an ambiguous intended requirement. Only the last category enters the ambiguity/reopening protocol; do not ask the user to diagnose an implementation defect or rediscover repository facts.
 
 Record the classification before changing code. Do not use implementation momentum as authorization.

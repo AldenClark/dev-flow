@@ -65,6 +65,51 @@ def packet_metadata(packet: Path) -> dict[str, Any]:
         return {}
 
 
+def string_values(value: Any) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        return [item for nested in value.values() for item in string_values(nested)]
+    if isinstance(value, list):
+        return [item for nested in value for item in string_values(nested)]
+    return []
+
+
+def mutation_is_packet_only(event: dict[str, Any], packet: Path) -> bool:
+    if str(event.get("tool_name", "")) != "apply_patch":
+        return False
+    patch_text = "\n".join(string_values(event.get("tool_input", {})))
+    targets = re.findall(r"(?m)^\*\*\* (?:Update|Add|Delete) File: (.+?)\s*$", patch_text)
+    if not targets:
+        return False
+    cwd = Path(str(event.get("cwd") or os.getcwd())).resolve()
+    for target in targets:
+        path = Path(target.strip())
+        resolved = (path if path.is_absolute() else cwd / path).resolve()
+        if not resolved.is_relative_to(packet):
+            return False
+    return True
+
+
+def open_material_ambiguity_ids(metadata: dict[str, Any]) -> list[str]:
+    if metadata.get("schema_version") != "1.2" or metadata.get("state") not in {
+        "implementing",
+        "verifying",
+        "blocked",
+    }:
+        return []
+    records = metadata.get("ambiguities", [])
+    if not isinstance(records, list):
+        return []
+    return [
+        str(record.get("id"))
+        for record in records
+        if isinstance(record, dict)
+        and record.get("status") == "open"
+        and record.get("materiality") in {"material", "high-risk"}
+    ]
+
+
 def pre_tool(event: dict[str, Any], packet: Path) -> None:
     name = str(event.get("tool_name", ""))
     text = tool_text(event)
@@ -97,6 +142,21 @@ def pre_tool(event: dict[str, Any], packet: Path) -> None:
             )
             return
     is_mutation = name == "apply_patch" or bool(MUTATION_RE.search(text))
+    open_ambiguities = open_material_ambiguity_ids(metadata)
+    if is_mutation and open_ambiguities and not mutation_is_packet_only(event, packet):
+        output(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": (
+                        f"Open material semantic ambiguity {', '.join(open_ambiguities)} blocks product mutation. "
+                        "Update the active packet, reopen awaiting approval, and obtain an authorized disposition first."
+                    ),
+                }
+            }
+        )
+        return
     if is_mutation and DEPENDENCY_RE.search(text):
         output(
             {

@@ -69,6 +69,39 @@
       "review_after": "2026-12-01"
     },
     {
+      "id": "IND-NASA-REQ-BASELINE",
+      "source": "https://www.nasa.gov/reference/system-engineering-handbook-appendix/",
+      "checked_at": "2026-08-09",
+      "local_problem": "Unrecorded assumptions and changing requirement baselines let semantic defects surface only after implementation.",
+      "decision": "Record ambiguity and assumptions explicitly, baseline approved requirement content, and reopen controlled approval when the baseline changes.",
+      "adaptation": "Schema 1.2 AMB records plus revision and SHA-256 binding on Requirement Ready and design approval.",
+      "complexity_limit": "Strengthen the existing readiness gate instead of adding a second universal approval ceremony.",
+      "evaluation": "Stale-digest, unresolved-ambiguity, and late-reopening mutation tests.",
+      "review_after": "2027-08-09"
+    },
+    {
+      "id": "IND-CLARIFICATION-UTILITY",
+      "source": "https://doi.org/10.1145/3660810",
+      "checked_at": "2026-08-09",
+      "local_problem": "Coding agents can either guess a materially ambiguous request or burden users with broad questionnaires.",
+      "decision": "Ask selectively only after repository investigation, using competing interpretations, affected contracts, recommendation, and decision impact.",
+      "adaptation": "One-to-three high-value decision packets and explicit Codex/user ambiguity ownership, also informed by https://aclanthology.org/2025.findings-naacl.306/.",
+      "complexity_limit": "Question count is never a success metric; discoverable facts remain Codex work.",
+      "evaluation": "Short-request, sparse-bug, and avoidable-question negative contracts.",
+      "review_after": "2027-08-09"
+    },
+    {
+      "id": "IND-AMBIG-CODING-EVALS",
+      "source": "https://arxiv.org/abs/2502.13069",
+      "checked_at": "2026-08-09",
+      "local_problem": "Traditional coding benchmarks reward plausible implementation without measuring whether an agent detected underspecified intent.",
+      "decision": "Evaluate ambiguity detection, answerability, clarification precision, downstream requirement binding, and scoped reopening.",
+      "adaptation": "Contract scenarios and metrics also track emerging CLARITI (https://arxiv.org/abs/2604.14624) and ClarifyCodeBench (https://arxiv.org/abs/2607.00711) directions.",
+      "complexity_limit": "Deterministic structural tests remain separate from optional live model evaluation.",
+      "evaluation": "Semantic clarification reference contract plus schema 1.2 behavior/mutation tests.",
+      "review_after": "2027-02-09"
+    },
+    {
       "id": "IND-GOVUK-DISCOVERY",
       "source": "https://www.gov.uk/service-manual/agile-delivery/how-the-discovery-phase-works",
       "checked_at": "2026-08-09",

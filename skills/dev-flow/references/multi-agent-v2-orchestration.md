@@ -46,7 +46,7 @@ Install the bundled role configs with `dev-flow.py install-runtime`. Resolve cur
 
 ## Dispatch contract
 
-Create a task brief from `templates/task-brief.md` before every spawn. Include one deliverable, dependency edges, exact repository root, instructions/Skills, owned paths/symbols/environments, AC/SC IDs, approved decisions/non-goals, allowed/forbidden actions, verification command/oracle, report path, and stop conditions.
+Create a task brief from `templates/task-brief.md` before every spawn. Include one deliverable, dependency edges, exact repository root, instructions/Skills, owned paths/symbols/environments, AC/SC IDs, current requirement revision/digest, applicable `AMB-n` dispositions, user-owned semantics the child must not reinterpret, approved decisions/non-goals, allowed/forbidden actions, verification command/oracle, report path, and stop conditions.
 
 Default `fork_turns: "none"`; use the smallest positive fork only when exact recent wording cannot be captured safely in the brief. Full history is exceptional. Children must not delegate unless the root explicitly grants one additional bounded level.
 

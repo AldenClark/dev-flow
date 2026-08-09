@@ -26,6 +26,12 @@
 - Design truth, selected direction, states, accessibility, fidelity, and evidence: <contract or not applicable with rationale>
 - UX Ready: <not applicable, pending decision, or recorded approval>
 
+## Requirement baseline and reopening
+
+- Bound revision and digest: <requirement revision and sha256 digest approved by this design>
+- Disposed ambiguities: <AMB IDs and how each resolution affects the design>
+- Reopening behavior: <affected implementation stops; material or high-risk AMB returns the packet to awaiting approval; new approval binds the next revision>
+
 ## Dependency decisions
 
 - DEP-1: <no new dependency, or named dependency card and approval record>
