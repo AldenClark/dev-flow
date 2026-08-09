@@ -1,103 +1,64 @@
 ---
 name: dev-flow
-description: Run the project's lightweight, evidence-first Codex development workflow for non-trivial repository diagnosis, design, implementation, bug fixes, refactors, migrations, dependency changes, security or performance work, releases, UI/UX work, CLI/TUI, background jobs, Rust backends, React frontends, native apps, and Rust FFI. Use when work needs scoped repository-instruction discovery, requirements and collaboration checkpoints, frontend product/UX discovery, explicit design and change scope, persistent trace documents, controlled Multi-Agent V2 delegation, risk-based testing, independent blue/red audit, acceptance evidence, or authorized delivery. Pair with engineering-preferences for technical choices.
+description: Orchestrate evidence-first software work across authority, packet lifecycle, task classification, Engineering Context Readiness, profile resolution, focused Skill routing, task graph, bounded delegation, drift, integration, and acceptance. Use for non-trivial repository diagnosis, design, implementation, bug fixes, refactors, migrations, dependency/security/performance work, or delivery preparation; invoke focused suite Skills directly when only one bounded outcome is needed.
 ---
 
 # Dev Flow
 
-Prioritize implementation quality, preserve user authority, and scale ceremony to risk. Use normal conversation for confirmation; do not use Plan Mode as the workflow engine.
+Act as the thin orchestration kernel. Preserve user authority and integrate versioned specialist outputs; do not become an engineering handbook or duplicate specialist manuals.
 
-## Establish the runtime and authority
+## Start
 
-1. Resolve `<skill-root>` as the directory containing this `SKILL.md`.
-2. Run `python3 <skill-root>/scripts/dev-flow.py preflight`. Require Codex 0.147.0+, `multi_agent`, `multi_agent_v2`, and `hooks`; require `[agents].max_concurrent_threads_per_session = 3`.
-3. Confirm that the active turn exposes the V2 collaboration tools before delegation. Do not use a V1 fallback.
-4. Establish every real Git root and follow `references/repository-instructions-and-conventions.md` before deriving requirements, status, design, scope, or findings.
-5. Distinguish read-only, design, local implementation/testing, commit, push, PR, release, deployment, and external-message authority. Never widen authority by inference.
-6. Load `$engineering-preferences` before any technical choice.
-
-## Create the trace before implementation
-
-For every code or project mutation, create a persistent packet before the first edit:
+1. Resolve this Skill's directory and run `python3 scripts/dev-flow.py preflight --tool-surface-confirmed`.
+2. Resolve every real Git root, applicable repository instructions, worktree state, and exact mutation/delivery authority.
+3. Create or resume one persistent packet before non-trivial repository work. Validate it after compaction, approval, implementation waves, repair, and before claims.
+4. Route `repo-context` first for repository facts and task-relative ECR/EQAC. For ordinary profile consumption, run `resolve-profiles`; do not activate profile management.
 
 ```bash
-python3 <skill-root>/scripts/dev-flow.py init-packet \
-  --root <repo> --change-id <id> --task-type <type> \
-  --objective <request> --authority <authorized-actions>
+python3 scripts/dev-flow.py resolve-profiles --root <repo> \
+  --output <packet>/effective-preferences.json --path <scope> --fact language=<language>
+
+python3 scripts/dev-flow.py assess-context --root <repo> --task-type <type> \
+  --packet <packet> --path <scope> --risk <risk>
 ```
 
-Use the compact `trace.md` profile only for a genuine micro change. Use the complete packet for all other changes and all non-trivial read-only audits. The complete packet contains `packet.json`, context, requirements, design, execution, test matrix, blue audit, red audit, evidence, decisions, task briefs, agent reports, and artifacts.
+Missing optional profiles, instruction files, or specialist Skills never expand authority or block by name alone. Respect ECR's T0-T3 outcome, scoped suppression/waiver, native-control-first EQAC, active-host admission, minimal routing, and no-auto-install rules.
 
-Treat documentation as execution state, not an after-action summary:
+## Route focused outcomes
 
-- record repository facts and current behavior before final design;
-- record every acceptance criterion, material choice, alternative, approval, dependency decision, and change-scope boundary;
-- append progress, agent dispatches, drift rulings, failed hypotheses, repair rounds, test attempts, and blockers while they happen;
-- keep blue and red audit evidence separate;
-- record exact commands, roots, environments, timestamps, exits, artifacts, `NOT RUN` cells, residual risk, and every delivery action;
-- never erase superseded decisions or first-failure evidence.
+| Need | Owner |
+|---|---|
+| roots, instructions, current behavior, ECR/EQAC | `repo-context` |
+| create/change/explain profiles or projections | `manage-engineering-profiles` |
+| requirement semantics, design, scope, approval | `requirements-design` |
+| product position, IA, flows, states, accessibility | `product-ux-discovery` |
+| language-native architecture and boundaries | `architecture-decisions` |
+| library/tool/service/plugin/feature choice | `dependency-decisions` |
+| reproduction, hypotheses, root cause | `systematic-debugging` |
+| test obligations, environments, fresh evidence | `verification` |
+| independent blue/red change review | `change-review` |
+| acceptance, rollback, release/delivery gates | `delivery-readiness` |
+| suite schemas, routing, migrations, evaluations | explicit-only `dev-flow-maintainer` |
 
-No undocumented implementation is complete. After compaction or resume, reconstruct state from the packet, repository, and artifacts before continuing.
+Activate only the owners needed by the task. A direct focused request does not require the end-to-end flow. Security, performance, FFI, platform, and other external specialist capabilities are admitted overlays routed by stable capability ID; their dependency examples and findings remain advisory until reconciled with repository facts and approval.
 
-Read `references/artifact-schemas.md` for the contract. Validate at phase boundaries and before any acceptance claim:
+## Orchestrate
+
+Read `references/orchestration.md` for classification, task graph, implementation loop, drift, integration, and stopping rules. Read `references/artifact-schemas.md` for the packet contract.
+
+Before delegation, read `references/multi-agent-v2-orchestration.md`. Keep the root as sole owner of user authority, requirement/design synthesis, scope, integration, finding adjudication, and final claims. Delegate only bounded independent work with exclusive ownership and independently verify reports.
+
+## Verify and close
+
+1. Run native static and test waves through `verification`.
+2. Run independent blue/red review through `change-review`; verify findings before repair.
+3. Run the neutral diff-aware gate:
 
 ```bash
-python3 <skill-root>/scripts/dev-flow.py validate-packet <packet-dir>
+python3 scripts/dev-flow.py audit-preferences --root <repo> --packet <packet>
 ```
 
-## Run the lifecycle
+4. Use `delivery-readiness` to trace AC/SC/VO evidence, compatibility, rollback, changed files, residual risks, and exact delivery authority.
+5. Claim only `implemented`, `verified`, `accepted`, `release-ready`, or `delivered` when fresh evidence proves that exact state. Keep `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, and `WAIVED` distinct.
 
-Follow `references/core-lifecycle.md`:
-
-1. Build the scoped instruction ledger, inspect repository structure/manifests/tests/CI/runtime paths/analogues, and establish current behavior or a measured baseline.
-2. Select `execute`, `checkpointed`, or `co-design` collaboration using `references/collaboration-checkpoints.md`.
-3. Classify task, project profiles, risk modifiers, compatibility, documentation depth, delivery authority, and UI impact as `none`, `preserve`, or `material`.
-4. For user-facing UI work, follow `references/frontend-product-and-ux-discovery.md`; require UX Ready before production implementation of material UI.
-5. Follow `references/semantic-requirement-clarification.md`; investigate repository-resolvable facts, record and disposition every semantic ambiguity, then bind the requirement revision/digest at Requirement Ready.
-6. Compare designs against repository evidence and engineering preferences; write the full direct, indirect, conditional, protected, out-of-scope, and delivery scope.
-7. Confirm material design choices and every new dependency before crossing their approval boundaries.
-8. Build a dependency-aware task graph and resource ledger; give each task its applicable instruction and product/UX constraints.
-9. Implement coherent slices; update progress and drift records at each meaningful boundary.
-10. Run static checks and controlled test waves from narrow/cheap to broad/environment-heavy.
-11. Perform independent, risk-scaled blue and red audits; verify findings before remediation and re-review only the affected scope.
-12. Trace every acceptance, scope, instruction, and verification obligation to fresh evidence.
-13. Perform only separately authorized delivery actions, then archive the accepted packet when appropriate.
-
-## Route by task and project
-
-- Read `references/classification-and-escalation.md` and the matching section of `references/task-playbooks.md`.
-- Compose the applicable profiles from `references/project-profiles.md`; never average away the strictest gate.
-- Read `references/repository-instructions-and-conventions.md` for every repository task.
-- Read `references/collaboration-checkpoints.md` before requirement confirmation and select a profile.
-- Read `references/semantic-requirement-clarification.md` before every Requirement Ready decision and whenever implementation or audit evidence could change intended behavior.
-- Read `references/requirements-design-and-scope.md` before requirement confirmation or final design.
-- Read `references/frontend-product-and-ux-discovery.md` for every user-facing UI task and classify its UI impact before coding.
-- Read `references/multi-agent-v2-orchestration.md` before any delegation.
-- Read `references/test-strategy-and-coverage.md` for every change.
-- Also read `references/test-environment-orchestration.md` when browsers, simulators, devices, VMs, containers, services, concurrency, or compatibility apply.
-- Read `references/evidence-privacy-and-retention.md` before retaining logs, screenshots, traces, dumps, or user data.
-- Read `references/audit-acceptance-and-delivery.md` before review, completion, commit, push, PR, release, or deployment.
-- Read `references/flow-metrics.md` when evaluating or improving the workflow itself.
-
-## Enforce dependency and preference gates
-
-Before changing a manifest, lockfile, feature, plugin, tool, service, vendored source, or generated dependency metadata, follow the sibling Skill's dependency governance and write a dependency card from `templates/dependency-decision.md`. Obtain explicit approval for the named option and impact.
-
-Run the diff-aware audit before final verification:
-
-```bash
-python3 <skill-root>/scripts/dev-flow.py audit-preferences \
-  --root <repo> --packet <packet-dir>
-```
-
-Hooks provide additional warnings and narrow denials while a packet is active, but they never replace root inspection or evidence.
-
-## Control Multi-Agent V2
-
-Keep the root as the sole owner of user authority, requirement/design synthesis, scope, approvals, integration, finding adjudication, and final claims. Delegate only bounded independent work with a written brief and exclusive ownership. Default to no inherited conversation, require a report file, and independently verify child claims.
-
-Use at most the task budget defined in `references/multi-agent-v2-orchestration.md`; never fill capacity merely because it exists. Stop drift, ownership overlap, unapproved dependencies, external/destructive action, or repeated failure. After three failed hypotheses or repair rounds, stop layering patches and return to evidence and architecture.
-
-## Completion rule
-
-Do not say complete, fixed, passing, compatible, secure, release-ready, committed, pushed, or deployed unless fresh evidence proves that exact claim. Report `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, and `WAIVED` separately. Account for every changed file and state residual risks, environment gaps, hook trust/restart needs, and unexecuted live evaluations explicitly.
+Do not commit, push, create a PR, tag, release, deploy, install a plugin, or send an external message without that separate authority.

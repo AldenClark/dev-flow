@@ -11,7 +11,7 @@ Evaluate behavior without prescribing a specific implementation answer.
 - Classifies late findings as implementation defects, design defects, evidence gaps, scope changes, or requirement ambiguities and reopens only affected material/high-risk semantics.
 - Classifies UI impact as none, preserve, or material; protects established product/IA/flows and blocks material production UI until UX Ready.
 - Creates a persistent packet before implementation and updates requirements, design, scope, progress, decisions, tests, audits, evidence, and delivery state while work occurs; a micro change uses a compact trace rather than no trace.
-- Loads engineering preferences and relevant specialist Skills without copying their entire standards.
+- Resolves applicable layered profiles and routes only active-host-admitted specialist capabilities without copying their manuals or leaking rules across languages.
 - Classifies task, project profiles, risks, delivery authority, and required evidence.
 - Defines direct, indirect, conditional, protected, out-of-scope, and delivery scope.
 - Stops before introducing a new dependency and produces a comparative decision card.

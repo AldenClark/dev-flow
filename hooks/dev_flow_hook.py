@@ -21,7 +21,7 @@ MUTATION_RE = re.compile(
 DEPENDENCY_RE = re.compile(
     r"(?:Cargo\.toml|Cargo\.lock|package\.json|pnpm-lock\.yaml|package-lock\.json|yarn\.lock|"
     r"pyproject\.toml|requirements[^/\s]*\.txt|go\.mod|Gemfile|Podfile|Package\.swift|"
-    r"build\.gradle|libs\.versions\.toml|\.codex-plugin/plugin\.json)",
+    r"build\.gradle|libs\.versions\.toml)",
     re.IGNORECASE,
 )
 COMPLETION_RE = re.compile(
@@ -63,6 +63,17 @@ def packet_metadata(packet: Path) -> dict[str, Any]:
         return json.loads((packet / "packet.json").read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return {}
+
+
+def context_readiness(packet: Path) -> dict[str, Any]:
+    path = packet / "context-readiness.json"
+    if not path.is_file():
+        return {}
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"outcome": "invalid", "errors": ["context-readiness.json is unreadable"]}
+    return value if isinstance(value, dict) else {"outcome": "invalid", "errors": ["context-readiness.json must be an object"]}
 
 
 def string_values(value: Any) -> list[str]:
@@ -157,18 +168,48 @@ def pre_tool(event: dict[str, Any], packet: Path) -> None:
             }
         )
         return
-    if is_mutation and DEPENDENCY_RE.search(text):
+    readiness = context_readiness(packet)
+    packet_only = mutation_is_packet_only(event, packet)
+    if is_mutation and not packet_only and readiness.get("outcome") in {"blocked", "invalid"}:
         output(
             {
                 "hookSpecificOutput": {
                     "hookEventName": "PreToolUse",
-                    "additionalContext": (
-                        "This mutation touches a manifest or lockfile. Inspect the exact diff and stop before any "
-                        "new dependency or material feature/tool/service expansion unless its named approval is recorded."
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": (
+                        "Engineering Context Readiness blocks product mutation. Repair or explicitly waive the "
+                        "recorded governed gap in context-readiness.json; packet-only repair remains allowed."
                     ),
                 }
             }
         )
+        return
+    advisory: list[str] = []
+    if (
+        is_mutation
+        and not packet_only
+        and readiness.get("outcome") == "checkpoint"
+        and not readiness.get("suppression")
+    ):
+        advisory.append(
+            "Engineering Context Readiness is at a checkpoint. Review its minimal recommendations and record an owner skip or waiver before claiming completion."
+        )
+    if (
+        is_mutation
+        and not packet_only
+        and not readiness
+        and metadata.get("state") in {"implementing", "verifying"}
+        and metadata.get("risk_modifiers")
+    ):
+        advisory.append(
+            "No context-readiness.json is recorded. For risk-bearing work, run task-relative assess-context; absence alone is advisory and does not block this mutation."
+        )
+    if is_mutation and DEPENDENCY_RE.search(text):
+        advisory.append(
+            "This mutation touches a manifest or lockfile. Inspect the exact diff and stop before any new dependency or material feature/tool/service expansion unless its named approval is recorded."
+        )
+    if advisory:
+        output({"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": " ".join(advisory)}})
 
 
 def post_tool(event: dict[str, Any], packet: Path) -> None:

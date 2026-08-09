@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0",
+  "authority": "Neutral capability taxonomy. Local admission records decide whether an installed route is approved on the active host.",
+  "capabilities": [
+    {
+      "id": "quality.rust.correctness",
+      "outcome": "Rust ownership, borrowing, error, unsafe, and public API behavior are reviewed in the affected scope.",
+      "selectors": ["language=rust"],
+      "native_evidence": ["Cargo.toml", "**/Cargo.toml", "rustfmt.toml", ".rustfmt.toml", "clippy.toml", ".clippy.toml"],
+      "route_names": ["rust-code-review", "review-rust"],
+      "preferred_route": "rust-code-review",
+      "manual_fallback": "qualified-rust-reviewer"
+    },
+    {
+      "id": "quality.rust.async",
+      "outcome": "Rust asynchronous work proves task ownership, cancellation, backpressure, shutdown, and lock discipline.",
+      "selectors": ["language=rust", "risk=concurrency"],
+      "native_evidence": ["Cargo.toml", "**/Cargo.toml", "**/*test*.rs"],
+      "route_names": ["tokio-async-code-review", "rust-async-patterns"],
+      "preferred_route": "tokio-async-code-review",
+      "manual_fallback": "qualified-concurrency-reviewer"
+    },
+    {
+      "id": "quality.rust.unsafe",
+      "outcome": "Unsafe Rust proves every safety invariant, containment boundary, caller obligation, platform assumption, and tested fallback.",
+      "selectors": ["language=rust", "risk=unsafe"],
+      "native_evidence": ["*.rs", "**/*.rs", "Cargo.toml", "**/Cargo.toml", "*miri*", "**/*miri*", "*sanitizer*", "**/*sanitizer*"],
+      "route_names": ["rust-code-review", "review-rust"],
+      "preferred_route": "rust-code-review",
+      "contextual_review_required": true,
+      "manual_fallback": "qualified-unsafe-rust-reviewer"
+    },
+    {
+      "id": "quality.typescript.correctness",
+      "outcome": "TypeScript types, external validation, state modeling, and public API behavior are checked in strict project context.",
+      "selectors": ["language=typescript"],
+      "native_evidence": ["tsconfig.json", "**/tsconfig.json", "eslint.config.*", "**/eslint.config.*", "biome.json", "**/biome.json"],
+      "route_names": [],
+      "manual_fallback": "qualified-typescript-reviewer"
+    },
+    {
+      "id": "quality.react.performance",
+      "outcome": "React rendering, data flow, and bundle-sensitive changes receive framework-version-aware performance review.",
+      "selectors": ["language=typescript", "framework=react"],
+      "native_evidence": ["**/*performance*.test.ts", "**/*performance*.spec.ts", "**/*bundle*budget*", "**/*lighthouse*"],
+      "route_names": ["react-best-practices"],
+      "manual_fallback": "measured-render-or-bundle-review"
+    },
+    {
+      "id": "quality.swift.correctness",
+      "outcome": "Swift isolation, lifecycle, error, and platform contracts are verified for the affected target.",
+      "selectors": ["language=swift"],
+      "native_evidence": ["Package.swift", "**/Package.swift", "**/*.xcodeproj/project.pbxproj"],
+      "route_names": ["swift-concurrency", "swiftui-expert-skill"],
+      "manual_fallback": "qualified-apple-reviewer"
+    },
+    {
+      "id": "quality.kotlin.correctness",
+      "outcome": "Kotlin nullability, coroutine ownership, lifecycle, and boundary contracts are verified.",
+      "selectors": ["language=kotlin"],
+      "native_evidence": ["build.gradle", "build.gradle.kts", "**/build.gradle", "**/build.gradle.kts"],
+      "route_names": [],
+      "manual_fallback": "qualified-kotlin-reviewer"
+    },
+    {
+      "id": "quality.ffi.review",
+      "outcome": "FFI ABI, layout, ownership, errors, callbacks, concurrency, teardown, and consumer packaging are checked on both sides.",
+      "selectors": ["risk=ffi"],
+      "native_evidence": ["**/*ffi*", "**/*jni*", "**/*uniffi*", "**/*.udl"],
+      "route_names": ["ffi-code-review", "rust-swift-ffi", "rust-kotlin-ffi"],
+      "preferred_route": "ffi-code-review",
+      "contextual_review_required": true,
+      "manual_fallback": "qualified-ffi-owner-review"
+    },
+    {
+      "id": "quality.security.review",
+      "outcome": "Security-sensitive logic receives risk-based static analysis, secret review, threat-boundary review, and verified findings.",
+      "selectors": ["risk=security"],
+      "native_evidence": [".semgrep.yml", "**/.semgrep.yml", ".github/codeql/**", "tests/security/**", "**/test_*security*"],
+      "route_names": [],
+      "contextual_review_required": true,
+      "manual_fallback": "qualified-security-owner-review"
+    },
+    {
+      "id": "quality.accessibility.review",
+      "outcome": "User-facing behavior combines automated accessibility checks with keyboard and assistive-technology judgment.",
+      "selectors": ["risk=accessibility"],
+      "native_evidence": ["**/*axe*", "**/*accessibility*", "**/*a11y*", "playwright.config.*", "**/playwright.config.*"],
+      "route_names": [],
+      "contextual_review_required": true,
+      "manual_fallback": "keyboard-and-assistive-technology-review"
+    },
+    {
+      "id": "quality.verification.tests",
+      "outcome": "Changed behavior has a fresh repository-native test oracle at the appropriate unit, integration, contract, or end-to-end layer.",
+      "selectors": [],
+      "native_evidence": ["tests/**", "test/**", "test_*.py", "**/test_*.py", "*_test.py", "**/*_test.py", "*_test.rs", "**/*_test.rs", "*.test.ts", "**/*.test.ts", "*.spec.ts", "**/*.spec.ts", "*Tests.swift", "**/*Tests.swift"],
+      "route_names": [],
+      "manual_fallback": "explicit-behavioral-reproduction-and-review"
+    }
+  ]
+}

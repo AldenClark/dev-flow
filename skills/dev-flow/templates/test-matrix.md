@@ -3,6 +3,7 @@
 ## Dimensions and selection rationale
 
 - Instruction mapping: <INS IDs and the cells that prove them>
+- ECR/EQAC mapping: <tier, applicable obligations, selected controls/routes/fallbacks, and cells that verify them>
 - <OS, browser, device, architecture, version, feature, data, or configuration dimension and why selected>
 
 ## Resource ownership

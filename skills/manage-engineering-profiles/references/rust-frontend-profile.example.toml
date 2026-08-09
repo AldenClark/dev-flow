@@ -1,0 +1,225 @@
+schema_version = "1.0"
+id = "personal.example.rust-frontend"
+layer = "personal"
+owner = "replace-with-user-id"
+version = "1.0"
+status = "draft"
+
+# This is an inactive example, not public policy. Copy it into the personal
+# profile directory, review every entry, update the owner, and activate it.
+
+[[preferences]]
+key = "rust.edition"
+kind = "preference"
+strength = "should"
+value = "2024"
+applies_when = ["language=rust", "project-state=greenfield"]
+avoid_when = ["existing-edition=true", "toolchain-incompatible=true"]
+rationale = "Prefer the current stable language edition for new work after toolchain and dependency compatibility checks."
+alternatives = ["preserve-existing-edition"]
+exception_policy = "record-reason"
+review_trigger = "rust-edition-or-msrv-change"
+
+[[preferences]]
+key = "rust.async-runtime"
+kind = "preference"
+strength = "should"
+value = "tokio"
+applies_when = ["language=rust", "capability=async-runtime"]
+avoid_when = ["existing-runtime=true", "runtime-embedding-conflict=true"]
+rationale = "Use one mature runtime when the product actually needs async I/O and structured task ownership."
+alternatives = ["preserve-existing-runtime", "synchronous-design"]
+exception_policy = "dependency-decision"
+review_trigger = "runtime-or-platform-change"
+
+[[preferences]]
+key = "rust.serialization"
+kind = "preference"
+strength = "should"
+value = "serde"
+applies_when = ["language=rust", "capability=serialization"]
+avoid_when = ["existing-contract-tool=true", "no-serialization-needed=true"]
+rationale = "Prefer the ecosystem-standard serialization boundary while keeping wire/schema compatibility explicit."
+alternatives = ["repository-existing-contract-tool"]
+exception_policy = "dependency-decision"
+review_trigger = "wire-format-or-schema-change"
+
+[[preferences]]
+key = "rust.http-server"
+kind = "preference"
+strength = "should"
+value = "axum"
+applies_when = ["language=rust", "capability=http-server", "project-state=greenfield"]
+avoid_when = ["existing-http-framework=true", "platform-contract-conflict=true"]
+rationale = "Prefer a focused Tokio-native HTTP stack for new services after exact feature and ecosystem verification."
+alternatives = ["repository-existing-framework"]
+exception_policy = "architecture-and-dependency-decision"
+review_trigger = "framework-or-runtime-change"
+
+[[preferences]]
+key = "rust.http-client"
+kind = "preference"
+strength = "should"
+value = "reqwest"
+applies_when = ["language=rust", "capability=http-client"]
+avoid_when = ["existing-client=true", "protocol-needs-lower-level-control=true"]
+rationale = "Prefer a maintained high-level client with explicit timeout, TLS, retry, and body-limit policy."
+alternatives = ["repository-existing-client", "lower-level-http-stack"]
+exception_policy = "dependency-decision"
+review_trigger = "tls-proxy-or-protocol-change"
+
+[[preferences]]
+key = "rust.tls"
+kind = "preference"
+strength = "should"
+value = "rustls"
+applies_when = ["language=rust", "capability=tls"]
+avoid_when = ["platform-native-tls-required=true", "compliance-provider-required=true"]
+rationale = "Prefer a memory-safe TLS implementation while treating provider, roots, compliance, and interoperability as project decisions."
+alternatives = ["platform-native-tls", "required-compliance-provider"]
+exception_policy = "security-and-dependency-decision"
+review_trigger = "tls-provider-or-compliance-change"
+
+[[preferences]]
+key = "rust.database-access"
+kind = "preference"
+strength = "should"
+value = "sqlx"
+applies_when = ["language=rust", "capability=relational-database"]
+avoid_when = ["existing-data-layer=true", "orm-domain-model-required=true"]
+rationale = "Prefer explicit SQL with compile-time checking where the repository and build environment can support it."
+alternatives = ["repository-existing-data-layer", "purpose-fit-orm"]
+exception_policy = "architecture-and-dependency-decision"
+review_trigger = "database-or-query-model-change"
+
+[[preferences]]
+key = "rust.telemetry"
+kind = "preference"
+strength = "should"
+value = "tracing"
+applies_when = ["language=rust", "capability=structured-telemetry"]
+avoid_when = ["existing-telemetry-stack=true"]
+rationale = "Prefer structured spans/events with secret-safe fields and bounded cardinality."
+alternatives = ["repository-existing-telemetry"]
+exception_policy = "dependency-decision"
+review_trigger = "observability-backend-or-runtime-change"
+
+[[preferences]]
+key = "rust.time.library"
+kind = "preference"
+strength = "should"
+value = "jiff"
+applies_when = ["language=rust", "capability=civil-time"]
+avoid_when = ["existing=chrono", "migration-out-of-scope=true"]
+rationale = "Prefer one modern civil-time and time-zone model for new or approved migration work."
+alternatives = ["time"]
+exception_policy = "record-reason"
+review_trigger = "major-release-or-platform-change"
+
+[[preferences]]
+key = "rust.collections.default-map"
+kind = "preference"
+strength = "should"
+value = "hashbrown"
+applies_when = ["language=rust", "capability=unordered-map"]
+avoid_when = ["boundary=adversarial-key", "requirement=ordered-map"]
+rationale = "Prefer a focused high-performance map for ordinary trusted-key workloads."
+alternatives = ["std-hashmap", "btree-map", "indexmap"]
+exception_policy = "record-reason"
+review_trigger = "security-boundary-or-workload-change"
+
+[[preferences]]
+key = "rust.cache.default"
+kind = "preference"
+strength = "should"
+value = "scc-hashcache"
+applies_when = ["language=rust", "capability=in-memory-cache"]
+avoid_when = ["requirement=async-loading", "requirement=cross-process-durability"]
+rationale = "Start with a bounded lightweight in-process cache and choose richer policy only when required."
+alternatives = ["moka", "file-cache", "external-cache-service"]
+exception_policy = "dependency-decision"
+review_trigger = "cache-policy-or-workload-change"
+
+[[preferences]]
+key = "frontend.package-manager"
+kind = "preference"
+strength = "should"
+value = "pnpm"
+applies_when = ["language=typescript", "project-state=greenfield"]
+avoid_when = ["existing-package-manager=true", "migration-out-of-scope=true"]
+rationale = "Use one explicit workspace-aware package manager and authoritative lockfile for new projects."
+alternatives = ["preserve-existing-package-manager"]
+exception_policy = "record-reason"
+review_trigger = "toolchain-or-project-policy-change"
+
+[[preferences]]
+key = "frontend.framework"
+kind = "preference"
+strength = "should"
+value = "react"
+applies_when = ["language=typescript", "artifact-role=web-ui", "project-state=greenfield"]
+avoid_when = ["existing-ui-framework=true", "product-does-not-need-client-framework=true"]
+rationale = "Prefer a broadly supported component model for interactive web products after rendering and deployment needs are established."
+alternatives = ["platform-html", "repository-existing-framework"]
+exception_policy = "product-architecture-decision"
+review_trigger = "rendering-model-or-framework-change"
+
+[[preferences]]
+key = "frontend.build-tool"
+kind = "preference"
+strength = "should"
+value = "vite"
+applies_when = ["language=typescript", "artifact-role=web-ui", "project-state=greenfield"]
+avoid_when = ["framework-owned-build=true", "existing-build-tool=true"]
+rationale = "Prefer a focused standards-based development/build tool when the selected framework does not own the build."
+alternatives = ["framework-owned-build", "repository-existing-build"]
+exception_policy = "dependency-decision"
+review_trigger = "framework-build-or-browser-target-change"
+
+[[preferences]]
+key = "frontend.unit-component-tests"
+kind = "preference"
+strength = "should"
+value = "vitest-testing-library"
+applies_when = ["language=typescript", "artifact-role=web-ui", "capability=component-tests"]
+avoid_when = ["existing-test-stack=true"]
+rationale = "Prefer behavior-oriented component tests integrated with the repository's build graph."
+alternatives = ["repository-existing-test-stack"]
+exception_policy = "dependency-decision"
+review_trigger = "test-runner-or-framework-change"
+
+[[preferences]]
+key = "frontend.browser-tests"
+kind = "preference"
+strength = "should"
+value = "playwright"
+applies_when = ["language=typescript", "artifact-role=web-ui", "capability=end-to-end-tests"]
+avoid_when = ["existing-browser-runner=true", "rendered-browser-test-not-warranted=true"]
+rationale = "Prefer an isolated multi-project browser runner for high-value rendered journeys and accessibility evidence."
+alternatives = ["repository-existing-browser-runner"]
+exception_policy = "dependency-decision"
+review_trigger = "browser-support-or-delivery-change"
+
+[[preferences]]
+key = "frontend.server-state"
+kind = "preference"
+strength = "should"
+value = "tanstack-query"
+applies_when = ["language=typescript", "framework=react", "capability=server-state"]
+avoid_when = ["existing-server-state-library=true", "migration-out-of-scope=true"]
+rationale = "Keep remote cache ownership distinct from local UI state in new or approved migration work."
+alternatives = ["repository-existing-solution"]
+exception_policy = "dependency-decision"
+review_trigger = "framework-or-product-data-flow-change"
+
+[[preferences]]
+key = "rust.desktop-ui"
+kind = "preference"
+strength = "should"
+value = "gpui"
+applies_when = ["language=rust", "artifact-role=desktop-ui", "project-state=greenfield"]
+avoid_when = ["existing-ui-framework=true", "platform-support-gap=true"]
+rationale = "Prefer a native Rust desktop UI after platform, accessibility, packaging, and maturity verification."
+alternatives = ["slint", "platform-native-ui"]
+exception_policy = "architecture-and-dependency-decision"
+review_trigger = "framework-maturity-or-target-platform-change"

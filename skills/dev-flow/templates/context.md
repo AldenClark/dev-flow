@@ -34,6 +34,14 @@ Authority: <authority>
 - Design and Scope Ready: <status and material approval>
 - Drift triggers: <conditions that require discovery or user decision>
 
+## Engineering context readiness
+
+- ECR tier and rationale: <T0-T3 plus risk/reversibility evidence>
+- Effective preferences: <effective-preferences.json fingerprint, source layers, conflicts, and owner>
+- EQAC: <applicable capability outcomes and native/policy/admitted/fallback coverage>
+- Outcome: <not_applicable, ready, partial_advisory, checkpoint, blocked, or waived>
+- Reminder/waiver: <none, fingerprinted suppression, or scoped authorized waiver with expiry>
+
 ## Semantic input and ambiguity ownership
 
 - Input completeness: <design package, product requirement, short request, bug report, or mixed evidence>

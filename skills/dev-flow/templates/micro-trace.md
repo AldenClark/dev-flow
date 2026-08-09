@@ -7,6 +7,7 @@
 - Root and base state: <repository-roots>; <base-git-state>
 - Collaboration and UI impact: <collaboration-profile>; <ui-impact>
 - Evidence: <exact file, caller, test, scoped INS IDs, and repository instruction inspected>
+- ECR/EQAC: <lowest sufficient tier, effective-profile fingerprint, applicable quality outcomes, and any reminder/waiver>
 
 ## Requirement and design
 

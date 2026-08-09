@@ -41,6 +41,9 @@ jobs:
       - name: Validate plugin repository
         run: python skills/dev-flow/scripts/dev-flow.py check --plugin-root .
 
+      - name: Validate focused Skill suite and cutover
+        run: python skills/dev-flow-maintainer/scripts/validate-suite.py
+
       - name: Compile Python sources
         run: python -m compileall -q hooks skills evals
 

@@ -7,6 +7,9 @@
 ## Engineering preferences applied
 
 - Applicable instructions: <INS IDs and their design effects>
+- Effective snapshot: <fingerprint, applicable layers, conflicts, and exceptions; or neutral baseline only>
+- Language/framework scope: <facts that prevent cross-language or cross-role leakage>
+- Quality coverage: <native control, owned policy, admitted specialist, qualified fallback, or waiver>
 - <preference ID, repository evidence, decision effect, and any exception>
 
 ## Alternatives

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage Engineering Profiles"
+  short_description: "Manage layered engineering profiles"
+  default_prompt: "Use $manage-engineering-profiles to assess and maintain scoped personal, team, project, or component engineering profiles."

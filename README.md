@@ -3,7 +3,7 @@
 [![CI](https://github.com/AldenClark/dev-flow/actions/workflows/ci.yml/badge.svg)](https://github.com/AldenClark/dev-flow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Dev Flow 是一套面向 Codex Multi-Agent V2 的轻量开发流程插件。它把“先理解现有代码、再确认需求和设计”落实为可追溯的工作包，并提供一套明确、可调整的 Rust 与前端工程偏好。
+Dev Flow 是一套面向 Codex 的中立、可组合、证据驱动工程工作台。它把仓库上下文、分层工程 Profile、需求与设计、实施、验证、审查和交付就绪度连接为可追溯流程，同时避免把某个人的 Rust、前端或库偏好写进公共内核。
 
 > English: a lightweight, repository-first and evidence-driven Codex workflow for high-quality software changes.
 
@@ -22,6 +22,11 @@ Dev Flow 是一套面向 Codex Multi-Agent V2 的轻量开发流程插件。它�
 - 只把边界清晰的独立工作交给子代理，由根代理负责综合、复核和最终验收；
 - 管控浏览器、模拟器、设备、虚拟机、容器和服务等测试资源；
 - 用蓝队审计、红队审计和新鲜验证证据阻止未经证实的完成声明。
+- 以 12 个职责单一的 Skills 支持直接调用和端到端组合，避免加载无关工程手册；
+- 解析 public baseline、个人、团队、项目、组件与任务六层 Profile，并输出带来源哈希、冲突和例外的有效快照；
+- 以 T0-T3 Engineering Context Readiness 检查当前任务真正需要的上下文，而不是按文件存在性评分；
+- 以 EQAC 优先使用编译器、类型检查、lint、测试、CI 等原生控制，再按当前宿主准入最小化路由专业 Skills；
+- 缺少个人 Profile、`AGENTS.md` 或某个具名 Skill 不会单独构成阻断，也不会触发自动安装。
 
 ## 运行要求
 
@@ -80,7 +85,30 @@ python3 skills/dev-flow/scripts/dev-flow.py uninstall-runtime
 
 ## 使用方式
 
-在 Codex 中调用 `$dev-flow`，并描述目标、允许的交付范围以及兼容性要求。涉及技术选型时，流程会配合 `$engineering-preferences` 使用。流程会先建立适用规范账本，再根据风险选择协作模式；用户可显式覆盖默认模式。
+在 Codex 中调用 `$dev-flow`，并描述目标、允许的交付范围以及兼容性要求。主流程会先使用 `$repo-context` 建立仓库事实、ECR/EQAC 和有效 Profile，再只路由当前任务需要的能力。也可以直接调用 `$requirements-design`、`$architecture-decisions`、`$dependency-decisions`、`$systematic-debugging`、`$verification`、`$change-review` 或其他聚焦 Skill。
+
+只有在创建、调整、解释、推广、退役或审计 Profile/质量策略时才调用 `$manage-engineering-profiles`；普通代码任务只消费解析结果。`$dev-flow-maintainer` 仅用于显式维护本插件。
+
+Profile 与上下文命令均使用 Python 标准库：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py resolve-profiles \
+  --root "$PWD" --output .codex/dev-flow/<change-id>/effective-preferences.json
+
+python3 skills/dev-flow/scripts/dev-flow.py assess-context \
+  --root "$PWD" --task-type routine --packet .codex/dev-flow/<change-id>
+
+python3 skills/manage-engineering-profiles/scripts/profile-tool.py \
+  scaffold --id project.default --layer project --owner team \
+  --output .dev-flow/profiles/project.toml
+
+python3 skills/manage-engineering-profiles/scripts/profile-tool.py \
+  suppress --fingerprint sha256:<64-hex> --owner <owner> \
+  --reason "reviewed for this unchanged task context" \
+  --tier T1 --output .dev-flow/suppressions.json
+```
+
+Profile 工具默认只输出 review-first 提案；明确审核后才添加 `--write`。它不会自动创建团队规则、安装专业 Skill 或修改依赖。
 
 CLI 初始化也支持显式分类：
 
@@ -163,8 +191,12 @@ Hooks 只在仓库显式激活 `.codex/dev-flow/current` 时工作；它们不�
 
 ## 仓库结构
 
-- `skills/dev-flow/`：生命周期、任务手册、工作包模板、测试和审计策略、CLI 与角色配置；
-- `skills/engineering-preferences/`：工程宪章、依赖治理、机器可读偏好和选型目录；
+- `skills/dev-flow/`：薄编排内核、工作包协议、Profile/ECR/EQAC 运行时、CLI 与角色配置；
+- `skills/repo-context/`、`requirements-design/`、`product-ux-discovery/`：上下文、语义/范围与产品体验输入；
+- `skills/architecture-decisions/`、`dependency-decisions/`、`systematic-debugging/`：技术决策和诊断；
+- `skills/verification/`、`change-review/`、`delivery-readiness/`：证据、独立审查与交付就绪；
+- `skills/manage-engineering-profiles/`：个人/团队/项目/组件 Profile 和质量策略生命周期；
+- `skills/dev-flow-maintainer/`：显式维护 schema、能力准入、路由、迁移和评测；
 - `hooks/`：仅对显式激活工作包生效的依赖、委派、进度与完成门禁；
 - `evals/`：行为测试、结构契约和代表性项目案例；
 - `governance/industry-practices.json`：外部实践到本地策略的采用记录。
@@ -175,6 +207,7 @@ Hooks 只在仓库显式激活 `.codex/dev-flow/current` 时工作；它们不�
 python3 -m unittest discover -s evals -v
 python3 evals/run_contract_checks.py
 python3 skills/dev-flow/scripts/dev-flow.py check --plugin-root "$PWD"
+python3 skills/dev-flow-maintainer/scripts/validate-suite.py
 python3 -m compileall -q hooks skills evals
 ```
 
@@ -184,11 +217,11 @@ CI 在 Linux、macOS 和 Windows 上覆盖 Python 3.11 与当前 Python 3.14。�
 
 仓库使用 [Semantic Versioning](https://semver.org/)：
 
-- `MAJOR`：工作包、CLI 或 hook 契约的不兼容变化；
+- `MAJOR`：Skill 名称、工作包、CLI 或 hook 契约的不兼容变化；
 - `MINOR`：向后兼容的新流程、命令、策略或能力；
 - `PATCH`：兼容的修复、文档和规则校正。
 
-源码与 Git tag 使用稳定版本（例如 `0.3.0`）；仅本地 Codex 开发重装时才临时追加 `+codex.<cachebuster>`，不把缓存破坏后缀发布为正式版本。源码版本不代表对应标签已经发布，发布状态以 Git tag/release 为准。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+源码与 Git tag 使用稳定版本（例如当前源码 `1.0.0`）；仅本地 Codex 开发重装时才临时追加 `+codex.<cachebuster>`，不把缓存破坏后缀发布为正式版本。源码版本不代表对应标签已经发布，发布状态以 Git tag/release 为准。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 参与和安全
 

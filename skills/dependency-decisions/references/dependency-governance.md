@@ -1,0 +1,42 @@
+# Dependency governance
+
+## Approval boundary
+
+Require explicit named approval before modifying a manifest, lockfile, tool/plugin configuration, service definition, vendored source, feature set, or generated dependency metadata to add or materially expand a runtime, development, test, build, generator, CLI, plugin, service, or hosted integration.
+
+Already-approved direct dependencies may bring transitive packages, but disclose graph, duplicates, native/build scripts, licenses, advisories, lockfile impact, and removal path. Routine updates remain in scope only when they do not cross a major, security, native-toolchain, license, or behavior boundary.
+
+## Decision order
+
+1. Can the standard library or platform facility meet the requirement?
+2. Can an existing approved dependency do so without harmful feature expansion?
+3. Is a small local implementation safer and cheaper over its lifetime?
+4. Which current maintained external candidate best fits the exact API and constraints?
+
+Use a local implementation only when behavior is small, stable, isolated, fully testable, standards/security risk is low, and it does not create a hidden subsystem. Prefer mature maintained dependencies for cryptography, password handling, randomness, Unicode, civil time, complex parsing/compression/archive/protocol behavior, concurrency primitives/reclamation, FFI ownership, and other deceptive domains.
+
+## Decision record
+
+`dependency.decision.v1` includes:
+
+1. requirement and repository evidence;
+2. exact API surface;
+3. standard/platform, existing, local, and viable external options;
+4. current source links and checked time;
+5. capability, maintenance, security, license, toolchain/platform, graph/native/build/runtime, ergonomics, lock-in, migration, rollback, and removal comparison;
+6. exact manifest, features, lockfile, generated, CI, packaging, operations, and documentation impact;
+7. recommendation, rejected alternatives, validation, and rollback;
+8. direct approval request naming candidate and version/feature policy.
+
+Do not hide independently optional packages behind a bundle. A coordinated baseline is one decision only when every direct item and role is named and individually rejectable without invalidating unrelated choices.
+
+## Implementation and verification
+
+- Edit manifests through their native tooling where appropriate; never hand-edit a lockfile.
+- Enable the narrowest feature set.
+- Inspect direct/transitive graph changes, duplicates, build scripts/native code, licenses, advisories, checksums, and generated changes.
+- Verify supported OS/toolchain/architecture and representative downstream builds.
+- Document migration, rollback, data/wire consequences, and removal conditions.
+- Remove unused dependencies/features only after reference and build verification.
+
+Another Skill's example or default is advisory and never dependency approval.

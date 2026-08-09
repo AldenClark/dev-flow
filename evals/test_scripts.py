@@ -323,6 +323,30 @@ class PacketTests(unittest.TestCase):
             result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
 
+    def test_accepted_packet_rejects_blocked_context_readiness(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, state="accepted")
+            (packet / "context-readiness.json").write_text(json.dumps({"schema_version": "1.0", "tier": "T3", "outcome": "blocked", "fingerprint": "sha256:" + "0" * 64}), encoding="utf-8")
+            result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("cannot retain a context-readiness", result.stdout)
+
+    def test_waiver_approval_requires_scoped_expiring_risk_record(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet)
+            weak = run(PYTHON, str(FLOW), "record-approval", str(packet), "waivers", "--id", "WAIVER-1", "--by", "owner", "--note", "skip")
+            self.assertEqual(weak.returncode, 2)
+            strong = run(
+                PYTHON, str(FLOW), "record-approval", str(packet), "waivers",
+                "--id", "WAIVER-1", "--by", "owner", "--note", "accept residual risk",
+                "--scope", "src/**", "--blocker", "governed-quality-outcome-uncovered",
+                "--residual-risk", "manual review may miss a defect",
+                "--expires-at", "2999-01-01T00:00:00Z", "--recheck-trigger", "control-change",
+            )
+            self.assertEqual(strong.returncode, 0, strong.stderr or strong.stdout)
+
     def test_valid_schema_1_1_packet(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             packet = Path(temp) / "packet"
@@ -1390,6 +1414,40 @@ class HookTests(unittest.TestCase):
             self.assertEqual(allowed.returncode, 0, allowed.stderr or allowed.stdout)
             self.assertEqual(allowed.stdout, "")
 
+    def test_blocked_readiness_blocks_product_mutation_but_allows_packet_repair(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            flow = root / ".codex" / "dev-flow"
+            packet = flow / "sample-change"
+            packet.mkdir(parents=True)
+            (flow / "current").write_text("sample-change\n", encoding="utf-8")
+            (packet / "packet.json").write_text(json.dumps({"state": "implementing", "approvals": {"dependencies": []}}), encoding="utf-8")
+            (packet / "context-readiness.json").write_text(json.dumps({"outcome": "blocked"}), encoding="utf-8")
+            env = os.environ.copy()
+            env["PLUGIN_ROOT"] = str(ROOT)
+            event = {"cwd": str(root), "hook_event_name": "PreToolUse", "tool_name": "apply_patch", "tool_input": {"patch": "*** Begin Patch\n*** Update File: src/app.py\n@@\n-old\n+new\n*** End Patch"}}
+            blocked = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
+            self.assertEqual(json.loads(blocked.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
+            repair = {**event, "tool_input": {"patch": f"*** Begin Patch\n*** Update File: {packet / 'context-readiness.json'}\n@@\n-old\n+new\n*** End Patch"}}
+            allowed = run(PYTHON, str(HOOK), stdin=json.dumps(repair), env=env)
+            self.assertEqual(allowed.stdout, "")
+
+    def test_missing_readiness_is_advisory_for_risk_bearing_work(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            flow = root / ".codex" / "dev-flow"
+            packet = flow / "sample-change"
+            packet.mkdir(parents=True)
+            (flow / "current").write_text("sample-change\n", encoding="utf-8")
+            (packet / "packet.json").write_text(json.dumps({"state": "implementing", "risk_modifiers": ["security"], "approvals": {"dependencies": []}}), encoding="utf-8")
+            env = os.environ.copy()
+            env["PLUGIN_ROOT"] = str(ROOT)
+            event = {"cwd": str(root), "hook_event_name": "PreToolUse", "tool_name": "apply_patch", "tool_input": {"patch": "*** Begin Patch\n*** Update File: src/app.py\n@@\n-old\n+new\n*** End Patch"}}
+            result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
+            payload = json.loads(result.stdout)["hookSpecificOutput"]
+            self.assertNotIn("permissionDecision", payload)
+            self.assertIn("absence alone is advisory", payload["additionalContext"])
+
     def test_subagent_report_must_be_fresh_for_run(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -1425,7 +1483,7 @@ class HookTests(unittest.TestCase):
 
 
 class PreferenceAuditTests(unittest.TestCase):
-    def test_untracked_rust_manifest_detects_chrono(self) -> None:
+    def test_personal_rust_library_choice_is_not_a_public_gate(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             init = run("git", "init", "-q", cwd=root)
@@ -1435,8 +1493,18 @@ class PreferenceAuditTests(unittest.TestCase):
             packet.mkdir()
             (packet / "packet.json").write_text(json.dumps({"approvals": {"dependencies": [{"id": "DEP-1"}]}}), encoding="utf-8")
             result = run(PYTHON, str(FLOW), "audit-preferences", "--root", str(root), "--packet", str(packet))
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            self.assertNotIn("RUST-TIME", result.stdout)
+
+    def test_unapproved_manifest_change_remains_a_neutral_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            init = run("git", "init", "-q", cwd=root)
+            self.assertEqual(init.returncode, 0, init.stderr)
+            (root / "Cargo.toml").write_text('[package]\nname = "sample"\nversion = "0.1.0"\n', encoding="utf-8")
+            result = run(PYTHON, str(FLOW), "audit-preferences", "--root", str(root))
             self.assertEqual(result.returncode, 2)
-            self.assertIn("PREF-RUST-TIME", result.stdout)
+            self.assertIn("POLICY-DEPENDENCY-APPROVAL", result.stdout)
 
     def test_documentation_mentions_do_not_trigger_rust_rule(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

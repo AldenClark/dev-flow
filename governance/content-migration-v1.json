@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "historical_source": "skills/engineering-preferences",
+  "status": "complete",
+  "records": [
+    {
+      "source": "SKILL.md and agents/openai.yaml",
+      "disposition": "retire-with-reason",
+      "targets": ["skills/dev-flow", "skills/manage-engineering-profiles", "skills/architecture-decisions", "skills/dependency-decisions"],
+      "reason": "The monolithic entrypoint mixed orchestration, personal values, volatile facts, dependency authority, and review routing. Focused owners now provide direct triggers and versioned outputs."
+    },
+    {
+      "source": "references/engineering-constitution.md",
+      "disposition": "split-and-deduplicate",
+      "targets": ["skills/architecture-decisions/references/neutral-engineering-policy.md", "skills/verification", "skills/delivery-readiness"],
+      "reason": "Portable principles moved to their operational owners; duplicated workflow and delivery rules were deduplicated."
+    },
+    {
+      "source": "references/dependency-governance.md",
+      "disposition": "migrate",
+      "targets": ["skills/dependency-decisions/references/dependency-governance.md"],
+      "reason": "Named approval, build-versus-buy, decision card, graph, lockfile, update, removal, and rollback rules remain intact under one owner."
+    },
+    {
+      "source": "references/language-idiom-overrides.md",
+      "disposition": "split",
+      "targets": ["skills/architecture-decisions/references/language-native-guidance.md", "skills/manage-engineering-profiles/references/rust-frontend-profile.example.toml"],
+      "reason": "Stable language idioms are neutral guidance; personal library/framework winners are inactive configurable profile examples."
+    },
+    {
+      "source": "references/skill-routing.md",
+      "disposition": "specialist-route",
+      "targets": ["skills/dev-flow-maintainer/references/capability-registry.json", "skills/dev-flow-maintainer/references/capability-admission-schema.json", "skills/repo-context/references/context-readiness.md"],
+      "reason": "Stable capability IDs, active-host admission, collision, context, fallback, and no-auto-install replace installed-equals-approved routing."
+    },
+    {
+      "source": "references/preference-registry.json",
+      "disposition": "split",
+      "targets": ["skills/dev-flow/references/neutral-baseline.toml", "skills/architecture-decisions/references/neutral-policy-registry.json", "skills/manage-engineering-profiles/references/rust-frontend-profile.example.toml"],
+      "reason": "Portable constraints, deterministic gates, and personal values no longer share one authority. Name-only contextual regex findings were retired."
+    },
+    {
+      "source": "references/dependency-preferences.yaml and references/engineering-preferences.md",
+      "disposition": "split-and-retire-stale",
+      "targets": ["skills/dependency-decisions/references/dependency-governance.md", "skills/dependency-decisions/references/rust-frontend-capability-catalog.md", "skills/dependency-decisions/references/ecosystem-snapshot-schema.json", "skills/manage-engineering-profiles/references/rust-frontend-profile.example.toml", "governance/industry-practices.json"],
+      "reason": "Decision methods and durable personal direction were preserved. Unverified version, popularity, maturity, and winner claims were deliberately not copied as current authority; every future claim must enter a sourced, checked, expiring snapshot."
+    }
+  ]
+}

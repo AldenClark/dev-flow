@@ -11,6 +11,7 @@
 - Instructions: <INS IDs mapped to final diff, commands, inspections, exceptions, and conflicts>
 - Collaboration: <profile, Requirement Ready/design checkpoints, corrections, and drift decisions>
 - UX: <UI impact, protected product constraints, UX Ready approval, rendered evidence, or not applicable with rationale>
+- ECR/EQAC: <final readiness outcome/fingerprint, profile fingerprint, native evidence, admitted routes, fallback/waiver, and recheck triggers>
 
 ## Semantic clarification evidence
 

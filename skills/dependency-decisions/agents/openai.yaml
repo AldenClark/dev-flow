@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dependency Decisions"
+  short_description: "Govern dependency and tool choices"
+  default_prompt: "Use $dependency-decisions to compare and approve a dependency, tool, service, or feature change."

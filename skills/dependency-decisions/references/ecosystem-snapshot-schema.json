@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AldenClark/dev-flow/schemas/ecosystem-snapshot-v1.json",
+  "title": "Dev Flow ecosystem snapshot v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "checked_at", "status", "observations"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "id": {"type": "string", "minLength": 1},
+    "checked_at": {"type": ["string", "null"], "format": "date-time"},
+    "status": {"enum": ["current", "stale", "refresh-required"]},
+    "observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["capability", "candidate", "version", "maturity", "sources", "volatility", "refresh_trigger", "applies_when", "avoid_when", "alternatives", "migration", "fallback"],
+        "properties": {
+          "capability": {"type": "string"},
+          "candidate": {"type": "string"},
+          "version": {"type": ["string", "null"]},
+          "maturity": {"enum": ["stable", "preview", "experimental", "deprecated", "unknown"]},
+          "sources": {"type": "array", "items": {"type": "string"}},
+          "volatility": {"enum": ["low", "medium", "high"]},
+          "refresh_trigger": {"type": "string"},
+          "applies_when": {"type": "array", "items": {"type": "string"}},
+          "avoid_when": {"type": "array", "items": {"type": "string"}},
+          "alternatives": {"type": "array", "items": {"type": "string"}},
+          "migration": {"type": "string"},
+          "fallback": {"type": "string"}
+        }
+      }
+    }
+  }
+}

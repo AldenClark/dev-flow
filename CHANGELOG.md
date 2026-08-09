@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- A 12-Skill composable engineering workbench spanning repository context, profile management, requirements/design, product/UX, architecture, dependencies, debugging, verification, review, delivery readiness, and explicit suite maintenance.
+- Six-layer TOML engineering profiles, JSON effective snapshots, deterministic precedence/conflict resolution, review-first profile tooling, and concise `AGENTS.md` projections.
+- Task-relative T0-T3 Engineering Context Readiness plus Engineering Quality Assurance Coverage with native-control-first evidence, active-host capability admission, minimal routing, fallback/waiver, and no automatic Skill installation.
+- Versioned capability, profile, manifest, snapshot, readiness, and admission contracts with routing, collision, cross-language, and paired-evaluation fixtures.
 - Scoped repository-instruction and convention discovery with traceable `INS-n` integration.
 - Risk-scaled collaboration profiles and UI impact classification with Requirement Ready and conditional UX Ready approvals.
 - Backward-compatible packet schema 1.1 plus new-product UI, protected-IA UI, and nested-instruction evaluation contracts.
@@ -14,9 +18,15 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- Repositioned `dev-flow` as a neutral thin orchestration kernel and migrated stable engineering, dependency, debugging, testing, review, UX, and delivery practices to focused owners.
+- Moved personal Rust/frontend/library choices out of public policy into configurable profile examples and current decision/snapshot surfaces.
 - Frontend guidance now separates non-visual, preserve, and material product/UX work instead of treating UI as an implementation-only profile.
 - Packet templates, agent briefs, independent review, metrics, governance records, and public usage documentation now carry instruction, collaboration, and UX evidence.
 - Requirement Ready now proves that material ambiguity has an authorized disposition and that approval matches the current requirement content; schema 1.0/1.1 retain their original validation contract.
+
+### Removed
+
+- Removed the former monolithic engineering preference Skill without an alias or compatibility shim, as an explicitly approved breaking cutover.
 
 ## [0.2.0] - 2026-08-09
 

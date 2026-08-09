@@ -17,6 +17,8 @@ import tomllib
 from pathlib import Path
 from typing import Any, Iterable
 
+import engineering_context
+
 
 MIN_CODEX = (0, 147, 0)
 SCHEMA_VERSION = "1.2"
@@ -935,6 +937,33 @@ def record_approval(args: argparse.Namespace) -> int:
                 2,
             )
     record = {"id": args.id, "by": args.by, "at": utc_now(), "note": args.note}
+    if args.kind == "waivers":
+        missing = [
+            name
+            for name, value in (
+                ("--scope", args.scope),
+                ("--blocker", args.blocker),
+                ("--residual-risk", args.residual_risk),
+                ("--expires-at", args.expires_at),
+                ("--recheck-trigger", args.recheck_trigger),
+            )
+            if not value
+        ]
+        if missing:
+            return emit({"status": "invalid", "errors": [f"waiver approval requires {', '.join(missing)}"]}, 2)
+        expiry = parsed_timestamp(args.expires_at)
+        now = parsed_timestamp(record["at"])
+        if expiry is None or now is None or expiry <= now:
+            return emit({"status": "invalid", "errors": ["waiver --expires-at must be a future timezone-aware timestamp"]}, 2)
+        record.update(
+            {
+                "scope": args.scope,
+                "blockers": args.blocker,
+                "residual_risk": args.residual_risk,
+                "expires_at": args.expires_at,
+                "recheck_trigger": args.recheck_trigger,
+            }
+        )
     if metadata.get("schema_version") == "1.2" and args.kind == "requirements":
         semantic_errors = semantic_metadata_errors(
             metadata,
@@ -1464,6 +1493,44 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                 if re.search(r"\b(?:open|unresolved|pending)\b", texts.get(audit, ""), re.IGNORECASE):
                     warnings.append(f"{audit}: verify that no finding remains open")
 
+    preference_artifact = packet / "effective-preferences.json"
+    if preference_artifact.is_file():
+        try:
+            preferences = read_json(preference_artifact)
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            errors.append(f"effective-preferences.json: cannot load: {exc}")
+        else:
+            if preferences.get("schema_version") != "1.0":
+                errors.append("effective-preferences.json: unsupported schema_version")
+            fingerprint = preferences.get("fingerprint")
+            if not isinstance(fingerprint, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", fingerprint):
+                errors.append("effective-preferences.json: invalid fingerprint")
+            if preferences.get("outcome") not in {"resolved", "blocked"}:
+                errors.append("effective-preferences.json: invalid outcome")
+            if state in {"accepted", "archived"} and preferences.get("outcome") == "blocked":
+                errors.append("accepted packet cannot retain blocked effective preferences")
+
+    readiness_artifact = packet / "context-readiness.json"
+    if readiness_artifact.is_file():
+        try:
+            readiness = read_json(readiness_artifact)
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            errors.append(f"context-readiness.json: cannot load: {exc}")
+        else:
+            if readiness.get("schema_version") != "1.0":
+                errors.append("context-readiness.json: unsupported schema_version")
+            if readiness.get("tier") not in {"T0", "T1", "T2", "T3"}:
+                errors.append("context-readiness.json: invalid tier")
+            if readiness.get("outcome") not in {"not_applicable", "ready", "partial_advisory", "checkpoint", "blocked", "waived"}:
+                errors.append("context-readiness.json: invalid outcome")
+            if readiness.get("outcome") == "waived" and not isinstance(readiness.get("waiver"), dict):
+                errors.append("context-readiness.json: waived outcome requires the applied waiver record")
+            fingerprint = readiness.get("fingerprint")
+            if not isinstance(fingerprint, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", fingerprint):
+                errors.append("context-readiness.json: invalid fingerprint")
+            if state in {"accepted", "archived"} and readiness.get("outcome") in {"checkpoint", "blocked"}:
+                errors.append("accepted packet cannot retain a context-readiness checkpoint or block")
+
     report = {
         "status": "valid" if not errors else "invalid",
         "packet": str(packet),
@@ -1523,7 +1590,7 @@ def audit_preferences(args: argparse.Namespace) -> int:
     approved_dependencies = {
         item.get("id") for item in packet_meta.get("approvals", {}).get("dependencies", []) if isinstance(item, dict)
     }
-    registry_path = plugin_root() / "skills" / "engineering-preferences" / "references" / "preference-registry.json"
+    registry_path = plugin_root() / "skills" / "architecture-decisions" / "references" / "neutral-policy-registry.json"
     registry = read_json(registry_path)
     for rule in registry.get("audit_rules", []):
         kind = rule.get("kind")
@@ -1560,6 +1627,108 @@ def audit_preferences(args: argparse.Namespace) -> int:
             )
     status = "blocked" if any(item["severity"] == "gate" for item in findings) else "pass"
     return emit({"status": status, "root": str(root), "changed_files": files, "findings": findings}, 2 if status == "blocked" else 0)
+
+
+def validate_profile_command(args: argparse.Namespace) -> int:
+    try:
+        data = engineering_context.read_toml(args.profile.resolve())
+    except (OSError, tomllib.TOMLDecodeError, engineering_context.ContractError) as exc:
+        return emit({"status": "invalid", "profile": str(args.profile), "errors": [str(exc)]}, 2)
+    errors = engineering_context.validate_profile_data(data, source=str(args.profile.resolve()))
+    return emit(
+        {"status": "valid" if not errors else "invalid", "profile": str(args.profile.resolve()), "errors": errors},
+        0 if not errors else 2,
+    )
+
+
+def resolve_profiles_command(args: argparse.Namespace) -> int:
+    try:
+        snapshot = engineering_context.resolve_profiles(
+            args.root.resolve(),
+            facts=args.fact,
+            task_paths=args.path,
+            codex_home=args.codex_home,
+            baseline=skill_root() / "references" / "neutral-baseline.toml",
+            task_profiles=args.task_profile,
+        )
+    except (OSError, ValueError, tomllib.TOMLDecodeError, engineering_context.ContractError) as exc:
+        return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+    if args.output:
+        engineering_context.write_json(args.output.resolve(), snapshot)
+    code = 2 if snapshot["outcome"] == "blocked" else 0
+    return emit({"status": snapshot["outcome"], "output": str(args.output.resolve()) if args.output else None, "snapshot": snapshot}, code)
+
+
+def assess_context_command(args: argparse.Namespace) -> int:
+    registry = plugin_root() / "skills" / "dev-flow-maintainer" / "references" / "capability-registry.json"
+    try:
+        result = engineering_context.assess_context(
+            args.root.resolve(),
+            task_type=args.task_type,
+            risks=args.risk,
+            task_paths=args.path,
+            facts=args.fact,
+            tier=args.tier,
+            codex_home=args.codex_home,
+            skill_roots=args.skill_root,
+            capability_registry=registry,
+            task_profiles=args.task_profile,
+            packet=args.packet.resolve() if args.packet else None,
+        )
+    except (OSError, ValueError, json.JSONDecodeError, tomllib.TOMLDecodeError, engineering_context.ContractError) as exc:
+        return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+    output_path = args.output
+    if output_path is None and args.packet:
+        output_path = args.packet / "context-readiness.json"
+    if output_path:
+        engineering_context.write_json(output_path.resolve(), result)
+    code = 2 if result["outcome"] == "blocked" else 0
+    return emit({"status": result["outcome"], "output": str(output_path.resolve()) if output_path else None, "readiness": result}, code)
+
+
+def route_task(args: argparse.Namespace) -> int:
+    routes: list[str] = ["repo-context"]
+    reasons: dict[str, list[str]] = {"repo-context": ["repository facts and task-relative readiness"]}
+
+    def add(skill: str, reason: str) -> None:
+        if skill not in routes:
+            routes.append(skill)
+        reasons.setdefault(skill, []).append(reason)
+
+    needs = set(args.need)
+    risks = set(args.risk)
+    if args.profile_operation:
+        add("manage-engineering-profiles", "explicit profile or instruction lifecycle operation")
+    if args.ambiguity or args.task_type in {"large-feature", "large-refactor", "migration", "dependency-change"}:
+        add("requirements-design", "material requirement, design, scope, or compatibility baseline")
+    if args.ui_impact in {"preserve", "material"}:
+        add("product-ux-discovery", f"UI impact is {args.ui_impact}")
+    if "architecture" in needs or args.task_type in {"large-feature", "large-refactor", "performance"}:
+        add("architecture-decisions", "material architecture or language/boundary decision")
+    if "dependency" in needs or args.task_type == "dependency-change":
+        add("dependency-decisions", "dependency, tool, service, plugin, or feature decision")
+    if args.task_type == "bugfix" or "diagnosis" in needs:
+        add("systematic-debugging", "failure reproduction and causal diagnosis")
+    mutating = args.task_type not in {"read-only-audit", "spike"}
+    if mutating or "verification" in needs:
+        add("verification", "risk-based fresh evidence")
+    if mutating and args.task_type != "micro" or "review" in needs or risks & {"security", "unsafe", "ffi", "migration"}:
+        add("change-review", "independent specification and adversarial review")
+    if mutating or "delivery" in needs:
+        add("delivery-readiness", "acceptance, rollback, and delivery authority accounting")
+    if args.suite_maintenance:
+        add("dev-flow-maintainer", "explicit Dev Flow suite maintenance")
+    return emit(
+        {
+            "status": "routed",
+            "kernel": "dev-flow",
+            "routes": [{"skill": skill, "reasons": reasons[skill]} for skill in routes],
+            "excluded": {
+                "manage-engineering-profiles": "ordinary profile consumption does not activate management" if not args.profile_operation else None,
+                "dev-flow-maintainer": "explicit-only" if not args.suite_maintenance else None,
+            },
+        }
+    )
 
 
 def parse_frontmatter(path: Path) -> dict[str, str]:
@@ -1651,8 +1820,28 @@ def check_plugin(args: argparse.Namespace) -> int:
     except (OSError, json.JSONDecodeError, AttributeError) as exc:
         errors.append(f"invalid marketplace manifest: {exc}")
 
+    expected_skills = {
+        "architecture-decisions",
+        "change-review",
+        "delivery-readiness",
+        "dependency-decisions",
+        "dev-flow",
+        "dev-flow-maintainer",
+        "manage-engineering-profiles",
+        "product-ux-discovery",
+        "repo-context",
+        "requirements-design",
+        "systematic-debugging",
+        "verification",
+    }
+    observed_skills = {path.name for path in (root / "skills").glob("*/") if path.is_dir()}
+    if observed_skills != expected_skills:
+        errors.append(f"skill inventory mismatch: expected {sorted(expected_skills)}, observed {sorted(observed_skills)}")
     for path in sorted((root / "skills").glob("*/")):
         errors.extend(validate_skill(path))
+        skill_lines = (path / "SKILL.md").read_text(encoding="utf-8").count("\n") + 1
+        if skill_lines > 500:
+            errors.append(f"{path.name}: SKILL.md exceeds the 500-line progressive-disclosure envelope")
 
     for json_path in sorted(root.rglob("*.json")):
         if "/.git/" in str(json_path):
@@ -1672,12 +1861,23 @@ def check_plugin(args: argparse.Namespace) -> int:
     if not hooks.is_file():
         errors.append("missing plugin hooks/hooks.json")
     for required in (
-        root / "skills" / "engineering-preferences" / "references" / "preference-registry.json",
+        root / "skills" / "dev-flow" / "references" / "neutral-baseline.toml",
+        root / "skills" / "architecture-decisions" / "references" / "neutral-policy-registry.json",
+        root / "skills" / "dev-flow-maintainer" / "references" / "capability-registry.json",
         root / "governance" / "industry-practices.json",
         root / "evals" / "structural-coverage.json",
     ):
         if not required.is_file():
             errors.append(f"missing required governance file: {required.relative_to(root)}")
+
+    try:
+        baseline = engineering_context.read_toml(root / "skills" / "dev-flow" / "references" / "neutral-baseline.toml")
+        errors.extend(engineering_context.validate_profile_data(baseline, source="neutral-baseline.toml"))
+        engineering_context.load_capability_registry(
+            root / "skills" / "dev-flow-maintainer" / "references" / "capability-registry.json"
+        )
+    except (OSError, tomllib.TOMLDecodeError, json.JSONDecodeError, engineering_context.ContractError) as exc:
+        errors.append(f"invalid engineering context governance: {exc}")
 
     return emit({"status": "valid" if not errors else "invalid", "plugin": str(root), "errors": errors, "warnings": warnings}, 0 if not errors else 2)
 
@@ -1896,6 +2096,11 @@ def build_parser() -> argparse.ArgumentParser:
     approval.add_argument("--id", required=True)
     approval.add_argument("--by", required=True)
     approval.add_argument("--note", required=True)
+    approval.add_argument("--scope", action="append", default=[])
+    approval.add_argument("--blocker", action="append", default=[])
+    approval.add_argument("--residual-risk")
+    approval.add_argument("--expires-at")
+    approval.add_argument("--recheck-trigger")
     approval.set_defaults(func=record_approval)
 
     ambiguity = sub.add_parser("record-ambiguity", help="Record a structured schema 1.2 semantic ambiguity")
@@ -1928,6 +2133,43 @@ def build_parser() -> argparse.ArgumentParser:
     audit.add_argument("--packet", type=Path)
     audit.add_argument("--base")
     audit.set_defaults(func=audit_preferences)
+
+    profile = sub.add_parser("validate-profile", help="Validate one engineering profile TOML file")
+    profile.add_argument("profile", type=Path)
+    profile.set_defaults(func=validate_profile_command)
+
+    resolve = sub.add_parser("resolve-profiles", help="Resolve layered engineering profiles for a task")
+    resolve.add_argument("--root", type=Path, required=True)
+    resolve.add_argument("--output", type=Path)
+    resolve.add_argument("--path", action="append", default=[])
+    resolve.add_argument("--fact", action="append", default=[])
+    resolve.add_argument("--task-profile", type=Path, action="append", default=[])
+    resolve.add_argument("--codex-home", type=Path)
+    resolve.set_defaults(func=resolve_profiles_command)
+
+    readiness = sub.add_parser("assess-context", help="Assess task-relative Engineering Context Readiness and quality coverage")
+    readiness.add_argument("--root", type=Path, required=True)
+    readiness.add_argument("--task-type", choices=sorted(TASK_TYPES), required=True)
+    readiness.add_argument("--risk", action="append", default=[])
+    readiness.add_argument("--path", action="append", default=[])
+    readiness.add_argument("--fact", action="append", default=[])
+    readiness.add_argument("--tier", choices=sorted(engineering_context.TIERS))
+    readiness.add_argument("--task-profile", type=Path, action="append", default=[])
+    readiness.add_argument("--skill-root", type=Path, action="append", default=[])
+    readiness.add_argument("--codex-home", type=Path)
+    readiness.add_argument("--packet", type=Path)
+    readiness.add_argument("--output", type=Path)
+    readiness.set_defaults(func=assess_context_command)
+
+    route = sub.add_parser("route-task", help="Select the minimal built-in Skill composition for a classified task")
+    route.add_argument("--task-type", choices=sorted(TASK_TYPES), required=True)
+    route.add_argument("--risk", action="append", default=[])
+    route.add_argument("--need", choices=("architecture", "dependency", "diagnosis", "verification", "review", "delivery"), action="append", default=[])
+    route.add_argument("--ui-impact", choices=sorted(UI_IMPACTS), default="none")
+    route.add_argument("--ambiguity", action="store_true")
+    route.add_argument("--profile-operation", action="store_true")
+    route.add_argument("--suite-maintenance", action="store_true")
+    route.set_defaults(func=route_task)
 
     check = sub.add_parser("check")
     check.add_argument("--plugin-root", type=Path)

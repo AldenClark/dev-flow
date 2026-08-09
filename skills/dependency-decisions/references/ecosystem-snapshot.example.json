@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "id": "example.refresh-before-use",
+  "checked_at": null,
+  "status": "refresh-required",
+  "observations": [
+    {
+      "capability": "civil-time",
+      "candidate": "example-candidate",
+      "version": null,
+      "maturity": "unknown",
+      "sources": [],
+      "volatility": "high",
+      "refresh_trigger": "before every dependency decision",
+      "applies_when": ["language=replace-me"],
+      "avoid_when": ["repository-contract-conflict=true"],
+      "alternatives": ["standard-library", "existing-approved-dependency"],
+      "migration": "describe compatibility and rollback after current verification",
+      "fallback": "preserve the existing implementation while evidence is stale or offline"
+    }
+  ]
+}

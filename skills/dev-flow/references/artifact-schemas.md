@@ -2,6 +2,13 @@
 
 Use one packet per change under `<repo>/.codex/dev-flow/<change-id>/`. The packet is the recovery and audit record. Keep it local by default through `.git/info/exclude`; commit or publish it only with explicit user authority.
 
+Two optional machine artifacts connect scoped engineering context to the packet without making file presence a gate:
+
+- `effective-preferences.json`: deterministic six-layer resolution with input hashes, winners, shadowed entries, conflicts, exceptions, fingerprint, and `resolved`/`blocked` outcome;
+- `context-readiness.json`: task-relative T0-T3 ECR/EQAC result with applicable sources, checks, capability outcomes, admitted routes, fallback/waiver, fingerprinted suppression, blockers, and recheck triggers.
+
+If present, both artifacts must satisfy their v1 contracts. An accepted packet cannot retain blocked effective preferences or a readiness `checkpoint`/`blocked` outcome. Absence alone remains advisory because T0 work and repositories with sufficient native evidence do not need a profile ceremony.
+
 ## Machine-readable state
 
 `packet.json` is the identity and state source of truth. New packets use schema 1.2; the validator continues to accept schema 1.0 and 1.1 packets under their original contracts. Require:
