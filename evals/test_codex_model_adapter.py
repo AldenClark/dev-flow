@@ -93,7 +93,7 @@ class CodexModelAdapterTests(unittest.TestCase):
         )
         self.assertEqual(normalized["case_id"], "PAIR-1")
         self.assertEqual(normalized["attempt"], 1)
-        self.assertEqual(normalized["artifact_root"], "/bounded/artifacts")
+        self.assertEqual(normalized["artifact_root"], str(Path("/bounded/artifacts")))
         self.assertEqual(normalized["usage"], {"tokens": 42, "elapsed_seconds": 1.25, "cost": None})
 
     @mock.patch("codex_model_adapter.shutil.which", return_value="/usr/local/bin/codex")

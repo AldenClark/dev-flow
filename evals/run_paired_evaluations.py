@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import random
 import re
 import shlex
@@ -42,6 +43,20 @@ CONTRACT_METRICS = (
     "reminder_rate",
     "false_block_rate",
 )
+
+
+def split_program_command(command: str, *, windows: bool | None = None) -> list[str]:
+    """Split an explicitly supplied program command without invoking a shell."""
+    use_windows_rules = os.name == "nt" if windows is None else windows
+    arguments = shlex.split(command, posix=not use_windows_rules)
+    if use_windows_rules:
+        arguments = [
+            argument[1:-1]
+            if len(argument) >= 2 and argument.startswith('"') and argument.endswith('"')
+            else argument
+            for argument in arguments
+        ]
+    return arguments
 EXECUTOR_KEYS = {
     "case_id",
     "attempt",
@@ -802,8 +817,8 @@ def main() -> int:
     trials = args.trials if args.trials is not None else config.get("default_trials", 3)
     if not isinstance(trials, int) or isinstance(trials, bool) or trials < 3:
         parser.error("paired evaluations require at least three independent trials")
-    executor_command = shlex.split(args.executor)
-    grader_command = shlex.split(args.grader)
+    executor_command = split_program_command(args.executor)
+    grader_command = split_program_command(args.grader)
     if not executor_command or not grader_command:
         parser.error("executor and grader commands must not be empty")
     selected_ids = set(args.pair)

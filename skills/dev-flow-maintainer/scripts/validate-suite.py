@@ -68,7 +68,10 @@ def main() -> int:
             errors.append(f"{directory.name}: stale agents/openai.yaml")
     if description_total > DESCRIPTION_BUDGET:
         errors.append(f"Skill descriptions exceed {DESCRIPTION_BUDGET} characters: {description_total}")
-    ordinary_static_total = sum((ROOT / path).stat().st_size for path in ORDINARY_STATIC_FILES)
+    ordinary_static_total = sum(
+        len((ROOT / path).read_text(encoding="utf-8").encode("utf-8"))
+        for path in ORDINARY_STATIC_FILES
+    )
     if ordinary_static_total > ORDINARY_STATIC_BUDGET:
         errors.append(f"ordinary static path exceeds {ORDINARY_STATIC_BUDGET} bytes: {ordinary_static_total}")
     maintainer_metadata = (ROOT / "skills" / "dev-flow-maintainer" / "agents" / "openai.yaml").read_text(encoding="utf-8")

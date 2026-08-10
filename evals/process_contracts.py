@@ -113,8 +113,7 @@ class _WindowsJob:
     def terminate(self) -> bool:
         if self.handle is None:
             return False
-        self._kernel32.TerminateJobObject(self.handle, 1)
-        return True
+        return bool(self._kernel32.TerminateJobObject(self.handle, 1))
 
     def close(self) -> None:
         if self.handle is not None:
