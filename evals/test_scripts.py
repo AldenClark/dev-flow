@@ -3217,6 +3217,10 @@ class RepositoryContractTests(unittest.TestCase):
             section(architecture, "Procedure"),
         )
         self.assertIn(
+            "FFI work retains an explicit contract for ABI/layout/versioning, nullability, string/buffer encoding, allocation/free ownership, typed error translation, panic/foreign-exception containment, thread or actor affinity, callback reentrancy/late delivery, cancellation/quiescence, generated-binding compatibility, target architectures/native loading, and lifecycle/backgrounding; test each consumer boundary and keep simulator/emulator gates separate from physical-device gates.",
+            section(architecture, "Procedure"),
+        )
+        self.assertIn(
             "When late material ambiguity changes the baseline, record an `AMB-n`, stop affected work, return the content-bound packet to `awaiting-approval`, increment the revision, preserve approval history, obtain the user disposition, and create fresh digest-bound Requirement Ready and design approvals.",
             section(requirements, "Procedure"),
         )
