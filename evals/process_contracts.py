@@ -202,6 +202,10 @@ def run_owned_process(
             process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             timed_out = True
+            if os.name == "nt":
+                # Walk the PID tree while the parent still exists; a fast child can
+                # otherwise spawn before the parent is assigned to the Job Object.
+                _terminate_windows_fallback(process)
             _terminate_owned_tree(process, job, force=False)
             try:
                 process.wait(timeout=0.5)
