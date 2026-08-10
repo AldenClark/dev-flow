@@ -161,6 +161,22 @@ class RuntimeLifecycleSmokeTests(unittest.TestCase):
 
 
 class ReleaseWorkflowContractTests(unittest.TestCase):
+    def test_workflow_run_scalars_do_not_embed_mapping_tokens_unquoted(self) -> None:
+        workflows = ROOT / ".github" / "workflows"
+        for path in sorted((*workflows.glob("*.yml"), *workflows.glob("*.yaml"))):
+            for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+                stripped = line.lstrip()
+                if not stripped.startswith("run: "):
+                    continue
+                scalar = stripped.removeprefix("run: ")
+                if scalar.startswith(("|", ">", "'", '\"')):
+                    continue
+                self.assertNotIn(
+                    ": ",
+                    scalar,
+                    f"{path.relative_to(ROOT)}:{line_number} uses an invalid YAML plain run scalar",
+                )
+
     def test_marketplace_installs_the_selected_snapshot_without_a_second_ref(self) -> None:
         marketplace = json.loads((ROOT / ".agents" / "plugins" / "marketplace.json").read_text(encoding="utf-8"))
         plugin = next(item for item in marketplace["plugins"] if item["name"] == "dev-flow")

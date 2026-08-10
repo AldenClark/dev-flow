@@ -113,8 +113,7 @@ class _WindowsJob:
     def terminate(self) -> bool:
         if self.handle is None:
             return False
-        self._kernel32.TerminateJobObject(self.handle, 1)
-        return True
+        return bool(self._kernel32.TerminateJobObject(self.handle, 1))
 
     def close(self) -> None:
         if self.handle is not None:
@@ -203,6 +202,10 @@ def run_owned_process(
             process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             timed_out = True
+            if os.name == "nt":
+                # Walk the PID tree while the parent still exists; a fast child can
+                # otherwise spawn before the parent is assigned to the Job Object.
+                _terminate_windows_fallback(process)
             _terminate_owned_tree(process, job, force=False)
             try:
                 process.wait(timeout=0.5)

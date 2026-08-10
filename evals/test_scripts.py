@@ -368,6 +368,13 @@ class PreflightTests(unittest.TestCase):
 
 
 class PairedEvaluationRunnerTests(unittest.TestCase):
+    def test_program_command_split_preserves_windows_paths_without_a_shell(self) -> None:
+        command = r'"C:\Program Files\Python\python.exe" "C:\Temp Dir\executor.py" --flag'
+        self.assertEqual(
+            paired_eval.split_program_command(command, windows=True),
+            [r"C:\Program Files\Python\python.exe", r"C:\Temp Dir\executor.py", "--flag"],
+        )
+
     def test_runner_isolates_repeated_first_attempts_and_aggregates_deltas(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -640,7 +647,7 @@ print(json.dumps({
             marker = root / "leaked-child"
             parent = root / "parent.py"
             child_code = (
-                "import pathlib,time; time.sleep(0.4); "
+                "import pathlib,time; time.sleep(2); "
                 f"pathlib.Path({str(marker)!r}).write_text('leaked', encoding='utf-8')"
             )
             parent.write_text(
@@ -657,7 +664,7 @@ print(json.dumps({
                 output_limit=1024,
             )
             self.assertIn("timed out", timed.error or "")
-            time.sleep(0.6)
+            time.sleep(2.2)
             self.assertFalse(marker.exists())
 
             noisy = process_eval.run_owned_process(
