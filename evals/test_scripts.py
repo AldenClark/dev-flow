@@ -3197,6 +3197,29 @@ class PreferenceAuditTests(unittest.TestCase):
 
 
 class RepositoryContractTests(unittest.TestCase):
+    def test_release_quality_contracts_are_top_level_and_actionable(self) -> None:
+        def section(text: str, heading: str) -> str:
+            marker = f"## {heading}\n"
+            body = text.split(marker, 1)[1]
+            return body.split("\n## ", 1)[0]
+
+        architecture = (ROOT / "skills" / "architecture-decisions" / "SKILL.md").read_text(encoding="utf-8")
+        requirements = (ROOT / "skills" / "requirements-design" / "SKILL.md").read_text(encoding="utf-8")
+        verification = (ROOT / "skills" / "verification" / "SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "Rust-Swift/Kotlin FFI with both consumers uses both platform routes and requires language-level and boundary-isolation tests; missing routes are evidence gaps.",
+            section(architecture, "Procedure"),
+        )
+        self.assertIn(
+            "When late material ambiguity changes the baseline, record an `AMB-n`, stop affected work, return the content-bound packet to `awaiting-approval`, increment the revision, preserve approval history, obtain the user disposition, and create fresh digest-bound Requirement Ready and design approvals.",
+            section(requirements, "Procedure"),
+        )
+        self.assertIn(
+            "Stateful/concurrent work names native oracles first: admission, claim collision/exclusivity, retry/dedup, restart recovery, drain/shutdown. Tie ordinary failures to executable tests or evidence gaps; full-suite labels are insufficient.",
+            section(verification, "EQAC rule"),
+        )
+
     def test_contract_validator_rejects_malformed_nested_content(self) -> None:
         namespace = runpy.run_path(str(ROOT / "evals" / "run_contract_checks.py"), run_name="contract_checks_test")
         validate_contract = namespace["validate_contract"]

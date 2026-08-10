@@ -18,7 +18,7 @@ At every user-owned checkpoint, remain in Default mode and follow `references/us
 5. Assign repository-resolvable facts to Codex and final material requirement semantics to the user. Ask only questions whose answer changes behavior, architecture, dependency, compatibility, scope, risk, or acceptance.
 6. Compare viable designs against repository facts and applicable resolved preferences. Record failures, migration, rollout, rollback, cleanup, and `VO-n` obligations.
 7. Define direct, indirect, conditional, protected, out-of-scope, and delivery scopes with stable `SC-*` IDs.
-8. Bind Requirement Ready and design approval to the current revision and digest. Reopen affected approval when late material ambiguity changes the baseline.
+8. Bind Requirement Ready and design approval to the current revision and digest. When late material ambiguity changes the baseline, record an `AMB-n`, stop affected work, return the content-bound packet to `awaiting-approval`, increment the revision, preserve approval history, obtain the user disposition, and create fresh digest-bound Requirement Ready and design approvals.
 
 Read `references/semantic-and-scope.md` for ambiguity ownership, collaboration modes, scope, drift, and approval rules. Read `references/user-interaction.md` before asking a material question or requesting approval.
 

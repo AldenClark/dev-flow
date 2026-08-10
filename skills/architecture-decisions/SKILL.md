@@ -15,11 +15,12 @@ Choose the smallest coherent architecture that satisfies the approved requiremen
 2. Identify language, artifact role, framework/version, boundary, ownership, call path, and brownfield constraints before applying guidance.
 3. Read `references/neutral-engineering-policy.md` for portable principles.
 4. Read only the applicable language sections in `references/language-native-guidance.md`.
-5. Compare at least the viable existing-convention, smaller/local, and more abstract alternatives. State the demonstrated variation axis or ownership seam that justifies an abstraction.
-6. Design invalid states out where practical; validate external input once at the boundary and move typed values inward.
-7. Make errors, cancellation, resource ownership, shutdown, cleanup, compatibility, observability, and unsafe/FFI contracts explicit.
-8. Require measurement before advanced performance mechanisms and preserve a portable fallback when applicable.
-9. Record one `architecture.decision.v1` with evidence, applicability, tradeoffs, exceptions, consequences, tests, and recheck triggers.
+5. Cross-ecosystem work loads the smallest specialist Skill per consumer. Rust-Swift/Kotlin FFI with both consumers uses both platform routes and requires language-level and boundary-isolation tests; missing routes are evidence gaps.
+6. Compare at least the viable existing-convention, smaller/local, and more abstract alternatives. State the demonstrated variation axis or ownership seam that justifies an abstraction.
+7. Design invalid states out where practical; validate external input once at the boundary and move typed values inward.
+8. Make errors, cancellation, resource ownership, shutdown, cleanup, compatibility, observability, and unsafe/FFI contracts explicit.
+9. Require measurement before advanced performance mechanisms and preserve a portable fallback when applicable.
+10. Record one `architecture.decision.v1` with evidence, applicability, tradeoffs, exceptions, consequences, tests, and recheck triggers.
 
 ## Language isolation rule
 
