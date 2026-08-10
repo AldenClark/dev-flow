@@ -19,8 +19,9 @@ Choose the smallest coherent architecture that satisfies the approved requiremen
 6. Compare at least the viable existing-convention, smaller/local, and more abstract alternatives. State the demonstrated variation axis or ownership seam that justifies an abstraction.
 7. Design invalid states out where practical; validate external input once at the boundary and move typed values inward.
 8. Make errors, cancellation, resource ownership, shutdown, cleanup, compatibility, observability, and unsafe/FFI contracts explicit.
-9. Require measurement before advanced performance mechanisms and preserve a portable fallback when applicable.
-10. Record one `architecture.decision.v1` with evidence, applicability, tradeoffs, exceptions, consequences, tests, and recheck triggers.
+9. FFI work retains an explicit contract for ABI/layout/versioning, nullability, string/buffer encoding, allocation/free ownership, typed error translation, panic/foreign-exception containment, thread or actor affinity, callback reentrancy/late delivery, cancellation/quiescence, generated-binding compatibility, target architectures/native loading, and lifecycle/backgrounding; test each consumer boundary and keep simulator/emulator gates separate from physical-device gates.
+10. Require measurement before advanced performance mechanisms and preserve a portable fallback when applicable.
+11. Record one `architecture.decision.v1` with evidence, applicability, tradeoffs, exceptions, consequences, tests, and recheck triggers.
 
 ## Language isolation rule
 
