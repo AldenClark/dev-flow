@@ -384,14 +384,19 @@ class PairedEvaluationRunnerTests(unittest.TestCase):
         self.assertEqual(bound[1], str(ROOT / "evals" / "codex_model_adapter.py"))
         self.assertEqual(bound[2:], command[2:])
         with tempfile.TemporaryDirectory() as temp:
+            run_root = Path(temp) / "isolated-evidence"
             parsed, error, _ = paired_eval.run_program(
-                [PYTHON, bound[1], "--help"],
+                [PYTHON, bound[1], "executor", "--model", "test-model"],
                 {"bounded": True},
-                Path(temp) / "isolated-evidence",
+                run_root,
                 2,
             )
-        self.assertIsNone(parsed)
-        self.assertIn("stdout is not one JSON value", error or "")
+            self.assertIsNone(parsed)
+            self.assertEqual(error, "program exited 2")
+            self.assertIn(
+                "executor request is missing case_id or fixture",
+                (run_root / "stderr.txt").read_text(encoding="utf-8"),
+            )
 
     def test_external_executor_arguments_are_not_rewritten(self) -> None:
         commands = (
