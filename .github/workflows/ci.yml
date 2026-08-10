@@ -33,7 +33,8 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - name: Record environment
-        run: python -c "import json, os, platform, sys; print(json.dumps({'python': sys.version, 'platform': platform.platform(), 'machine': platform.machine(), 'runner_image': os.environ.get('ImageOS'), 'runner_version': os.environ.get('ImageVersion')}, sort_keys=True))"
+        run: >-
+          python -c "import json, os, platform, sys; print(json.dumps({'python': sys.version, 'platform': platform.platform(), 'machine': platform.machine(), 'runner_image': os.environ.get('ImageOS'), 'runner_version': os.environ.get('ImageVersion')}, sort_keys=True))"
 
       - name: Run behavioral tests
         run: python -W error::ResourceWarning -m unittest discover -s evals -v

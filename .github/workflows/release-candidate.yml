@@ -58,7 +58,8 @@ jobs:
           python3 -c "import sys; assert sys.version_info >= (3, 11), sys.version"
 
       - name: Record environment
-        run: python3 -c "import json, os, platform, sys; print(json.dumps({'python': sys.version, 'platform': platform.platform(), 'machine': platform.machine(), 'runner_image': os.environ.get('ImageOS'), 'runner_version': os.environ.get('ImageVersion'), 'commit': os.environ['GITHUB_SHA']}, sort_keys=True))"
+        run: >-
+          python3 -c "import json, os, platform, sys; print(json.dumps({'python': sys.version, 'platform': platform.platform(), 'machine': platform.machine(), 'runner_image': os.environ.get('ImageOS'), 'runner_version': os.environ.get('ImageVersion'), 'commit': os.environ['GITHUB_SHA']}, sort_keys=True))"
 
       - name: Run behavioral tests
         run: python3 -W error::ResourceWarning -m unittest discover -s evals -v
