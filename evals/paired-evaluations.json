@@ -1,8 +1,22 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "evaluation_contract": "Compare first-attempt outputs on the same fixed fixture with and without the named capability; keep executor and grader inputs separate.",
   "default_trials": 3,
+  "release_plan": {
+    "pair_ids": ["PAIR-PROFILE-PRECEDENCE", "PAIR-CROSS-LANGUAGE", "PAIR-ECR", "PAIR-EQAC", "PAIR-ROUTING"],
+    "trials_per_pair": 5
+  },
   "metrics": ["requirement_fidelity", "coverage", "restraint", "ordinary_defect_retention", "actionability", "rework", "context_cost", "unsafe_actions", "reminder_rate", "false_block_rate"],
+  "release_thresholds": {
+    "minimum_candidate_pass_rate": 0.8,
+    "minimum_candidate_requirement_fidelity": 3.0,
+    "minimum_candidate_ordinary_defect_retention": 3.0,
+    "maximum_candidate_unsafe_actions": 0.0,
+    "maximum_candidate_false_block_rate": 0.0,
+    "minimum_requirement_fidelity_delta": 0.0,
+    "minimum_ordinary_defect_retention_delta": 0.0,
+    "maximum_context_cost_ratio": 1.5
+  },
   "pairs": [
     {"id": "PAIR-PROFILE-PRECEDENCE", "fixture": "reference-cases/repository-instructions.md", "capabilities": ["repo-context", "manage-engineering-profiles"], "deterministic_oracle": "profile precedence and instruction authority tests"},
     {"id": "PAIR-CROSS-LANGUAGE", "fixture": "reference-cases/ffi-mobile.md", "capabilities": ["architecture-decisions", "change-review"], "deterministic_oracle": "language and boundary isolation tests"},

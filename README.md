@@ -54,7 +54,7 @@ max_concurrent_threads_per_session = 3
 发布与插件清单版本一致的标签后，可直接添加仓库内的 marketplace 并安装固定到该标签的插件。当前已发布稳定标签为 `v0.2.0`；源码中的下一版本能力需待对应标签发布后再从 marketplace 安装：
 
 ```bash
-codex plugin marketplace add https://github.com/AldenClark/dev-flow.git
+codex plugin marketplace add AldenClark/dev-flow --ref v0.2.0
 codex plugin add dev-flow@dev-flow
 ```
 
@@ -140,6 +140,21 @@ python3 skills/dev-flow/scripts/dev-flow.py record-approval \
   .codex/dev-flow/console-redesign ux \
   --id UX-READY --by user --note "product and UX direction approved"
 ```
+
+Schema 2.0 的依赖批准必须绑定机器可读身份、精确 ref、目标文件、允许操作和最终文件摘要，不能用一个泛化的 `DEP-n` 解锁其他依赖。例如：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py record-approval \
+  .codex/dev-flow/release-change dependencies \
+  --id DEP-1 --by user --note "approve exact action" \
+  --dependency-ecosystem github-actions \
+  --dependency-name actions/upload-artifact --dependency-version 7.0.1 \
+  --dependency-ref 043fb46d1a93c77aae656e7c1c64a875d1fc6a0a \
+  --dependency-file .github/workflows/release-candidate.yml \
+  --dependency-operation add
+```
+
+包管理器调用必须是可解析的单一精确命令，并通过 `--dependency-command 'cargo add name@ref --features=exact'` 连同全部 flags 绑定；add/update/remove 使用同一规则。`.exe`/`.cmd` launcher、Cargo toolchain 与普通嵌套 shell launcher 会被识别，任何位于 verb 前后且无法绑定目标 manifest 的 path/package/workspace selector 都会拒绝。直接写 manifest/lockfile 时，最终审计还要求 `--dependency-result-sha256 PATH=sha256:<hex>` 与实际文件字节一致。GitHub Actions 的 block/flow mapping、YAML 十六进制/Unicode 转义 `uses` 键和值，以及工作流中的具体 Action 引用也使用同一路径、operation 与完整 commit SHA 约束。不能可靠绑定的操作会拒绝，而不会退化为“已有任意依赖审批即可”。
 
 当仓库调查后仍存在会改变行为、契约、安全、兼容性、范围或验收的多义性时，先记录不同解释、责任人、受影响 ID 和建议，再由证据或用户定稿：
 
@@ -237,7 +252,7 @@ python3 -m unittest discover -s evals -v
 python3 evals/run_contract_checks.py
 python3 skills/dev-flow/scripts/dev-flow.py check --plugin-root "$PWD"
 python3 skills/dev-flow-maintainer/scripts/validate-suite.py
-python3 -m compileall -q hooks skills evals
+python3 -m compileall -q hooks skills evals tools
 ```
 
 CI 在 Linux、macOS 和 Windows 上覆盖 Python 3.11 与当前 Python 3.14。实时模型行为评测与确定性仓库检查分离，避免把不可复现的模型结果伪装成静态门禁。
@@ -250,6 +265,24 @@ python3 evals/run_paired_evaluations.py \
   --output /absolute/path/to/eval-output --trials 3
 ```
 
+配对评测要求 executor 只暴露独立的有界 artifacts 子目录；grader 在不带 treatment 标签的临时根中运行，只接收 fixture、oracle 与清理后的 executor result。报告同时给出均值、标准差、有效 run 分母、candidate-minus-baseline、全量 trial 完整性和质量优先的发布阈值判定；缺失 trial 永远不能得到 release-ready。该隔离用于防止评测条件经正常输入或目录布局泄漏，不把同一 OS 用户下的命令执行伪装成安全沙箱。Schema 1.0 旧配置可省略 `release_thresholds`，此时 runner 使用保守默认值；新配置应显式记录阈值。
+
+## 发布候选与供应链证据
+
+发布流程把 PR CI、模型评测、制品构建、SBOM/provenance、签名标签和最终发布视为不同门禁。确定性源码制品只从指定 Git commit 构建；相同 commit 在同一工具链下重复构建必须得到相同字节，验证器会检查版本、提交、SHA-256、归档根、路径和链接安全：
+
+```bash
+git rev-parse HEAD
+python3 tools/build_release.py build \
+  --root . --output dist --version 1.0.0 --commit FULL_COMMIT_SHA
+python3 tools/build_release.py verify \
+  --artifact-dir dist --expected-version 1.0.0 --expected-commit FULL_COMMIT_SHA
+```
+
+`.github/workflows/release-candidate.yml` 只能手动运行并要求完整 `expected_sha`；它使用固定 SHA 的 Syft、GitHub attestation 和 artifact Actions，生成 SPDX 2.3 JSON、provenance/SBOM attestations、manifest 与 checksums，但没有发布 Release 的权限。新工作流只有进入默认分支后才能 dispatch，不能把 PR 通过误报成 provenance 已生成。
+
+Marketplace 内的插件源使用当前快照相对路径 `.`；因此外层 `codex plugin marketplace add ... --ref <immutable-tag>` 是唯一版本选择，不会在安装时悄悄跳到另一个标签。完整的 gate、验证命令、隔离安装、失败处置与发布/回滚顺序见 [docs/releasing.md](docs/releasing.md)。
+
 ## 版本与兼容性
 
 仓库使用 [Semantic Versioning](https://semver.org/)：
@@ -258,7 +291,7 @@ python3 evals/run_paired_evaluations.py \
 - `MINOR`：向后兼容的新流程、命令、策略或能力；
 - `PATCH`：兼容的修复、文档和规则校正。
 
-源码与 Git tag 使用稳定版本（例如当前源码 `1.0.0`）；仅本地 Codex 开发重装时才临时追加 `+codex.<cachebuster>`，不把缓存破坏后缀发布为正式版本。源码版本不代表对应标签已经发布，发布状态以 Git tag/release 为准。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+源码与 Git tag 使用稳定版本（例如当前源码 `1.0.0`）；仅本地 Codex 开发重装时才临时追加 `+codex.<cachebuster>`，不把缓存破坏后缀发布为正式版本。源码版本不代表对应标签已经发布，发布状态以 Git tag/release 为准。RC 标签只证明候选身份，不等于稳定版发布。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 参与和安全
 

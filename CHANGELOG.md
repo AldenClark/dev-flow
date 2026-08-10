@@ -19,6 +19,9 @@ All notable changes to this project are documented here. The format follows [Kee
 - Packet schema 2.0 with direct/traced/governed work modes, append-only event ledgers, atomic current-state projections, and unchanged read compatibility for schemas 1.0-1.2.
 - A versioned Codex host adapter, personal/team/CI profile modes, compact/full readiness projections, and repository-wide versus task-mapped native evidence.
 - Safe idempotent terminal-packet deactivation that preserves packet/event evidence and refuses active, mismatched, or unsafe current pointers.
+- Deterministic commit-bound source archives with strict manifest, checksum, version, path, link, and corruption verification.
+- Explicit six-cell hosted CI plus a separately trusted manual SBOM/provenance workflow pinned to immutable Action and Syft releases.
+- A bounded, schema-constrained Codex executor/grader adapter with ephemeral read-only sessions and minimal per-call usage receipts.
 
 ### Changed
 
@@ -31,6 +34,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Single-agent operation is the baseline; preflight degrades on optional delegation/hook gaps unless delegation is explicitly required.
 - Routine routing no longer adds independent review or delivery readiness automatically, and Skill metadata/static instruction paths have enforced token budgets.
 - Multi-Agent V2 now treats native child finals as primary, optional reports as fail-open evidence, terminal packets as lifecycle-inert, and root reconciliation/deadlines/dispositions as the completion contract.
+- Marketplace installs now consume the selected immutable marketplace snapshot directly instead of resolving a second hard-coded repository ref.
 
 ### Removed
 

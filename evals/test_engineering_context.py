@@ -82,6 +82,24 @@ review_trigger = "capability-or-scope-change"
 
 
 class ProfileContractTests(unittest.TestCase):
+    def test_implicit_project_profile_rejects_symlink_outside_dev_flow(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            profiles = root / ".dev-flow" / "profiles"
+            profiles.mkdir(parents=True)
+            outside = root / "outside.toml"
+            outside.write_text(
+                profile_text("project.outside", "project", "security.mode", "relaxed"),
+                encoding="utf-8",
+            )
+            try:
+                (profiles / "project.toml").symlink_to(outside)
+            except OSError as exc:
+                self.skipTest(f"symlinks are unavailable: {exc}")
+            snapshot = ec.resolve_profiles(root, baseline=BASELINE, codex_home=root / "codex")
+            self.assertNotIn("security.mode", {item["key"] for item in snapshot["winners"]})
+            self.assertTrue(any("must not traverse a symlink" in item for item in snapshot["errors"]))
+
     def test_no_optional_profile_resolves_neutral_baseline(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -322,6 +340,11 @@ layer = "project"
 
 
 class ReadinessTests(unittest.TestCase):
+    def test_explicit_tier_cannot_downgrade_governed_security_work(self) -> None:
+        selected, reasons = ec.select_tier("security", {"security"}, "T0")
+        self.assertEqual(selected, "T3")
+        self.assertIn("explicit-tier-raised-to-minimum", reasons)
+
     def test_t0_has_no_setup_reminder(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -478,7 +501,7 @@ class ReadinessTests(unittest.TestCase):
             self.assertEqual((result["tier"], result["outcome"]), ("T2", "checkpoint"))
             self.assertIn("native-operations", {item["id"] for item in result["recommendations"]})
 
-    def test_t3_security_gap_blocks_by_outcome_not_skill_name(self) -> None:
+    def test_baseline_security_policy_fallback_is_assessed_and_covers_the_gap(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / "pyproject.toml").write_text("[project]\nname='sample'\nversion='0.1.0'\n", encoding="utf-8")
@@ -493,18 +516,28 @@ class ReadinessTests(unittest.TestCase):
                 capability_registry=CAPABILITIES,
                 detail="full",
             )
-            self.assertEqual(result["outcome"], "blocked")
-            self.assertIn("governed-quality-outcome-uncovered", result["blockers"])
-            self.assertFalse(any("not installed" in item for item in result["blockers"]))
+            baseline = next(
+                item for item in result["quality_coverage"]["policy_assessments"]
+                if item["key"] == "quality.governed-security-review"
+            )
+            security = next(
+                item for item in result["quality_coverage"]["obligations"]
+                if item["id"] == "quality.security.review"
+            )
+            self.assertEqual((baseline["layer"], baseline["coverage"]), ("baseline", "owned-policy-fallback"))
+            self.assertEqual(security["coverage"], "owned-policy-fallback")
+            self.assertNotIn("governed-quality-outcome-uncovered", result["blockers"])
 
-    def test_security_scanner_presence_does_not_replace_contextual_review(self) -> None:
+    def test_security_scanner_combines_with_baseline_contextual_fallback(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / ".semgrep.yml").write_text("rules: []\n", encoding="utf-8")
             result = ec.assess_context(root, task_type="security", risks=["security"], codex_home=root / "codex", capability_registry=CAPABILITIES, detail="full")
             security = next(item for item in result["quality_coverage"]["obligations"] if item["id"] == "quality.security.review")
             self.assertTrue(security["native_evidence"])
-            self.assertEqual(security["coverage"], "uncovered")
+            self.assertEqual(security["coverage"], "native-plus-owned-policy-fallback")
+            verification = next(item for item in result["quality_coverage"]["obligations"] if item["id"] == "quality.verification.tests")
+            self.assertEqual(verification["coverage"], "uncovered")
             self.assertEqual(result["outcome"], "blocked")
 
     def test_unsafe_rust_and_swift_accessibility_derive_distinct_contextual_obligations(self) -> None:
@@ -693,7 +726,10 @@ class ReadinessTests(unittest.TestCase):
                 capability_registry=CAPABILITIES,
                 detail="full",
             )
-            assessment = result["quality_coverage"]["policy_assessments"][0]
+            assessment = next(
+                item for item in result["quality_coverage"]["policy_assessments"]
+                if item["key"] == "quality.test"
+            )
             self.assertEqual(assessment["coverage"], "uncovered")
             self.assertIn("security-owner-check", assessment["missing_evidence"])
             self.assertEqual(result["outcome"], "blocked")

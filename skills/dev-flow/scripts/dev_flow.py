@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import fnmatch
 import hashlib
 import json
 import os
@@ -18,6 +19,13 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import engineering_context
+from dependency_contracts import (
+    action_reference_scan,
+    approval_binds_file,
+    matches_dependency_request,
+    validate_dependency_approval,
+)
+from path_contracts import PathContractError, atomic_write_text, contained_path
 
 
 MIN_CODEX = (0, 147, 0)
@@ -196,6 +204,8 @@ ID_PATTERNS = {
     "ambiguity": re.compile(r"\bAMB-\d+\b"),
 }
 STATUS_WORDS = {"PASSED", "FAILED", "FLAKY", "BLOCKED", "NOT RUN", "WAIVED"}
+TEST_MATRIX_CELL_RE = re.compile(r"TM-[1-9][0-9]*(?:[A-Z][A-Z0-9]*)?")
+TEST_MATRIX_REQUIRED_WORDS = {"yes", "no"}
 VERSION_RE = re.compile(r"(?:codex-cli\s+)?(\d+)\.(\d+)\.(\d+)(?:[-+][^\s]+)?")
 FEATURE_RE = re.compile(r"^(multi_agent(?:_v2)?|hooks)\s+\S+\s+(true|false)\s*$", re.MULTILINE)
 
@@ -209,20 +219,8 @@ def documentation_family(profile: Any) -> str | None:
 
 
 def select_work_mode(task_type: str, risks: Iterable[str], requested: str = "auto") -> tuple[str, list[str]]:
-    risk_set = set(risks)
-    governed = {
-        "security",
-        "unsafe",
-        "ffi",
-        "abi",
-        "public-api",
-        "protocol",
-        "persisted-data",
-        "migration",
-        "release",
-        "deployment",
-        "regulated",
-    }
+    risk_set = engineering_context.canonical_risks(risks)
+    governed = engineering_context.GOVERNED_RISKS
     if risk_set & governed or task_type in {"migration", "security", "release-hotfix", "dependency-change", "rollback"}:
         automatic, reasons = "governed", sorted(risk_set & governed) or [task_type]
     elif task_type in {"micro", "spike"}:
@@ -727,6 +725,11 @@ def init_packet(args: argparse.Namespace) -> int:
         if args.work_mode != "auto":
             return emit({"status": "error", "errors": ["material UI impact requires governed work mode"]}, 2)
         work_mode, mode_reasons = "governed", ["material-ui-impact"]
+    if work_mode != "direct":
+        try:
+            current = safe_current_pointer(root)
+        except PathContractError as exc:
+            return emit({"status": "error", "errors": [str(exc)]}, 2)
     packet = root / ".codex" / "dev-flow" / args.change_id
     if packet.exists():
         if not args.reuse:
@@ -750,8 +753,7 @@ def init_packet(args: argparse.Namespace) -> int:
                 },
                 2,
             )
-        current = root / ".codex" / "dev-flow" / "current"
-        current.write_text(args.change_id + "\n", encoding="utf-8")
+        atomic_write_text(current, args.change_id + "\n")
         ensure_local_exclude(root)
         return emit(
             {
@@ -851,8 +853,7 @@ def init_packet(args: argparse.Namespace) -> int:
         (packet / "briefs" / "README.template.md").write_text(brief, encoding="utf-8")
         (packet / "reports" / "README.template.md").write_text(report, encoding="utf-8")
     write_packet(packet, metadata, "packet-created", {"from": None, "to": "discovering", "reasons": mode_reasons})
-    current = root / ".codex" / "dev-flow" / "current"
-    current.write_text(args.change_id + "\n", encoding="utf-8")
+    atomic_write_text(current, args.change_id + "\n")
     ensure_local_exclude(root)
     return emit(
         {
@@ -1143,6 +1144,45 @@ def record_approval(args: argparse.Namespace) -> int:
                 2,
             )
     record = {"id": args.id, "by": args.by, "at": utc_now(), "note": args.note}
+    if args.kind == "dependencies":
+        missing = [
+            name
+            for name, value in (
+                ("--dependency-ecosystem", args.dependency_ecosystem),
+                ("--dependency-name", args.dependency_name),
+                ("--dependency-version", args.dependency_version),
+                ("--dependency-ref", args.dependency_ref),
+                ("--dependency-file", args.dependency_file),
+                ("--dependency-operation", args.dependency_operation),
+            )
+            if not value
+        ]
+        if missing:
+            return emit({"status": "invalid", "errors": [f"dependency approval requires {', '.join(missing)}"]}, 2)
+        result_sha256: dict[str, str] = {}
+        for value in args.dependency_result_sha256:
+            if "=" not in value:
+                return emit(
+                    {"status": "invalid", "errors": ["--dependency-result-sha256 must be PATH=sha256:<hex>"]},
+                    2,
+                )
+            path, digest = value.split("=", 1)
+            if path in result_sha256:
+                return emit({"status": "invalid", "errors": [f"duplicate dependency result path: {path}"]}, 2)
+            result_sha256[path] = digest
+        record["dependency"] = {
+            "ecosystem": args.dependency_ecosystem,
+            "name": args.dependency_name,
+            "version": args.dependency_version,
+            "ref": args.dependency_ref,
+            "command": args.dependency_command,
+            "files": args.dependency_file,
+            "operations": args.dependency_operation,
+            "result_sha256": result_sha256,
+        }
+        dependency_errors = validate_dependency_approval(record)
+        if dependency_errors:
+            return emit({"status": "invalid", "errors": dependency_errors}, 2)
     if args.kind == "waivers":
         missing = [
             name
@@ -1355,20 +1395,151 @@ def ids(text: str, kind: str) -> set[str]:
     return set(ID_PATTERNS[kind].findall(text))
 
 
-def unresolved_audit_findings(text: str, prefix: str) -> list[str]:
-    """Return prefixed finding IDs whose Markdown status cell is unresolved."""
-    unresolved: list[str] = []
+def audit_finding_errors(text: str, prefix: str) -> list[str]:
+    """Require every declared audit finding to be canonical and closed."""
+    errors: list[str] = []
+    seen: set[str] = set()
     for line in text.splitlines():
         if not line.lstrip().startswith("|"):
             continue
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        if len(cells) < 2:
+        if not cells or not cells[0].strip("*_`").upper().startswith(f"{prefix}-"):
             continue
-        finding_id = cells[0].split(":", 1)[0].strip()
+        finding_id = cells[0].strip("*_`").split(":", 1)[0].strip()
+        if len(cells) < 5:
+            errors.append(f"malformed finding row for {finding_id or prefix}")
+            continue
+        if not re.fullmatch(rf"{re.escape(prefix)}-\d+", finding_id):
+            errors.append(f"invalid finding id {finding_id!r}; expected {prefix}-n")
+            continue
+        if finding_id in seen:
+            errors.append(f"duplicate finding id {finding_id}")
+            continue
+        seen.add(finding_id)
         status = cells[-1].strip("*_`").lower()
-        if re.fullmatch(rf"{re.escape(prefix)}-\d+", finding_id) and status in {"open", "pending", "unresolved"}:
-            unresolved.append(finding_id)
-    return unresolved
+        if status != "closed":
+            errors.append(f"{finding_id} status must be closed, got {status!r}")
+    return errors
+
+
+def applicable_waiver(
+    approvals: Any,
+    *,
+    blockers: Iterable[str],
+    scopes: Iterable[str],
+    now: dt.datetime | None = None,
+) -> dict[str, Any] | None:
+    """Return a current waiver that explicitly covers every blocker and one affected scope."""
+    if not isinstance(approvals, dict):
+        return None
+    records = approvals.get("waivers", [])
+    if not isinstance(records, list):
+        return None
+    required_blockers = set(blockers)
+    affected_scopes = set(scopes)
+    current_time = now or dt.datetime.now(dt.timezone.utc)
+    for record in reversed(records):
+        if not isinstance(record, dict):
+            continue
+        patterns = record.get("scope")
+        covered = record.get("blockers")
+        if not isinstance(patterns, list) or not patterns or not all(isinstance(item, str) and item for item in patterns):
+            continue
+        if not isinstance(covered, list) or not required_blockers or not all(
+            blocker in covered or "*" in covered for blocker in required_blockers
+        ):
+            continue
+        if not affected_scopes or not any(
+            pattern == "*" or fnmatch.fnmatchcase(scope, pattern)
+            for pattern in patterns
+            for scope in affected_scopes
+        ):
+            continue
+        if not all(
+            isinstance(record.get(field), str) and record[field].strip()
+            for field in ("by", "note", "residual_risk", "recheck_trigger")
+        ):
+            continue
+        expiry = parsed_timestamp(record.get("expires_at"))
+        if expiry is None or expiry <= current_time:
+            continue
+        return record
+    return None
+
+
+def accepted_evidence_errors(
+    family: str,
+    texts: dict[str, str],
+    approvals: dict[str, Any],
+) -> list[str]:
+    """Validate terminal verification and review evidence without packet-shape concerns."""
+    errors: list[str] = []
+    if family == "trace":
+        verification_body = heading_body(texts.get("trace.md", ""), "Verification") or ""
+        statuses = set(re.findall(r"\b(?:PASSED|FAILED|FLAKY|BLOCKED|NOT RUN|WAIVED)\b", verification_body))
+        invalid_statuses = statuses & {"FAILED", "FLAKY", "BLOCKED", "NOT RUN"}
+        if invalid_statuses:
+            errors.append(f"accepted trace retains unresolved verification statuses: {sorted(invalid_statuses)}")
+        trace_waiver = applicable_waiver(
+            approvals,
+            blockers=["trace-verification"],
+            scopes=["trace.md", "Verification"],
+        )
+        if "PASSED" not in statuses and not ("WAIVED" in statuses and trace_waiver):
+            errors.append("accepted trace requires PASSED evidence or an approved WAIVED verification")
+        return errors
+
+    matrix_rows: list[tuple[str, str, int, str, bool]] = []
+    seen_cells: set[str] = set()
+    for line in texts.get("test-matrix.md", "").splitlines():
+        if not re.match(r"^\|\s*TM-", line):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 8:
+            errors.append(f"test-matrix.md: malformed matrix row `{line}`")
+            continue
+        cell = cells[0]
+        if not TEST_MATRIX_CELL_RE.fullmatch(cell):
+            errors.append(f"test-matrix.md: invalid cell id {cell!r}")
+            continue
+        if cell in seen_cells:
+            errors.append(f"test-matrix.md: duplicate cell id {cell}")
+            continue
+        seen_cells.add(cell)
+        if not cells[1]:
+            errors.append(f"test-matrix.md: {cell} requires a non-empty obligation")
+            continue
+        required_word = cells[4].lower()
+        if required_word not in TEST_MATRIX_REQUIRED_WORDS:
+            errors.append(f"test-matrix.md: invalid Required value {cells[4]!r} for {cell}; expected yes or no")
+            continue
+        try:
+            attempts = int(cells[5])
+        except ValueError:
+            errors.append(f"test-matrix.md: invalid attempts for {cell}")
+            continue
+        status_value = cells[6]
+        if status_value not in STATUS_WORDS:
+            errors.append(f"test-matrix.md: invalid status {status_value!r} for {cell}")
+            continue
+        matrix_rows.append((cell, cells[1], attempts, status_value, required_word == "yes"))
+    if not matrix_rows:
+        errors.append("accepted packet requires at least one parsed test-matrix cell")
+    for cell, obligation, attempts, status_value, required in matrix_rows:
+        if status_value == "PASSED" and attempts < 1:
+            errors.append(f"{cell}: PASSED requires at least one attempt")
+        if required and status_value not in {"PASSED", "WAIVED"}:
+            errors.append(f"{cell}: required cell is {status_value}")
+        if status_value == "WAIVED" and not applicable_waiver(
+            approvals,
+            blockers=[cell],
+            scopes=[cell, obligation],
+        ):
+            errors.append(f"{cell}: WAIVED requires an applicable waiver approval record")
+    for audit, prefix in (("blue-audit.md", "BLUE"), ("red-audit.md", "RED")):
+        for error in audit_finding_errors(texts.get(audit, ""), prefix):
+            errors.append(f"{audit}: {error}")
+    return errors
 
 
 def validate_packet_data(packet: Path, *, state_override: str | None = None) -> tuple[dict[str, Any], int]:
@@ -1617,6 +1788,10 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
     }
     if dependency_ids - approved_dependency_ids:
         errors.append(f"unapproved dependency changes: {sorted(dependency_ids - approved_dependency_ids)}")
+    if schema_version == "2.0":
+        for index, record in enumerate(dependency_approvals):
+            for error in validate_dependency_approval(record):
+                errors.append(f"packet.json: approvals.dependencies[{index}]: {error}")
 
     state = state_override or metadata.get("state")
     if state in {"approved", "implementing", "verifying", "accepted", "archived"}:
@@ -1696,47 +1871,7 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
     if state in {"accepted", "archived"}:
         if not declared["acceptance"] or not declared["scope"] or not declared["verification"]:
             errors.append("accepted packet requires non-empty acceptance, scope, and verification ID sets")
-        if family == "trace":
-            verification_body = heading_body(texts.get("trace.md", ""), "Verification") or ""
-            statuses = set(re.findall(r"\b(?:PASSED|FAILED|FLAKY|BLOCKED|NOT RUN|WAIVED)\b", verification_body))
-            invalid_statuses = statuses & {"FAILED", "FLAKY", "BLOCKED", "NOT RUN"}
-            if invalid_statuses:
-                errors.append(f"accepted trace retains unresolved verification statuses: {sorted(invalid_statuses)}")
-            if "PASSED" not in statuses and not ("WAIVED" in statuses and approvals.get("waivers")):
-                errors.append("accepted trace requires PASSED evidence or an approved WAIVED verification")
-        else:
-            matrix_rows: list[tuple[str, int, str, bool]] = []
-            for line in texts.get("test-matrix.md", "").splitlines():
-                if not re.match(r"^\|\s*TM-\d+\s*\|", line):
-                    continue
-                cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-                if len(cells) < 8:
-                    errors.append(f"test-matrix.md: malformed matrix row `{line}`")
-                    continue
-                try:
-                    attempts = int(cells[5])
-                except ValueError:
-                    errors.append(f"test-matrix.md: invalid attempts for {cells[0]}")
-                    continue
-                status_value = cells[6]
-                if status_value not in STATUS_WORDS:
-                    errors.append(f"test-matrix.md: invalid status {status_value!r} for {cells[0]}")
-                    continue
-                required = cells[4].lower() == "yes"
-                matrix_rows.append((cells[0], attempts, status_value, required))
-            if not matrix_rows:
-                errors.append("accepted packet requires at least one parsed test-matrix cell")
-            for cell, attempts, status_value, required in matrix_rows:
-                if status_value == "PASSED" and attempts < 1:
-                    errors.append(f"{cell}: PASSED requires at least one attempt")
-                if required and status_value not in {"PASSED", "WAIVED"}:
-                    errors.append(f"{cell}: required cell is {status_value}")
-                if status_value == "WAIVED" and not approvals.get("waivers"):
-                    errors.append(f"{cell}: WAIVED requires a waiver approval record")
-            for audit, prefix in (("blue-audit.md", "BLUE"), ("red-audit.md", "RED")):
-                unresolved = unresolved_audit_findings(texts.get(audit, ""), prefix)
-                if unresolved:
-                    warnings.append(f"{audit}: unresolved finding statuses: {', '.join(unresolved)}")
+        errors.extend(accepted_evidence_errors(family, texts, approvals))
 
     preference_artifact = packet / "effective-preferences.json"
     if preference_artifact.is_file():
@@ -1792,7 +1927,11 @@ def validate_packet(args: argparse.Namespace) -> int:
     return emit(report, code)
 
 
-def added_diff(root: Path, base: str | None) -> tuple[list[str], dict[str, str]]:
+def added_diff(root: Path, base: str | None) -> tuple[list[str], dict[str, str], dict[str, str]]:
+    if base:
+        verified = run(["git", "rev-parse", "--verify", f"{base}^{{commit}}"], cwd=root)
+        if verified.returncode != 0:
+            raise RuntimeError(f"invalid Git base {base!r}: {verified.stderr.strip() or verified.stdout.strip()}")
     command = ["git", "diff", "--unified=0"]
     if base:
         command.append(base)
@@ -1802,19 +1941,41 @@ def added_diff(root: Path, base: str | None) -> tuple[list[str], dict[str, str]]
     names = run(names_command, cwd=root)
     staged_names = run(["git", "diff", "--cached", "--name-only"], cwd=root)
     untracked = run(["git", "ls-files", "--others", "--exclude-standard"], cwd=root)
-    untracked_files = untracked.stdout.splitlines() if untracked.returncode == 0 else []
+    failed = [
+        (label, result)
+        for label, result in (
+            ("worktree diff", result),
+            ("staged diff", staged),
+            ("changed names", names),
+            ("staged names", staged_names),
+            ("untracked names", untracked),
+        )
+        if result.returncode != 0
+    ]
+    if failed:
+        label, failure = failed[0]
+        raise RuntimeError(f"cannot inspect Git {label}: {failure.stderr.strip() or failure.stdout.strip()}")
+    untracked_files = untracked.stdout.splitlines()
     files = sorted(set(names.stdout.splitlines()) | set(staged_names.stdout.splitlines()) | set(untracked_files))
     diff = result.stdout + "\n" + staged.stdout
     added_by_file: dict[str, list[str]] = {}
+    removed_by_file: dict[str, list[str]] = {}
     current_file: str | None = None
+    old_file: str | None = None
     for line in diff.splitlines():
-        if line.startswith("+++ b/"):
+        if line.startswith("--- a/"):
+            old_file = line[6:]
+        elif line.startswith("---"):
+            old_file = None
+        elif line.startswith("+++ b/"):
             current_file = line[6:]
             added_by_file.setdefault(current_file, [])
         elif line.startswith("+++"):
-            current_file = None
+            current_file = old_file
         elif current_file and line.startswith("+"):
             added_by_file[current_file].append(line[1:])
+        elif current_file and line.startswith("-"):
+            removed_by_file.setdefault(current_file, []).append(line[1:])
     for relative in untracked_files:
         path = root / relative
         if path.is_file() and path.stat().st_size <= 2_000_000:
@@ -1822,19 +1983,32 @@ def added_diff(root: Path, base: str | None) -> tuple[list[str], dict[str, str]]
                 added_by_file.setdefault(relative, []).append(path.read_text(encoding="utf-8"))
             except UnicodeDecodeError:
                 continue
-    return files, {path: "\n".join(lines) for path, lines in added_by_file.items()}
+    return (
+        files,
+        {path: "\n".join(lines) for path, lines in added_by_file.items()},
+        {path: "\n".join(lines) for path, lines in removed_by_file.items()},
+    )
 
 
 def audit_preferences(args: argparse.Namespace) -> int:
     root = args.root.resolve()
-    files, added_by_file = added_diff(root, args.base)
+    try:
+        files, added_by_file, removed_by_file = added_diff(root, args.base)
+    except RuntimeError as exc:
+        return emit({"status": "blocked", "root": str(root), "changed_files": [], "findings": [{
+            "severity": "gate",
+            "rule": "POLICY-AUDIT-INPUT",
+            "evidence": str(exc),
+            "message": "Preference audit could not establish a trustworthy Git diff baseline.",
+        }]}, 2)
     findings: list[dict[str, str]] = []
     packet_meta: dict[str, Any] = {}
     if args.packet:
         packet_meta, _ = load_packet(args.packet.resolve())
-    approved_dependencies = {
-        item.get("id") for item in packet_meta.get("approvals", {}).get("dependencies", []) if isinstance(item, dict)
-    }
+    approvals_value = packet_meta.get("approvals", {})
+    dependency_records = approvals_value.get("dependencies", []) if isinstance(approvals_value, dict) else []
+    if not isinstance(dependency_records, list):
+        dependency_records = []
     registry_path = plugin_root() / "skills" / "architecture-decisions" / "references" / "neutral-policy-registry.json"
     registry = read_json(registry_path)
     for rule in registry.get("audit_rules", []):
@@ -1854,8 +2028,13 @@ def audit_preferences(args: argparse.Namespace) -> int:
             evidence = ", ".join(matches) if matches else None
         elif kind == "dependency_approval":
             matches = [path for path in files if re.search(str(rule["pattern"]), path, re.IGNORECASE)]
-            if matches and not approved_dependencies:
-                evidence = ", ".join(matches)
+            unbound = [
+                path
+                for path in matches
+                if not any(approval_binds_file(record, path, root / path) for record in dependency_records)
+            ]
+            if unbound:
+                evidence = ", ".join(unbound)
         elif kind == "exclusive_added_regex":
             families = rule.get("families", [])
             candidate_text = "\n".join(added_by_file.get(path, "") for path in candidate_files)
@@ -1870,6 +2049,79 @@ def audit_preferences(args: argparse.Namespace) -> int:
                     "message": str(rule["message"]),
                 }
             )
+    base_ref = args.base or "HEAD"
+    has_base = run(["git", "rev-parse", "--verify", f"{base_ref}^{{commit}}"], cwd=root).returncode == 0
+    if args.base and not has_base:
+        return emit({"status": "blocked", "root": str(root), "changed_files": files, "findings": [{
+            "severity": "gate", "rule": "POLICY-AUDIT-INPUT", "evidence": f"invalid Git base {base_ref!r}",
+            "message": "Preference audit could not establish a trustworthy Git action baseline.",
+        }]}, 2)
+    unapproved_actions: list[str] = []
+    invalid_actions: list[str] = []
+    for path, added_text in added_by_file.items():
+        if not re.fullmatch(r"\.github/workflows/[^/]+\.ya?ml", path):
+            continue
+        added_refs, invalid_refs = action_reference_scan(added_text)
+        removed_refs, invalid_removed_refs = action_reference_scan(removed_by_file.get(path, ""))
+        existing_action_refs: set[tuple[str, str]] = set()
+        if has_base:
+            listing = run(["git", "ls-tree", "--name-only", base_ref, "--", path], cwd=root)
+            if listing.returncode != 0:
+                return emit({"status": "blocked", "root": str(root), "changed_files": files, "findings": [{
+                    "severity": "gate", "rule": "POLICY-AUDIT-INPUT", "evidence": listing.stderr.strip(),
+                    "message": "Preference audit could not resolve a workflow-specific Git baseline.",
+                }]}, 2)
+            if path in listing.stdout.splitlines():
+                baseline = run(["git", "show", f"{base_ref}:{path}"], cwd=root)
+                if baseline.returncode != 0:
+                    return emit({"status": "blocked", "root": str(root), "changed_files": files, "findings": [{
+                        "severity": "gate", "rule": "POLICY-AUDIT-INPUT", "evidence": baseline.stderr.strip(),
+                        "message": "Preference audit could not read a workflow-specific Git baseline.",
+                    }]}, 2)
+                existing_action_refs = action_reference_scan(baseline.stdout)[0]
+        invalid_actions.extend(f"{path}:{item}" for item in invalid_refs)
+        invalid_actions.extend(f"{path}:{item}" for item in invalid_removed_refs)
+        replaced_names = {name for name, _ in added_refs} & {name for name, _ in removed_refs}
+        for name, ref in sorted(added_refs - existing_action_refs):
+            operation = "update" if any(existing_name == name for existing_name, _ in existing_action_refs) else "add"
+            if not any(
+                matches_dependency_request(
+                    record,
+                    ecosystem="github-actions",
+                    name=name,
+                    ref=ref,
+                    operation=operation,
+                    file=path,
+                    command=None,
+                )
+                for record in dependency_records
+            ):
+                unapproved_actions.append(f"{path}:{name}@{ref}")
+        for name, ref in sorted(removed_refs):
+            if name in replaced_names:
+                continue
+            if not any(
+                matches_dependency_request(
+                    record,
+                    ecosystem="github-actions",
+                    name=name,
+                    ref=ref,
+                    operation="remove",
+                    file=path,
+                    command=None,
+                )
+                for record in dependency_records
+            ):
+                unapproved_actions.append(f"{path}:remove:{name}@{ref}")
+    if invalid_actions or unapproved_actions:
+        findings.append(
+            {
+                "severity": "gate",
+                "rule": "POLICY-GITHUB-ACTION-APPROVAL",
+                "evidence": ", ".join(sorted(invalid_actions) + unapproved_actions),
+                "message": "A new or updated external GitHub Action use is unparseable or does not exactly match a machine-readable dependency approval.",
+            }
+        )
     status = "blocked" if any(item["severity"] == "gate" for item in findings) else "pass"
     return emit({"status": status, "root": str(root), "changed_files": files, "findings": findings}, 2 if status == "blocked" else 0)
 
@@ -1969,7 +2221,7 @@ def route_task(args: argparse.Namespace) -> int:
     mutating = args.task_type not in {"read-only-audit", "spike"}
     if mutating or "verification" in needs:
         add("verification", "risk-based fresh evidence")
-    review_risks = {"security", "unsafe", "ffi", "abi", "migration", "public-api", "protocol", "persisted-data"}
+    review_risks = engineering_context.GOVERNED_RISKS
     if (
         "review" in needs
         or risks & review_risks
@@ -2077,11 +2329,8 @@ def check_plugin(args: argparse.Namespace) -> int:
             errors.append("marketplace must contain exactly one dev-flow entry")
         else:
             source = matching[0].get("source", {})
-            expected_url = f"{str(manifest.get('repository', '')).rstrip('/')}.git"
-            if source.get("source") != "url" or source.get("url") != expected_url:
-                errors.append("marketplace source URL must match the plugin repository")
-            if source.get("ref") != f"v{manifest.get('version')}":
-                errors.append("marketplace ref must match the v-prefixed plugin version")
+            if source != {"source": "local", "path": "."}:
+                errors.append("marketplace plugin source must be the current immutable marketplace snapshot")
     except (OSError, json.JSONDecodeError, AttributeError) as exc:
         errors.append(f"invalid marketplace manifest: {exc}")
 
@@ -2151,6 +2400,15 @@ def runtime_config_paths(destination: Path) -> tuple[list[Path], list[Path]]:
     source = skill_root() / "assets" / "agent-configs"
     configs = sorted(source.glob("*.toml"))
     return configs, [destination / config.name for config in configs]
+
+
+def safe_current_pointer(root: Path) -> Path:
+    flow = root / ".codex" / "dev-flow"
+    if flow.is_symlink():
+        raise PathContractError(f"Dev Flow state directory must not be a symlink: {flow}")
+    if flow.exists() and not flow.is_dir():
+        raise PathContractError(f"Dev Flow state path must be a directory: {flow}")
+    return contained_path(flow, "current", label="current pointer", reject_symlinks=True)
 
 
 def same_file_contents(left: Path, right: Path) -> bool:
@@ -2300,7 +2558,17 @@ def archive_packet(args: argparse.Namespace) -> int:
     if metadata.get("state") != "accepted":
         return emit({"status": "blocked", "errors": ["only an accepted packet can be archived"]}, 2)
     parent = packet.parent
-    archive = parent / "archive" / packet.name
+    try:
+        current = contained_path(parent, "current", label="current pointer", reject_symlinks=True)
+        archive = contained_path(
+            parent,
+            Path("archive") / packet.name,
+            label="packet archive",
+            require_relative=True,
+            reject_symlinks=True,
+        )
+    except PathContractError as exc:
+        return emit({"status": "blocked", "errors": [str(exc)]}, 2)
     if archive.exists():
         return emit({"status": "blocked", "errors": [f"archive target exists: {archive}"]}, 2)
     archive.parent.mkdir(exist_ok=True)
@@ -2310,7 +2578,6 @@ def archive_packet(args: argparse.Namespace) -> int:
     metadata["updated_at"] = now
     write_packet(packet, metadata, "transition", {"from": "accepted", "to": "archived", "note": args.note})
     packet.rename(archive)
-    current = parent / "current"
     if current.exists() and current.read_text(encoding="utf-8").strip() == packet.name:
         current.unlink()
     return emit({"status": "archived", "packet": str(archive)})
@@ -2417,6 +2684,14 @@ def build_parser() -> argparse.ArgumentParser:
     approval.add_argument("--residual-risk")
     approval.add_argument("--expires-at")
     approval.add_argument("--recheck-trigger")
+    approval.add_argument("--dependency-ecosystem", choices=("cargo", "npm", "github-actions", "other"))
+    approval.add_argument("--dependency-name")
+    approval.add_argument("--dependency-version")
+    approval.add_argument("--dependency-ref")
+    approval.add_argument("--dependency-command")
+    approval.add_argument("--dependency-file", action="append", default=[])
+    approval.add_argument("--dependency-operation", action="append", choices=("add", "update", "remove"), default=[])
+    approval.add_argument("--dependency-result-sha256", action="append", default=[])
     approval.set_defaults(func=record_approval)
 
     ambiguity = sub.add_parser("record-ambiguity", help="Record a structured content-bound semantic ambiguity")

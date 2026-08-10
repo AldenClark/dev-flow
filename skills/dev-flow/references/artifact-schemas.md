@@ -56,6 +56,8 @@ Only root writes core packet state and owns final claims. Children return native
 
 Keep IDs stable and make declared ID sets equal documented sets. Each command record includes command, absolute root, relevant environment/version, time, exit, oracle/counts, artifact, and freshness after the last relevant edit. Preserve the first failure. Status is exactly `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, or `WAIVED`; waiver is never pass.
 
+Schema 2.0 binds each `DEP-n` to identity, exact command/ref, files, operations and result digests. Matrix suffixes are uppercase; `Required` is `yes`/`no`. Unknowns or duplicates block acceptance.
+
 Optional `effective-preferences.json` and `context-readiness.json` retain their v1 contracts. Accepted state cannot retain blocked preferences or readiness checkpoint/block. Absence alone is advisory.
 
 Validate after approval, compaction, each material implementation/repair wave, final verification, and before transition. Use the CLI mutators so the event ledger and projection remain consistent.

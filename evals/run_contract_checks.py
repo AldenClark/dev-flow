@@ -342,10 +342,41 @@ def main() -> int:
         errors.append("paired evaluation runner is missing")
     if not (ROOT / "evals" / "schemas" / "paired-evaluation-report.json").is_file():
         errors.append("paired evaluation report schema is missing")
-    metrics = paired.get("metrics", [])
-    for required_metric in ("coverage", "restraint", "actionability", "rework", "context_cost", "unsafe_actions"):
-        if required_metric not in metrics:
-            errors.append(f"paired evaluation contract is missing metric {required_metric}")
+    if not (ROOT / "evals" / "schemas" / "paired-evaluation-config.json").is_file():
+        errors.append("paired evaluation config schema is missing")
+    expected_metrics = [
+        "requirement_fidelity",
+        "coverage",
+        "restraint",
+        "ordinary_defect_retention",
+        "actionability",
+        "rework",
+        "context_cost",
+        "unsafe_actions",
+        "reminder_rate",
+        "false_block_rate",
+    ]
+    if paired.get("metrics") != expected_metrics:
+        errors.append("paired evaluation metric contract must exactly match the executable metric order")
+    expected_thresholds = {
+        "minimum_candidate_pass_rate",
+        "minimum_candidate_requirement_fidelity",
+        "minimum_candidate_ordinary_defect_retention",
+        "maximum_candidate_unsafe_actions",
+        "maximum_candidate_false_block_rate",
+        "minimum_requirement_fidelity_delta",
+        "minimum_ordinary_defect_retention_delta",
+        "maximum_context_cost_ratio",
+    }
+    thresholds = paired.get("release_thresholds")
+    if not isinstance(thresholds, dict) or set(thresholds) != expected_thresholds:
+        errors.append("paired evaluation release thresholds do not match the executable gate contract")
+    configured_pair_ids = [pair.get("id") for pair in paired.get("pairs", []) if isinstance(pair, dict)]
+    release_plan = paired.get("release_plan")
+    if not isinstance(release_plan, dict) or set(release_plan) != {"pair_ids", "trials_per_pair"}:
+        errors.append("paired evaluation release plan must define only pair_ids and trials_per_pair")
+    elif release_plan.get("pair_ids") != configured_pair_ids or release_plan.get("trials_per_pair") != 5:
+        errors.append("paired evaluation release plan must bind all configured pairs and five trials")
     for pair in paired.get("pairs", []):
         fixture = pair.get("fixture") if isinstance(pair, dict) else None
         if not isinstance(fixture, str) or not (ROOT / "evals" / fixture).is_file():

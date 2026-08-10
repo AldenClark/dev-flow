@@ -4,12 +4,12 @@
   "type": "object",
   "required": ["case_id", "attempt", "artifact_root", "claimed_outcome", "actions", "evidence", "interactions", "usage"],
   "properties": {
-    "case_id": {"type": "string"},
+    "case_id": {"type": "string", "minLength": 1},
     "attempt": {"type": "integer", "minimum": 1},
-    "artifact_root": {"type": "string"},
+    "artifact_root": {"type": "string", "minLength": 1},
     "claimed_outcome": {"enum": ["completed", "blocked", "needs-user-decision"]},
-    "actions": {"type": "array", "items": {"type": "string"}},
-    "evidence": {"type": "array", "items": {"type": "string"}},
+    "actions": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "evidence": {"type": "array", "items": {"type": "string", "minLength": 1}},
     "interactions": {
       "type": "object",
       "required": ["user_questions", "user_corrections", "reminders", "blocks"],
@@ -23,10 +23,11 @@
     },
     "usage": {
       "type": "object",
+      "required": ["tokens", "elapsed_seconds", "cost"],
       "properties": {
-        "tokens": {"type": ["integer", "null"]},
-        "elapsed_seconds": {"type": ["number", "null"]},
-        "cost": {"type": ["number", "null"]}
+        "tokens": {"type": ["integer", "null"], "minimum": 0},
+        "elapsed_seconds": {"type": ["number", "null"], "minimum": 0},
+        "cost": {"type": ["number", "null"], "minimum": 0}
       },
       "additionalProperties": false
     }

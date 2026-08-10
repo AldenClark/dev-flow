@@ -32,6 +32,8 @@ Do not hide independently optional packages behind a bundle. A coordinated basel
 
 ## Implementation and verification
 
+Schema 2.0 packet approvals include a `dependency` object with exact `ecosystem`, `name`, human `version`, executable `ref`, canonical full `command` (or null for Actions), normalized `files`, allowed `operations`, and a `result_sha256` map. Package add/update/remove requests must match the full command including flags plus identity before execution; `.exe`/`.cmd` launchers, Cargo toolchain spellings, and ordinary nested shell launchers are recognized, while pre-verb or post-verb path/package/workspace selectors that cannot bind the target file fail closed. Direct manifest/lockfile writes that cannot be bound are denied; final manifest/lockfile bytes must match approved digests. New or updated GitHub Actions and reusable subpaths must match workflow path, action name, operation, and a full commit ref; block/flow mappings, YAML hexadecimal/Unicode escaped quoted keys and values, and every concrete action-like reference in a changed workflow are governed, while dynamic or otherwise unparseable external `uses:` values fail closed. A generic note or unrelated `DEP-n` never authorizes the change.
+
 - Edit manifests through their native tooling where appropriate; never hand-edit a lockfile.
 - Enable the narrowest feature set.
 - Inspect direct/transitive graph changes, duplicates, build scripts/native code, licenses, advisories, checksums, and generated changes.

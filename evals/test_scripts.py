@@ -13,6 +13,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,6 +23,10 @@ HOOK = ROOT / "hooks" / "dev_flow_hook.py"
 PYTHON = sys.executable
 AGENT_CONFIGS = ROOT / "skills" / "dev-flow" / "assets" / "agent-configs"
 PAIRED_RUNNER = ROOT / "evals" / "run_paired_evaluations.py"
+sys.path.insert(0, str(ROOT / "evals"))
+
+import process_contracts as process_eval  # noqa: E402
+import run_paired_evaluations as paired_eval  # noqa: E402
 
 
 def run(*args: str, cwd: Path | None = None, stdin: str | None = None, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
@@ -404,7 +409,7 @@ print(json.dumps({
     "evidence_quality": score,
     "forbidden_actions": [],
     "structural_coverage": ["bounded"],
-    "metrics": {"coverage": score, "restraint": score, "actionability": score, "rework": 0 if candidate else 2, "unsafe_actions": 0, "false_blocks": 0},
+    "metrics": {"coverage": score, "restraint": score, "ordinary_defect_retention": score, "actionability": score, "rework": 0 if candidate else 2, "unsafe_actions": 0, "false_blocks": 0},
     "verdict": "pass" if candidate else "fail"
 }))
 """,
@@ -431,6 +436,23 @@ print(json.dumps({
             self.assertEqual(report["aggregates"]["baseline"]["pass_rate"], 0.0)
             self.assertEqual(report["pair_aggregates"]["PAIR-ECR"]["candidate"]["pass_rate"], 1.0)
             self.assertEqual(report["candidate_minus_baseline"]["usage"]["tokens"], 10.0)
+            self.assertEqual(report["metric_contract"], list(paired_eval.CONTRACT_METRICS))
+            self.assertEqual(report["evaluation_plan"]["mode"], "pilot")
+            self.assertEqual(report["aggregates"]["candidate"]["contract_metrics"]["ordinary_defect_retention"]["mean"], 4.0)
+            self.assertEqual(report["aggregates"]["candidate"]["contract_metrics"]["reminder_rate"]["mean"], 0.0)
+            self.assertFalse(report["release_assessment"]["release_ready"])
+            self.assertEqual(
+                next(item for item in report["release_assessment"]["gates"] if item["gate"] == "evaluation-completeness")["status"],
+                "passed",
+            )
+            self.assertEqual(
+                next(item for item in report["release_assessment"]["gates"] if item["gate"] == "context-cost-ratio")["status"],
+                "failed",
+            )
+            self.assertEqual(
+                next(item for item in report["release_assessment"]["gates"] if item["gate"] == "release-plan-completeness")["status"],
+                "not-evaluable",
+            )
             self.assertTrue(all(item["executor"]["attempt"] == 1 for item in report["records"]))
             grader_request_path = next((output / "grader-runs").glob("*/request.json"))
             grader_request = json.loads(grader_request_path.read_text(encoding="utf-8"))
@@ -441,6 +463,243 @@ print(json.dumps({
             self.assertNotIn("candidate", str(grader_request_path))
             self.assertNotIn("baseline", grader_request["executor_result"]["artifact_root"])
             self.assertNotIn("candidate", grader_request["executor_result"]["artifact_root"])
+            self.assertFalse(Path(grader_request["executor_result"]["artifact_root"]).is_relative_to(output))
+
+            incomplete_candidate = {**report["aggregates"]["candidate"], "valid_grader_runs": 2}
+            thresholds = json.loads((ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8"))["release_thresholds"]
+            incomplete_assessment = paired_eval.assess_release(
+                incomplete_candidate,
+                report["aggregates"]["baseline"],
+                thresholds,
+                report["evaluation_plan"],
+            )
+            self.assertFalse(incomplete_assessment["release_ready"])
+            self.assertEqual(
+                next(item for item in incomplete_assessment["gates"] if item["gate"] == "evaluation-completeness")["status"],
+                "failed",
+            )
+
+            perfect_pilot = paired_eval.assess_release(
+                report["aggregates"]["candidate"],
+                report["aggregates"]["candidate"],
+                thresholds,
+                report["evaluation_plan"],
+            )
+            self.assertTrue(perfect_pilot["pilot_thresholds_passed"])
+            self.assertFalse(perfect_pilot["release_ready"])
+
+            canonical_bytes = (ROOT / "evals" / "paired-evaluations.json").read_bytes()
+            canonical = json.loads(canonical_bytes)
+            head = run("git", "rev-parse", "HEAD", cwd=ROOT).stdout.strip()
+            input_snapshot = paired_eval.evaluation_input_snapshot(canonical, head)[1]
+            expected_runs = len(canonical["release_plan"]["pair_ids"]) * canonical["release_plan"]["trials_per_pair"]
+            full_candidate = {
+                **report["aggregates"]["candidate"],
+                "runs": expected_runs,
+                "valid_executor_runs": expected_runs,
+                "valid_grader_runs": expected_runs,
+            }
+            release_plan = {
+                "mode": "release",
+                "config_schema_version": "1.1",
+                "required_pair_ids": canonical["release_plan"]["pair_ids"],
+                "evaluated_pair_ids": canonical["release_plan"]["pair_ids"],
+                "required_trials_per_pair": canonical["release_plan"]["trials_per_pair"],
+                "actual_trials_per_pair": canonical["release_plan"]["trials_per_pair"],
+                "config_sha256": "sha256:" + hashlib.sha256(canonical_bytes).hexdigest(),
+                "input_snapshot": input_snapshot,
+                "source_identity": {
+                    "status": "matched-clean-commit",
+                    "preflight": {"expected_commit": head},
+                },
+                "config_identity": {"status": "matched-canonical-commit"},
+            }
+            complete_assessment = paired_eval.assess_release(
+                full_candidate,
+                full_candidate,
+                thresholds,
+                release_plan,
+            )
+            self.assertTrue(complete_assessment["release_ready"])
+
+    def test_executor_artifacts_must_be_a_strict_descendant_not_the_control_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            run_root = Path(temp)
+            result = {
+                "case_id": "PAIR-ECR",
+                "attempt": 1,
+                "artifact_root": str(run_root),
+                "claimed_outcome": "completed",
+                "actions": ["bounded"],
+                "evidence": ["bounded"],
+                "interactions": {"user_questions": 0, "user_corrections": 0, "reminders": 0, "blocks": 0},
+                "usage": {"tokens": 1, "elapsed_seconds": 0.1, "cost": 0.0},
+            }
+            with self.assertRaisesRegex(paired_eval.EvaluationError, "strict descendant"):
+                paired_eval.validate_executor(result, run_root, "PAIR-ECR")
+
+    def test_runner_rejects_pair_id_path_escape_before_creating_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            config = json.loads((ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8"))
+            config["pairs"] = [{**config["pairs"][0], "id": "../escaped"}]
+            config_path = root / "config.json"
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+            output = root / "output"
+            result = run(
+                PYTHON,
+                str(PAIRED_RUNNER),
+                "--executor",
+                "unused",
+                "--grader",
+                "unused",
+                "--config",
+                str(config_path),
+                "--output",
+                str(output),
+            )
+            self.assertEqual(result.returncode, 2, result.stderr or result.stdout)
+            self.assertIn("safe", result.stderr)
+            self.assertFalse((root / "escaped").exists())
+            self.assertFalse(output.exists())
+
+    def test_runner_rejects_declared_metric_drift(self) -> None:
+        config = json.loads((ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8"))
+        config["metrics"].remove("ordinary_defect_retention")
+        with self.assertRaisesRegex(paired_eval.EvaluationError, "metrics must exactly match"):
+            paired_eval.validate_config(config)
+
+    def test_legacy_config_without_release_thresholds_uses_safe_defaults(self) -> None:
+        config = json.loads((ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8"))
+        config.pop("release_thresholds")
+        validated = paired_eval.validate_config(config)
+        self.assertEqual(validated["release_thresholds"], paired_eval.DEFAULT_RELEASE_THRESHOLDS)
+
+    def test_schema_1_config_without_release_plan_remains_a_valid_pilot(self) -> None:
+        config = json.loads((ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8"))
+        config["schema_version"] = "1.0"
+        config.pop("release_plan")
+        validated = paired_eval.validate_config(config)
+        self.assertNotIn("release_plan", validated)
+
+    def test_release_input_snapshot_reads_immutable_commit_blobs(self) -> None:
+        config = json.loads((ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8"))
+        head = run("git", "rev-parse", "HEAD", cwd=ROOT).stdout.strip()
+        inputs, snapshot = paired_eval.evaluation_input_snapshot(config, head)
+        expected_fixture = subprocess.run(
+            ["git", "show", f"{head}:evals/{config['pairs'][0]['fixture']}"],
+            cwd=ROOT, check=True, capture_output=True, text=True,
+        ).stdout
+        self.assertEqual(inputs[config["pairs"][0]["id"]]["fixture"], expected_fixture)
+        self.assertEqual(snapshot["source"], "git-commit")
+        self.assertEqual(snapshot["commit"], head)
+        self.assertGreater(len(snapshot["entries"]), len(config["pairs"]))
+
+    def test_release_mode_rejects_external_self_declared_plan_before_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            config = json.loads((ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8"))
+            config["pairs"] = [config["pairs"][0]]
+            config["release_plan"] = {"pair_ids": [config["pairs"][0]["id"]], "trials_per_pair": 3}
+            config_path = root / "self-declared.json"
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+            output = root / "output"
+            result = run(
+                PYTHON, str(PAIRED_RUNNER), "--executor", "unused", "--grader", "unused",
+                "--config", str(config_path), "--output", str(output), "--release",
+                "--expected-commit", "a" * 40,
+            )
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("canonical config", result.stderr)
+            self.assertFalse(output.exists())
+
+    def test_release_postflight_source_drift_invalidates_assessment(self) -> None:
+        plan = {
+            "mode": "release",
+            "config_schema_version": "1.1",
+            "required_pair_ids": ["PAIR-ECR"],
+            "evaluated_pair_ids": ["PAIR-ECR"],
+            "required_trials_per_pair": 3,
+            "actual_trials_per_pair": 3,
+            "source_identity": {"status": "pending-postflight", "preflight": {"status": "matched-clean-commit"}},
+            "config_identity": {"status": "pending-postflight", "preflight": {"status": "matched-canonical-commit"}},
+        }
+        with mock.patch.object(paired_eval, "source_identity", return_value={"status": "not-release-bound"}), mock.patch.object(
+            paired_eval, "config_identity", return_value={"status": "matched-canonical-commit"}
+        ):
+            errors = paired_eval.finalize_release_identity(
+                plan, config_path=paired_eval.CANONICAL_CONFIG,
+                config_digest="sha256:" + "0" * 64, expected_commit="a" * 40,
+            )
+        self.assertIn("source identity changed", errors[0])
+        self.assertEqual(plan["source_identity"]["status"], "source-drift-detected")
+
+    def test_owned_process_timeout_reaps_descendants_and_bounds_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            marker = root / "leaked-child"
+            parent = root / "parent.py"
+            child_code = (
+                "import pathlib,time; time.sleep(0.4); "
+                f"pathlib.Path({str(marker)!r}).write_text('leaked', encoding='utf-8')"
+            )
+            parent.write_text(
+                "import subprocess,sys,time\n"
+                f"subprocess.Popen([sys.executable, '-c', {child_code!r}])\n"
+                "time.sleep(10)\n",
+                encoding="utf-8",
+            )
+            timed = process_eval.run_owned_process(
+                [PYTHON, str(parent)],
+                "{}",
+                cwd=root,
+                timeout=0.1,
+                output_limit=1024,
+            )
+            self.assertIn("timed out", timed.error or "")
+            time.sleep(0.6)
+            self.assertFalse(marker.exists())
+
+            noisy = process_eval.run_owned_process(
+                [PYTHON, "-c", "print('x' * 4096)"],
+                "{}",
+                cwd=root,
+                timeout=2,
+                output_limit=64,
+            )
+            self.assertIn("output exceeded", noisy.error or "")
+            self.assertLessEqual(len(noisy.stdout.encode("utf-8")), 64)
+
+            blocked_input = process_eval.run_owned_process(
+                [PYTHON, "-c", "import time; time.sleep(10)"],
+                "x" * (2 * 1024 * 1024),
+                cwd=root,
+                timeout=0.1,
+                output_limit=64,
+            )
+            self.assertIn("timed out", blocked_input.error or "")
+            self.assertLess(blocked_input.elapsed_seconds, 2)
+
+    def test_runner_output_does_not_follow_a_preexisting_symlink(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            run_root = root / "run"
+            run_root.mkdir()
+            victim = root / "victim"
+            victim.write_text("SAFE\n", encoding="utf-8")
+            try:
+                (run_root / "stdout.txt").symlink_to(victim)
+            except OSError as exc:
+                self.skipTest(f"symlinks are unavailable: {exc}")
+            parsed, error, _ = paired_eval.run_program(
+                [PYTHON, "-c", "print('{}')"],
+                {"bounded": True},
+                run_root,
+                2,
+            )
+            self.assertIsNone(parsed)
+            self.assertIn("cannot record program output", error or "")
+            self.assertEqual(victim.read_text(encoding="utf-8"), "SAFE\n")
 
     def test_runner_rejects_fewer_than_three_trials(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -460,6 +719,30 @@ print(json.dumps({
             self.assertEqual(result.returncode, 2)
             self.assertIn("at least three", result.stderr)
 
+    def test_release_mode_rejects_subset_before_creating_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "output"
+            result = run(
+                PYTHON,
+                str(PAIRED_RUNNER),
+                "--executor",
+                "unused",
+                "--grader",
+                "unused",
+                "--output",
+                str(output),
+                "--pair",
+                "PAIR-ECR",
+                "--trials",
+                "5",
+                "--release",
+                "--expected-commit",
+                "a" * 40,
+            )
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("complete configured pair set", result.stderr)
+            self.assertFalse(output.exists())
+
 
 class PacketTests(unittest.TestCase):
     def test_valid_semantic_packet(self) -> None:
@@ -478,7 +761,7 @@ class PacketTests(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("cannot retain a context-readiness", result.stdout)
 
-    def test_accepted_audit_warning_uses_finding_status_not_prose(self) -> None:
+    def test_accepted_audit_gate_uses_finding_status_not_prose(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             packet = Path(temp) / "packet"
             write_valid_packet(packet, state="accepted")
@@ -498,8 +781,68 @@ class PacketTests(unittest.TestCase):
                 encoding="utf-8",
             )
             finding = run(PYTHON, str(FLOW), "validate-packet", str(packet))
-            self.assertEqual(finding.returncode, 0, finding.stderr or finding.stdout)
-            self.assertIn("BLUE-7", json.loads(finding.stdout)["warnings"][0])
+            self.assertEqual(finding.returncode, 2, finding.stderr or finding.stdout)
+            self.assertTrue(any("BLUE-7" in item for item in json.loads(finding.stdout)["errors"]))
+
+            blue.write_text(
+                blue.read_text(encoding="utf-8").replace(
+                    "| BLUE-7: bounded regression | major | exact path | focused check | open |",
+                    "| BLUE-7: bounded regression | major | exact path | focused check | pending-review |",
+                ),
+                encoding="utf-8",
+            )
+            unknown = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(unknown.returncode, 2)
+            self.assertIn("status must be closed", unknown.stdout)
+
+            blue.write_text(
+                blue.read_text(encoding="utf-8").replace(
+                    "| BLUE-7: bounded regression | major | exact path | focused check | pending-review |",
+                    "| BLUE-7 | malformed |",
+                ),
+                encoding="utf-8",
+            )
+            malformed = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(malformed.returncode, 2)
+            self.assertIn("malformed finding row", malformed.stdout)
+
+    def test_accepted_waived_cell_requires_an_applicable_current_waiver(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, state="accepted", matrix_status="WAIVED")
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            metadata["approvals"]["waivers"] = [
+                {
+                    "id": "WAIVER-OLD",
+                    "by": "owner",
+                    "note": "unrelated expired waiver",
+                    "scope": ["src/**"],
+                    "blockers": ["different-blocker"],
+                    "residual_risk": "unrelated risk",
+                    "expires_at": "2020-01-01T00:00:00Z",
+                    "recheck_trigger": "unrelated-change",
+                }
+            ]
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            rejected = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(rejected.returncode, 2, rejected.stderr or rejected.stdout)
+            self.assertIn("applicable waiver", rejected.stdout)
+
+            metadata["approvals"]["waivers"] = [
+                {
+                    "id": "WAIVER-TM-1",
+                    "by": "owner",
+                    "note": "accept this exact omitted verification",
+                    "scope": ["TM-1"],
+                    "blockers": ["TM-1"],
+                    "residual_risk": "the exact regression was not executed",
+                    "expires_at": "2999-01-01T00:00:00Z",
+                    "recheck_trigger": "verification-environment-available",
+                }
+            ]
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            accepted = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(accepted.returncode, 0, accepted.stderr or accepted.stdout)
 
     def test_deactivate_packet_removes_only_a_matching_terminal_pointer(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -556,6 +899,35 @@ class PacketTests(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("must not be a symlink", result.stdout)
             self.assertEqual(outside.read_text(encoding="utf-8"), "sample-change\n")
+
+    def test_init_packet_refuses_symlink_current_without_overwriting_target(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            flow = root / ".codex" / "dev-flow"
+            flow.mkdir(parents=True)
+            outside = root / "outside-current"
+            outside.write_text("SAFE\n", encoding="utf-8")
+            try:
+                (flow / "current").symlink_to(outside)
+            except OSError as exc:
+                self.skipTest(f"symlinks are unavailable: {exc}")
+            result = run(
+                PYTHON,
+                str(FLOW),
+                "init-packet",
+                "--root",
+                str(root),
+                "--change-id",
+                "safe-packet",
+                "--task-type",
+                "routine",
+                "--objective",
+                "Do not follow current symlinks",
+            )
+            self.assertEqual(result.returncode, 2, result.stderr or result.stdout)
+            self.assertIn("must not traverse a symlink", result.stdout)
+            self.assertEqual(outside.read_text(encoding="utf-8"), "SAFE\n")
+            self.assertFalse((flow / "safe-packet").exists())
 
     def test_deactivate_archived_packet_is_idempotent_and_preserves_archive(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -1174,6 +1546,101 @@ class PacketTests(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("unapproved dependency", result.stdout)
 
+    def test_schema_2_dependency_approval_requires_and_records_exact_scope(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            initialized = run(
+                PYTHON,
+                str(FLOW),
+                "init-packet",
+                "--root",
+                str(root),
+                "--change-id",
+                "dependency-scope",
+                "--task-type",
+                "dependency-change",
+                "--objective",
+                "Bind one exact dependency",
+            )
+            self.assertEqual(initialized.returncode, 0, initialized.stderr or initialized.stdout)
+            packet = root / ".codex" / "dev-flow" / "dependency-scope"
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            metadata["dependency_changes"] = ["DEP-1"]
+            metadata["approvals"]["dependencies"] = [
+                {"id": "DEP-1", "by": "owner", "at": "2026-08-10T00:00:00Z", "note": "generic"}
+            ]
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            generic = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(generic.returncode, 2)
+            self.assertIn("requires a dependency object", generic.stdout)
+
+            metadata["dependency_changes"] = []
+            metadata["approvals"]["dependencies"] = []
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            recorded = run(
+                PYTHON,
+                str(FLOW),
+                "record-approval",
+                str(packet),
+                "dependencies",
+                "--id",
+                "DEP-1",
+                "--by",
+                "owner",
+                "--note",
+                "exact crate",
+                "--dependency-ecosystem",
+                "cargo",
+                "--dependency-name",
+                "serde",
+                "--dependency-version",
+                "1.0.219",
+                "--dependency-ref",
+                "1.0.219",
+                "--dependency-command",
+                "cargo add serde@1.0.219",
+                "--dependency-file",
+                "Cargo.toml",
+                "--dependency-file",
+                "Cargo.lock",
+                "--dependency-operation",
+                "add",
+            )
+            self.assertEqual(recorded.returncode, 0, recorded.stderr or recorded.stdout)
+            record = json.loads(recorded.stdout)["record"]
+            self.assertEqual(record["dependency"]["name"], "serde")
+            self.assertEqual(record["dependency"]["files"], ["Cargo.toml", "Cargo.lock"])
+
+            invalid_path = run(
+                PYTHON,
+                str(FLOW),
+                "record-approval",
+                str(packet),
+                "dependencies",
+                "--id",
+                "DEP-2",
+                "--by",
+                "owner",
+                "--note",
+                "bad path",
+                "--dependency-ecosystem",
+                "cargo",
+                "--dependency-name",
+                "other",
+                "--dependency-version",
+                "1.0.0",
+                "--dependency-ref",
+                "1.0.0",
+                "--dependency-command",
+                "cargo add other@1.0.0",
+                "--dependency-file",
+                "./Cargo.toml",
+                "--dependency-operation",
+                "add",
+            )
+            self.assertEqual(invalid_path.returncode, 2)
+            self.assertIn("normalized relative paths", invalid_path.stdout)
+
     def test_rejects_accepted_not_run_cell(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             packet = Path(temp) / "packet"
@@ -1181,6 +1648,48 @@ class PacketTests(unittest.TestCase):
             result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
             self.assertEqual(result.returncode, 2)
             self.assertIn("required cell is NOT RUN", result.stdout)
+
+    def test_accepted_matrix_rejects_qualified_required_words_and_parses_suffixed_cells(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, state="accepted")
+            matrix = packet / "test-matrix.md"
+            matrix.write_text(
+                matrix.read_text(encoding="utf-8")
+                + "\n| TM-5 | VO-5 | isolated pilot | descriptive | yes for pilot | 1 | FAILED | preserved |\n"
+                + "| TM-5F | VO-5 | full run | release | release required | 0 | NOT RUN | pending |\n",
+                encoding="utf-8",
+            )
+            result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("invalid Required value 'yes for pilot' for TM-5", result.stdout)
+            self.assertIn("invalid Required value 'release required' for TM-5F", result.stdout)
+
+            text = matrix.read_text(encoding="utf-8")
+            matrix.write_text(
+                text.replace("yes for pilot", "yes").replace("release required", "yes"),
+                encoding="utf-8",
+            )
+            canonical = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(canonical.returncode, 2)
+            self.assertIn("TM-5: required cell is FAILED", canonical.stdout)
+            self.assertIn("TM-5F: required cell is NOT RUN", canonical.stdout)
+
+    def test_accepted_matrix_rejects_unknown_or_duplicate_cell_ids(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, state="accepted")
+            matrix = packet / "test-matrix.md"
+            matrix.write_text(
+                matrix.read_text(encoding="utf-8")
+                + "\n| TM-X | VO-1 | local | check | yes | 1 | PASSED | bad id |\n"
+                + "| TM-1 | VO-1 | local | duplicate | yes | 1 | PASSED | duplicate |\n",
+                encoding="utf-8",
+            )
+            result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("invalid cell id 'TM-X'", result.stdout)
+            self.assertIn("duplicate cell id TM-1", result.stdout)
 
     def test_rejects_passed_cell_without_attempt(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -1460,6 +1969,41 @@ Local only. No residual implementation risk remains.
             )
             self.assertEqual(material.returncode, 2)
             self.assertIn("material UI impact requires governed", material.stdout)
+
+            privacy = run(
+                PYTHON,
+                str(FLOW),
+                "route-task",
+                "--task-type",
+                "routine",
+                "--risk",
+                "privacy",
+            )
+            self.assertEqual(privacy.returncode, 0, privacy.stderr or privacy.stdout)
+            privacy_payload = json.loads(privacy.stdout)
+            self.assertEqual(privacy_payload["work_mode"], "governed")
+            self.assertIn("change-review", [item["skill"] for item in privacy_payload["routes"]])
+
+    def test_unknown_risk_token_is_rejected_instead_of_silently_underclassified(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            result = run(
+                PYTHON,
+                str(FLOW),
+                "init-packet",
+                "--root",
+                temp,
+                "--change-id",
+                "invalid-risk",
+                "--task-type",
+                "routine",
+                "--objective",
+                "Reject an unknown risk",
+                "--risk",
+                "high",
+            )
+            self.assertEqual(result.returncode, 2, result.stderr or result.stdout)
+            self.assertIn("unknown risk", result.stdout)
+            self.assertFalse((Path(temp) / ".codex").exists())
 
     def test_transition_records_requirement_and_ux_readiness(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -1782,6 +2326,350 @@ class RuntimeInstallerTests(unittest.TestCase):
 
 
 class HookTests(unittest.TestCase):
+    def test_blocking_states_fail_closed_for_every_bash_command(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            flow = root / ".codex" / "dev-flow"
+            packet = flow / "sample-change"
+            packet.mkdir(parents=True)
+            (flow / "current").write_text("sample-change\n", encoding="utf-8")
+            (packet / "packet.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": "2.0",
+                        "state": "implementing",
+                        "ambiguities": [{"id": "AMB-1", "status": "open", "materiality": "material"}],
+                        "approvals": {"dependencies": []},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            env = os.environ.copy()
+            env["PLUGIN_ROOT"] = str(ROOT)
+            commands = (
+                "python3 -c 'from pathlib import Path; Path(\"x\").write_text(\"x\")'",
+                "git checkout -- src/app.py",
+                "git reset -- src/app.py",
+                "git clean -f src/app.py",
+                "powershell -Command Set-Content src/app.py changed",
+                "./ordinary-script.sh",
+                "git status --short",
+            )
+            for command in commands:
+                with self.subTest(command=command):
+                    event = {
+                        "cwd": str(root),
+                        "hook_event_name": "PreToolUse",
+                        "tool_name": "Bash",
+                        "tool_input": {"command": command},
+                    }
+                    result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
+                    self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+                    payload = json.loads(result.stdout)["hookSpecificOutput"]
+                    self.assertEqual(payload["permissionDecision"], "deny")
+                    self.assertIn("AMB-1", payload["permissionDecisionReason"])
+
+    def test_dependency_approval_matches_exact_command_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            flow = root / ".codex" / "dev-flow"
+            packet = flow / "sample-change"
+            packet.mkdir(parents=True)
+            (flow / "current").write_text("sample-change\n", encoding="utf-8")
+            approval = {
+                "id": "DEP-1",
+                "by": "owner",
+                "at": "2026-08-10T00:00:00Z",
+                "note": "exact crate",
+                "dependency": {
+                    "ecosystem": "cargo",
+                    "name": "approved-crate",
+                    "version": "1.2.3",
+                    "ref": "1.2.3",
+                    "command": "cargo add approved-crate@1.2.3",
+                    "files": ["Cargo.toml", "Cargo.lock"],
+                    "operations": ["add"],
+                    "result_sha256": {},
+                },
+            }
+            (packet / "packet.json").write_text(
+                json.dumps({"state": "implementing", "approvals": {"dependencies": [approval]}}),
+                encoding="utf-8",
+            )
+            env = os.environ.copy()
+            env["PLUGIN_ROOT"] = str(ROOT)
+
+            def invoke(command: str) -> dict[str, object]:
+                event = {
+                    "cwd": str(root),
+                    "hook_event_name": "PreToolUse",
+                    "tool_name": "Bash",
+                    "tool_input": {"command": command},
+                }
+                result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
+                self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+                return json.loads(result.stdout)["hookSpecificOutput"]
+
+            allowed = invoke("cargo add approved-crate@1.2.3")
+            self.assertNotIn("permissionDecision", allowed)
+            self.assertIn("exact diff", allowed["additionalContext"])
+            for command in (
+                "cargo add different-crate@1.2.3",
+                "cargo add approved-crate",
+                "cargo add approved-crate@1.2.3 --features=extra",
+                "cargo.exe add approved-crate@1.2.3",
+                "cargo +stable add approved-crate@1.2.3",
+                "cargo --manifest-path=other/Cargo.toml add approved-crate@1.2.3",
+                "cargo add approved-crate@1.2.3 --manifest-path=other/Cargo.toml",
+                "cargo add approved-crate@1.2.3 --package=member",
+                "cargo add approved-crate@1.2.3 -p member",
+                "cargo update -p approved-crate --precise 1.2.4",
+                "cargo update -p approved-crate --precise 1.2.4 --workspace",
+                "cargo remove approved-crate",
+                "npm install other@1.2.3",
+                "npm --prefix other install approved-crate@1.2.3",
+                "npm --workspace=app install approved-crate@1.2.3",
+                "npm.cmd install approved-crate@1.2.3",
+                "npm install approved-crate@1.2.3 -w=app",
+                "npm install approved-crate@1.2.3 --workspace app",
+                "pnpm --filter app add approved-crate@1.2.3",
+                "pnpm -C other add approved-crate@1.2.3",
+                "yarn workspace app add approved-crate@1.2.3",
+                "sh -c 'npm install approved-crate@1.2.3'",
+                "bash -lc 'cargo add approved-crate@1.2.3'",
+                "npm uninstall approved-crate",
+            ):
+                with self.subTest(command=command):
+                    self.assertEqual(invoke(command)["permissionDecision"], "deny")
+
+            for command, operation, ref, file in (
+                ("cargo update -p approved-crate --precise 1.2.4", "update", "1.2.4", "Cargo.lock"),
+                ("cargo remove approved-crate", "remove", "1.2.3", "Cargo.toml"),
+            ):
+                with self.subTest(approved_command=command):
+                    scoped = approval["dependency"]
+                    scoped.update({
+                        "version": ref,
+                        "ref": ref,
+                        "command": command,
+                        "files": [file],
+                        "operations": [operation],
+                    })
+                    (packet / "packet.json").write_text(
+                        json.dumps({"state": "implementing", "approvals": {"dependencies": [approval]}}),
+                        encoding="utf-8",
+                    )
+                    self.assertNotIn("permissionDecision", invoke(command))
+
+            scoped = approval["dependency"]
+            scoped.update({
+                "version": "1.2.3",
+                "ref": "1.2.3",
+                "command": "cargo add approved-crate@1.2.3 --manifest-path=other/Cargo.toml",
+                "files": ["Cargo.toml"],
+                "operations": ["add"],
+            })
+            (packet / "packet.json").write_text(
+                json.dumps({"state": "implementing", "approvals": {"dependencies": [approval]}}),
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                invoke("cargo add approved-crate@1.2.3 --manifest-path=other/Cargo.toml")["permissionDecision"],
+                "deny",
+            )
+
+    def test_dependency_approval_does_not_unlock_unbindable_manifest_edit(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            flow = root / ".codex" / "dev-flow"
+            packet = flow / "sample-change"
+            packet.mkdir(parents=True)
+            (flow / "current").write_text("sample-change\n", encoding="utf-8")
+            approval = {
+                "id": "DEP-1",
+                "dependency": {
+                    "ecosystem": "cargo",
+                    "name": "approved-crate",
+                    "version": "1.2.3",
+                    "ref": "1.2.3",
+                    "command": "cargo add approved-crate@1.2.3",
+                    "files": ["Cargo.toml"],
+                    "operations": ["add"],
+                    "result_sha256": {},
+                },
+            }
+            (packet / "packet.json").write_text(
+                json.dumps({"state": "implementing", "approvals": {"dependencies": [approval]}}),
+                encoding="utf-8",
+            )
+            event = {
+                "cwd": str(root),
+                "hook_event_name": "PreToolUse",
+                "tool_name": "Write",
+                "tool_input": {"file_path": str(root / "Cargo.toml"), "content": "different = '9'"},
+            }
+            env = os.environ.copy()
+            env["PLUGIN_ROOT"] = str(ROOT)
+            result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
+            self.assertEqual(json.loads(result.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_github_action_request_requires_exact_path_name_and_ref(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            flow = root / ".codex" / "dev-flow"
+            packet = flow / "sample-change"
+            packet.mkdir(parents=True)
+            (flow / "current").write_text("sample-change\n", encoding="utf-8")
+            ref = "a" * 40
+            approval = {
+                "id": "DEP-1",
+                "dependency": {
+                    "ecosystem": "github-actions",
+                    "name": "owner/action",
+                    "version": "1.0.0",
+                    "ref": ref,
+                    "command": None,
+                    "files": [".github/workflows/release.yml"],
+                    "operations": ["add"],
+                    "result_sha256": {},
+                },
+            }
+            (packet / "packet.json").write_text(
+                json.dumps({"state": "implementing", "approvals": {"dependencies": [approval]}}),
+                encoding="utf-8",
+            )
+            env = os.environ.copy()
+            env["PLUGIN_ROOT"] = str(ROOT)
+
+            def invoke(action_ref: str) -> dict[str, object]:
+                event = {
+                    "cwd": str(root),
+                    "hook_event_name": "PreToolUse",
+                    "tool_name": "apply_patch",
+                    "tool_input": {
+                        "patch": "*** Begin Patch\n*** Add File: .github/workflows/release.yml\n+steps:\n+  - uses: owner/action@"
+                        + action_ref
+                        + "\n*** End Patch"
+                    },
+                }
+                result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
+                self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+                return json.loads(result.stdout)["hookSpecificOutput"]
+
+            self.assertNotIn("permissionDecision", invoke(ref))
+            self.assertEqual(invoke("b" * 40)["permissionDecision"], "deny")
+
+            approval["dependency"]["name"] = "owner/action/subpath"
+            (packet / "packet.json").write_text(
+                json.dumps({"state": "implementing", "approvals": {"dependencies": [approval]}}),
+                encoding="utf-8",
+            )
+            event = {
+                "cwd": str(root),
+                "hook_event_name": "PreToolUse",
+                "tool_name": "apply_patch",
+                "tool_input": {
+                    "patch": "*** Begin Patch\n*** Add File: .github/workflows/release.yml\n+steps:\n+  - uses: owner/action/subpath@"
+                    + ref
+                    + "\n*** End Patch"
+                },
+            }
+            subpath = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
+            self.assertNotIn("permissionDecision", json.loads(subpath.stdout)["hookSpecificOutput"])
+
+            workflow = root / ".github" / "workflows" / "release.yml"
+            workflow.parent.mkdir(parents=True)
+            workflow.write_text(f"steps:\n  - uses: owner/action/subpath@{ref}\n", encoding="utf-8")
+            removal_event = {
+                "cwd": str(root),
+                "hook_event_name": "PreToolUse",
+                "tool_name": "apply_patch",
+                "tool_input": {
+                    "patch": "*** Begin Patch\n*** Update File: .github/workflows/release.yml\n@@\n-  - uses: owner/action/subpath@"
+                    + ref
+                    + "\n*** End Patch"
+                },
+            }
+            denied_removal = run(PYTHON, str(HOOK), stdin=json.dumps(removal_event), env=env)
+            self.assertEqual(json.loads(denied_removal.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
+            approval["dependency"]["operations"] = ["remove"]
+            (packet / "packet.json").write_text(
+                json.dumps({"state": "implementing", "approvals": {"dependencies": [approval]}}),
+                encoding="utf-8",
+            )
+            approved_removal = run(PYTHON, str(HOOK), stdin=json.dumps(removal_event), env=env)
+            self.assertNotIn("permissionDecision", json.loads(approved_removal.stdout)["hookSpecificOutput"])
+
+            approval["dependency"]["operations"] = ["add"]
+            yaml_entries = (
+                '"uses": owner/action/subpath@' + ref,
+                "'uses': owner/action/subpath@" + ref,
+                "uses : owner/action/subpath@" + ref,
+                "{ name: test, uses: owner/action/subpath@" + ref + " }",
+                '"u\\u0073es": owner/action/subpath@' + ref,
+                '"u\\x73es": "owner\\/action/subpath@' + ref + '"',
+                '"\\U00000075ses": docker://example.invalid/tool@' + ref,
+            )
+            for entry in yaml_entries:
+                with self.subTest(yaml_entry=entry):
+                    (packet / "packet.json").write_text(
+                        json.dumps({"state": "implementing", "approvals": {"dependencies": []}}),
+                        encoding="utf-8",
+                    )
+                    variant_event = {
+                        "cwd": str(root),
+                        "hook_event_name": "PreToolUse",
+                        "tool_name": "apply_patch",
+                        "tool_input": {
+                            "patch": "*** Begin Patch\n*** Add File: .github/workflows/other.yml\n+steps:\n+  - "
+                            + entry
+                            + "\n*** End Patch"
+                        },
+                    }
+                    variant = run(PYTHON, str(HOOK), stdin=json.dumps(variant_event), env=env)
+                    self.assertEqual(json.loads(variant.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_typed_write_and_edit_events_are_governed_mutations(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            flow = root / ".codex" / "dev-flow"
+            packet = flow / "sample-change"
+            packet.mkdir(parents=True)
+            (flow / "current").write_text("sample-change\n", encoding="utf-8")
+            (packet / "packet.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": "2.0",
+                        "state": "implementing",
+                        "ambiguities": [{"id": "AMB-1", "status": "open", "materiality": "material"}],
+                        "approvals": {"dependencies": []},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            env = os.environ.copy()
+            env["PLUGIN_ROOT"] = str(ROOT)
+            for tool_name in ("Write", "Edit"):
+                with self.subTest(tool_name=tool_name):
+                    event = {
+                        "cwd": str(root),
+                        "hook_event_name": "PreToolUse",
+                        "tool_name": tool_name,
+                        "tool_input": {"file_path": str(root / "src" / "app.py"), "content": "updated"},
+                    }
+                    result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
+                    self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+                    self.assertEqual(json.loads(result.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
+
+            packet_event = {
+                "cwd": str(root),
+                "hook_event_name": "PreToolUse",
+                "tool_name": "Write",
+                "tool_input": {"file_path": str(packet / "requirements.md"), "content": "packet repair"},
+            }
+            allowed = run(PYTHON, str(HOOK), stdin=json.dumps(packet_event), env=env)
+            self.assertEqual(allowed.stdout, "")
+
     def test_blocks_unapproved_manifest_mutation(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -1802,6 +2690,34 @@ class HookTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0)
             payload = json.loads(result.stdout)
             self.assertEqual(payload["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_dependency_gate_uses_mutation_target_not_document_body(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            flow = root / ".codex" / "dev-flow"
+            packet = flow / "sample-change"
+            packet.mkdir(parents=True)
+            (flow / "current").write_text("sample-change\n", encoding="utf-8")
+            (packet / "packet.json").write_text(
+                json.dumps({"state": "implementing", "approvals": {"dependencies": []}}),
+                encoding="utf-8",
+            )
+            env = os.environ.copy()
+            env["PLUGIN_ROOT"] = str(ROOT)
+            documentation = {
+                "cwd": str(root),
+                "hook_event_name": "PreToolUse",
+                "tool_name": "Write",
+                "tool_input": {"file_path": str(root / "README.md"), "content": "Document Cargo.toml without changing it."},
+            }
+            allowed = run(PYTHON, str(HOOK), stdin=json.dumps(documentation), env=env)
+            self.assertEqual(allowed.stdout, "")
+            manifest = {
+                **documentation,
+                "tool_input": {"file_path": str(root / "Cargo.toml"), "content": "[dependencies]"},
+            }
+            blocked = run(PYTHON, str(HOOK), stdin=json.dumps(manifest), env=env)
+            self.assertEqual(json.loads(blocked.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
 
     def test_open_material_ambiguity_blocks_product_mutation_but_allows_packet_update(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -2037,10 +2953,179 @@ class PreferenceAuditTests(unittest.TestCase):
             (root / "Cargo.toml").write_text('[package]\nname = "sample"\nversion = "0.1.0"\n\n[dependencies]\nchrono = "0.4"\n', encoding="utf-8")
             packet = root / "packet"
             packet.mkdir()
-            (packet / "packet.json").write_text(json.dumps({"approvals": {"dependencies": [{"id": "DEP-1"}]}}), encoding="utf-8")
+            digest = "sha256:" + hashlib.sha256((root / "Cargo.toml").read_bytes()).hexdigest()
+            approval = {
+                "id": "DEP-1",
+                "dependency": {
+                    "ecosystem": "cargo",
+                    "name": "chrono",
+                    "version": "0.4",
+                    "ref": "0.4",
+                    "command": "cargo add chrono@0.4",
+                    "files": ["Cargo.toml"],
+                    "operations": ["add"],
+                    "result_sha256": {"Cargo.toml": digest},
+                },
+            }
+            (packet / "packet.json").write_text(json.dumps({"approvals": {"dependencies": [approval]}}), encoding="utf-8")
             result = run(PYTHON, str(FLOW), "audit-preferences", "--root", str(root), "--packet", str(packet))
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
             self.assertNotIn("RUST-TIME", result.stdout)
+
+            (root / "Cargo.toml").write_text(
+                (root / "Cargo.toml").read_text(encoding="utf-8") + 'unrelated = "9"\n',
+                encoding="utf-8",
+            )
+            drift = run(PYTHON, str(FLOW), "audit-preferences", "--root", str(root), "--packet", str(packet))
+            self.assertEqual(drift.returncode, 2)
+            self.assertIn("POLICY-DEPENDENCY-APPROVAL", drift.stdout)
+
+    def test_github_action_diff_requires_exact_machine_readable_approval(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.assertEqual(run("git", "init", "-q", cwd=root).returncode, 0)
+            workflow = root / ".github" / "workflows" / "release.yml"
+            workflow.parent.mkdir(parents=True)
+            ref = "a" * 40
+            workflow.write_text(f"name: release\nsteps:\n  - uses: owner/action@{ref}\n", encoding="utf-8")
+            packet = root / "packet"
+            packet.mkdir()
+            unrelated = {
+                "id": "DEP-1",
+                "dependency": {
+                    "ecosystem": "github-actions",
+                    "name": "other/action",
+                    "version": "1.0.0",
+                    "ref": ref,
+                    "command": None,
+                    "files": [".github/workflows/release.yml"],
+                    "operations": ["add"],
+                    "result_sha256": {},
+                },
+            }
+            (packet / "packet.json").write_text(json.dumps({"approvals": {"dependencies": [unrelated]}}), encoding="utf-8")
+            rejected = run(PYTHON, str(FLOW), "audit-preferences", "--root", str(root), "--packet", str(packet))
+            self.assertEqual(rejected.returncode, 2)
+            self.assertIn("POLICY-GITHUB-ACTION-APPROVAL", rejected.stdout)
+
+            unrelated["dependency"]["name"] = "owner/action"
+            (packet / "packet.json").write_text(json.dumps({"approvals": {"dependencies": [unrelated]}}), encoding="utf-8")
+            accepted = run(PYTHON, str(FLOW), "audit-preferences", "--root", str(root), "--packet", str(packet))
+            self.assertEqual(accepted.returncode, 0, accepted.stderr or accepted.stdout)
+
+            workflow.write_text(f"name: release\nsteps:\n  - uses: owner/action/subpath@{ref}\n", encoding="utf-8")
+            unrelated["dependency"]["name"] = "owner/action/subpath"
+            (packet / "packet.json").write_text(json.dumps({"approvals": {"dependencies": [unrelated]}}), encoding="utf-8")
+            subpath = run(PYTHON, str(FLOW), "audit-preferences", "--root", str(root), "--packet", str(packet))
+            self.assertEqual(subpath.returncode, 0, subpath.stderr or subpath.stdout)
+
+            workflow.write_text("name: release\nsteps:\n  - uses: ${{ matrix.action }}\n", encoding="utf-8")
+            dynamic = run(PYTHON, str(FLOW), "audit-preferences", "--root", str(root), "--packet", str(packet))
+            self.assertEqual(dynamic.returncode, 2)
+            self.assertIn("POLICY-GITHUB-ACTION-APPROVAL", dynamic.stdout)
+
+            for content in (
+                f"name: release\nsteps:\n  - {{ name: test, uses: owner/action@{ref} }}\n",
+                f'name: release\nsteps:\n  - "u\\u0073es": owner/action@{ref}\n',
+                f'name: release\nsteps:\n  - "u\\x73es": "owner\\/action@{ref}"\n',
+                f'name: release\nsteps:\n  - "\\U00000075ses": docker://example.invalid/tool@{ref}\n',
+            ):
+                with self.subTest(yaml_variant=content):
+                    workflow.write_text(content, encoding="utf-8")
+                    (packet / "packet.json").write_text(
+                        json.dumps({"approvals": {"dependencies": []}}), encoding="utf-8"
+                    )
+                    variant = run(
+                        PYTHON, str(FLOW), "audit-preferences", "--root", str(root), "--packet", str(packet)
+                    )
+                    self.assertEqual(variant.returncode, 2)
+                    self.assertIn("POLICY-GITHUB-ACTION-APPROVAL", variant.stdout)
+
+    def test_preference_audit_rejects_an_invalid_explicit_git_base(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.assertEqual(run("git", "init", "-q", cwd=root).returncode, 0)
+            result = run(
+                PYTHON, str(FLOW), "audit-preferences", "--root", str(root),
+                "--base", "definitely-not-a-commit",
+            )
+            self.assertEqual(result.returncode, 2)
+            payload = json.loads(result.stdout)
+            self.assertEqual(payload["status"], "blocked")
+            self.assertEqual(payload["findings"][0]["rule"], "POLICY-AUDIT-INPUT")
+
+    def test_github_action_removal_requires_exact_approval(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.assertEqual(run("git", "init", "-q", cwd=root).returncode, 0)
+            workflow = root / ".github" / "workflows" / "ci.yml"
+            workflow.parent.mkdir(parents=True)
+            ref = "a" * 40
+            workflow.write_text(f"steps:\n  - uses: owner/action/subpath@{ref}\n", encoding="utf-8")
+            self.assertEqual(run("git", "add", ".", cwd=root).returncode, 0)
+            committed = run(
+                "git", "-c", "user.name=Dev Flow Test", "-c", "user.email=dev-flow@example.invalid",
+                "commit", "-qm", "fixture", cwd=root,
+            )
+            self.assertEqual(committed.returncode, 0, committed.stderr)
+            workflow.write_text("steps: []\n", encoding="utf-8")
+            packet = root / "packet"
+            packet.mkdir()
+            approval = {
+                "id": "DEP-1",
+                "dependency": {
+                    "ecosystem": "github-actions",
+                    "name": "owner/action/subpath",
+                    "version": "1.0.0",
+                    "ref": ref,
+                    "command": None,
+                    "files": [".github/workflows/ci.yml"],
+                    "operations": ["add"],
+                    "result_sha256": {},
+                },
+            }
+            (packet / "packet.json").write_text(json.dumps({"approvals": {"dependencies": [approval]}}), encoding="utf-8")
+            denied = run(PYTHON, str(FLOW), "audit-preferences", "--root", str(root), "--packet", str(packet))
+            self.assertEqual(denied.returncode, 2)
+            self.assertIn("remove:owner/action/subpath", denied.stdout)
+            approval["dependency"]["operations"] = ["remove"]
+            (packet / "packet.json").write_text(json.dumps({"approvals": {"dependencies": [approval]}}), encoding="utf-8")
+            allowed = run(PYTHON, str(FLOW), "audit-preferences", "--root", str(root), "--packet", str(packet))
+            self.assertEqual(allowed.returncode, 0, allowed.stderr or allowed.stdout)
+
+    def test_github_action_baseline_is_scoped_to_each_workflow_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.assertEqual(run("git", "init", "-q", cwd=root).returncode, 0)
+            workflows = root / ".github" / "workflows"
+            workflows.mkdir(parents=True)
+            ref = "a" * 40
+            (workflows / "ci.yml").write_text(f"steps:\n  - uses: owner/action@{ref}\n", encoding="utf-8")
+            self.assertEqual(run("git", "add", ".", cwd=root).returncode, 0)
+            committed = run(
+                "git", "-c", "user.name=Dev Flow Test", "-c", "user.email=dev-flow@example.invalid",
+                "commit", "-qm", "fixture", cwd=root,
+            )
+            self.assertEqual(committed.returncode, 0, committed.stderr)
+            (workflows / "release.yml").write_text(f"steps:\n  - uses: owner/action@{ref}\n", encoding="utf-8")
+            packet = root / "packet"
+            packet.mkdir()
+            (packet / "packet.json").write_text(json.dumps({"approvals": {"dependencies": []}}), encoding="utf-8")
+            denied = run(PYTHON, str(FLOW), "audit-preferences", "--root", str(root), "--packet", str(packet))
+            self.assertEqual(denied.returncode, 2)
+            self.assertIn("POLICY-GITHUB-ACTION-APPROVAL", denied.stdout)
+
+            approval = {
+                "id": "DEP-1",
+                "dependency": {
+                    "ecosystem": "github-actions", "name": "owner/action", "version": "1.0.0",
+                    "ref": ref, "command": None, "files": [".github/workflows/release.yml"],
+                    "operations": ["add"], "result_sha256": {},
+                },
+            }
+            (packet / "packet.json").write_text(json.dumps({"approvals": {"dependencies": [approval]}}), encoding="utf-8")
+            allowed = run(PYTHON, str(FLOW), "audit-preferences", "--root", str(root), "--packet", str(packet))
+            self.assertEqual(allowed.returncode, 0, allowed.stderr or allowed.stdout)
 
     def test_unapproved_manifest_change_remains_a_neutral_gate(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

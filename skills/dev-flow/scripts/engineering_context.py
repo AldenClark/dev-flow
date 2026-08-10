@@ -13,6 +13,8 @@ import tomllib
 from pathlib import Path
 from typing import Any, Iterable
 
+from path_contracts import PathContractError, contained_path
+
 
 PROFILE_SCHEMA_VERSION = "1.0"
 READINESS_SCHEMA_VERSION = "1.0"
@@ -38,6 +40,63 @@ ROUTE_STATUSES = {
     "not-applicable",
 }
 TIERS = {"T0", "T1", "T2", "T3"}
+RISK_TOKENS = {
+    "abi",
+    "accessibility",
+    "architecture",
+    "authentication",
+    "authorization",
+    "backpressure",
+    "battery",
+    "binary-size",
+    "browser",
+    "cancellation",
+    "ci-cd",
+    "compatibility",
+    "concurrency",
+    "data-deletion",
+    "dependency",
+    "deployment",
+    "device",
+    "distributed-state",
+    "entitlement",
+    "external-write",
+    "ffi",
+    "flaky-baseline",
+    "idempotency",
+    "incomplete-reproduction",
+    "large-blast-radius",
+    "memory",
+    "migration",
+    "native-packaging",
+    "ordering",
+    "os",
+    "performance",
+    "persisted-data",
+    "platform-lifecycle",
+    "privacy",
+    "production-config",
+    "protocol",
+    "public-api",
+    "recovery",
+    "regulated",
+    "release",
+    "resource-limits",
+    "rollback",
+    "schema",
+    "secrets",
+    "security",
+    "signing",
+    "simulator",
+    "slo",
+    "startup",
+    "toolchain",
+    "unfamiliar-subsystem",
+    "unsafe",
+    "untrusted-input",
+    "version-compatibility",
+    "weak-tests",
+}
 GOVERNED_RISKS = {
     "security",
     "unsafe",
@@ -51,7 +110,16 @@ GOVERNED_RISKS = {
     "deployment",
     "regulated",
     "accessibility",
+    "authentication",
+    "authorization",
+    "secrets",
+    "privacy",
+    "untrusted-input",
+    "schema",
+    "dependency",
+    "signing",
 }
+GOVERNING_POLICY_LAYERS = {"baseline", "team", "project", "component", "task"}
 IGNORED_DIRECTORIES = {".git", ".codex", "node_modules", "target", "dist", "build", ".venv", "__pycache__"}
 CONDITION_RE = re.compile(r"^([a-z][a-z0-9_.-]*)(!?=)([^=]+)$")
 SAFE_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,127}$")
@@ -388,11 +456,17 @@ def path_relevant(relative: Path, selected_paths: Iterable[str]) -> bool:
 
 
 def safe_repository_source(root: Path, raw_path: str) -> Path:
-    base = (root / ".dev-flow").resolve()
-    candidate = (base / raw_path).resolve()
-    if candidate != base and not candidate.is_relative_to(base):
-        raise ContractError(f"profile source escapes {base}: {raw_path}")
-    return candidate
+    base = root / ".dev-flow"
+    try:
+        return contained_path(
+            base,
+            raw_path,
+            label="profile source",
+            require_relative=True,
+            reject_symlinks=True,
+        )
+    except PathContractError as exc:
+        raise ContractError(str(exc)) from exc
 
 
 def discover_profile_sources(
@@ -451,9 +525,19 @@ def discover_profile_sources(
                         "source_id": item["id"],
                     }
                 )
-    implicit_project = root / ".dev-flow" / "profiles" / "project.toml"
-    if implicit_project.is_file() and all(source["path"] != implicit_project.resolve() for source in sources):
-        sources.append({"path": implicit_project.resolve(), "layer": "project", "scope": [], "required": False})
+    try:
+        implicit_project = contained_path(
+            root / ".dev-flow",
+            "profiles/project.toml",
+            label="implicit project profile",
+            require_relative=True,
+            reject_symlinks=True,
+        )
+    except PathContractError as exc:
+        errors.append(str(exc))
+    else:
+        if implicit_project.is_file() and all(source["path"] != implicit_project for source in sources):
+            sources.append({"path": implicit_project, "layer": "project", "scope": [], "required": False})
     for path in task_profiles:
         sources.append({"path": path.resolve(), "layer": "task", "scope": paths, "required": True})
     return sources, errors, manifest_path if manifest_path.is_file() else None
@@ -917,18 +1001,40 @@ def load_admissions(paths: Iterable[Path]) -> tuple[list[dict[str, Any]], list[s
     return records, errors
 
 
+def canonical_risks(risks: Iterable[str]) -> set[str]:
+    values = set(risks)
+    invalid = sorted(value for value in values if value not in RISK_TOKENS)
+    if invalid:
+        raise ContractError(
+            f"unknown risk token(s): {', '.join(invalid)}; use canonical values from the risk contract"
+        )
+    return values
+
+
 def select_tier(task_type: str, risks: set[str], explicit: str | None = None) -> tuple[str, list[str]]:
-    if explicit:
-        if explicit not in TIERS:
-            raise ContractError(f"tier must be one of {sorted(TIERS)}")
-        return explicit, ["explicit-tier"]
-    if risks & GOVERNED_RISKS or task_type in {"migration", "security", "release-hotfix", "rollback"}:
-        return "T3", sorted({*(risks & GOVERNED_RISKS), task_type})
-    if task_type in {"large-feature", "large-refactor", "dependency-change", "performance"}:
-        return "T2", [task_type]
-    if task_type in {"spike", "read-only-audit"}:
-        return "T0", [task_type]
-    return "T1", [task_type]
+    risk_set = canonical_risks(risks)
+    if risk_set & GOVERNED_RISKS or task_type in {
+        "migration",
+        "security",
+        "release-hotfix",
+        "dependency-change",
+        "rollback",
+    }:
+        automatic, reasons = "T3", sorted({*(risk_set & GOVERNED_RISKS), task_type})
+    elif task_type in {"large-feature", "large-refactor", "performance"}:
+        automatic, reasons = "T2", [task_type]
+    elif task_type in {"spike", "read-only-audit"}:
+        automatic, reasons = "T0", [task_type]
+    else:
+        automatic, reasons = "T1", [task_type]
+    if not explicit:
+        return automatic, reasons
+    if explicit not in TIERS:
+        raise ContractError(f"tier must be one of {sorted(TIERS)}")
+    rank = {"T0": 0, "T1": 1, "T2": 2, "T3": 3}
+    if rank[explicit] < rank[automatic]:
+        return automatic, ["explicit-tier-raised-to-minimum", f"requested-{explicit}", *reasons]
+    return explicit, ["explicit-tier", *reasons]
 
 
 def capability_applies(capability: dict[str, Any], facts: dict[str, set[str]]) -> bool:
@@ -1033,7 +1139,7 @@ def assess_context(
         raise ContractError(f"readiness detail must be one of {sorted(READINESS_DETAILS)}")
     paths = [Path(path).as_posix().lstrip("./") for path in task_paths]
     fact_values = list(facts)
-    risk_set = set(risks)
+    risk_set = canonical_risks(risks)
     selected_tier, tier_reasons = select_tier(task_type, risk_set, tier)
     inventory = list(iter_repository_files(root, limit=20001))
     inventory_truncated = len(inventory) > 20000
@@ -1133,7 +1239,7 @@ def assess_context(
             {
                 fallback
                 for policy in quality_policies
-                if policy.get("layer") in {"team", "project", "component", "task"}
+                if policy.get("layer") in GOVERNING_POLICY_LAYERS
                 if capability["id"] in policy.get("required_capabilities", [])
                 for fallback in policy.get("fallbacks", [])
             }
@@ -1180,7 +1286,7 @@ def assess_context(
     policy_assessments: list[dict[str, Any]] = []
     uncovered_policies: list[dict[str, Any]] = []
     for policy in quality_policies:
-        if policy.get("layer") not in {"team", "project", "component", "task"}:
+        if policy.get("layer") not in GOVERNING_POLICY_LAYERS:
             continue
         required_evidence = policy.get("required_evidence", [])
         missing_evidence = [
