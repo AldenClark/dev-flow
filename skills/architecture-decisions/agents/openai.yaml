@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Decisions"
+  short_description: "Make contextual architecture decisions"
+  default_prompt: "Use $architecture-decisions to make language-native architecture and boundary decisions from repository evidence."

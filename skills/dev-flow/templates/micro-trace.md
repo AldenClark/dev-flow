@@ -7,12 +7,15 @@
 - Root and base state: <repository-roots>; <base-git-state>
 - Collaboration and UI impact: <collaboration-profile>; <ui-impact>
 - Evidence: <exact file, caller, test, scoped INS IDs, and repository instruction inspected>
+- ECR/EQAC: <lowest sufficient tier, effective-profile fingerprint, applicable quality outcomes, and any reminder/waiver>
 
 ## Requirement and design
 
 - AC-1: <observable result>
 - Decision: <smallest coherent solution and rationale>
 - Engineering preference: <applicable preference or none>
+- Requirement baseline: <revision and digest recorded by the CLI>
+- Ambiguity ledger: <no material ambiguity, or each structured AMB-n with owner, affected IDs, recommendation, and resolution>
 
 ## Scope and protected behavior
 

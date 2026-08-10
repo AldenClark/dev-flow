@@ -1,0 +1,89 @@
+schema_version = "1.0"
+id = "public.dev-flow.neutral"
+layer = "baseline"
+owner = "dev-flow-maintainers"
+version = "1.0"
+status = "active"
+
+[[preferences]]
+key = "engineering.repository-evidence-first"
+kind = "constraint"
+strength = "must"
+value = true
+rationale = "Repository, runtime, and contract facts precede architecture and implementation choices."
+exception_policy = "none"
+review_trigger = "workflow-contract-change"
+
+[[preferences]]
+key = "engineering.language-native"
+kind = "constraint"
+strength = "must"
+value = true
+rationale = "Use the active language and boundary's native type, error, concurrency, module, and naming idioms."
+exception_policy = "approved-boundary-contract"
+review_trigger = "language-or-boundary-change"
+
+[[preferences]]
+key = "engineering.explicit-failure-and-ownership"
+kind = "constraint"
+strength = "must"
+value = true
+rationale = "Make failure, cancellation, resource ownership, cleanup, and externally visible state transitions explicit."
+exception_policy = "record-approved-reason"
+review_trigger = "architecture-or-risk-change"
+
+[[preferences]]
+key = "engineering.dependency-thrift"
+kind = "preference"
+strength = "should"
+value = ["standard-library-or-platform", "existing-approved-capability", "bounded-local-implementation", "approved-external-dependency"]
+rationale = "Dependencies carry compatibility, security, build, runtime, licensing, and migration cost."
+alternatives = ["mature dependency for cryptography, Unicode, civil time, complex protocols, concurrency reclamation, or FFI ownership"]
+exception_policy = "dependency-decision"
+review_trigger = "dependency-scope-change"
+
+[[preferences]]
+key = "engineering.performance-by-measurement"
+kind = "constraint"
+strength = "must"
+value = true
+applies_when = ["risk=performance"]
+rationale = "Advanced optimization requires a representative baseline, profile or benchmark, threshold, and portable fallback when applicable."
+exception_policy = "record-approved-reason"
+review_trigger = "workload-or-target-change"
+
+[[preferences]]
+key = "engineering.security-no-invented-cryptography"
+kind = "constraint"
+strength = "must"
+value = true
+applies_when = ["risk=security"]
+rationale = "Security and cryptography use maintained platform or specialist implementations with explicit trust boundaries."
+exception_policy = "none"
+review_trigger = "threat-model-or-primitive-change"
+
+[[preferences]]
+key = "quality.governed-security-review"
+kind = "quality-policy"
+strength = "must"
+outcome = "Security-sensitive changes receive enforceable automated evidence plus qualified contextual review."
+applies_when = ["risk=security"]
+required_evidence = ["security-static-or-contract-check"]
+required_capabilities = ["quality.security.review"]
+fallbacks = ["qualified-security-owner-review"]
+rationale = "Automated scanners and semantic review cover different failure classes."
+exception_policy = "security-owner-waiver"
+review_trigger = "security-scope-change"
+
+[[preferences]]
+key = "quality.ffi-boundary-review"
+kind = "quality-policy"
+strength = "must"
+outcome = "Both sides of an FFI boundary verify ABI, ownership, errors, threading, cancellation, callbacks, and packaging."
+applies_when = ["risk=ffi"]
+required_evidence = ["both-language-build-or-contract-check"]
+required_capabilities = ["quality.ffi.review"]
+fallbacks = ["qualified-ffi-owner-review"]
+rationale = "Single-language success cannot prove an FFI consumer contract."
+exception_policy = "ffi-owner-waiver"
+review_trigger = "abi-or-platform-change"

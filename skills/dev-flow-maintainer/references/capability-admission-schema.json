@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AldenClark/dev-flow/schemas/capability-admission-v1.json",
+  "title": "Dev Flow active-host capability admission v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "host", "admissions"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "host": {"type": "string", "minLength": 1},
+    "admissions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["skill", "capability_ids", "status", "owner", "reviewed_at", "recheck_trigger"],
+        "properties": {
+          "skill": {"type": "string", "minLength": 1},
+          "capability_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+          "status": {"enum": ["approved", "trial", "available-unassessed", "incompatible", "stale", "conflicting", "untrusted", "missing", "not-applicable"]},
+          "owner": {"type": "string", "minLength": 1},
+          "reviewed_at": {"type": "string", "format": "date-time"},
+          "recheck_trigger": {"type": "string", "minLength": 1},
+          "version": {"type": "string"},
+          "digest": {"type": "string"},
+          "scope": {"type": "array", "items": {"type": "string"}},
+          "authority": {"type": "array", "items": {"type": "string"}},
+          "context_cost": {"type": "string"},
+          "collision_set": {"type": "array", "items": {"type": "string"}},
+          "fallback": {"type": "string"},
+          "evidence": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    }
+  }
+}

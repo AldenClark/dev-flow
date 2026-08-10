@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0",
+  "mode_policy": {
+    "required_mode": "Default",
+    "switch_to_plan_for_interaction": "forbidden"
+  },
+  "host_adapter": {
+    "tool": "request_user_input",
+    "app_server_request": "item/tool/requestUserInput",
+    "tool_invocation_owner": "Codex agent host",
+    "protocol_lifecycle_owner": "Codex App Server and client",
+    "raw_protocol_frames": "forbidden",
+    "feature_detection": "effective current-turn tool surface",
+    "global_config_mutation": "forbidden",
+    "protocol_maturity": "experimental"
+  },
+  "question_policy": {
+    "eligibility": "material user-owned bounded non-secret decision",
+    "maximum_batch_size": 3,
+    "recommendation": "first option with impact and tradeoff",
+    "free_form": "offer only when it can materially improve the decision",
+    "repository_resolvable_facts": "investigate without asking"
+  },
+  "routes": [
+    {
+      "id": "bounded-choice-native",
+      "need": "material bounded non-secret choice",
+      "tool_availability": "available",
+      "route": "request_user_input",
+      "transport": "item/tool/requestUserInput"
+    },
+    {
+      "id": "bounded-choice-fallback",
+      "need": "material bounded non-secret choice",
+      "tool_availability": "unavailable-or-failed",
+      "route": "one focused non-enumerated Default-mode question or explicit blocker",
+      "transport": "normal conversation"
+    },
+    {
+      "id": "open-ended",
+      "need": "open explanation, context, or faithful free-form answer",
+      "tool_availability": "irrelevant",
+      "route": "normal conversation",
+      "transport": "normal conversation"
+    },
+    {
+      "id": "command-or-file-approval",
+      "need": "command, file-change, destructive, or external-action authorization",
+      "tool_availability": "irrelevant",
+      "route": "host native approval surface",
+      "transport": "host owned"
+    },
+    {
+      "id": "secret",
+      "need": "secret or credential",
+      "tool_availability": "secure-surface-dependent",
+      "route": "host-approved secure input including request_user_input secret mode, or stop",
+      "transport": "host owned"
+    }
+  ],
+  "response_policy": {
+    "validate_question_ids": true,
+    "validate_answer_values": true,
+    "record_semantic_scope": true,
+    "option_answer": "accept exactly one presented non-empty option",
+    "other_answer": "accept exactly one non-empty free-form answer only when Other is enabled",
+    "unknown_question_or_stale_revision": "ignore and leave unresolved",
+    "multiple_or_conflicting_answers": "leave unresolved as invalid",
+    "cancel_or_interrupt": "leave unresolved without immediate re-prompt",
+    "empty_omitted_or_malformed": "leave unresolved",
+    "tool_unavailable_or_invocation_failed": "allow at most one focused non-enumerated Default-mode fallback when the host permits, otherwise block",
+    "fallback_attempt_limit": 1,
+    "silent_recommendation_default": "forbidden"
+  },
+  "recheck_triggers": [
+    "request_user_input tool schema changes",
+    "item/tool/requestUserInput lifecycle changes",
+    "Default-mode feature maturity changes"
+  ]
+}

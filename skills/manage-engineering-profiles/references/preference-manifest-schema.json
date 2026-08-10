@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AldenClark/dev-flow/schemas/preference-manifest-v1.json",
+  "title": "Dev Flow preference manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "include_personal": {"type": "boolean"},
+    "profile_sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "path", "layer"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "path": {"type": "string", "minLength": 1},
+          "layer": {"enum": ["team", "project", "component"]},
+          "scope": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+          "required": {"type": "boolean"},
+          "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+        }
+      }
+    }
+  }
+}

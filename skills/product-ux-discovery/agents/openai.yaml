@@ -1,0 +1,4 @@
+interface:
+  display_name: "Product UX Discovery"
+  short_description: "Establish product and UX intent"
+  default_prompt: "Use $product-ux-discovery to establish product intent, flows, states, accessibility, and design truth before implementation."

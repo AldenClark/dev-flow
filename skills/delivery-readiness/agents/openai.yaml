@@ -1,0 +1,4 @@
+interface:
+  display_name: "Delivery Readiness"
+  short_description: "Assess acceptance and delivery readiness"
+  default_prompt: "Use $delivery-readiness to account for compatibility, rollback, evidence, and separately authorized delivery gates."

@@ -1,0 +1,101 @@
+{
+  "schema_version": "1.0",
+  "capabilities": [
+    {
+      "skill": "dev-flow",
+      "direct_trigger": "Run an end-to-end non-trivial repository workflow.",
+      "negative_trigger": "A single bounded specialist outcome can be invoked directly.",
+      "primary_outputs": ["flow.state.v1", "routed.task-graph.v1"],
+      "owner": "authority, lifecycle, packet state, routing, integration, drift",
+      "orchestrated_conditions": ["multi-capability-task"]
+    },
+    {
+      "skill": "repo-context",
+      "direct_trigger": "Establish repository facts, current behavior, ECR, or EQAC.",
+      "negative_trigger": "The request is self-contained and has no repository dependency.",
+      "primary_outputs": ["context.snapshot.v1", "context.readiness.v1"],
+      "owner": "roots, instructions, facts, current behavior, readiness discovery",
+      "orchestrated_conditions": ["repository-task"]
+    },
+    {
+      "skill": "manage-engineering-profiles",
+      "direct_trigger": "Create, change, explain, diff, promote, retire, waive, or audit profile assets.",
+      "negative_trigger": "Ordinary task only consumes an existing effective snapshot.",
+      "primary_outputs": ["preference.profile.v1", "profile.change.v1"],
+      "owner": "profile lifecycle and concise instruction projection",
+      "orchestrated_conditions": ["explicit-profile-operation"]
+    },
+    {
+      "skill": "requirements-design",
+      "direct_trigger": "Resolve material semantics, design, scope, or approval.",
+      "negative_trigger": "Clear micro work has no material alternative or contract change.",
+      "primary_outputs": ["requirements.baseline.v1", "design.record.v1"],
+      "owner": "user-owned semantics, interaction routing, acceptance, complete scope, approval",
+      "orchestrated_conditions": ["material-ambiguity", "large-change", "migration", "dependency-change"]
+    },
+    {
+      "skill": "product-ux-discovery",
+      "direct_trigger": "Establish product position, IA, flows, states, accessibility, or design truth.",
+      "negative_trigger": "UI impact is none.",
+      "primary_outputs": ["product_ux.contract.v1"],
+      "owner": "product and UX intent plus UX Ready",
+      "orchestrated_conditions": ["ui-preserve", "ui-material"]
+    },
+    {
+      "skill": "architecture-decisions",
+      "direct_trigger": "Make a material language-native architecture or boundary choice.",
+      "negative_trigger": "Existing sound architecture resolves the bounded implementation without a material choice.",
+      "primary_outputs": ["architecture.decision.v1"],
+      "owner": "architecture, abstraction, type/error/concurrency/platform boundaries",
+      "orchestrated_conditions": ["architecture-need", "large-feature", "large-refactor", "performance"]
+    },
+    {
+      "skill": "dependency-decisions",
+      "direct_trigger": "Select or change a dependency, tool, plugin, service, generator, runtime, or feature.",
+      "negative_trigger": "No manifest, graph, tool, service, or dependency capability changes.",
+      "primary_outputs": ["dependency.decision.v1"],
+      "owner": "current candidate comparison, named approval, graph and rollback",
+      "orchestrated_conditions": ["dependency-need", "dependency-change"]
+    },
+    {
+      "skill": "systematic-debugging",
+      "direct_trigger": "Reproduce and diagnose a bug, failure, flake, crash, hang, or anomaly.",
+      "negative_trigger": "The task has no incorrect behavior or causal uncertainty.",
+      "primary_outputs": ["diagnosis.ledger.v1"],
+      "owner": "reproduction, hypotheses, root cause, regression proof",
+      "orchestrated_conditions": ["bugfix", "diagnosis-need"]
+    },
+    {
+      "skill": "verification",
+      "direct_trigger": "Plan or execute tests and fresh evidence.",
+      "negative_trigger": "No product or repository claim requires verification.",
+      "primary_outputs": ["verification.plan.v1", "verification.results.v1"],
+      "owner": "obligations, native checks, environments, evidence",
+      "orchestrated_conditions": ["mutating-task", "verification-need"]
+    },
+    {
+      "skill": "change-review",
+      "direct_trigger": "Independently review a frozen intent and change.",
+      "negative_trigger": "No change/diff or risk requires review.",
+      "primary_outputs": ["review.findings.v1"],
+      "owner": "blue/red review, finding verification, repair disposition",
+      "orchestrated_conditions": ["non-micro-mutation", "review-need", "governed-risk"]
+    },
+    {
+      "skill": "delivery-readiness",
+      "direct_trigger": "Assess acceptance, release, rollback, or delivery eligibility.",
+      "negative_trigger": "The task is pure discovery with no implementation or delivery claim.",
+      "primary_outputs": ["delivery.readiness.v1"],
+      "owner": "claim state, changed files, compatibility, rollback, delivery authority",
+      "orchestrated_conditions": ["mutating-task", "delivery-need"]
+    },
+    {
+      "skill": "dev-flow-maintainer",
+      "direct_trigger": "Explicitly maintain the Dev Flow suite itself.",
+      "negative_trigger": "Any ordinary product or repository task.",
+      "primary_outputs": ["suite.maintenance.v1"],
+      "owner": "schemas, resolver, routing, hooks, migrations, governance, evaluations",
+      "orchestrated_conditions": ["explicit-suite-maintenance"]
+    }
+  ]
+}

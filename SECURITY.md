@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Security fixes are provided for the latest tagged minor release. Before `1.0.0`, minor releases may intentionally evolve workflow behavior, but incompatible packet, CLI, or hook changes still require a major version increment under this repository's version policy.
+Security fixes are provided for the latest tagged major/minor release line. Incompatible Skill names, packet, CLI, or hook contracts require a major version increment under this repository's version policy.
 
 ## Reporting a vulnerability
 

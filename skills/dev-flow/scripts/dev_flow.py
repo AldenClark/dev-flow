@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import fnmatch
+import hashlib
 import json
 import os
 import re
@@ -16,13 +18,34 @@ import tomllib
 from pathlib import Path
 from typing import Any, Iterable
 
+import engineering_context
+from dependency_contracts import (
+    action_reference_scan,
+    approval_binds_file,
+    matches_dependency_request,
+    validate_dependency_approval,
+)
+from path_contracts import PathContractError, atomic_write_text, contained_path
+
 
 MIN_CODEX = (0, 147, 0)
-SCHEMA_VERSION = "1.1"
-SUPPORTED_SCHEMA_VERSIONS = {"1.0", "1.1"}
+SCHEMA_VERSION = "2.0"
+SUPPORTED_SCHEMA_VERSIONS = {"1.0", "1.1", "1.2", "2.0"}
+READINESS_SCHEMA_VERSIONS = {"1.1", "1.2", "2.0"}
+CONTENT_BOUND_SCHEMA_VERSIONS = {"1.2", "2.0"}
+WORK_MODES = {"direct", "traced", "governed"}
 COLLABORATION_PROFILES = {"execute", "checkpointed", "co-design"}
 UI_IMPACTS = {"none", "preserve", "material"}
 READINESS_APPROVAL_IDS = {"requirements": "REQ-READY", "ux": "UX-READY"}
+AMBIGUITY_MATERIALITIES = {"low", "material", "high-risk"}
+AMBIGUITY_OWNERS = {"codex", "user"}
+AMBIGUITY_STATUSES = {
+    "open",
+    "resolved-by-evidence",
+    "user-confirmed",
+    "safe-assumption",
+    "deferred-out-of-scope",
+}
 STATES = {
     "discovering",
     "awaiting-approval",
@@ -154,6 +177,14 @@ SCHEMA_1_1_HEADINGS = {
     "design.md": ("Product and UX contract",),
     "evidence.md": ("Instruction, collaboration, and UX evidence",),
 }
+SCHEMA_1_2_HEADINGS = {
+    "context.md": ("Semantic input and ambiguity ownership",),
+    "requirements.md": ("Requirement baseline", "Ambiguity ledger"),
+    "design.md": ("Requirement baseline and reopening",),
+    "blue-audit.md": ("Finding classification and requirement reopening",),
+    "red-audit.md": ("Finding classification and requirement reopening",),
+    "evidence.md": ("Semantic clarification evidence",),
+}
 MICRO_HEADINGS = (
     "Authority and repository facts",
     "Requirement and design",
@@ -170,10 +201,40 @@ ID_PATTERNS = {
     "verification": re.compile(r"\bVO-\d+\b"),
     "dependency": re.compile(r"\bDEP-\d+\b"),
     "instruction": re.compile(r"\bINS-\d+\b"),
+    "ambiguity": re.compile(r"\bAMB-\d+\b"),
 }
 STATUS_WORDS = {"PASSED", "FAILED", "FLAKY", "BLOCKED", "NOT RUN", "WAIVED"}
+TEST_MATRIX_CELL_RE = re.compile(r"TM-[1-9][0-9]*(?:[A-Z][A-Z0-9]*)?")
+TEST_MATRIX_REQUIRED_WORDS = {"yes", "no"}
 VERSION_RE = re.compile(r"(?:codex-cli\s+)?(\d+)\.(\d+)\.(\d+)(?:[-+][^\s]+)?")
 FEATURE_RE = re.compile(r"^(multi_agent(?:_v2)?|hooks)\s+\S+\s+(true|false)\s*$", re.MULTILINE)
+
+
+def documentation_family(profile: Any) -> str | None:
+    if profile in {"micro", "trace"}:
+        return "trace"
+    if profile in {"full", "governed"}:
+        return "governed"
+    return None
+
+
+def select_work_mode(task_type: str, risks: Iterable[str], requested: str = "auto") -> tuple[str, list[str]]:
+    risk_set = engineering_context.canonical_risks(risks)
+    governed = engineering_context.GOVERNED_RISKS
+    if risk_set & governed or task_type in {"migration", "security", "release-hotfix", "dependency-change", "rollback"}:
+        automatic, reasons = "governed", sorted(risk_set & governed) or [task_type]
+    elif task_type in {"micro", "spike"}:
+        automatic, reasons = "direct", [task_type]
+    else:
+        automatic, reasons = "traced", [task_type]
+    if requested == "auto":
+        return automatic, reasons
+    if requested not in WORK_MODES:
+        raise ValueError(f"work mode must be auto or one of {sorted(WORK_MODES)}")
+    rank = {"direct": 0, "traced": 1, "governed": 2}
+    if rank[requested] < rank[automatic]:
+        raise ValueError(f"work mode {requested} cannot downgrade required {automatic} mode")
+    return requested, ["explicit-work-mode", *reasons]
 
 
 def utc_now() -> str:
@@ -240,6 +301,225 @@ def history_times(metadata: dict[str, Any], target_state: str) -> list[dt.dateti
     return [value for value in values if value is not None]
 
 
+def history_windows(
+    metadata: dict[str, Any],
+    target_state: str,
+    *,
+    open_until: dt.datetime,
+) -> list[tuple[dt.datetime, dt.datetime]]:
+    history = metadata.get("history", [])
+    if not isinstance(history, list):
+        return []
+    windows: list[tuple[dt.datetime, dt.datetime]] = []
+    for index, event in enumerate(history):
+        if not isinstance(event, dict) or event.get("to") != target_state:
+            continue
+        start = parsed_timestamp(event.get("at"))
+        if start is None:
+            continue
+        end = open_until
+        for later in history[index + 1 :]:
+            if not isinstance(later, dict) or later.get("from") != target_state:
+                continue
+            candidate = parsed_timestamp(later.get("at"))
+            if candidate is not None:
+                end = candidate
+                break
+        windows.append((start, end))
+    return windows
+
+
+def requirement_content(packet: Path, profile: Any) -> bytes | None:
+    """Return the exact requirement baseline bytes for content-bound packets."""
+    family = documentation_family(profile)
+    if family == "governed":
+        path = packet / "requirements.md"
+        return path.read_bytes() if path.is_file() else None
+    if family == "trace":
+        path = packet / "trace.md"
+        if not path.is_file():
+            return None
+        body = heading_body(path.read_text(encoding="utf-8"), "Requirement and design")
+        return body.encode("utf-8") if body is not None else None
+    return None
+
+
+def current_requirements_digest(packet: Path, profile: Any) -> str | None:
+    content = requirement_content(packet, profile)
+    if content is None:
+        return None
+    return f"sha256:{hashlib.sha256(content).hexdigest()}"
+
+
+def semantic_metadata_errors(
+    metadata: dict[str, Any],
+    *,
+    declared_trace_ids: set[str],
+    require_ready: bool,
+) -> list[str]:
+    """Validate a content-bound ambiguity ledger without trusting container shapes."""
+    errors: list[str] = []
+    validation_time = parsed_timestamp(utc_now())
+    assert validation_time is not None
+    awaiting_windows = history_windows(metadata, "awaiting-approval", open_until=validation_time)
+    revision = metadata.get("requirement_revision")
+    if not isinstance(revision, int) or isinstance(revision, bool) or revision < 1:
+        errors.append("packet.json: requirement_revision must be a positive integer")
+    digest = metadata.get("requirements_digest")
+    if digest is not None and not (
+        isinstance(digest, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", digest)
+    ):
+        errors.append("packet.json: requirements_digest must be null or a sha256 digest")
+
+    raw_ids = metadata.get("ambiguity_ids")
+    if not isinstance(raw_ids, list):
+        errors.append("packet.json: ambiguity_ids must be a list")
+        ambiguity_ids: list[Any] = []
+    else:
+        ambiguity_ids = raw_ids
+        if any(not isinstance(value, str) or not ID_PATTERNS["ambiguity"].fullmatch(value) for value in raw_ids):
+            errors.append("packet.json: ambiguity_ids must contain only AMB-n identifiers")
+        if len(raw_ids) != len(set(value for value in raw_ids if isinstance(value, str))):
+            errors.append("packet.json: ambiguity_ids must be unique")
+
+    records = metadata.get("ambiguities")
+    if not isinstance(records, list):
+        errors.append("packet.json: ambiguities must be a list")
+        records = []
+    record_ids: list[str] = []
+    for index, record in enumerate(records):
+        label = f"packet.json: ambiguities[{index}]"
+        if not isinstance(record, dict):
+            errors.append(f"{label} must be an object")
+            continue
+        ambiguity_id = record.get("id")
+        if not isinstance(ambiguity_id, str) or not ID_PATTERNS["ambiguity"].fullmatch(ambiguity_id):
+            errors.append(f"{label}.id must be an AMB-n identifier")
+        else:
+            record_ids.append(ambiguity_id)
+            label = f"packet.json: ambiguity {ambiguity_id}"
+        for field in ("summary", "source", "recommendation"):
+            if not isinstance(record.get(field), str) or not record[field].strip():
+                errors.append(f"{label} requires non-empty {field}")
+        interpretations = record.get("interpretations")
+        if not isinstance(interpretations, list) or len(interpretations) < 2 or any(
+            not isinstance(value, str) or not value.strip() for value in interpretations
+        ):
+            errors.append(f"{label} requires at least two non-empty interpretations")
+        elif len({value.strip() for value in interpretations}) != len(interpretations):
+            errors.append(f"{label} interpretations must be distinct")
+        evidence = record.get("evidence")
+        if not isinstance(evidence, list) or any(not isinstance(value, str) or not value.strip() for value in evidence):
+            errors.append(f"{label}.evidence must be a list of non-empty strings")
+        materiality = record.get("materiality")
+        owner = record.get("owner")
+        status = record.get("status")
+        if materiality not in AMBIGUITY_MATERIALITIES:
+            errors.append(f"{label} has invalid materiality {materiality!r}")
+        if owner not in AMBIGUITY_OWNERS:
+            errors.append(f"{label} has invalid owner {owner!r}")
+        if materiality == "high-risk" and owner != "user":
+            errors.append(f"{label} high-risk ambiguity must be user-owned")
+        if status not in AMBIGUITY_STATUSES:
+            errors.append(f"{label} has invalid status {status!r}")
+        created_at = parsed_timestamp(record.get("created_at"))
+        if created_at is None:
+            errors.append(f"{label} requires a timezone-aware created_at")
+        elif created_at > validation_time:
+            errors.append(f"{label}.created_at cannot be in the future")
+        discovered_revision = record.get("discovered_in_revision")
+        if not isinstance(discovered_revision, int) or isinstance(discovered_revision, bool) or discovered_revision < 1:
+            errors.append(f"{label}.discovered_in_revision must be a positive integer")
+        elif isinstance(revision, int) and discovered_revision > revision:
+            errors.append(f"{label}.discovered_in_revision cannot exceed the current requirement revision")
+
+        affected = record.get("affected_ids")
+        if not isinstance(affected, list) or any(not isinstance(value, str) for value in affected):
+            errors.append(f"{label}.affected_ids must be a list of trace identifiers")
+            affected_ids: set[str] = set()
+        else:
+            affected_ids = set(affected)
+            if len(affected) != len(affected_ids):
+                errors.append(f"{label}.affected_ids must be unique")
+            malformed = sorted(
+                value
+                for value in affected_ids
+                if not any(ID_PATTERNS[kind].fullmatch(value) for kind in ("acceptance", "scope", "verification"))
+            )
+            if malformed:
+                errors.append(f"{label}.affected_ids contains invalid identifiers: {malformed}")
+            undeclared = affected_ids - declared_trace_ids
+            if undeclared:
+                errors.append(f"{label}.affected_ids contains undeclared identifiers: {sorted(undeclared)}")
+        if require_ready and not affected_ids:
+            errors.append(f"{label} requires at least one affected trace identifier before approval")
+
+        resolution = record.get("resolution")
+        if status == "open":
+            if resolution is not None:
+                errors.append(f"{label} open ambiguity must not have a resolution")
+            if require_ready:
+                errors.append(f"{label} remains open at Requirement Ready")
+            continue
+        if not isinstance(resolution, dict):
+            errors.append(f"{label} resolved ambiguity requires a resolution object")
+            continue
+        for field in ("by", "text"):
+            if not isinstance(resolution.get(field), str) or not resolution[field].strip():
+                errors.append(f"{label}.resolution requires non-empty {field}")
+        resolution_at = parsed_timestamp(resolution.get("at"))
+        if resolution_at is None:
+            errors.append(f"{label}.resolution requires a timezone-aware timestamp")
+        else:
+            if resolution_at > validation_time:
+                errors.append(f"{label}.resolution.at cannot be in the future")
+            if created_at is not None and resolution_at < created_at:
+                errors.append(f"{label}.resolution cannot predate ambiguity creation")
+        resolution_evidence = resolution.get("evidence")
+        if not isinstance(resolution_evidence, list) or not resolution_evidence or any(
+            not isinstance(value, str) or not value.strip() for value in resolution_evidence
+        ):
+            errors.append(f"{label}.resolution.evidence requires at least one non-empty item")
+        if owner == "user" and status not in {"user-confirmed", "deferred-out-of-scope"}:
+            errors.append(f"{label} user-owned ambiguity requires user-confirmed or deferred-out-of-scope status")
+        if owner == "user" and resolution_at is not None and not any(
+            start <= resolution_at <= end for start, end in awaiting_windows
+        ):
+            errors.append(f"{label} user-owned resolution must occur during an awaiting-approval window")
+        if owner == "codex":
+            if status == "resolved-by-evidence":
+                pass
+            elif status in {"safe-assumption", "deferred-out-of-scope"} and materiality == "low":
+                pass
+            else:
+                errors.append(f"{label} Codex-owned resolution is not authorized for {materiality}/{status}")
+
+    if len(record_ids) != len(set(record_ids)):
+        errors.append("packet.json: ambiguity record IDs must be unique")
+    if set(value for value in ambiguity_ids if isinstance(value, str)) != set(record_ids):
+        errors.append("packet.json: ambiguity_ids must equal ambiguity record IDs")
+    return errors
+
+
+def find_ambiguity(metadata: dict[str, Any], ambiguity_id: str) -> dict[str, Any] | None:
+    records = metadata.get("ambiguities", [])
+    if not isinstance(records, list):
+        return None
+    return next(
+        (record for record in records if isinstance(record, dict) and record.get("id") == ambiguity_id),
+        None,
+    )
+
+
+def declared_trace_ids(metadata: dict[str, Any]) -> set[str]:
+    result: set[str] = set()
+    for field in ("acceptance_ids", "scope_ids", "verification_ids"):
+        values = metadata.get(field, [])
+        if isinstance(values, list):
+            result.update(value for value in values if isinstance(value, str))
+    return result
+
+
 def skill_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
@@ -258,7 +538,41 @@ def read_json(path: Path) -> dict[str, Any]:
 
 
 def write_json(path: Path, value: dict[str, Any]) -> None:
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rendered = json.dumps(value, ensure_ascii=False, indent=2) + "\n"
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as handle:
+        handle.write(rendered)
+        handle.flush()
+        os.fsync(handle.fileno())
+        temporary = Path(handle.name)
+    temporary.replace(path)
+
+
+def append_packet_event(packet: Path, metadata: dict[str, Any], event: str, payload: dict[str, Any] | None = None) -> None:
+    if metadata.get("schema_version") != "2.0":
+        return
+    ledger = packet / "events.jsonl"
+    sequence = 1
+    if ledger.is_file():
+        sequence += sum(1 for line in ledger.read_text(encoding="utf-8").splitlines() if line.strip())
+    record = {
+        "schema_version": "1.0",
+        "sequence": sequence,
+        "event": event,
+        "at": metadata.get("updated_at"),
+        "state": metadata.get("state"),
+        "work_mode": metadata.get("work_mode"),
+        "payload": payload or {},
+    }
+    with ledger.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def write_packet(packet: Path, metadata: dict[str, Any], event: str, payload: dict[str, Any] | None = None) -> None:
+    append_packet_event(packet, metadata, event, payload)
+    write_json(packet / "packet.json", metadata)
 
 
 def run(command: list[str], cwd: Path | None = None, timeout: int = 30) -> subprocess.CompletedProcess[str]:
@@ -273,13 +587,15 @@ def parse_version(text: str) -> tuple[int, int, int]:
 
 
 def codex_preflight(args: argparse.Namespace) -> int:
-    errors: list[str] = []
+    capability_issues: list[str] = []
     warnings: list[str] = []
     binary = args.codex or shutil.which("codex")
     version_text = args.version_output
-    features_text = args.features_output_file.read_text(encoding="utf-8") if args.features_output_file else None
+    features_text: str | None = None
 
     try:
+        if args.features_output_file:
+            features_text = args.features_output_file.read_text(encoding="utf-8")
         if version_text is None:
             if not binary:
                 raise RuntimeError("Codex CLI was not found on PATH")
@@ -295,20 +611,20 @@ def codex_preflight(args: argparse.Namespace) -> int:
                 raise RuntimeError(result.stderr.strip() or result.stdout.strip())
             features_text = result.stdout
     except (OSError, RuntimeError, subprocess.TimeoutExpired) as exc:
-        errors.append(str(exc))
+        capability_issues.append(str(exc))
 
     actual: tuple[int, int, int] | None = None
     try:
         actual = parse_version(version_text or "")
         if actual < MIN_CODEX:
-            errors.append(f"Codex {'.'.join(map(str, actual))} is below required 0.147.0")
+            capability_issues.append(f"Codex {'.'.join(map(str, actual))} is below delegation-tested 0.147.0")
     except ValueError as exc:
-        errors.append(str(exc))
+        capability_issues.append(str(exc))
 
     features = dict(FEATURE_RE.findall(features_text or ""))
     for feature in ("multi_agent", "multi_agent_v2", "hooks"):
         if features.get(feature) != "true":
-            errors.append(f"Codex feature {feature} is not enabled")
+            capability_issues.append(f"Codex feature {feature} is not enabled")
 
     config_path = args.config or Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "config.toml"
     effective: dict[str, Any] = {}
@@ -316,31 +632,47 @@ def codex_preflight(args: argparse.Namespace) -> int:
         try:
             effective = tomllib.loads(config_path.read_text(encoding="utf-8"))
             feature_config = effective.get("features", {})
+            if not isinstance(feature_config, dict):
+                raise ValueError("config [features] must be a table")
             if feature_config.get("multi_agent_v2") is not True:
-                errors.append("config must set [features].multi_agent_v2 = true")
+                capability_issues.append("config must set [features].multi_agent_v2 = true for delegation")
             if feature_config.get("multi_agent") is not True:
-                errors.append("config must set [features].multi_agent = true")
+                capability_issues.append("config must set [features].multi_agent = true for delegation")
             if feature_config.get("hooks") is not True:
-                errors.append("config must set [features].hooks = true")
-            limit = effective.get("agents", {}).get("max_concurrent_threads_per_session")
-            if limit != 3:
-                errors.append("config must set [agents].max_concurrent_threads_per_session = 3")
+                capability_issues.append("config must set [features].hooks = true for governed hooks")
+            agent_config = effective.get("agents", {})
+            if not isinstance(agent_config, dict):
+                raise ValueError("config [agents] must be a table")
+            limit = agent_config.get("max_concurrent_threads_per_session")
+            if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
+                capability_issues.append("config must set a positive [agents].max_concurrent_threads_per_session for delegation")
             if isinstance(feature_config.get("multi_agent_v2"), dict):
-                errors.append("obsolete [features.multi_agent_v2] table is not supported")
-        except (OSError, tomllib.TOMLDecodeError) as exc:
-            errors.append(f"cannot read Codex config {config_path}: {exc}")
+                capability_issues.append("obsolete [features.multi_agent_v2] table is not supported")
+        except (OSError, ValueError, tomllib.TOMLDecodeError) as exc:
+            capability_issues.append(f"cannot read Codex config {config_path}: {exc}")
 
     if not args.tool_surface_confirmed:
-        warnings.append("The active root must confirm the collaboration tools before delegation")
+        capability_issues.append("The active root must confirm the collaboration tools before delegation")
+
+    errors = capability_issues if args.require_delegation else []
+    if not args.require_delegation:
+        warnings.extend(capability_issues)
+    delegation_available = not capability_issues
+    status = "blocked" if errors else "ready" if delegation_available else "degraded"
 
     return emit(
         {
-            "status": "ready" if not errors else "blocked",
+            "status": status,
             "codex_binary": binary,
             "actual_version": ".".join(map(str, actual)) if actual else None,
             "features": {name: features.get(name) for name in ("multi_agent", "multi_agent_v2", "hooks")},
             "config": str(config_path),
-            "max_children": 3,
+            "capabilities": {
+                "core_workflow": True,
+                "delegation": delegation_available,
+                "governed_hooks": features.get("hooks") == "true",
+            },
+            "required_capability": "delegation" if args.require_delegation else "core-workflow",
             "errors": errors,
             "warnings": warnings,
         },
@@ -385,20 +717,76 @@ def init_packet(args: argparse.Namespace) -> int:
     if args.task_type not in TASK_TYPES:
         return emit({"status": "error", "errors": [f"unsupported task type: {args.task_type}"]}, 2)
 
+    try:
+        work_mode, mode_reasons = select_work_mode(args.task_type, args.risk, args.work_mode)
+    except ValueError as exc:
+        return emit({"status": "error", "errors": [str(exc)]}, 2)
+    if args.ui_impact == "material" and work_mode != "governed":
+        if args.work_mode != "auto":
+            return emit({"status": "error", "errors": ["material UI impact requires governed work mode"]}, 2)
+        work_mode, mode_reasons = "governed", ["material-ui-impact"]
+    if work_mode != "direct":
+        try:
+            current = safe_current_pointer(root)
+        except PathContractError as exc:
+            return emit({"status": "error", "errors": [str(exc)]}, 2)
     packet = root / ".codex" / "dev-flow" / args.change_id
-    if packet.exists() and not args.reuse:
-        return emit({"status": "error", "errors": [f"packet already exists: {packet}"]}, 2)
+    if packet.exists():
+        if not args.reuse:
+            return emit({"status": "error", "errors": [f"packet already exists: {packet}"]}, 2)
+        if not packet.is_dir():
+            return emit({"status": "error", "errors": [f"packet path is not a directory: {packet}"]}, 2)
+        existing, errors = load_packet(packet)
+        if errors:
+            return emit({"status": "error", "errors": errors}, 2)
+        if existing.get("change_id") != args.change_id or existing.get("task_type") != args.task_type:
+            return emit({"status": "error", "errors": ["reused packet identity or task type does not match"]}, 2)
+        existing_mode = existing.get("work_mode")
+        if existing_mode not in WORK_MODES:
+            existing_mode = "governed" if documentation_family(existing.get("documentation_profile")) == "governed" else "traced"
+        rank = {"direct": 0, "traced": 1, "governed": 2}
+        if rank[existing_mode] < rank[work_mode]:
+            return emit(
+                {
+                    "status": "error",
+                    "errors": [f"existing {existing_mode} packet must be explicitly migrated before required {work_mode} work"],
+                },
+                2,
+            )
+        atomic_write_text(current, args.change_id + "\n")
+        ensure_local_exclude(root)
+        return emit(
+            {
+                "status": "reused",
+                "packet": str(packet),
+                "work_mode": existing_mode,
+                "profile": existing.get("documentation_profile"),
+                "artifacts": sorted(path.name for path in packet.iterdir() if path.is_file()),
+                "next_state": existing.get("state"),
+            }
+        )
+    if work_mode == "direct":
+        return emit(
+            {
+                "status": "not-required",
+                "work_mode": "direct",
+                "reasons": mode_reasons,
+                "packet": None,
+                "artifacts": [],
+            }
+        )
     packet.mkdir(parents=True, exist_ok=True)
-    for folder in ("briefs", "reports", "artifacts"):
+    folders = ("briefs", "reports", "artifacts") if work_mode == "governed" else ("artifacts",)
+    for folder in folders:
         (packet / folder).mkdir(exist_ok=True)
 
     now = utc_now()
-    profile = "micro" if args.task_type == "micro" else "full"
+    profile = "trace" if work_mode == "traced" else "governed"
     collaboration_profile = args.collaboration_profile
     if collaboration_profile is None:
         if args.ui_impact == "material":
             collaboration_profile = "co-design"
-        elif profile == "micro":
+        elif work_mode == "traced":
             collaboration_profile = "execute"
         else:
             collaboration_profile = "checkpointed"
@@ -407,6 +795,8 @@ def init_packet(args: argparse.Namespace) -> int:
         "skill_version": plugin_version(),
         "change_id": args.change_id,
         "state": "discovering",
+        "work_mode": work_mode,
+        "work_mode_reasons": mode_reasons,
         "documentation_profile": profile,
         "task_type": args.task_type,
         "created_at": now,
@@ -421,6 +811,10 @@ def init_packet(args: argparse.Namespace) -> int:
         "acceptance_ids": [],
         "scope_ids": [],
         "verification_ids": [],
+        "requirement_revision": 1,
+        "requirements_digest": None,
+        "ambiguity_ids": [],
+        "ambiguities": [],
         "dependency_changes": [],
         "approvals": {
             "requirements": [],
@@ -432,7 +826,6 @@ def init_packet(args: argparse.Namespace) -> int:
         },
         "history": [{"from": None, "to": "discovering", "at": now, "note": "packet created"}],
     }
-    write_json(packet / "packet.json", metadata)
 
     values = {
         "change-id": args.change_id,
@@ -448,20 +841,30 @@ def init_packet(args: argparse.Namespace) -> int:
         "ui-impact": args.ui_impact,
     }
     templates = skill_root() / "templates"
-    filenames = ("micro-trace.md",) if profile == "micro" else FULL_FILES
+    filenames = ("micro-trace.md",) if work_mode == "traced" else FULL_FILES
     for filename in filenames:
         source = templates / filename
         destination = packet / ("trace.md" if filename == "micro-trace.md" else filename)
         destination.write_text(replace_tokens(source.read_text(encoding="utf-8"), values), encoding="utf-8")
 
-    brief = replace_tokens((templates / "task-brief.md").read_text(encoding="utf-8"), values)
-    report = replace_tokens((templates / "agent-report.md").read_text(encoding="utf-8"), values)
-    (packet / "briefs" / "README.template.md").write_text(brief, encoding="utf-8")
-    (packet / "reports" / "README.template.md").write_text(report, encoding="utf-8")
-    current = root / ".codex" / "dev-flow" / "current"
-    current.write_text(args.change_id + "\n", encoding="utf-8")
+    if work_mode == "governed":
+        brief = replace_tokens((templates / "task-brief.md").read_text(encoding="utf-8"), values)
+        report = replace_tokens((templates / "agent-report.md").read_text(encoding="utf-8"), values)
+        (packet / "briefs" / "README.template.md").write_text(brief, encoding="utf-8")
+        (packet / "reports" / "README.template.md").write_text(report, encoding="utf-8")
+    write_packet(packet, metadata, "packet-created", {"from": None, "to": "discovering", "reasons": mode_reasons})
+    atomic_write_text(current, args.change_id + "\n")
     ensure_local_exclude(root)
-    return emit({"status": "created", "packet": str(packet), "profile": profile, "next_state": "awaiting-approval"})
+    return emit(
+        {
+            "status": "created",
+            "packet": str(packet),
+            "work_mode": work_mode,
+            "profile": profile,
+            "artifacts": ["packet.json", "events.jsonl", *(["trace.md"] if work_mode == "traced" else list(FULL_FILES))],
+            "next_state": "awaiting-approval",
+        }
+    )
 
 
 def load_packet(packet: Path) -> tuple[dict[str, Any], list[str]]:
@@ -478,6 +881,54 @@ def load_packet(packet: Path) -> tuple[dict[str, Any], list[str]]:
     return metadata, errors
 
 
+def validate_event_projection(packet: Path, metadata: dict[str, Any]) -> list[str]:
+    if metadata.get("schema_version") != "2.0":
+        return []
+    ledger = packet / "events.jsonl"
+    if not ledger.is_file():
+        return ["missing required file: events.jsonl"]
+    errors: list[str] = []
+    events: list[dict[str, Any]] = []
+    for index, line in enumerate(ledger.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError as exc:
+            errors.append(f"events.jsonl:{index}: invalid JSON: {exc}")
+            continue
+        if not isinstance(record, dict):
+            errors.append(f"events.jsonl:{index}: event must be an object")
+            continue
+        events.append(record)
+        if record.get("schema_version") != "1.0":
+            errors.append(f"events.jsonl:{index}: unsupported event schema")
+        if record.get("sequence") != len(events):
+            errors.append(f"events.jsonl:{index}: sequence must be contiguous from 1")
+        if not isinstance(record.get("event"), str) or not record["event"]:
+            errors.append(f"events.jsonl:{index}: event name is required")
+        if parsed_timestamp(record.get("at")) is None:
+            errors.append(f"events.jsonl:{index}: timezone-aware timestamp is required")
+        if record.get("work_mode") != metadata.get("work_mode"):
+            errors.append(f"events.jsonl:{index}: work_mode drifted from packet projection")
+    if not events:
+        return [*errors, "events.jsonl: at least one event is required"]
+    if events[0].get("event") != "packet-created":
+        errors.append("events.jsonl: first event must be packet-created")
+    state_events = [item for item in events if item.get("event") in {"packet-created", "transition"}]
+    history = metadata.get("history", [])
+    if not isinstance(history, list) or len(state_events) != len(history):
+        errors.append("events.jsonl: state events must project exactly to packet history")
+    else:
+        for index, (event, projected) in enumerate(zip(state_events, history, strict=True), start=1):
+            payload = event.get("payload", {})
+            if not isinstance(payload, dict) or payload.get("from") != projected.get("from") or payload.get("to") != projected.get("to"):
+                errors.append(f"events.jsonl: state event {index} does not match packet history")
+        if state_events and state_events[-1].get("state") != metadata.get("state"):
+            errors.append("events.jsonl: final state does not match packet projection")
+    return errors
+
+
 def transition_packet(args: argparse.Namespace) -> int:
     packet = args.packet.resolve()
     metadata, errors = load_packet(packet)
@@ -488,11 +939,95 @@ def transition_packet(args: argparse.Namespace) -> int:
     now = utc_now()
     transition_at = parsed_timestamp(now)
     assert transition_at is not None
-    if old not in STATES or new not in TRANSITIONS.get(str(old), set()):
+    schema_version = metadata.get("schema_version")
+    direct_reopening = (
+        schema_version in CONTENT_BOUND_SCHEMA_VERSIONS
+        and old in {"implementing", "verifying"}
+        and new == "awaiting-approval"
+    )
+    history = metadata.get("history", [])
+    last_blocked_from = next(
+        (
+            event.get("from")
+            for event in reversed(history if isinstance(history, list) else [])
+            if isinstance(event, dict) and event.get("to") == "blocked"
+        ),
+        None,
+    )
+    open_material_ambiguities = [
+        record
+        for record in metadata.get("ambiguities", [])
+        if isinstance(record, dict)
+        and record.get("status") == "open"
+        and record.get("materiality") in {"material", "high-risk"}
+    ] if isinstance(metadata.get("ambiguities", []), list) else []
+    blocked_reopening = (
+        schema_version in CONTENT_BOUND_SCHEMA_VERSIONS
+        and old == "blocked"
+        and new == "awaiting-approval"
+        and last_blocked_from in {"implementing", "verifying"}
+        and bool(open_material_ambiguities)
+    )
+    if (
+        schema_version in CONTENT_BOUND_SCHEMA_VERSIONS
+        and old == "blocked"
+        and new == "discovering"
+        and last_blocked_from in {"implementing", "verifying"}
+        and open_material_ambiguities
+    ):
+        return emit(
+            {
+                "status": "invalid-transition",
+                "from": old,
+                "to": new,
+                "errors": ["late material ambiguity must reopen through awaiting-approval with --ambiguity-id"],
+            },
+            2,
+        )
+    reopening = direct_reopening or blocked_reopening
+    if old not in STATES or (not reopening and new not in TRANSITIONS.get(str(old), set())):
         return emit({"status": "invalid-transition", "from": old, "to": new}, 2)
+    if reopening:
+        ambiguity_id = args.ambiguity_id
+        ambiguity = find_ambiguity(metadata, ambiguity_id or "")
+        if not ambiguity_id or ambiguity is None:
+            return emit(
+                {"status": "invalid", "errors": ["content-bound requirement reopening requires a known --ambiguity-id"]},
+                2,
+            )
+        if ambiguity.get("status") != "open" or ambiguity.get("materiality") not in {"material", "high-risk"}:
+            return emit(
+                {
+                    "status": "invalid",
+                    "errors": ["requirement reopening requires an open material or high-risk ambiguity"],
+                },
+                2,
+            )
+        semantic_errors = semantic_metadata_errors(
+            metadata,
+            declared_trace_ids=declared_trace_ids(metadata),
+            require_ready=False,
+        )
+        if semantic_errors:
+            return emit({"status": "invalid", "errors": semantic_errors}, 2)
+        approvals = metadata.get("approvals")
+        if not isinstance(approvals, dict):
+            return emit({"status": "invalid", "errors": ["approvals must be an object"]}, 2)
+        previous_design = approvals.get("design")
+        if previous_design is not None:
+            history = approvals.setdefault("design_history", [])
+            if not isinstance(history, list):
+                return emit({"status": "invalid", "errors": ["approvals.design_history must be a list"]}, 2)
+            history.append(previous_design)
+        approvals["design"] = None
+        revision = metadata.get("requirement_revision")
+        if not isinstance(revision, int) or isinstance(revision, bool) or revision < 1:
+            return emit({"status": "invalid", "errors": ["requirement_revision must be a positive integer"]}, 2)
+        metadata["requirement_revision"] = revision + 1
+        metadata["requirements_digest"] = None
     if new == "approved" and not args.approved_by:
         return emit({"status": "invalid", "errors": ["--approved-by is required for approved state"]}, 2)
-    if new == "approved" and metadata.get("schema_version") == "1.1":
+    if new == "approved" and schema_version in READINESS_SCHEMA_VERSIONS:
         approvals = metadata.get("approvals", {})
         collaboration_profile = metadata.get("collaboration_profile")
         ui_impact = metadata.get("ui_impact")
@@ -511,13 +1046,40 @@ def transition_packet(args: argparse.Namespace) -> int:
         if not awaiting_times:
             return emit({"status": "invalid", "errors": ["approval requires an awaiting-approval history event"]}, 2)
         awaiting_at = max(awaiting_times)
+        if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS and awaiting_at > transition_at:
+            return emit({"status": "invalid", "errors": ["awaiting-approval history cannot be in the future"]}, 2)
         requirement_records = concrete_readiness_records(approvals, "requirements")
         ux_records = concrete_readiness_records(approvals, "ux")
-        if collaboration_profile != "execute" and not any(
-            parsed_timestamp(record.get("at")) is not None
-            and awaiting_at <= parsed_timestamp(record.get("at")) <= transition_at
-            for record in requirement_records
-        ):
+        current_digest = current_requirements_digest(packet, metadata.get("documentation_profile"))
+        revision = metadata.get("requirement_revision")
+        if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS:
+            semantic_errors = semantic_metadata_errors(
+                metadata,
+                declared_trace_ids=declared_trace_ids(metadata),
+                require_ready=True,
+            )
+            if semantic_errors:
+                return emit({"status": "invalid", "errors": semantic_errors}, 2)
+            if current_digest is None:
+                return emit({"status": "invalid", "errors": ["cannot compute the requirement baseline digest"]}, 2)
+            if collaboration_profile == "execute" and metadata.get("requirements_digest") is None:
+                metadata["requirements_digest"] = current_digest
+            if metadata.get("requirements_digest") != current_digest:
+                return emit(
+                    {"status": "invalid", "errors": ["requirements changed after Requirement Ready approval"]},
+                    2,
+                )
+
+        def current_requirement_record(record: dict[str, Any]) -> bool:
+            timestamp = parsed_timestamp(record.get("at"))
+            if timestamp is None or not awaiting_at <= timestamp <= transition_at:
+                return False
+            return schema_version not in CONTENT_BOUND_SCHEMA_VERSIONS or (
+                record.get("requirement_revision") == revision
+                and record.get("requirements_digest") == current_digest
+            )
+
+        if collaboration_profile != "execute" and not any(current_requirement_record(record) for record in requirement_records):
             return emit(
                 {"status": "invalid", "errors": ["checkpointed and co-design work require Requirement Ready approval"]},
                 2,
@@ -528,6 +1090,11 @@ def transition_packet(args: argparse.Namespace) -> int:
             for record in ux_records
         ):
             return emit({"status": "invalid", "errors": ["material UI work requires UX Ready approval"]}, 2)
+        if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS:
+            validation, validation_code = validate_packet_data(packet)
+            if validation_code:
+                validation["status"] = "approval-blocked"
+                return emit(validation, 2)
     if new == "accepted":
         report, code = validate_packet_data(packet, state_override="accepted")
         if code:
@@ -537,13 +1104,25 @@ def transition_packet(args: argparse.Namespace) -> int:
     metadata["updated_at"] = now
     metadata.setdefault("history", []).append({"from": old, "to": new, "at": now, "note": args.note})
     if new == "approved":
-        metadata.setdefault("approvals", {})["design"] = {
+        design_record = {
             "by": args.approved_by,
             "at": now,
             "note": args.note,
         }
-    write_json(packet / "packet.json", metadata)
-    return emit({"status": "transitioned", "packet": str(packet), "from": old, "to": new})
+        if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS:
+            design_record["requirement_revision"] = metadata["requirement_revision"]
+            design_record["requirements_digest"] = metadata["requirements_digest"]
+        metadata.setdefault("approvals", {})["design"] = design_record
+    write_packet(packet, metadata, "transition", {"from": old, "to": new, "note": args.note})
+    return emit(
+        {
+            "status": "transitioned",
+            "packet": str(packet),
+            "from": old,
+            "to": new,
+            "requirement_revision": metadata.get("requirement_revision") if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS else None,
+        }
+    )
 
 
 def record_approval(args: argparse.Namespace) -> int:
@@ -555,8 +1134,8 @@ def record_approval(args: argparse.Namespace) -> int:
         return emit({"status": "invalid", "errors": ["approval id, actor, and note must be non-empty"]}, 2)
     if args.kind in READINESS_APPROVAL_IDS:
         expected_id = READINESS_APPROVAL_IDS[args.kind]
-        if metadata.get("schema_version") != "1.1":
-            return emit({"status": "invalid", "errors": ["readiness approvals require schema 1.1"]}, 2)
+        if metadata.get("schema_version") not in READINESS_SCHEMA_VERSIONS:
+            return emit({"status": "invalid", "errors": ["readiness approvals require schema 1.1, 1.2, or 2.0"]}, 2)
         if args.id != expected_id:
             return emit({"status": "invalid", "errors": [f"{args.kind} approval id must be {expected_id}"]}, 2)
         if metadata.get("state") != "awaiting-approval":
@@ -565,6 +1144,90 @@ def record_approval(args: argparse.Namespace) -> int:
                 2,
             )
     record = {"id": args.id, "by": args.by, "at": utc_now(), "note": args.note}
+    if args.kind == "dependencies":
+        missing = [
+            name
+            for name, value in (
+                ("--dependency-ecosystem", args.dependency_ecosystem),
+                ("--dependency-name", args.dependency_name),
+                ("--dependency-version", args.dependency_version),
+                ("--dependency-ref", args.dependency_ref),
+                ("--dependency-file", args.dependency_file),
+                ("--dependency-operation", args.dependency_operation),
+            )
+            if not value
+        ]
+        if missing:
+            return emit({"status": "invalid", "errors": [f"dependency approval requires {', '.join(missing)}"]}, 2)
+        result_sha256: dict[str, str] = {}
+        for value in args.dependency_result_sha256:
+            if "=" not in value:
+                return emit(
+                    {"status": "invalid", "errors": ["--dependency-result-sha256 must be PATH=sha256:<hex>"]},
+                    2,
+                )
+            path, digest = value.split("=", 1)
+            if path in result_sha256:
+                return emit({"status": "invalid", "errors": [f"duplicate dependency result path: {path}"]}, 2)
+            result_sha256[path] = digest
+        record["dependency"] = {
+            "ecosystem": args.dependency_ecosystem,
+            "name": args.dependency_name,
+            "version": args.dependency_version,
+            "ref": args.dependency_ref,
+            "command": args.dependency_command,
+            "files": args.dependency_file,
+            "operations": args.dependency_operation,
+            "result_sha256": result_sha256,
+        }
+        dependency_errors = validate_dependency_approval(record)
+        if dependency_errors:
+            return emit({"status": "invalid", "errors": dependency_errors}, 2)
+    if args.kind == "waivers":
+        missing = [
+            name
+            for name, value in (
+                ("--scope", args.scope),
+                ("--blocker", args.blocker),
+                ("--residual-risk", args.residual_risk),
+                ("--expires-at", args.expires_at),
+                ("--recheck-trigger", args.recheck_trigger),
+            )
+            if not value
+        ]
+        if missing:
+            return emit({"status": "invalid", "errors": [f"waiver approval requires {', '.join(missing)}"]}, 2)
+        expiry = parsed_timestamp(args.expires_at)
+        now = parsed_timestamp(record["at"])
+        if expiry is None or now is None or expiry <= now:
+            return emit({"status": "invalid", "errors": ["waiver --expires-at must be a future timezone-aware timestamp"]}, 2)
+        record.update(
+            {
+                "scope": args.scope,
+                "blockers": args.blocker,
+                "residual_risk": args.residual_risk,
+                "expires_at": args.expires_at,
+                "recheck_trigger": args.recheck_trigger,
+            }
+        )
+    if metadata.get("schema_version") in CONTENT_BOUND_SCHEMA_VERSIONS and args.kind == "requirements":
+        semantic_errors = semantic_metadata_errors(
+            metadata,
+            declared_trace_ids=declared_trace_ids(metadata),
+            require_ready=True,
+        )
+        if semantic_errors:
+            return emit({"status": "invalid", "errors": semantic_errors}, 2)
+        validation, validation_code = validate_packet_data(packet)
+        if validation_code:
+            validation["status"] = "approval-blocked"
+            return emit(validation, 2)
+        digest = current_requirements_digest(packet, metadata.get("documentation_profile"))
+        if digest is None:
+            return emit({"status": "invalid", "errors": ["cannot compute the requirement baseline digest"]}, 2)
+        record["requirement_revision"] = metadata["requirement_revision"]
+        record["requirements_digest"] = digest
+        metadata["requirements_digest"] = digest
     approvals = metadata.setdefault("approvals", {})
     if not isinstance(approvals, dict):
         return emit({"status": "invalid", "errors": ["approvals must be an object"]}, 2)
@@ -575,8 +1238,141 @@ def record_approval(args: argparse.Namespace) -> int:
     if args.kind == "dependencies" and args.id not in metadata.setdefault("dependency_changes", []):
         metadata["dependency_changes"].append(args.id)
     metadata["updated_at"] = record["at"]
-    write_json(packet / "packet.json", metadata)
+    write_packet(packet, metadata, "approval-recorded", {"kind": args.kind, "id": args.id})
     return emit({"status": "recorded", "kind": args.kind, "record": record})
+
+
+def record_ambiguity(args: argparse.Namespace) -> int:
+    packet = args.packet.resolve()
+    metadata, errors = load_packet(packet)
+    if errors:
+        return emit({"status": "invalid", "errors": errors}, 2)
+    if metadata.get("schema_version") not in CONTENT_BOUND_SCHEMA_VERSIONS:
+        return emit({"status": "invalid", "errors": ["ambiguity records require a content-bound schema"]}, 2)
+    if metadata.get("state") not in {"discovering", "awaiting-approval", "implementing", "verifying"}:
+        return emit({"status": "invalid", "errors": ["ambiguities cannot be recorded in the current state"]}, 2)
+    semantic_errors = semantic_metadata_errors(
+        metadata,
+        declared_trace_ids=declared_trace_ids(metadata),
+        require_ready=False,
+    )
+    if semantic_errors:
+        return emit({"status": "invalid", "errors": semantic_errors}, 2)
+    if args.materiality == "high-risk" and args.owner != "user":
+        return emit({"status": "invalid", "errors": ["high-risk ambiguity must be user-owned"]}, 2)
+    if (
+        metadata.get("state") in {"implementing", "verifying"}
+        and args.owner == "user"
+        and args.materiality == "low"
+    ):
+        return emit(
+            {"status": "invalid", "errors": ["late user-owned ambiguity must be material or high-risk and reopen approval"]},
+            2,
+        )
+    interpretations = [value.strip() for value in args.interpretation if value.strip()]
+    if len(interpretations) < 2 or len(set(interpretations)) != len(interpretations):
+        return emit({"status": "invalid", "errors": ["provide at least two distinct --interpretation values"]}, 2)
+    affected = list(dict.fromkeys(args.affects))
+    known_trace_ids = declared_trace_ids(metadata)
+    malformed = [
+        value
+        for value in affected
+        if not any(ID_PATTERNS[kind].fullmatch(value) for kind in ("acceptance", "scope", "verification"))
+    ]
+    if malformed or set(affected) - known_trace_ids:
+        return emit(
+            {
+                "status": "invalid",
+                "errors": [
+                    f"--affects values must be declared AC/SC/VO identifiers; invalid={sorted(set(malformed) | (set(affected) - known_trace_ids))}"
+                ],
+            },
+            2,
+        )
+    records = metadata.get("ambiguities")
+    ambiguity_ids = metadata.get("ambiguity_ids")
+    if not isinstance(records, list) or not isinstance(ambiguity_ids, list):
+        return emit({"status": "invalid", "errors": ["ambiguities and ambiguity_ids must be lists"]}, 2)
+    numbers = [int(match.group(1)) for value in ambiguity_ids if isinstance(value, str) and (match := re.fullmatch(r"AMB-(\d+)", value))]
+    ambiguity_id = f"AMB-{max(numbers, default=0) + 1}"
+    now = utc_now()
+    record = {
+        "id": ambiguity_id,
+        "summary": args.summary.strip(),
+        "source": args.source.strip(),
+        "interpretations": interpretations,
+        "evidence": [value.strip() for value in args.evidence if value.strip()],
+        "materiality": args.materiality,
+        "owner": args.owner,
+        "affected_ids": affected,
+        "recommendation": args.recommendation.strip(),
+        "status": "open",
+        "created_at": now,
+        "discovered_in_revision": metadata["requirement_revision"],
+        "resolution": None,
+    }
+    if any(not record[field] for field in ("summary", "source", "recommendation")):
+        return emit({"status": "invalid", "errors": ["summary, source, and recommendation must be non-empty"]}, 2)
+    records.append(record)
+    ambiguity_ids.append(ambiguity_id)
+    if (
+        metadata.get("collaboration_profile") == "execute"
+        and args.owner == "user"
+        and args.materiality in {"material", "high-risk"}
+    ):
+        metadata["collaboration_profile"] = "checkpointed"
+    metadata["updated_at"] = now
+    write_packet(packet, metadata, "ambiguity-recorded", {"id": ambiguity_id})
+    return emit(
+        {
+            "status": "recorded",
+            "ambiguity": record,
+            "collaboration_profile": metadata.get("collaboration_profile"),
+        }
+    )
+
+
+def resolve_ambiguity(args: argparse.Namespace) -> int:
+    packet = args.packet.resolve()
+    metadata, errors = load_packet(packet)
+    if errors:
+        return emit({"status": "invalid", "errors": errors}, 2)
+    if metadata.get("schema_version") not in CONTENT_BOUND_SCHEMA_VERSIONS:
+        return emit({"status": "invalid", "errors": ["ambiguity resolution requires a content-bound schema"]}, 2)
+    record = find_ambiguity(metadata, args.id)
+    if record is None:
+        return emit({"status": "invalid", "errors": [f"unknown ambiguity {args.id}"]}, 2)
+    if record.get("status") != "open":
+        return emit({"status": "invalid", "errors": [f"ambiguity {args.id} is already resolved"]}, 2)
+    owner = record.get("owner")
+    materiality = record.get("materiality")
+    if owner == "user":
+        if metadata.get("state") != "awaiting-approval":
+            return emit({"status": "invalid", "errors": ["user-owned ambiguity may only be resolved while awaiting approval"]}, 2)
+        if args.status not in {"user-confirmed", "deferred-out-of-scope"}:
+            return emit({"status": "invalid", "errors": ["user-owned ambiguity requires user confirmation or deferral"]}, 2)
+    elif owner == "codex":
+        allowed = {"resolved-by-evidence"}
+        if materiality == "low":
+            allowed.update({"safe-assumption", "deferred-out-of-scope"})
+        if args.status not in allowed:
+            return emit({"status": "invalid", "errors": ["resolution status is not authorized for this Codex-owned ambiguity"]}, 2)
+    else:
+        return emit({"status": "invalid", "errors": ["ambiguity has an invalid owner"]}, 2)
+    evidence = [value.strip() for value in args.evidence if value.strip()]
+    if not args.by.strip() or not args.resolution.strip() or not evidence:
+        return emit({"status": "invalid", "errors": ["actor, resolution, and at least one evidence item are required"]}, 2)
+    now = utc_now()
+    record["status"] = args.status
+    record["resolution"] = {
+        "by": args.by.strip(),
+        "at": now,
+        "text": args.resolution.strip(),
+        "evidence": evidence,
+    }
+    metadata["updated_at"] = now
+    write_packet(packet, metadata, "ambiguity-resolved", {"id": args.id, "status": args.status})
+    return emit({"status": "resolved", "ambiguity": record})
 
 
 def heading_body(text: str, heading: str) -> str | None:
@@ -597,6 +1393,153 @@ def placeholder_error(filename: str, heading: str, body: str | None) -> str | No
 
 def ids(text: str, kind: str) -> set[str]:
     return set(ID_PATTERNS[kind].findall(text))
+
+
+def audit_finding_errors(text: str, prefix: str) -> list[str]:
+    """Require every declared audit finding to be canonical and closed."""
+    errors: list[str] = []
+    seen: set[str] = set()
+    for line in text.splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if not cells or not cells[0].strip("*_`").upper().startswith(f"{prefix}-"):
+            continue
+        finding_id = cells[0].strip("*_`").split(":", 1)[0].strip()
+        if len(cells) < 5:
+            errors.append(f"malformed finding row for {finding_id or prefix}")
+            continue
+        if not re.fullmatch(rf"{re.escape(prefix)}-\d+", finding_id):
+            errors.append(f"invalid finding id {finding_id!r}; expected {prefix}-n")
+            continue
+        if finding_id in seen:
+            errors.append(f"duplicate finding id {finding_id}")
+            continue
+        seen.add(finding_id)
+        status = cells[-1].strip("*_`").lower()
+        if status != "closed":
+            errors.append(f"{finding_id} status must be closed, got {status!r}")
+    return errors
+
+
+def applicable_waiver(
+    approvals: Any,
+    *,
+    blockers: Iterable[str],
+    scopes: Iterable[str],
+    now: dt.datetime | None = None,
+) -> dict[str, Any] | None:
+    """Return a current waiver that explicitly covers every blocker and one affected scope."""
+    if not isinstance(approvals, dict):
+        return None
+    records = approvals.get("waivers", [])
+    if not isinstance(records, list):
+        return None
+    required_blockers = set(blockers)
+    affected_scopes = set(scopes)
+    current_time = now or dt.datetime.now(dt.timezone.utc)
+    for record in reversed(records):
+        if not isinstance(record, dict):
+            continue
+        patterns = record.get("scope")
+        covered = record.get("blockers")
+        if not isinstance(patterns, list) or not patterns or not all(isinstance(item, str) and item for item in patterns):
+            continue
+        if not isinstance(covered, list) or not required_blockers or not all(
+            blocker in covered or "*" in covered for blocker in required_blockers
+        ):
+            continue
+        if not affected_scopes or not any(
+            pattern == "*" or fnmatch.fnmatchcase(scope, pattern)
+            for pattern in patterns
+            for scope in affected_scopes
+        ):
+            continue
+        if not all(
+            isinstance(record.get(field), str) and record[field].strip()
+            for field in ("by", "note", "residual_risk", "recheck_trigger")
+        ):
+            continue
+        expiry = parsed_timestamp(record.get("expires_at"))
+        if expiry is None or expiry <= current_time:
+            continue
+        return record
+    return None
+
+
+def accepted_evidence_errors(
+    family: str,
+    texts: dict[str, str],
+    approvals: dict[str, Any],
+) -> list[str]:
+    """Validate terminal verification and review evidence without packet-shape concerns."""
+    errors: list[str] = []
+    if family == "trace":
+        verification_body = heading_body(texts.get("trace.md", ""), "Verification") or ""
+        statuses = set(re.findall(r"\b(?:PASSED|FAILED|FLAKY|BLOCKED|NOT RUN|WAIVED)\b", verification_body))
+        invalid_statuses = statuses & {"FAILED", "FLAKY", "BLOCKED", "NOT RUN"}
+        if invalid_statuses:
+            errors.append(f"accepted trace retains unresolved verification statuses: {sorted(invalid_statuses)}")
+        trace_waiver = applicable_waiver(
+            approvals,
+            blockers=["trace-verification"],
+            scopes=["trace.md", "Verification"],
+        )
+        if "PASSED" not in statuses and not ("WAIVED" in statuses and trace_waiver):
+            errors.append("accepted trace requires PASSED evidence or an approved WAIVED verification")
+        return errors
+
+    matrix_rows: list[tuple[str, str, int, str, bool]] = []
+    seen_cells: set[str] = set()
+    for line in texts.get("test-matrix.md", "").splitlines():
+        if not re.match(r"^\|\s*TM-", line):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 8:
+            errors.append(f"test-matrix.md: malformed matrix row `{line}`")
+            continue
+        cell = cells[0]
+        if not TEST_MATRIX_CELL_RE.fullmatch(cell):
+            errors.append(f"test-matrix.md: invalid cell id {cell!r}")
+            continue
+        if cell in seen_cells:
+            errors.append(f"test-matrix.md: duplicate cell id {cell}")
+            continue
+        seen_cells.add(cell)
+        if not cells[1]:
+            errors.append(f"test-matrix.md: {cell} requires a non-empty obligation")
+            continue
+        required_word = cells[4].lower()
+        if required_word not in TEST_MATRIX_REQUIRED_WORDS:
+            errors.append(f"test-matrix.md: invalid Required value {cells[4]!r} for {cell}; expected yes or no")
+            continue
+        try:
+            attempts = int(cells[5])
+        except ValueError:
+            errors.append(f"test-matrix.md: invalid attempts for {cell}")
+            continue
+        status_value = cells[6]
+        if status_value not in STATUS_WORDS:
+            errors.append(f"test-matrix.md: invalid status {status_value!r} for {cell}")
+            continue
+        matrix_rows.append((cell, cells[1], attempts, status_value, required_word == "yes"))
+    if not matrix_rows:
+        errors.append("accepted packet requires at least one parsed test-matrix cell")
+    for cell, obligation, attempts, status_value, required in matrix_rows:
+        if status_value == "PASSED" and attempts < 1:
+            errors.append(f"{cell}: PASSED requires at least one attempt")
+        if required and status_value not in {"PASSED", "WAIVED"}:
+            errors.append(f"{cell}: required cell is {status_value}")
+        if status_value == "WAIVED" and not applicable_waiver(
+            approvals,
+            blockers=[cell],
+            scopes=[cell, obligation],
+        ):
+            errors.append(f"{cell}: WAIVED requires an applicable waiver approval record")
+    for audit, prefix in (("blue-audit.md", "BLUE"), ("red-audit.md", "RED")):
+        for error in audit_finding_errors(texts.get(audit, ""), prefix):
+            errors.append(f"{audit}: {error}")
+    return errors
 
 
 def validate_packet_data(packet: Path, *, state_override: str | None = None) -> tuple[dict[str, Any], int]:
@@ -628,13 +1571,14 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
     schema_version = metadata.get("schema_version")
     if schema_version not in SUPPORTED_SCHEMA_VERSIONS:
         errors.append(f"packet.json: unsupported schema_version {metadata.get('schema_version')!r}")
+    errors.extend(validate_event_projection(packet, metadata))
     if metadata.get("state") not in STATES:
         errors.append(f"packet.json: invalid state {metadata.get('state')!r}")
     if metadata.get("task_type") not in TASK_TYPES:
         errors.append(f"packet.json: invalid task_type {metadata.get('task_type')!r}")
     if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{2,80}", str(metadata.get("change_id", ""))):
         errors.append("packet.json: invalid change_id")
-    if schema_version == "1.1":
+    if schema_version in READINESS_SCHEMA_VERSIONS:
         collaboration_profile = metadata.get("collaboration_profile")
         ui_impact = metadata.get("ui_impact")
         if collaboration_profile not in COLLABORATION_PROFILES:
@@ -643,8 +1587,17 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
             errors.append(f"packet.json: invalid ui_impact {ui_impact!r}")
 
     profile = metadata.get("documentation_profile")
+    family = documentation_family(profile)
+    if schema_version == "2.0":
+        work_mode = metadata.get("work_mode")
+        if work_mode not in {"traced", "governed"}:
+            errors.append(f"packet.json: schema 2.0 packet requires traced or governed work_mode, got {work_mode!r}")
+        if (work_mode, profile) not in {("traced", "trace"), ("governed", "governed")}:
+            errors.append("packet.json: work_mode and documentation_profile do not match")
+    elif profile in {"trace", "governed"}:
+        errors.append(f"packet.json: documentation_profile {profile!r} requires schema 2.0")
     texts: dict[str, str] = {}
-    if profile == "micro":
+    if family == "trace":
         path = packet / "trace.md"
         if not path.is_file():
             errors.append("missing required file: trace.md")
@@ -655,7 +1608,7 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                 error = placeholder_error(path.name, heading, heading_body(text, heading))
                 if error:
                     errors.append(error)
-    elif profile == "full":
+    elif family == "governed":
         for filename in FULL_FILES:
             path = packet / filename
             if not path.is_file():
@@ -667,8 +1620,13 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                 error = placeholder_error(filename, heading, heading_body(text, heading))
                 if error:
                     errors.append(error)
-            if schema_version == "1.1":
+            if schema_version in READINESS_SCHEMA_VERSIONS:
                 for heading in SCHEMA_1_1_HEADINGS.get(filename, ()):
+                    error = placeholder_error(filename, heading, heading_body(text, heading))
+                    if error:
+                        errors.append(error)
+            if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS:
+                for heading in SCHEMA_1_2_HEADINGS.get(filename, ()):
                     error = placeholder_error(filename, heading, heading_body(text, heading))
                     if error:
                         errors.append(error)
@@ -676,11 +1634,11 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
         errors.append(f"packet.json: invalid documentation_profile {profile!r}")
 
     all_text = "\n".join(texts.values())
-    if schema_version == "1.1":
-        if profile == "full":
+    if schema_version in READINESS_SCHEMA_VERSIONS:
+        if family == "governed":
             context_instructions = ids(texts.get("context.md", ""), "instruction")
             if not context_instructions:
-                errors.append("context.md: schema 1.1 requires at least one INS-n instruction record")
+                errors.append(f"context.md: schema {schema_version} requires at least one INS-n instruction record")
             for filename in (
                 "design.md",
                 "execution.md",
@@ -692,20 +1650,31 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                 downstream_instructions = ids(texts.get(filename, ""), "instruction")
                 if context_instructions != downstream_instructions:
                     errors.append(
-                        f"schema 1.1 instruction IDs must match between context.md and {filename}; "
+                        f"schema {schema_version} instruction IDs must match between context.md and {filename}; "
                         f"context={sorted(context_instructions)}, downstream={sorted(downstream_instructions)}"
                     )
-        elif profile == "micro" and not ids(all_text, "instruction"):
-            errors.append("trace.md: schema 1.1 requires at least one INS-n instruction record")
-    required_dirs = ("briefs", "reports", "artifacts")
+        elif family == "trace" and not ids(all_text, "instruction"):
+            errors.append(f"trace.md: schema {schema_version} requires at least one INS-n instruction record")
+    required_dirs = (
+        ("briefs", "reports", "artifacts")
+        if schema_version != "2.0" or family == "governed"
+        else ("artifacts",)
+    )
     for dirname in required_dirs:
         if not (packet / dirname).is_dir():
             errors.append(f"missing required directory: {dirname}/")
 
+    def declared_set(field: str) -> set[str]:
+        value = metadata.get(field, [])
+        if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+            errors.append(f"packet.json: {field} must be a list of strings")
+            return set()
+        return set(value)
+
     declared = {
-        "acceptance": set(metadata.get("acceptance_ids", [])),
-        "scope": set(metadata.get("scope_ids", [])),
-        "verification": set(metadata.get("verification_ids", [])),
+        "acceptance": declared_set("acceptance_ids"),
+        "scope": declared_set("scope_ids"),
+        "verification": declared_set("verification_ids"),
     }
     observed = {kind: ids(all_text, kind) for kind in declared}
     for kind in declared:
@@ -715,7 +1684,35 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                 f"declared={sorted(declared[kind])}, documented={sorted(observed[kind])}"
             )
 
-    if profile == "full":
+    if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS:
+        ambiguity_ids = metadata.get("ambiguity_ids", [])
+        declared_ambiguities = set(value for value in ambiguity_ids if isinstance(value, str)) if isinstance(ambiguity_ids, list) else set()
+        observed_ambiguities = ids(all_text, "ambiguity")
+        if declared_ambiguities != observed_ambiguities:
+            errors.append(
+                "packet.json ambiguity_ids must equal documented IDs; "
+                f"declared={sorted(declared_ambiguities)}, documented={sorted(observed_ambiguities)}"
+            )
+        ledger_ambiguities = (
+            ids(texts.get("requirements.md", ""), "ambiguity")
+            if family == "governed"
+            else ids(texts.get("trace.md", ""), "ambiguity")
+        )
+        if declared_ambiguities != ledger_ambiguities:
+            errors.append(
+                "packet.json ambiguity_ids must equal requirement-ledger IDs; "
+                f"declared={sorted(declared_ambiguities)}, ledger={sorted(ledger_ambiguities)}"
+            )
+        errors.extend(
+            semantic_metadata_errors(
+                metadata,
+                declared_trace_ids=set().union(*declared.values()),
+                require_ready=(state_override or metadata.get("state"))
+                in {"approved", "implementing", "verifying", "accepted", "archived"},
+            )
+        )
+
+    if family == "governed":
         requirements = texts.get("requirements.md", "")
         design = texts.get("design.md", "")
         execution = texts.get("execution.md", "")
@@ -736,6 +1733,12 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                 errors.append(f"{obligation} is missing from test-matrix.md")
             if obligation not in evidence:
                 errors.append(f"{obligation} is missing from evidence.md")
+        if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS:
+            for ambiguity_id in declared_ambiguities:
+                if ambiguity_id not in execution:
+                    errors.append(f"{ambiguity_id} is missing from execution.md")
+                if ambiguity_id not in evidence:
+                    errors.append(f"{ambiguity_id} is missing from evidence.md")
 
     approvals_value = metadata.get("approvals", {})
     if not isinstance(approvals_value, dict):
@@ -743,7 +1746,7 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
         approvals: dict[str, Any] = {}
     else:
         approvals = approvals_value
-    if schema_version == "1.1":
+    if schema_version in READINESS_SCHEMA_VERSIONS:
         for kind, expected_id in READINESS_APPROVAL_IDS.items():
             records = approvals.get(kind, [])
             if not isinstance(records, list):
@@ -760,22 +1763,43 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                         errors.append(f"packet.json: `approvals.{kind}` record requires non-empty {field}")
                 if parsed_timestamp(record.get("at")) is None:
                     errors.append(f"packet.json: `approvals.{kind}` record requires a timezone-aware timestamp")
-    dependency_ids = set(metadata.get("dependency_changes", []))
+                if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS and kind == "requirements":
+                    revision = record.get("requirement_revision")
+                    if not isinstance(revision, int) or isinstance(revision, bool) or revision < 1:
+                        errors.append("packet.json: Requirement Ready record requires a positive requirement_revision")
+                    if not isinstance(record.get("requirements_digest"), str) or not re.fullmatch(
+                        r"sha256:[0-9a-f]{64}", record["requirements_digest"]
+                    ):
+                        errors.append("packet.json: Requirement Ready record requires a sha256 requirements_digest")
+    dependency_values = metadata.get("dependency_changes", [])
+    if not isinstance(dependency_values, list) or any(not isinstance(value, str) for value in dependency_values):
+        errors.append("packet.json: dependency_changes must be a list of strings")
+        dependency_ids: set[str] = set()
+    else:
+        dependency_ids = set(dependency_values)
     dependency_approvals = approvals.get("dependencies", [])
     if not isinstance(dependency_approvals, list):
         errors.append("packet.json: `approvals.dependencies` must be a list")
         dependency_approvals = []
-    approved_dependency_ids = {item.get("id") for item in dependency_approvals if isinstance(item, dict)}
+    approved_dependency_ids = {
+        item["id"]
+        for item in dependency_approvals
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    }
     if dependency_ids - approved_dependency_ids:
         errors.append(f"unapproved dependency changes: {sorted(dependency_ids - approved_dependency_ids)}")
+    if schema_version == "2.0":
+        for index, record in enumerate(dependency_approvals):
+            for error in validate_dependency_approval(record):
+                errors.append(f"packet.json: approvals.dependencies[{index}]: {error}")
 
     state = state_override or metadata.get("state")
     if state in {"approved", "implementing", "verifying", "accepted", "archived"}:
-        if schema_version == "1.1" and concrete_design_record(approvals) is None:
+        if schema_version in READINESS_SCHEMA_VERSIONS and concrete_design_record(approvals) is None:
             errors.append(f"state {state} requires a concrete design approval record")
-        elif schema_version != "1.1" and not approvals.get("design"):
+        elif schema_version not in READINESS_SCHEMA_VERSIONS and not approvals.get("design"):
             errors.append(f"state {state} requires a design approval record")
-    if schema_version == "1.1" and state in {"approved", "implementing", "verifying", "accepted", "archived"}:
+    if schema_version in READINESS_SCHEMA_VERSIONS and state in {"approved", "implementing", "verifying", "accepted", "archived"}:
         requirement_records = concrete_readiness_records(approvals, "requirements")
         ux_records = concrete_readiness_records(approvals, "ux")
         if metadata.get("collaboration_profile") != "execute" and not requirement_records:
@@ -810,41 +1834,82 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                     errors.append(f"{kind} approval must follow awaiting approval and predate the approved transition")
                 if any(value > approved_at for value in valid_times):
                     errors.append(f"{kind} approval cannot be recorded after the approved transition")
+        if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS:
+            current_digest = current_requirements_digest(packet, profile)
+            revision = metadata.get("requirement_revision")
+            if current_digest is None:
+                errors.append("content-bound packet requires a computable requirement baseline")
+            elif metadata.get("requirements_digest") != current_digest:
+                errors.append("requirements changed after Requirement Ready or design approval")
+            design_record = concrete_design_record(approvals)
+            if design_record is not None and (
+                design_record.get("requirement_revision") != revision
+                or design_record.get("requirements_digest") != current_digest
+            ):
+                errors.append("design approval does not match the current requirement revision and digest")
+            if design_record is not None and approved_times and awaiting_times:
+                approved_at = max(approved_times)
+                eligible_awaiting = [value for value in awaiting_times if value <= approved_at]
+                design_at = parsed_timestamp(design_record.get("at"))
+                if eligible_awaiting and design_at is not None and not max(eligible_awaiting) <= design_at <= approved_at:
+                    errors.append("design approval must follow awaiting approval and coincide with the approved transition")
+            if metadata.get("collaboration_profile") != "execute" and approved_times and awaiting_times:
+                approved_at = max(approved_times)
+                eligible_awaiting = [value for value in awaiting_times if value <= approved_at]
+                if eligible_awaiting:
+                    awaiting_at = max(eligible_awaiting)
+                    matching = [
+                        record
+                        for record in requirement_records
+                        if record.get("requirement_revision") == revision
+                        and record.get("requirements_digest") == current_digest
+                        and (timestamp := parsed_timestamp(record.get("at"))) is not None
+                        and awaiting_at <= timestamp <= approved_at
+                    ]
+                    if not matching:
+                        errors.append("current requirement revision requires a fresh digest-bound Requirement Ready approval")
     if state in {"accepted", "archived"}:
         if not declared["acceptance"] or not declared["scope"] or not declared["verification"]:
             errors.append("accepted packet requires non-empty acceptance, scope, and verification ID sets")
-        matrix_rows: list[tuple[str, int, str, bool]] = []
-        for line in texts.get("test-matrix.md", "").splitlines():
-            if not re.match(r"^\|\s*TM-\d+\s*\|", line):
-                continue
-            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-            if len(cells) < 8:
-                errors.append(f"test-matrix.md: malformed matrix row `{line}`")
-                continue
-            try:
-                attempts = int(cells[5])
-            except ValueError:
-                errors.append(f"test-matrix.md: invalid attempts for {cells[0]}")
-                continue
-            status_value = cells[6]
-            if status_value not in STATUS_WORDS:
-                errors.append(f"test-matrix.md: invalid status {status_value!r} for {cells[0]}")
-                continue
-            required = cells[4].lower() == "yes"
-            matrix_rows.append((cells[0], attempts, status_value, required))
-        if not matrix_rows:
-            errors.append("accepted packet requires at least one parsed test-matrix cell")
-        for cell, attempts, status_value, required in matrix_rows:
-            if status_value == "PASSED" and attempts < 1:
-                errors.append(f"{cell}: PASSED requires at least one attempt")
-            if required and status_value not in {"PASSED", "WAIVED"}:
-                errors.append(f"{cell}: required cell is {status_value}")
-            if status_value == "WAIVED" and not approvals.get("waivers"):
-                errors.append(f"{cell}: WAIVED requires a waiver approval record")
-        if profile == "full":
-            for audit in ("blue-audit.md", "red-audit.md"):
-                if re.search(r"\b(?:open|unresolved|pending)\b", texts.get(audit, ""), re.IGNORECASE):
-                    warnings.append(f"{audit}: verify that no finding remains open")
+        errors.extend(accepted_evidence_errors(family, texts, approvals))
+
+    preference_artifact = packet / "effective-preferences.json"
+    if preference_artifact.is_file():
+        try:
+            preferences = read_json(preference_artifact)
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            errors.append(f"effective-preferences.json: cannot load: {exc}")
+        else:
+            if preferences.get("schema_version") != "1.0":
+                errors.append("effective-preferences.json: unsupported schema_version")
+            fingerprint = preferences.get("fingerprint")
+            if not isinstance(fingerprint, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", fingerprint):
+                errors.append("effective-preferences.json: invalid fingerprint")
+            if preferences.get("outcome") not in {"resolved", "blocked"}:
+                errors.append("effective-preferences.json: invalid outcome")
+            if state in {"accepted", "archived"} and preferences.get("outcome") == "blocked":
+                errors.append("accepted packet cannot retain blocked effective preferences")
+
+    readiness_artifact = packet / "context-readiness.json"
+    if readiness_artifact.is_file():
+        try:
+            readiness = read_json(readiness_artifact)
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            errors.append(f"context-readiness.json: cannot load: {exc}")
+        else:
+            if readiness.get("schema_version") != "1.0":
+                errors.append("context-readiness.json: unsupported schema_version")
+            if readiness.get("tier") not in {"T0", "T1", "T2", "T3"}:
+                errors.append("context-readiness.json: invalid tier")
+            if readiness.get("outcome") not in {"not_applicable", "ready", "partial_advisory", "checkpoint", "blocked", "waived"}:
+                errors.append("context-readiness.json: invalid outcome")
+            if readiness.get("outcome") == "waived" and not isinstance(readiness.get("waiver"), dict):
+                errors.append("context-readiness.json: waived outcome requires the applied waiver record")
+            fingerprint = readiness.get("fingerprint")
+            if not isinstance(fingerprint, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", fingerprint):
+                errors.append("context-readiness.json: invalid fingerprint")
+            if state in {"accepted", "archived"} and readiness.get("outcome") in {"checkpoint", "blocked"}:
+                errors.append("accepted packet cannot retain a context-readiness checkpoint or block")
 
     report = {
         "status": "valid" if not errors else "invalid",
@@ -862,7 +1927,11 @@ def validate_packet(args: argparse.Namespace) -> int:
     return emit(report, code)
 
 
-def added_diff(root: Path, base: str | None) -> tuple[list[str], dict[str, str]]:
+def added_diff(root: Path, base: str | None) -> tuple[list[str], dict[str, str], dict[str, str]]:
+    if base:
+        verified = run(["git", "rev-parse", "--verify", f"{base}^{{commit}}"], cwd=root)
+        if verified.returncode != 0:
+            raise RuntimeError(f"invalid Git base {base!r}: {verified.stderr.strip() or verified.stdout.strip()}")
     command = ["git", "diff", "--unified=0"]
     if base:
         command.append(base)
@@ -872,19 +1941,41 @@ def added_diff(root: Path, base: str | None) -> tuple[list[str], dict[str, str]]
     names = run(names_command, cwd=root)
     staged_names = run(["git", "diff", "--cached", "--name-only"], cwd=root)
     untracked = run(["git", "ls-files", "--others", "--exclude-standard"], cwd=root)
-    untracked_files = untracked.stdout.splitlines() if untracked.returncode == 0 else []
+    failed = [
+        (label, result)
+        for label, result in (
+            ("worktree diff", result),
+            ("staged diff", staged),
+            ("changed names", names),
+            ("staged names", staged_names),
+            ("untracked names", untracked),
+        )
+        if result.returncode != 0
+    ]
+    if failed:
+        label, failure = failed[0]
+        raise RuntimeError(f"cannot inspect Git {label}: {failure.stderr.strip() or failure.stdout.strip()}")
+    untracked_files = untracked.stdout.splitlines()
     files = sorted(set(names.stdout.splitlines()) | set(staged_names.stdout.splitlines()) | set(untracked_files))
     diff = result.stdout + "\n" + staged.stdout
     added_by_file: dict[str, list[str]] = {}
+    removed_by_file: dict[str, list[str]] = {}
     current_file: str | None = None
+    old_file: str | None = None
     for line in diff.splitlines():
-        if line.startswith("+++ b/"):
+        if line.startswith("--- a/"):
+            old_file = line[6:]
+        elif line.startswith("---"):
+            old_file = None
+        elif line.startswith("+++ b/"):
             current_file = line[6:]
             added_by_file.setdefault(current_file, [])
         elif line.startswith("+++"):
-            current_file = None
+            current_file = old_file
         elif current_file and line.startswith("+"):
             added_by_file[current_file].append(line[1:])
+        elif current_file and line.startswith("-"):
+            removed_by_file.setdefault(current_file, []).append(line[1:])
     for relative in untracked_files:
         path = root / relative
         if path.is_file() and path.stat().st_size <= 2_000_000:
@@ -892,20 +1983,33 @@ def added_diff(root: Path, base: str | None) -> tuple[list[str], dict[str, str]]
                 added_by_file.setdefault(relative, []).append(path.read_text(encoding="utf-8"))
             except UnicodeDecodeError:
                 continue
-    return files, {path: "\n".join(lines) for path, lines in added_by_file.items()}
+    return (
+        files,
+        {path: "\n".join(lines) for path, lines in added_by_file.items()},
+        {path: "\n".join(lines) for path, lines in removed_by_file.items()},
+    )
 
 
 def audit_preferences(args: argparse.Namespace) -> int:
     root = args.root.resolve()
-    files, added_by_file = added_diff(root, args.base)
+    try:
+        files, added_by_file, removed_by_file = added_diff(root, args.base)
+    except RuntimeError as exc:
+        return emit({"status": "blocked", "root": str(root), "changed_files": [], "findings": [{
+            "severity": "gate",
+            "rule": "POLICY-AUDIT-INPUT",
+            "evidence": str(exc),
+            "message": "Preference audit could not establish a trustworthy Git diff baseline.",
+        }]}, 2)
     findings: list[dict[str, str]] = []
     packet_meta: dict[str, Any] = {}
     if args.packet:
         packet_meta, _ = load_packet(args.packet.resolve())
-    approved_dependencies = {
-        item.get("id") for item in packet_meta.get("approvals", {}).get("dependencies", []) if isinstance(item, dict)
-    }
-    registry_path = plugin_root() / "skills" / "engineering-preferences" / "references" / "preference-registry.json"
+    approvals_value = packet_meta.get("approvals", {})
+    dependency_records = approvals_value.get("dependencies", []) if isinstance(approvals_value, dict) else []
+    if not isinstance(dependency_records, list):
+        dependency_records = []
+    registry_path = plugin_root() / "skills" / "architecture-decisions" / "references" / "neutral-policy-registry.json"
     registry = read_json(registry_path)
     for rule in registry.get("audit_rules", []):
         kind = rule.get("kind")
@@ -924,8 +2028,13 @@ def audit_preferences(args: argparse.Namespace) -> int:
             evidence = ", ".join(matches) if matches else None
         elif kind == "dependency_approval":
             matches = [path for path in files if re.search(str(rule["pattern"]), path, re.IGNORECASE)]
-            if matches and not approved_dependencies:
-                evidence = ", ".join(matches)
+            unbound = [
+                path
+                for path in matches
+                if not any(approval_binds_file(record, path, root / path) for record in dependency_records)
+            ]
+            if unbound:
+                evidence = ", ".join(unbound)
         elif kind == "exclusive_added_regex":
             families = rule.get("families", [])
             candidate_text = "\n".join(added_by_file.get(path, "") for path in candidate_files)
@@ -940,8 +2049,203 @@ def audit_preferences(args: argparse.Namespace) -> int:
                     "message": str(rule["message"]),
                 }
             )
+    base_ref = args.base or "HEAD"
+    has_base = run(["git", "rev-parse", "--verify", f"{base_ref}^{{commit}}"], cwd=root).returncode == 0
+    if args.base and not has_base:
+        return emit({"status": "blocked", "root": str(root), "changed_files": files, "findings": [{
+            "severity": "gate", "rule": "POLICY-AUDIT-INPUT", "evidence": f"invalid Git base {base_ref!r}",
+            "message": "Preference audit could not establish a trustworthy Git action baseline.",
+        }]}, 2)
+    unapproved_actions: list[str] = []
+    invalid_actions: list[str] = []
+    for path, added_text in added_by_file.items():
+        if not re.fullmatch(r"\.github/workflows/[^/]+\.ya?ml", path):
+            continue
+        added_refs, invalid_refs = action_reference_scan(added_text)
+        removed_refs, invalid_removed_refs = action_reference_scan(removed_by_file.get(path, ""))
+        existing_action_refs: set[tuple[str, str]] = set()
+        if has_base:
+            listing = run(["git", "ls-tree", "--name-only", base_ref, "--", path], cwd=root)
+            if listing.returncode != 0:
+                return emit({"status": "blocked", "root": str(root), "changed_files": files, "findings": [{
+                    "severity": "gate", "rule": "POLICY-AUDIT-INPUT", "evidence": listing.stderr.strip(),
+                    "message": "Preference audit could not resolve a workflow-specific Git baseline.",
+                }]}, 2)
+            if path in listing.stdout.splitlines():
+                baseline = run(["git", "show", f"{base_ref}:{path}"], cwd=root)
+                if baseline.returncode != 0:
+                    return emit({"status": "blocked", "root": str(root), "changed_files": files, "findings": [{
+                        "severity": "gate", "rule": "POLICY-AUDIT-INPUT", "evidence": baseline.stderr.strip(),
+                        "message": "Preference audit could not read a workflow-specific Git baseline.",
+                    }]}, 2)
+                existing_action_refs = action_reference_scan(baseline.stdout)[0]
+        invalid_actions.extend(f"{path}:{item}" for item in invalid_refs)
+        invalid_actions.extend(f"{path}:{item}" for item in invalid_removed_refs)
+        replaced_names = {name for name, _ in added_refs} & {name for name, _ in removed_refs}
+        for name, ref in sorted(added_refs - existing_action_refs):
+            operation = "update" if any(existing_name == name for existing_name, _ in existing_action_refs) else "add"
+            if not any(
+                matches_dependency_request(
+                    record,
+                    ecosystem="github-actions",
+                    name=name,
+                    ref=ref,
+                    operation=operation,
+                    file=path,
+                    command=None,
+                )
+                for record in dependency_records
+            ):
+                unapproved_actions.append(f"{path}:{name}@{ref}")
+        for name, ref in sorted(removed_refs):
+            if name in replaced_names:
+                continue
+            if not any(
+                matches_dependency_request(
+                    record,
+                    ecosystem="github-actions",
+                    name=name,
+                    ref=ref,
+                    operation="remove",
+                    file=path,
+                    command=None,
+                )
+                for record in dependency_records
+            ):
+                unapproved_actions.append(f"{path}:remove:{name}@{ref}")
+    if invalid_actions or unapproved_actions:
+        findings.append(
+            {
+                "severity": "gate",
+                "rule": "POLICY-GITHUB-ACTION-APPROVAL",
+                "evidence": ", ".join(sorted(invalid_actions) + unapproved_actions),
+                "message": "A new or updated external GitHub Action use is unparseable or does not exactly match a machine-readable dependency approval.",
+            }
+        )
     status = "blocked" if any(item["severity"] == "gate" for item in findings) else "pass"
     return emit({"status": status, "root": str(root), "changed_files": files, "findings": findings}, 2 if status == "blocked" else 0)
+
+
+def validate_profile_command(args: argparse.Namespace) -> int:
+    try:
+        data = engineering_context.read_toml(args.profile.resolve())
+    except (OSError, tomllib.TOMLDecodeError, engineering_context.ContractError) as exc:
+        return emit({"status": "invalid", "profile": str(args.profile), "errors": [str(exc)]}, 2)
+    errors = engineering_context.validate_profile_data(data, source=str(args.profile.resolve()))
+    return emit(
+        {"status": "valid" if not errors else "invalid", "profile": str(args.profile.resolve()), "errors": errors},
+        0 if not errors else 2,
+    )
+
+
+def resolve_profiles_command(args: argparse.Namespace) -> int:
+    try:
+        snapshot = engineering_context.resolve_profiles(
+            args.root.resolve(),
+            facts=args.fact,
+            task_paths=args.path,
+            codex_home=args.codex_home,
+            baseline=skill_root() / "references" / "neutral-baseline.toml",
+            task_profiles=args.task_profile,
+            profile_mode=args.profile_mode,
+        )
+    except (OSError, ValueError, tomllib.TOMLDecodeError, engineering_context.ContractError) as exc:
+        return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+    if args.output:
+        engineering_context.write_json(args.output.resolve(), snapshot)
+    code = 2 if snapshot["outcome"] == "blocked" else 0
+    return emit({"status": snapshot["outcome"], "output": str(args.output.resolve()) if args.output else None, "snapshot": snapshot}, code)
+
+
+def assess_context_command(args: argparse.Namespace) -> int:
+    registry = plugin_root() / "skills" / "dev-flow-maintainer" / "references" / "capability-registry.json"
+    try:
+        result = engineering_context.assess_context(
+            args.root.resolve(),
+            task_type=args.task_type,
+            risks=args.risk,
+            task_paths=args.path,
+            facts=args.fact,
+            tier=args.tier,
+            codex_home=args.codex_home,
+            skill_roots=args.skill_root,
+            capability_registry=registry,
+            task_profiles=args.task_profile,
+            packet=args.packet.resolve() if args.packet else None,
+            profile_mode=args.profile_mode,
+            working_directory=args.working_directory,
+            detail=args.detail,
+        )
+    except (OSError, ValueError, json.JSONDecodeError, tomllib.TOMLDecodeError, engineering_context.ContractError) as exc:
+        return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+    output_path = args.output
+    if output_path is None and args.packet:
+        output_path = args.packet / "context-readiness.json"
+    if output_path:
+        engineering_context.write_json(output_path.resolve(), result)
+    code = 2 if result["outcome"] == "blocked" else 0
+    return emit({"status": result["outcome"], "output": str(output_path.resolve()) if output_path else None, "readiness": result}, code)
+
+
+def route_task(args: argparse.Namespace) -> int:
+    routes: list[str] = ["repo-context"]
+    reasons: dict[str, list[str]] = {"repo-context": ["repository facts and task-relative readiness"]}
+
+    def add(skill: str, reason: str) -> None:
+        if skill not in routes:
+            routes.append(skill)
+        reasons.setdefault(skill, []).append(reason)
+
+    needs = set(args.need)
+    risks = set(args.risk)
+    try:
+        work_mode, mode_reasons = select_work_mode(args.task_type, risks, args.work_mode)
+    except ValueError as exc:
+        return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+    if args.ui_impact == "material" and work_mode != "governed":
+        if args.work_mode != "auto":
+            return emit({"status": "invalid", "errors": ["material UI impact requires governed work mode"]}, 2)
+        work_mode, mode_reasons = "governed", ["material-ui-impact"]
+    if args.profile_operation:
+        add("manage-engineering-profiles", "explicit profile or instruction lifecycle operation")
+    if args.ambiguity or args.task_type in {"large-feature", "large-refactor", "migration", "dependency-change"}:
+        add("requirements-design", "material requirement, design, scope, or compatibility baseline")
+    if args.ui_impact in {"preserve", "material"}:
+        add("product-ux-discovery", f"UI impact is {args.ui_impact}")
+    if "architecture" in needs or args.task_type in {"large-feature", "large-refactor", "performance"}:
+        add("architecture-decisions", "material architecture or language/boundary decision")
+    if "dependency" in needs or args.task_type == "dependency-change":
+        add("dependency-decisions", "dependency, tool, service, plugin, or feature decision")
+    if args.task_type == "bugfix" or "diagnosis" in needs:
+        add("systematic-debugging", "failure reproduction and causal diagnosis")
+    mutating = args.task_type not in {"read-only-audit", "spike"}
+    if mutating or "verification" in needs:
+        add("verification", "risk-based fresh evidence")
+    review_risks = engineering_context.GOVERNED_RISKS
+    if (
+        "review" in needs
+        or risks & review_risks
+        or args.ui_impact == "material"
+        or args.task_type in {"security", "migration", "release-hotfix", "dependency-change", "rollback"}
+    ):
+        add("change-review", "independent specification and adversarial review")
+    if "delivery" in needs or args.task_type in {"release-hotfix", "rollback"}:
+        add("delivery-readiness", "acceptance, rollback, and delivery authority accounting")
+    if args.suite_maintenance:
+        add("dev-flow-maintainer", "explicit Dev Flow suite maintenance")
+    return emit(
+        {
+            "status": "routed",
+            "kernel": "dev-flow",
+            "work_mode": work_mode,
+            "work_mode_reasons": mode_reasons,
+            "routes": [{"skill": skill, "reasons": reasons[skill]} for skill in routes],
+            "excluded": {
+                "manage-engineering-profiles": "ordinary profile consumption does not activate management" if not args.profile_operation else None,
+                "dev-flow-maintainer": "explicit-only" if not args.suite_maintenance else None,
+            },
+        }
+    )
 
 
 def parse_frontmatter(path: Path) -> dict[str, str]:
@@ -1025,16 +2329,33 @@ def check_plugin(args: argparse.Namespace) -> int:
             errors.append("marketplace must contain exactly one dev-flow entry")
         else:
             source = matching[0].get("source", {})
-            expected_url = f"{str(manifest.get('repository', '')).rstrip('/')}.git"
-            if source.get("source") != "url" or source.get("url") != expected_url:
-                errors.append("marketplace source URL must match the plugin repository")
-            if source.get("ref") != f"v{manifest.get('version')}":
-                errors.append("marketplace ref must match the v-prefixed plugin version")
+            if source != {"source": "local", "path": "."}:
+                errors.append("marketplace plugin source must be the current immutable marketplace snapshot")
     except (OSError, json.JSONDecodeError, AttributeError) as exc:
         errors.append(f"invalid marketplace manifest: {exc}")
 
+    expected_skills = {
+        "architecture-decisions",
+        "change-review",
+        "delivery-readiness",
+        "dependency-decisions",
+        "dev-flow",
+        "dev-flow-maintainer",
+        "manage-engineering-profiles",
+        "product-ux-discovery",
+        "repo-context",
+        "requirements-design",
+        "systematic-debugging",
+        "verification",
+    }
+    observed_skills = {path.name for path in (root / "skills").glob("*/") if path.is_dir()}
+    if observed_skills != expected_skills:
+        errors.append(f"skill inventory mismatch: expected {sorted(expected_skills)}, observed {sorted(observed_skills)}")
     for path in sorted((root / "skills").glob("*/")):
         errors.extend(validate_skill(path))
+        skill_lines = (path / "SKILL.md").read_text(encoding="utf-8").count("\n") + 1
+        if skill_lines > 500:
+            errors.append(f"{path.name}: SKILL.md exceeds the 500-line progressive-disclosure envelope")
 
     for json_path in sorted(root.rglob("*.json")):
         if "/.git/" in str(json_path):
@@ -1054,12 +2375,23 @@ def check_plugin(args: argparse.Namespace) -> int:
     if not hooks.is_file():
         errors.append("missing plugin hooks/hooks.json")
     for required in (
-        root / "skills" / "engineering-preferences" / "references" / "preference-registry.json",
+        root / "skills" / "dev-flow" / "references" / "neutral-baseline.toml",
+        root / "skills" / "architecture-decisions" / "references" / "neutral-policy-registry.json",
+        root / "skills" / "dev-flow-maintainer" / "references" / "capability-registry.json",
         root / "governance" / "industry-practices.json",
         root / "evals" / "structural-coverage.json",
     ):
         if not required.is_file():
             errors.append(f"missing required governance file: {required.relative_to(root)}")
+
+    try:
+        baseline = engineering_context.read_toml(root / "skills" / "dev-flow" / "references" / "neutral-baseline.toml")
+        errors.extend(engineering_context.validate_profile_data(baseline, source="neutral-baseline.toml"))
+        engineering_context.load_capability_registry(
+            root / "skills" / "dev-flow-maintainer" / "references" / "capability-registry.json"
+        )
+    except (OSError, tomllib.TOMLDecodeError, json.JSONDecodeError, engineering_context.ContractError) as exc:
+        errors.append(f"invalid engineering context governance: {exc}")
 
     return emit({"status": "valid" if not errors else "invalid", "plugin": str(root), "errors": errors, "warnings": warnings}, 0 if not errors else 2)
 
@@ -1068,6 +2400,15 @@ def runtime_config_paths(destination: Path) -> tuple[list[Path], list[Path]]:
     source = skill_root() / "assets" / "agent-configs"
     configs = sorted(source.glob("*.toml"))
     return configs, [destination / config.name for config in configs]
+
+
+def safe_current_pointer(root: Path) -> Path:
+    flow = root / ".codex" / "dev-flow"
+    if flow.is_symlink():
+        raise PathContractError(f"Dev Flow state directory must not be a symlink: {flow}")
+    if flow.exists() and not flow.is_dir():
+        raise PathContractError(f"Dev Flow state path must be a directory: {flow}")
+    return contained_path(flow, "current", label="current pointer", reject_symlinks=True)
 
 
 def same_file_contents(left: Path, right: Path) -> bool:
@@ -1217,7 +2558,17 @@ def archive_packet(args: argparse.Namespace) -> int:
     if metadata.get("state") != "accepted":
         return emit({"status": "blocked", "errors": ["only an accepted packet can be archived"]}, 2)
     parent = packet.parent
-    archive = parent / "archive" / packet.name
+    try:
+        current = contained_path(parent, "current", label="current pointer", reject_symlinks=True)
+        archive = contained_path(
+            parent,
+            Path("archive") / packet.name,
+            label="packet archive",
+            require_relative=True,
+            reject_symlinks=True,
+        )
+    except PathContractError as exc:
+        return emit({"status": "blocked", "errors": [str(exc)]}, 2)
     if archive.exists():
         return emit({"status": "blocked", "errors": [f"archive target exists: {archive}"]}, 2)
     archive.parent.mkdir(exist_ok=True)
@@ -1225,12 +2576,60 @@ def archive_packet(args: argparse.Namespace) -> int:
     metadata["history"].append({"from": "accepted", "to": "archived", "at": now, "note": args.note})
     metadata["state"] = "archived"
     metadata["updated_at"] = now
-    write_json(packet / "packet.json", metadata)
+    write_packet(packet, metadata, "transition", {"from": "accepted", "to": "archived", "note": args.note})
     packet.rename(archive)
-    current = parent / "current"
     if current.exists() and current.read_text(encoding="utf-8").strip() == packet.name:
         current.unlink()
     return emit({"status": "archived", "packet": str(archive)})
+
+
+def deactivate_packet(args: argparse.Namespace) -> int:
+    """Remove only a matching terminal packet from the active pointer."""
+    packet = args.packet.resolve()
+    metadata, errors = load_packet(packet)
+    if errors:
+        return emit({"status": "invalid", "errors": errors}, 2)
+    state = metadata.get("state")
+    if state not in {"accepted", "archived"}:
+        return emit(
+            {
+                "status": "blocked",
+                "errors": ["only an accepted or archived packet can be deactivated"],
+            },
+            2,
+        )
+
+    flow = packet.parent.parent if packet.parent.name == "archive" else packet.parent
+    direct_packet = packet.parent == flow
+    archived_packet = packet.parent.name == "archive" and packet.parent.parent == flow
+    valid_flow = flow.name == "dev-flow" and flow.parent.name == ".codex"
+    if not valid_flow or not (direct_packet or archived_packet):
+        return emit({"status": "blocked", "errors": ["packet is outside a Dev Flow packet directory"]}, 2)
+
+    current = flow / "current"
+    if current.is_symlink():
+        return emit({"status": "blocked", "errors": [f"current pointer must not be a symlink: {current}"]}, 2)
+    if not current.exists():
+        return emit({"status": "unchanged", "packet": str(packet), "reason": "current pointer is already absent"})
+    if not current.is_file():
+        return emit({"status": "blocked", "errors": [f"current pointer must be a regular file: {current}"]}, 2)
+    try:
+        active_change_id = current.read_text(encoding="utf-8").strip()
+    except OSError as exc:
+        return emit({"status": "blocked", "errors": [f"cannot read current pointer: {exc}"]}, 2)
+    if active_change_id != packet.name:
+        return emit(
+            {
+                "status": "blocked",
+                "errors": [f"current pointer names {active_change_id!r}, not {packet.name!r}"],
+            },
+            2,
+        )
+    try:
+        current.unlink()
+    except OSError as exc:
+        return emit({"status": "blocked", "errors": [f"cannot deactivate current pointer: {exc}"]}, 2)
+    return emit({"status": "deactivated", "packet": str(packet), "current": str(current)})
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1244,6 +2643,7 @@ def build_parser() -> argparse.ArgumentParser:
     preflight.add_argument("--config", type=Path)
     preflight.add_argument("--skip-config", action="store_true")
     preflight.add_argument("--tool-surface-confirmed", action="store_true")
+    preflight.add_argument("--require-delegation", action="store_true")
     preflight.set_defaults(func=codex_preflight)
 
     init = sub.add_parser("init-packet")
@@ -1258,6 +2658,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--ui-impact", choices=sorted(UI_IMPACTS), default="none")
     init.add_argument("--compatibility-required", action="store_true")
     init.add_argument("--reuse", action="store_true")
+    init.add_argument("--work-mode", choices=("auto", *sorted(WORK_MODES)), default="auto")
     init.set_defaults(func=init_packet)
 
     validate = sub.add_parser("validate-packet")
@@ -1269,6 +2670,7 @@ def build_parser() -> argparse.ArgumentParser:
     transition.add_argument("state", choices=sorted(STATES))
     transition.add_argument("--note", required=True)
     transition.add_argument("--approved-by")
+    transition.add_argument("--ambiguity-id", help="Open material AMB-n that justifies content-bound reopening")
     transition.set_defaults(func=transition_packet)
 
     approval = sub.add_parser("record-approval")
@@ -1277,13 +2679,93 @@ def build_parser() -> argparse.ArgumentParser:
     approval.add_argument("--id", required=True)
     approval.add_argument("--by", required=True)
     approval.add_argument("--note", required=True)
+    approval.add_argument("--scope", action="append", default=[])
+    approval.add_argument("--blocker", action="append", default=[])
+    approval.add_argument("--residual-risk")
+    approval.add_argument("--expires-at")
+    approval.add_argument("--recheck-trigger")
+    approval.add_argument("--dependency-ecosystem", choices=("cargo", "npm", "github-actions", "other"))
+    approval.add_argument("--dependency-name")
+    approval.add_argument("--dependency-version")
+    approval.add_argument("--dependency-ref")
+    approval.add_argument("--dependency-command")
+    approval.add_argument("--dependency-file", action="append", default=[])
+    approval.add_argument("--dependency-operation", action="append", choices=("add", "update", "remove"), default=[])
+    approval.add_argument("--dependency-result-sha256", action="append", default=[])
     approval.set_defaults(func=record_approval)
+
+    ambiguity = sub.add_parser("record-ambiguity", help="Record a structured content-bound semantic ambiguity")
+    ambiguity.add_argument("packet", type=Path)
+    ambiguity.add_argument("--summary", required=True)
+    ambiguity.add_argument("--source", required=True)
+    ambiguity.add_argument("--interpretation", action="append", required=True)
+    ambiguity.add_argument("--evidence", action="append", default=[])
+    ambiguity.add_argument("--materiality", choices=sorted(AMBIGUITY_MATERIALITIES), required=True)
+    ambiguity.add_argument("--owner", choices=sorted(AMBIGUITY_OWNERS), required=True)
+    ambiguity.add_argument("--affects", action="append", default=[])
+    ambiguity.add_argument("--recommendation", required=True)
+    ambiguity.set_defaults(func=record_ambiguity)
+
+    resolution = sub.add_parser("resolve-ambiguity", help="Resolve an open content-bound semantic ambiguity")
+    resolution.add_argument("packet", type=Path)
+    resolution.add_argument("--id", required=True)
+    resolution.add_argument(
+        "--status",
+        choices=sorted(AMBIGUITY_STATUSES - {"open"}),
+        required=True,
+    )
+    resolution.add_argument("--by", required=True)
+    resolution.add_argument("--resolution", required=True)
+    resolution.add_argument("--evidence", action="append", required=True)
+    resolution.set_defaults(func=resolve_ambiguity)
 
     audit = sub.add_parser("audit-preferences")
     audit.add_argument("--root", type=Path, required=True)
     audit.add_argument("--packet", type=Path)
     audit.add_argument("--base")
     audit.set_defaults(func=audit_preferences)
+
+    profile = sub.add_parser("validate-profile", help="Validate one engineering profile TOML file")
+    profile.add_argument("profile", type=Path)
+    profile.set_defaults(func=validate_profile_command)
+
+    resolve = sub.add_parser("resolve-profiles", help="Resolve layered engineering profiles for a task")
+    resolve.add_argument("--root", type=Path, required=True)
+    resolve.add_argument("--output", type=Path)
+    resolve.add_argument("--path", action="append", default=[])
+    resolve.add_argument("--fact", action="append", default=[])
+    resolve.add_argument("--task-profile", type=Path, action="append", default=[])
+    resolve.add_argument("--codex-home", type=Path)
+    resolve.add_argument("--profile-mode", choices=sorted(engineering_context.PROFILE_MODES), default="personal-interactive")
+    resolve.set_defaults(func=resolve_profiles_command)
+
+    readiness = sub.add_parser("assess-context", help="Assess task-relative Engineering Context Readiness and quality coverage")
+    readiness.add_argument("--root", type=Path, required=True)
+    readiness.add_argument("--task-type", choices=sorted(TASK_TYPES), required=True)
+    readiness.add_argument("--risk", action="append", default=[])
+    readiness.add_argument("--path", action="append", default=[])
+    readiness.add_argument("--fact", action="append", default=[])
+    readiness.add_argument("--tier", choices=sorted(engineering_context.TIERS))
+    readiness.add_argument("--task-profile", type=Path, action="append", default=[])
+    readiness.add_argument("--skill-root", type=Path, action="append", default=[])
+    readiness.add_argument("--codex-home", type=Path)
+    readiness.add_argument("--profile-mode", choices=sorted(engineering_context.PROFILE_MODES), default="personal-interactive")
+    readiness.add_argument("--working-directory", type=Path)
+    readiness.add_argument("--detail", choices=sorted(engineering_context.READINESS_DETAILS), default="compact")
+    readiness.add_argument("--packet", type=Path)
+    readiness.add_argument("--output", type=Path)
+    readiness.set_defaults(func=assess_context_command)
+
+    route = sub.add_parser("route-task", help="Select the minimal built-in Skill composition for a classified task")
+    route.add_argument("--task-type", choices=sorted(TASK_TYPES), required=True)
+    route.add_argument("--risk", action="append", default=[])
+    route.add_argument("--need", choices=("architecture", "dependency", "diagnosis", "verification", "review", "delivery"), action="append", default=[])
+    route.add_argument("--ui-impact", choices=sorted(UI_IMPACTS), default="none")
+    route.add_argument("--ambiguity", action="store_true")
+    route.add_argument("--profile-operation", action="store_true")
+    route.add_argument("--suite-maintenance", action="store_true")
+    route.add_argument("--work-mode", choices=("auto", *sorted(WORK_MODES)), default="auto")
+    route.set_defaults(func=route_task)
 
     check = sub.add_parser("check")
     check.add_argument("--plugin-root", type=Path)
@@ -1302,6 +2784,13 @@ def build_parser() -> argparse.ArgumentParser:
     archive.add_argument("packet", type=Path)
     archive.add_argument("--note", required=True)
     archive.set_defaults(func=archive_packet)
+
+    deactivate = sub.add_parser(
+        "deactivate-packet",
+        help="Remove a matching accepted/archived packet from the active current pointer without deleting the packet",
+    )
+    deactivate.add_argument("packet", type=Path)
+    deactivate.set_defaults(func=deactivate_packet)
     return parser
 
 

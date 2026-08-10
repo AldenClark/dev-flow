@@ -1,4 +1,0 @@
-interface:
-  display_name: "Engineering Preferences"
-  short_description: "应用 Rust 与前端工程偏好和依赖治理"
-  default_prompt: "Use $engineering-preferences to evaluate this project and its technical choices against the documented engineering preferences."

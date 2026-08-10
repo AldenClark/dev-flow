@@ -1,7 +1,7 @@
 {
   "name": "dev-flow",
-  "version": "0.2.0",
-  "description": "A lightweight, traceable, evidence-driven Codex Multi-Agent V2 development workflow with opinionated Rust and frontend engineering preferences.",
+  "version": "1.0.0",
+  "description": "A neutral, composable, evidence-driven Codex engineering workbench with layered profiles, context readiness, quality coverage, and focused Skills.",
   "author": {
     "name": "Dev Flow Contributors",
     "url": "https://github.com/AldenClark/dev-flow"
@@ -15,14 +15,15 @@
     "development-workflow",
     "software-engineering",
     "traceability",
-    "rust",
-    "frontend"
+    "engineering-profiles",
+    "context-readiness",
+    "quality-assurance"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Dev Flow",
-    "shortDescription": "Opinionated evidence-driven development workflow for Codex.",
-    "longDescription": "Plans and executes software changes with repository-first requirement discovery, persistent proposal/design/progress/audit records, explicit scope, dependency consent, controlled Multi-Agent V2 delegation, risk-based testing, independent audits, and traceable acceptance evidence.",
+    "shortDescription": "Composable evidence-driven engineering workbench for Codex.",
+    "longDescription": "Orchestrates repository context, layered engineering profiles, task-relative context and quality readiness, requirement/design approval, product discovery, architecture and dependency decisions, debugging, verification, independent review, and delivery readiness through focused progressively loaded Skills.",
     "developerName": "Dev Flow Contributors",
     "category": "Developer Tools",
     "capabilities": [
@@ -32,7 +33,7 @@
     "defaultPrompt": [
       "Inspect this repository and implement my request with Dev Flow.",
       "Diagnose and fix this bug with traceable verification evidence.",
-      "Design this migration against my engineering preferences before implementation."
+      "Assess this repository's engineering context and quality coverage before implementation."
     ]
   }
 }

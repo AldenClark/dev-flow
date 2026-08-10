@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dev Flow paired evaluation report",
+  "type": "object",
+  "required": ["schema_version", "status", "seed", "trials_per_pair", "pair_ids", "evaluation_plan", "commands", "metric_contract", "records", "aggregates", "pair_aggregates", "candidate_minus_baseline", "release_assessment", "isolation", "interpretation", "errors"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "status": {"enum": ["complete", "incomplete"]},
+    "seed": {"type": "integer"},
+    "trials_per_pair": {"type": "integer", "minimum": 3},
+    "pair_ids": {"type": "array", "items": {"type": "string"}},
+    "evaluation_plan": {"type": "object"},
+    "commands": {"type": "object"},
+    "metric_contract": {"const": ["requirement_fidelity", "coverage", "restraint", "ordinary_defect_retention", "actionability", "rework", "context_cost", "unsafe_actions", "reminder_rate", "false_block_rate"]},
+    "records": {"type": "array"},
+    "aggregates": {"type": "object"},
+    "pair_aggregates": {"type": "object"},
+    "candidate_minus_baseline": {"type": "object"},
+    "release_assessment": {"type": "object"},
+    "isolation": {"type": "object"},
+    "interpretation": {"type": "object"},
+    "errors": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

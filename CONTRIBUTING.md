@@ -18,6 +18,7 @@ Run the repository gates before opening a pull request:
 python3 -m unittest discover -s evals -v
 python3 evals/run_contract_checks.py
 python3 skills/dev-flow/scripts/dev-flow.py check --plugin-root "$PWD"
+python3 skills/dev-flow-maintainer/scripts/validate-suite.py
 python3 -m compileall -q hooks skills evals
 git diff --check
 ```

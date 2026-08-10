@@ -1,0 +1,4 @@
+interface:
+  display_name: "Requirements and Design"
+  short_description: "Resolve requirements and design scope"
+  default_prompt: "Use $requirements-design to clarify material semantics and produce an approved requirement, design, and change-scope baseline."

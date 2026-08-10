@@ -1,4 +1,4 @@
 interface:
   display_name: "Dev Flow"
-  short_description: "融合仓库规范、产品设计与验证证据的开发流程"
-  default_prompt: "Use $dev-flow to discover scoped repository instructions, choose collaboration and UI-impact profiles, confirm the bounded requirements and design, implement them, and verify the result with fresh evidence."
+  short_description: "Orchestrate a neutral engineering workbench"
+  default_prompt: "Use $dev-flow to establish repository context and effective profiles, route only the focused Skills this task needs, preserve user authority, and close with fresh acceptance evidence."

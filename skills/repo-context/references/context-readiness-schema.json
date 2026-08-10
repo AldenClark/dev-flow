@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AldenClark/dev-flow/schemas/context-readiness-v1.json",
+  "title": "Dev Flow Engineering Context Readiness v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "detail", "host", "tier", "tier_reasons", "outcome", "scope", "sources", "checks", "recommendations", "conflicts", "quality_coverage", "fingerprint", "recheck_triggers", "profile", "errors", "blockers"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "detail": {"enum": ["compact", "full"]},
+    "host": {"type": "object"},
+    "tier": {"enum": ["T0", "T1", "T2", "T3"]},
+    "tier_reasons": {"type": "array", "items": {"type": "string"}},
+    "outcome": {"enum": ["not_applicable", "ready", "partial_advisory", "checkpoint", "blocked", "waived"]},
+    "scope": {"type": "object"},
+    "sources": {"type": "array"},
+    "checks": {"type": "array"},
+    "recommendations": {"type": "array"},
+    "conflicts": {"type": "array"},
+    "quality_coverage": {"type": "object"},
+    "waiver": {"type": ["object", "null"]},
+    "suppression": {"type": ["object", "null"]},
+    "fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "recheck_triggers": {"type": "array", "items": {"type": "string"}},
+    "profile_snapshot": {"type": "object"},
+    "profile": {"type": "object"},
+    "errors": {"type": "array", "items": {"type": "string"}},
+    "blockers": {"type": "array", "items": {"type": "string"}}
+  }
+}

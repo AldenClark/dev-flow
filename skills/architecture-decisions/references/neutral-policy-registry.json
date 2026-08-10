@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "authority": "Portable deterministic policy only. Personal and ecosystem-specific choices belong in resolved profiles and current decisions.",
+  "policies": [
+    {
+      "id": "POLICY-DEPENDENCY-APPROVAL",
+      "status": "active",
+      "domains": ["all"],
+      "default": "Named new dependencies and material tool, service, plugin, or feature expansions require explicit approval.",
+      "volatility": "low"
+    },
+    {
+      "id": "POLICY-NATIVE-IDIOM",
+      "status": "active",
+      "domains": ["all"],
+      "default": "Select guidance by language, artifact role, boundary, framework version, and call path; names alone are not violations.",
+      "volatility": "low"
+    }
+  ],
+  "audit_rules": [
+    {
+      "policy_id": "POLICY-DEPENDENCY-APPROVAL",
+      "kind": "dependency_approval",
+      "pattern": "(?:^|/)(?:Cargo\\.toml|Cargo\\.lock|package\\.json|pnpm-lock\\.yaml|package-lock\\.json|yarn\\.lock|bun\\.lockb?|deno\\.jsonc?|pyproject\\.toml|requirements[^/]*\\.txt|go\\.mod|Package\\.swift|Podfile|build\\.gradle|libs\\.versions\\.toml)$",
+      "severity": "gate",
+      "message": "Dependency manifest or lockfile changed without a recorded named approval."
+    }
+  ]
+}

@@ -34,6 +34,23 @@ Authority: <authority>
 - Design and Scope Ready: <status and material approval>
 - Drift triggers: <conditions that require discovery or user decision>
 
+## Engineering context readiness
+
+- ECR tier and rationale: <T0-T3 plus risk/reversibility evidence>
+- Effective preferences: <effective-preferences.json fingerprint, source layers, conflicts, and owner>
+- EQAC: <applicable capability outcomes and native/policy/admitted/fallback coverage>
+- Outcome: <not_applicable, ready, partial_advisory, checkpoint, blocked, or waived>
+- Reminder/waiver: <none, fingerprinted suppression, or scoped authorized waiver with expiry>
+
+## Semantic input and ambiguity ownership
+
+- Input completeness: <design package, product requirement, short request, bug report, or mixed evidence>
+- Repository-resolvable facts: <facts Codex must investigate rather than ask the user>
+- User-owned semantics: <material behavior, contract, scope, compatibility, acceptance, or delivery decisions>
+- Clarification strategy: <highest-value one-to-three questions, recommendation, and affected AC, SC, or VO IDs>
+- Interaction route: <Default mode; native request_user_input availability, bounded-choice eligibility, fallback, and unresolved-answer behavior>
+- Late-discovery rule: <conditions that reopen the requirement baseline before affected work continues>
+
 ## Current behavior or reproduction
 
 <Observed flow, deterministic reproduction, or baseline evidence. State missing evidence explicitly.>

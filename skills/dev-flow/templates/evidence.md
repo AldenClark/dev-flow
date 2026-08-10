@@ -11,6 +11,14 @@
 - Instructions: <INS IDs mapped to final diff, commands, inspections, exceptions, and conflicts>
 - Collaboration: <profile, Requirement Ready/design checkpoints, corrections, and drift decisions>
 - UX: <UI impact, protected product constraints, UX Ready approval, rendered evidence, or not applicable with rationale>
+- ECR/EQAC: <final readiness outcome/fingerprint, profile fingerprint, native evidence, admitted routes, fallback/waiver, and recheck triggers>
+
+## Semantic clarification evidence
+
+- Requirement baseline: <current revision, digest, Requirement Ready actor/time, and matching design approval>
+- Ambiguities: <all AMB IDs, owners, affected AC/SC/VO IDs, dispositions, and evidence>
+- Questions avoided: <repository-resolvable facts investigated without delegating discovery back to the user>
+- Reopening: <none, or late ambiguity and the fresh confirmation cycle that followed>
 
 ## Commands and results
 

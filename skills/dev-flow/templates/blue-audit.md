@@ -12,6 +12,10 @@
 
 <Review instruction conformance, collaboration/readiness decisions, conditional UX fidelity, contracts, idioms, errors, observability, tests, documentation, and operational integration.>
 
+## Finding classification and requirement reopening
+
+<For each finding, state whether it is an implementation defect, design defect, evidence gap, scope change, or requirement ambiguity. A user-owned material/high-risk ambiguity must name its AMB ID, affected IDs, and reopening disposition; the reviewer must not choose the product meaning.>
+
 ## Findings
 
 | Finding | Severity | Evidence | Verification | Status |

@@ -7,6 +7,9 @@
 ## Engineering preferences applied
 
 - Applicable instructions: <INS IDs and their design effects>
+- Effective snapshot: <fingerprint, applicable layers, conflicts, and exceptions; or neutral baseline only>
+- Language/framework scope: <facts that prevent cross-language or cross-role leakage>
+- Quality coverage: <native control, owned policy, admitted specialist, qualified fallback, or waiver>
 - <preference ID, repository evidence, decision effect, and any exception>
 
 ## Alternatives
@@ -25,6 +28,12 @@
 - Users, outcome, and protected product/IA/flow constraints: <contract or not applicable with rationale>
 - Design truth, selected direction, states, accessibility, fidelity, and evidence: <contract or not applicable with rationale>
 - UX Ready: <not applicable, pending decision, or recorded approval>
+
+## Requirement baseline and reopening
+
+- Bound revision and digest: <requirement revision and sha256 digest approved by this design>
+- Disposed ambiguities: <AMB IDs and how each resolution affects the design>
+- Reopening behavior: <affected implementation stops; material or high-risk AMB returns the packet to awaiting approval; new approval binds the next revision>
 
 ## Dependency decisions
 

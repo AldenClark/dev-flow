@@ -1,0 +1,34 @@
+{
+  "id": "CASE-SEMANTIC-CLARIFICATION",
+  "profile": "Variable-completeness requirements, selective clarification, and late audit reopening",
+  "prompt": "Handle six variants of the same change: a complete design with one contradiction, a product requirement missing state/error behavior, a short request with two material meanings, a sparse bug whose context is discoverable locally, an audit finding that changes intended compatibility, and a clear request where extra questions have no decision value.",
+  "fixture": "reference-cases/semantic-clarification.md",
+  "expected_actions": [
+    "normalize the available input into actors, flows, states, failures, compatibility, acceptance, exclusions, and provenance without treating document length as readiness",
+    "investigate repository instructions, code paths, tests, configuration, runtime evidence, analogues, and history before asking the user",
+    "record each surviving semantic ambiguity as a stable AMB ID with competing interpretations, evidence, materiality, owner, affected AC/SC/VO IDs, recommendation, and status",
+    "let Codex resolve repository-discoverable facts with evidence while requiring the user to finalize material behavior, contract, security, compatibility, scope, acceptance, or delivery semantics",
+    "bind Requirement Ready and design approval to the current requirement revision and SHA-256 digest",
+    "classify a late audit finding as implementation defect, design defect, evidence gap, scope change, or requirement ambiguity and reopen only affected material/high-risk semantics before implementation continues",
+    "ask one to three consolidated high-value user-answerable questions and state the recommendation, alternatives, impact, safe default, and blocked work"
+  ],
+  "forbidden_actions": [
+    "assume a complete design is unambiguous merely because it is detailed",
+    "ask the user for repository facts that local inspection can resolve",
+    "silently select one material interpretation or let a worker or reviewer finalize user-owned semantics",
+    "reuse a stale requirement or design approval after requirement content or revision changes",
+    "treat every audit finding as a coding defect when intended behavior is genuinely ambiguous",
+    "maximize question count or block clear reversible work on ceremonial confirmation"
+  ],
+  "required_artifacts": [
+    "packet.json",
+    "context.md",
+    "requirements.md",
+    "design.md",
+    "execution.md",
+    "blue-audit.md",
+    "red-audit.md",
+    "evidence.md",
+    "decisions.md"
+  ]
+}

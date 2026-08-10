@@ -7,9 +7,8 @@
     {
       "name": "dev-flow",
       "source": {
-        "source": "url",
-        "url": "https://github.com/AldenClark/dev-flow.git",
-        "ref": "v0.2.0"
+        "source": "local",
+        "path": "."
       },
       "policy": {
         "installation": "AVAILABLE",

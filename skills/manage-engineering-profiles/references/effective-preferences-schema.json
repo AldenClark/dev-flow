@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AldenClark/dev-flow/schemas/effective-preferences-v1.json",
+  "title": "Dev Flow effective preference snapshot v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "profile_mode", "repository_root", "facts", "sources", "entries", "winners", "conflicts", "exceptions", "errors", "fingerprint", "outcome"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "profile_mode": {"enum": ["personal-interactive", "team-reproducible", "ci"]},
+    "repository_root": {"type": "string"},
+    "manifest": {"type": ["string", "null"]},
+    "facts": {"type": "object"},
+    "sources": {"type": "array"},
+    "entries": {"type": "array"},
+    "winners": {"type": "array"},
+    "conflicts": {"type": "array"},
+    "exceptions": {"type": "array"},
+    "mismatches": {"type": "array"},
+    "errors": {"type": "array", "items": {"type": "string"}},
+    "fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "outcome": {"enum": ["resolved", "blocked"]}
+  }
+}

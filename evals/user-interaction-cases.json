@@ -1,0 +1,145 @@
+{
+  "schema_version": "1.0",
+  "cases": [
+    {
+      "id": "valid-option",
+      "kind": "response",
+      "expected_question_id": "scope",
+      "question_id": "scope",
+      "options": ["existing users", "new users"],
+      "other_enabled": false,
+      "answers": ["existing users"],
+      "requirement_revision": 3,
+      "current_requirement_revision": 3,
+      "expected": "accepted-option"
+    },
+    {
+      "id": "valid-other",
+      "kind": "response",
+      "expected_question_id": "scope",
+      "question_id": "scope",
+      "options": ["existing users", "new users"],
+      "other_enabled": true,
+      "answers": ["Only migrated enterprise tenants"],
+      "requirement_revision": 3,
+      "current_requirement_revision": 3,
+      "expected": "accepted-other"
+    },
+    {
+      "id": "outside-option-without-other",
+      "kind": "response",
+      "expected_question_id": "scope",
+      "question_id": "scope",
+      "options": ["existing users", "new users"],
+      "other_enabled": false,
+      "answers": ["Only migrated enterprise tenants"],
+      "requirement_revision": 3,
+      "current_requirement_revision": 3,
+      "expected": "unresolved-invalid"
+    },
+    {
+      "id": "empty-answer",
+      "kind": "response",
+      "expected_question_id": "scope",
+      "question_id": "scope",
+      "options": ["existing users", "new users"],
+      "other_enabled": true,
+      "answers": ["   "],
+      "requirement_revision": 3,
+      "current_requirement_revision": 3,
+      "expected": "unresolved-invalid"
+    },
+    {
+      "id": "conflicting-answers",
+      "kind": "response",
+      "expected_question_id": "scope",
+      "question_id": "scope",
+      "options": ["existing users", "new users"],
+      "other_enabled": false,
+      "answers": ["existing users", "new users"],
+      "requirement_revision": 3,
+      "current_requirement_revision": 3,
+      "expected": "unresolved-invalid"
+    },
+    {
+      "id": "unknown-question",
+      "kind": "response",
+      "expected_question_id": "scope",
+      "question_id": "different-question",
+      "options": ["existing users", "new users"],
+      "other_enabled": false,
+      "answers": ["existing users"],
+      "requirement_revision": 3,
+      "current_requirement_revision": 3,
+      "expected": "ignored-stale-or-unknown"
+    },
+    {
+      "id": "stale-revision",
+      "kind": "response",
+      "expected_question_id": "scope",
+      "question_id": "scope",
+      "options": ["existing users", "new users"],
+      "other_enabled": false,
+      "answers": ["existing users"],
+      "requirement_revision": 2,
+      "current_requirement_revision": 3,
+      "expected": "ignored-stale-or-unknown"
+    },
+    {
+      "id": "user-cancelled",
+      "kind": "lifecycle",
+      "event": "user-cancelled",
+      "fallback_attempts": 0,
+      "host_allows_plain_text": true,
+      "expected": "unresolved-no-reprompt"
+    },
+    {
+      "id": "client-interrupted",
+      "kind": "lifecycle",
+      "event": "client-interrupted",
+      "fallback_attempts": 0,
+      "host_allows_plain_text": true,
+      "expected": "unresolved-no-reprompt"
+    },
+    {
+      "id": "request-cleared",
+      "kind": "lifecycle",
+      "event": "request-cleared",
+      "fallback_attempts": 0,
+      "host_allows_plain_text": true,
+      "expected": "unresolved-no-reprompt"
+    },
+    {
+      "id": "tool-unavailable-fallback",
+      "kind": "lifecycle",
+      "event": "tool-unavailable",
+      "fallback_attempts": 0,
+      "host_allows_plain_text": true,
+      "expected": "fallback-nonenumerated"
+    },
+    {
+      "id": "invocation-failed-fallback",
+      "kind": "lifecycle",
+      "event": "invocation-failed-before-presentation",
+      "fallback_attempts": 0,
+      "host_allows_plain_text": true,
+      "expected": "fallback-nonenumerated"
+    },
+    {
+      "id": "fallback-exhausted",
+      "kind": "lifecycle",
+      "event": "tool-unavailable",
+      "fallback_attempts": 1,
+      "host_allows_plain_text": true,
+      "expected": "unresolved-blocked"
+    },
+    {
+      "id": "plain-text-disallowed",
+      "kind": "lifecycle",
+      "event": "tool-unavailable",
+      "fallback_attempts": 0,
+      "host_allows_plain_text": false,
+      "expected": "unresolved-blocked"
+    }
+  ]
+}

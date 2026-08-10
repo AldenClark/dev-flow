@@ -6,9 +6,9 @@
       "id": "IND-OPENAI-SKILLS",
       "source": "https://learn.chatgpt.com/docs/build-skills",
       "checked_at": "2026-08-08",
-      "local_problem": "Keep two skills discoverable without loading the full preference catalog into every turn.",
-      "decision": "Use concise entrypoints, progressive disclosure, direct resource links, and a plugin bundle.",
-      "adaptation": "Flow explicitly loads the preference skill; the preference registry routes targeted details.",
+      "local_problem": "Keep a composable Skill suite discoverable without loading its full policy and reference corpus into every turn.",
+      "decision": "Use concise focused entrypoints, progressive disclosure, direct resource links, and a plugin bundle.",
+      "adaptation": "The thin Dev Flow kernel routes only the task-relevant subset of 12 Skills; shared profile/ECR/EQAC data is resolved without activating a management Skill.",
       "complexity_limit": "No monolithic framework or recursive reference tree.",
       "evaluation": "Validate frontmatter, direct references, openai.yaml prompts, and contract cases.",
       "review_after": "2026-11-08"
@@ -34,6 +34,50 @@
       "complexity_limit": "One child level by default; no automatic delegation.",
       "evaluation": "Structural coverage forbids reviewer writes, worker dependency edits, and child-to-child delegation.",
       "review_after": "on Codex multi-agent schema change"
+    },
+    {
+      "id": "IND-SCOPED-INSTRUCTIONS",
+      "source": "https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot",
+      "checked_at": "2026-08-09",
+      "local_problem": "Personal, team, repository, path, and task guidance need useful precedence without one global handbook or language leakage.",
+      "decision": "Keep always-on instructions concise and scoped; store richer owned preferences separately and resolve them against task facts.",
+      "adaptation": "AGENTS remains instruction authority while six profile layers produce a deterministic effective snapshot with conflicts and source hashes.",
+      "complexity_limit": "Missing optional instruction/profile files never block by presence alone and generated guidance is review-first.",
+      "evaluation": "Global/root/nested/override, personal/team/project/component/task, and cross-language fixtures.",
+      "review_after": "on instruction discovery or precedence change"
+    },
+    {
+      "id": "IND-RUST-NATIVE-QUALITY",
+      "source": "https://doc.rust-lang.org/clippy/configuration.html",
+      "checked_at": "2026-08-09",
+      "local_problem": "Generic style prose can duplicate or contradict the compiler, formatter, linter, and edition-specific repository configuration.",
+      "decision": "Prefer repository-native deterministic controls and add prose only for consequential non-obvious invariants.",
+      "adaptation": "EQAC records native Rust evidence before considering a host-admitted specialist route or owned fallback.",
+      "complexity_limit": "No universal crate, DTO, naming, or architecture preference is projected across languages.",
+      "evaluation": "Rust, non-Rust, mixed-language, unsafe, async, and FFI routing fixtures.",
+      "review_after": "on Rust edition or Clippy configuration contract change"
+    },
+    {
+      "id": "IND-TYPESCRIPT-STRICTNESS",
+      "source": "https://www.typescriptlang.org/tsconfig/strict.html",
+      "checked_at": "2026-08-09",
+      "local_problem": "TypeScript quality depends on the project's compiler/runtime boundary rather than a generic Java-style object model.",
+      "decision": "Treat compiler/typecheck configuration and external-data validation as native evidence, then route framework-specific review only when manifest facts apply.",
+      "adaptation": "Framework selectors are derived from canonical package manifests; React guidance cannot activate from a TypeScript extension alone.",
+      "complexity_limit": "Do not convert repository observations into team policy or invent framework/version facts.",
+      "evaluation": "Plain TypeScript versus React manifest and unrelated-language negative fixtures.",
+      "review_after": "on TypeScript strict-mode contract change"
+    },
+    {
+      "id": "IND-REACT-RULES",
+      "source": "https://react.dev/reference/rules",
+      "checked_at": "2026-08-09",
+      "local_problem": "React correctness and performance advice becomes wrong when applied to non-React frontend code or detached from actual rendering/data-flow evidence.",
+      "decision": "Apply React-specific procedures only after framework detection and combine them with rendered or measured evidence where risk warrants.",
+      "adaptation": "EQAC uses language plus framework selectors and minimal active-host routing; installed route presence alone is unassessed.",
+      "complexity_limit": "No automatic Skill installation and no overlapping review routes without an explicit preferred route.",
+      "evaluation": "Trigger, safe-use, unrelated-use, route collision, and digest-drift cases.",
+      "review_after": "on React major rules or compiler guidance change"
     },
     {
       "id": "IND-OPENAI-HOOKS",
@@ -67,6 +111,50 @@
       "complexity_limit": "No mandatory constitution generation per project.",
       "evaluation": "Reject missing or mismatched ID mappings and checkpointed/co-design approval without Requirement Ready.",
       "review_after": "2026-12-01"
+    },
+    {
+      "id": "IND-NASA-REQ-BASELINE",
+      "source": "https://www.nasa.gov/reference/system-engineering-handbook-appendix/",
+      "checked_at": "2026-08-09",
+      "local_problem": "Unrecorded assumptions and changing requirement baselines let semantic defects surface only after implementation.",
+      "decision": "Record ambiguity and assumptions explicitly, baseline approved requirement content, and reopen controlled approval when the baseline changes.",
+      "adaptation": "Schema 1.2 AMB records plus revision and SHA-256 binding on Requirement Ready and design approval.",
+      "complexity_limit": "Strengthen the existing readiness gate instead of adding a second universal approval ceremony.",
+      "evaluation": "Stale-digest, unresolved-ambiguity, and late-reopening mutation tests.",
+      "review_after": "2027-08-09"
+    },
+    {
+      "id": "IND-CLARIFICATION-UTILITY",
+      "source": "https://doi.org/10.1145/3660810",
+      "checked_at": "2026-08-09",
+      "local_problem": "Coding agents can either guess a materially ambiguous request or burden users with broad questionnaires.",
+      "decision": "Ask selectively only after repository investigation, using competing interpretations, affected contracts, recommendation, and decision impact.",
+      "adaptation": "One-to-three high-value decision packets and explicit Codex/user ambiguity ownership, also informed by https://aclanthology.org/2025.findings-naacl.306/.",
+      "complexity_limit": "Question count is never a success metric; discoverable facts remain Codex work.",
+      "evaluation": "Short-request, sparse-bug, and avoidable-question negative contracts.",
+      "review_after": "2027-08-09"
+    },
+    {
+      "id": "IND-OPENAI-REQUEST-USER-INPUT",
+      "source": "https://github.com/openai/codex/blob/646f7c0a91b8e327d263335da68ae8ef212895ce/codex-rs/app-server/README.md#request_user_input",
+      "checked_at": "2026-08-09",
+      "local_problem": "Material user checkpoints need native structured interaction without changing collaboration mode or coupling a Skill to App Server lifecycle internals.",
+      "decision": "Remain in Default mode, invoke the host-exposed request_user_input tool, and let App Server and its client own item/tool/requestUserInput transport and cleanup.",
+      "adaptation": "Use the effective current-turn tool surface for capability detection, retain a concise Default-mode text fallback, preserve native approval and secure-secret channels, and record answers against semantic scope.",
+      "complexity_limit": "No raw protocol frames, lifecycle identifiers, global feature mutation, silent default on cancellation, or Plan-mode switch.",
+      "evaluation": "Structured-input route contract plus positive, unavailable-tool, free-form, approval, secret, cancellation, and invalid-answer cases.",
+      "review_after": "on Codex App Server request_user_input or Default-mode feature maturity change"
+    },
+    {
+      "id": "IND-AMBIG-CODING-EVALS",
+      "source": "https://arxiv.org/abs/2502.13069",
+      "checked_at": "2026-08-09",
+      "local_problem": "Traditional coding benchmarks reward plausible implementation without measuring whether an agent detected underspecified intent.",
+      "decision": "Evaluate ambiguity detection, answerability, clarification precision, downstream requirement binding, and scoped reopening.",
+      "adaptation": "Contract scenarios and metrics also track emerging CLARITI (https://arxiv.org/abs/2604.14624) and ClarifyCodeBench (https://arxiv.org/abs/2607.00711) directions.",
+      "complexity_limit": "Deterministic structural tests remain separate from optional live model evaluation.",
+      "evaluation": "Semantic clarification reference contract plus schema 1.2/2.0 behavior and mutation tests.",
+      "review_after": "2027-02-09"
     },
     {
       "id": "IND-GOVUK-DISCOVERY",

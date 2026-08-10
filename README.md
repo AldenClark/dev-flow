@@ -3,30 +3,39 @@
 [![CI](https://github.com/AldenClark/dev-flow/actions/workflows/ci.yml/badge.svg)](https://github.com/AldenClark/dev-flow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Dev Flow 是一套面向 Codex Multi-Agent V2 的轻量开发流程插件。它把“先理解现有代码、再确认需求和设计”落实为可追溯的工作包，并提供一套明确、可调整的 Rust 与前端工程偏好。
+Dev Flow 是一套面向 Codex 的中立、可组合、证据驱动工程工作台。它把仓库上下文、分层工程 Profile、需求与设计、实施、验证、审查和交付就绪度连接为可追溯流程，同时避免把某个人的 Rust、前端或库偏好写进公共内核。
 
 > English: a lightweight, repository-first and evidence-driven Codex workflow for high-quality software changes.
 
 ## 核心能力
 
 - 在需求和方案前扫描真实代码、运行时事实与 Git 边界；
-- 按真实 Git 根和待修改路径解析本地规范、嵌套指令、Skills、机器配置与 CI，并把有效规则映射到实现和证据；
+- 按真实 Git 根和有效工作目录解析 Codex 指令链，按任务路径选择证据、Profiles、原生控制与 CI；
 - 以 `execute`、`checkpointed`、`co-design` 三种协作模式控制需求、设计、漂移与验收检查点；
+- 把输入中的多义性记录为结构化 `AMB-n`，区分“Codex 应从仓库查明的事实”和“必须由用户定稿的需求语义”；
+- 用需求修订号与 SHA-256 摘要绑定 Requirement Ready/设计批准，后续语义变化或审计疑义会使旧批准失效；
 - 将 UI 工作分为 `none`、`preserve`、`material`，只对重大产品/UI 变化强制 UX Ready，避免无差别设计仪式；
 - 明确记录需求、验收标准、设计、改动范围、进度、决策、测试和审计；
 - 按微小修改、日常需求、Bug 修复、大型功能、重构、迁移、安全与性能任务调整流程重量；
+- 使用 `direct`（无工作包）、`traced`（三个核心状态文件）和 `governed`（完整治理记录）三级工作模式；
 - 按 Rust 后端、Web、Apple/Android/Windows 客户端、FFI、CLI/TUI 等项目形态组织验证；
 - 新依赖必须先比较候选方案、影响与维护成本，并取得明确批准；
-- 只把边界清晰的独立工作交给子代理，由根代理负责综合、复核和最终验收；
+- 只把边界清晰的独立工作交给子代理，通常同时运行 1–2 个；根代理按 deadline、resource lease 和 disposition 完成综合、复核与最终验收；
 - 管控浏览器、模拟器、设备、虚拟机、容器和服务等测试资源；
 - 用蓝队审计、红队审计和新鲜验证证据阻止未经证实的完成声明。
+- 以 12 个职责单一的 Skills 支持直接调用和端到端组合，避免加载无关工程手册；
+- 解析 public baseline、个人、团队、项目、组件与任务六层 Profile，并输出带来源哈希、冲突和例外的有效快照；
+- 以 T0-T3 Engineering Context Readiness 检查当前任务真正需要的上下文，而不是按文件存在性评分；
+- 以 EQAC 优先使用编译器、类型检查、lint、测试、CI 等原生控制，再按当前宿主准入最小化路由专业 Skills；
+- 缺少个人 Profile、`AGENTS.md` 或某个具名 Skill 不会单独构成阻断，也不会触发自动安装。
+- 所有用户交互始终留在 Default mode；适合的封闭选择优先调用宿主原生 `request_user_input`，由 App Server 承载 `item/tool/requestUserInput`，不会为提问切换 Plan mode 或自行拼装协议帧。
 
 ## 运行要求
 
-- Codex CLI `0.147.0` 或更高版本；
+- 支持当前 Codex CLI 的基础单代理工作流；委派与 hooks 能力在使用前单独检测；
 - Python `3.11` 或更高版本，仅使用标准库；
 - Git；
-- Codex 配置启用 `multi_agent`、`multi_agent_v2` 和 `hooks`。
+- 如需多代理与 hooks，Codex 配置启用 `multi_agent`、`multi_agent_v2` 和 `hooks`。
 
 推荐配置：
 
@@ -42,10 +51,10 @@ max_concurrent_threads_per_session = 3
 
 ## 安装
 
-仓库公开并创建 `v0.2.0` 标签后，可直接添加仓库内的 marketplace 并安装固定到该标签的插件：
+发布与插件清单版本一致的标签后，可直接添加仓库内的 marketplace 并安装固定到该标签的插件。当前已发布稳定标签为 `v0.2.0`；源码中的下一版本能力需待对应标签发布后再从 marketplace 安装：
 
 ```bash
-codex plugin marketplace add https://github.com/AldenClark/dev-flow.git
+codex plugin marketplace add AldenClark/dev-flow --ref v0.2.0
 codex plugin add dev-flow@dev-flow
 ```
 
@@ -53,7 +62,7 @@ codex plugin add dev-flow@dev-flow
 
 ```bash
 python3 skills/dev-flow/scripts/dev-flow.py check --plugin-root "$PWD"
-python3 skills/dev-flow/scripts/dev-flow.py preflight --tool-surface-confirmed
+python3 skills/dev-flow/scripts/dev-flow.py preflight
 ```
 
 再安装随附的角色配置：
@@ -78,7 +87,38 @@ python3 skills/dev-flow/scripts/dev-flow.py uninstall-runtime
 
 ## 使用方式
 
-在 Codex 中调用 `$dev-flow`，并描述目标、允许的交付范围以及兼容性要求。涉及技术选型时，流程会配合 `$engineering-preferences` 使用。流程会先建立适用规范账本，再根据风险选择协作模式；用户可显式覆盖默认模式。
+在 Codex 中调用 `$dev-flow`，并描述目标、允许的交付范围以及兼容性要求。主流程会先使用 `$repo-context` 建立仓库事实、ECR/EQAC 和有效 Profile，再只路由当前任务需要的能力。也可以直接调用 `$requirements-design`、`$architecture-decisions`、`$dependency-decisions`、`$systematic-debugging`、`$verification`、`$change-review` 或其他聚焦 Skill。
+
+只有在创建、调整、解释、推广、退役或审计 Profile/质量策略时才调用 `$manage-engineering-profiles`；普通代码任务只消费解析结果。`$dev-flow-maintainer` 仅用于显式维护本插件。
+
+Profile 与上下文命令均使用 Python 标准库：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py resolve-profiles \
+  --root "$PWD" --output .codex/dev-flow/<change-id>/effective-preferences.json
+
+python3 skills/dev-flow/scripts/dev-flow.py assess-context \
+  --root "$PWD" --task-type routine --profile-mode team-reproducible
+
+python3 skills/manage-engineering-profiles/scripts/profile-tool.py \
+  scaffold --id project.default --layer project --owner team \
+  --output .dev-flow/profiles/project.toml
+
+python3 skills/manage-engineering-profiles/scripts/profile-tool.py \
+  suppress --fingerprint sha256:<64-hex> --owner <owner> \
+  --reason "reviewed for this unchanged task context" \
+  --tier T1 --output .dev-flow/suppressions.json
+```
+
+Profile 工具默认只输出 review-first 提案；明确审核后才添加 `--write`。它不会自动创建团队规则、安装专业 Skill 或修改依赖。
+
+### 用户确认与结构化输入
+
+Dev Flow 把“为什么要问”和“如何展示问题”分开：只有仓库调查后仍然存在、且会改变行为、契约、依赖、兼容性、范围、风险、验收或权限的用户自有决策，才进入确认流程。对一至三个能够准确表达为封闭选项的非秘密决策，当前 Default-mode 宿主若暴露 `request_user_input`，就调用该原生工具；App Server/客户端负责 `item/tool/requestUserInput` 的线程、轮次、item、阻塞、响应关联、渲染和清理生命周期。
+
+Skill 不直接发送 App Server 帧，也不根据版本号、已安装能力或记忆推断工具可用，更不会自动修改全局 Codex feature 配置。当前 turn 没有暴露该工具、或在展示前调用失败时，流程保持 Default mode；若宿主允许，只退化为一次聚焦的非枚举文字问题，否则明确报告阻断，不把多选框伪装成文字选项。开放式说明继续使用普通对话；命令、文件变更、破坏性或外部动作使用宿主原生批准界面；秘密只通过宿主认可的安全输入通道收集，否则停止请求。
+
+合法回答是一个已展示的非空选项，或在该问题启用 Other 时的一条非空补充；未知问题、空值、多值冲突、未启用 Other 的越界值和过期修订回答都无效。取消、清理、中断、漏答或无效回答保持“未决”，不立即换通道重问，也绝不会自动采用推荐项；只有新的用户意图或明确重试才重新发问。有效回答会回写受影响的 `AMB/AC/SC/VO`、依赖、豁免或交付记录及需求修订/摘要。App Server 当前仍把这项协议标记为 experimental，因此实时原生交互和静态契约验证会分开报告。
 
 CLI 初始化也支持显式分类：
 
@@ -89,7 +129,7 @@ python3 skills/dev-flow/scripts/dev-flow.py init-packet \
   --collaboration-profile co-design --ui-impact material
 ```
 
-新工作包使用向后兼容的 schema 1.1。`checkpointed`/`co-design` 在批准前记录 Requirement Ready；`material` UI 还记录 UX Ready：
+CLI 会自动选择工作模式，也可用 `--work-mode` 显式指定。新工作包使用 schema 2.0 和 append-only `events.jsonl`，并继续读取旧 schema 1.0、1.1、1.2。`checkpointed`/`co-design` 在批准前记录 Requirement Ready；内容绑定会把批准关联到当前需求修订与摘要，`material` UI 还记录 UX Ready：
 
 ```bash
 python3 skills/dev-flow/scripts/dev-flow.py record-approval \
@@ -101,11 +141,61 @@ python3 skills/dev-flow/scripts/dev-flow.py record-approval \
   --id UX-READY --by user --note "product and UX direction approved"
 ```
 
-非微型任务会在目标仓库建立：
+Schema 2.0 的依赖批准必须绑定机器可读身份、精确 ref、目标文件、允许操作和最终文件摘要，不能用一个泛化的 `DEP-n` 解锁其他依赖。例如：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py record-approval \
+  .codex/dev-flow/release-change dependencies \
+  --id DEP-1 --by user --note "approve exact action" \
+  --dependency-ecosystem github-actions \
+  --dependency-name actions/upload-artifact --dependency-version 7.0.1 \
+  --dependency-ref 043fb46d1a93c77aae656e7c1c64a875d1fc6a0a \
+  --dependency-file .github/workflows/release-candidate.yml \
+  --dependency-operation add
+```
+
+包管理器调用必须是可解析的单一精确命令，并通过 `--dependency-command 'cargo add name@ref --features=exact'` 连同全部 flags 绑定；add/update/remove 使用同一规则。`.exe`/`.cmd` launcher、Cargo toolchain 与普通嵌套 shell launcher 会被识别，任何位于 verb 前后且无法绑定目标 manifest 的 path/package/workspace selector 都会拒绝。直接写 manifest/lockfile 时，最终审计还要求 `--dependency-result-sha256 PATH=sha256:<hex>` 与实际文件字节一致。GitHub Actions 的 block/flow mapping、YAML 十六进制/Unicode 转义 `uses` 键和值，以及工作流中的具体 Action 引用也使用同一路径、operation 与完整 commit SHA 约束。不能可靠绑定的操作会拒绝，而不会退化为“已有任意依赖审批即可”。
+
+当仓库调查后仍存在会改变行为、契约、安全、兼容性、范围或验收的多义性时，先记录不同解释、责任人、受影响 ID 和建议，再由证据或用户定稿：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py record-ambiguity \
+  .codex/dev-flow/console-redesign \
+  --summary "默认行为是否变化" --source "需求文档" \
+  --interpretation "仅显式启用" --interpretation "所有用户默认启用" \
+  --materiality material --owner user --affects AC-1 \
+  --recommendation "保留现有默认值"
+
+python3 skills/dev-flow/scripts/dev-flow.py resolve-ambiguity \
+  .codex/dev-flow/console-redesign --id AMB-1 \
+  --status user-confirmed --by user --resolution "保留现有默认值" \
+  --evidence "用户在需求检查点确认"
+```
+
+实现或审计阶段若发现新的重大需求疑义，受影响工作必须先回到等待确认；旧设计批准被保留为历史，但不能复用：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py transition \
+  .codex/dev-flow/console-redesign awaiting-approval \
+  --ambiguity-id AMB-2 --note "审计发现兼容性语义存在两种解释"
+```
+
+日常 `traced` 任务只建立：
 
 ```text
 .codex/dev-flow/<change-id>/
 ├── packet.json
+├── events.jsonl
+├── trace.md
+└── artifacts/
+```
+
+高风险或显式治理的 `governed` 任务建立：
+
+```text
+.codex/dev-flow/<change-id>/
+├── packet.json
+├── events.jsonl
 ├── context.md
 ├── requirements.md
 ├── design.md
@@ -120,7 +210,15 @@ python3 skills/dev-flow/scripts/dev-flow.py record-approval \
 └── artifacts/
 ```
 
-真正的微小变更沿用同一机器状态和目录边界，但把人类可读记录压缩到 `trace.md`。
+清晰的微小变更使用 `direct`，不创建工作包；若不确定性、契约或风险上升则升级为 traced/governed。
+
+多代理完成以“没有仍在运行/待启动的委派任务，且每个任务都已有 reconciled disposition”为准，不要求可复用的终态 thread 从界面中消失。子代理原生 final 是主结果，`reports/` 文件仅在 brief 明确要求时作为持久证据；缺少报告不会阻止退出，也不会单独触发重复派工。`wait_agent` 超时只表示本次观察窗口没有更新。超过 hard deadline 后先检查状态，最多请求一次 interrupt，再记录 terminal 或 `orphan-suspected` 处置。
+
+工作包验收后可显式解除活动指针而不删除证据：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py deactivate-packet .codex/dev-flow/<change-id>
+```
 
 ## 仓库内容与运行时数据
 
@@ -133,12 +231,16 @@ python3 skills/dev-flow/scripts/dev-flow.py record-approval \
 
 工作包可能包含命令、路径、日志和测试产物，因此默认只保存在使用者项目的本地 `.codex/dev-flow/` 中，不属于插件源码。提交 Issue 或 PR 前应移除凭据、个人数据和不必要的运行时内容。
 
-Hooks 只在仓库显式激活 `.codex/dev-flow/current` 时工作；它们不包含 MCP 服务、不发起网络请求、不读取凭据。子代理运行标记写入 `PLUGIN_DATA`，只保存不可逆的数据包标识哈希和时间戳，并在成功结束后清理。
+Hooks 只在仓库显式激活 `.codex/dev-flow/current` 时工作；子代理生命周期 Hook 还要求工作包处于活动流程状态，accepted、archived 和 blocked 包不会继续治理后续子代理。Hooks 不包含 MCP 服务、不发起网络请求、不读取凭据。子代理运行标记写入 `PLUGIN_DATA`，只保存不可逆的数据包标识哈希和时间戳，并在停止时清理；marker 存储不可用会给出 `DEV_FLOW_AGENT_MARKER_UNAVAILABLE`，缺少可选报告会给出 `DEV_FLOW_AGENT_REPORT_MISSING`，两者都不会阻断原生生命周期。
 
 ## 仓库结构
 
-- `skills/dev-flow/`：生命周期、任务手册、工作包模板、测试和审计策略、CLI 与角色配置；
-- `skills/engineering-preferences/`：工程宪章、依赖治理、机器可读偏好和选型目录；
+- `skills/dev-flow/`：薄编排内核、工作包协议、Profile/ECR/EQAC 运行时、CLI 与角色配置；
+- `skills/repo-context/`、`requirements-design/`、`product-ux-discovery/`：上下文、语义/范围与产品体验输入；
+- `skills/architecture-decisions/`、`dependency-decisions/`、`systematic-debugging/`：技术决策和诊断；
+- `skills/verification/`、`change-review/`、`delivery-readiness/`：证据、独立审查与交付就绪；
+- `skills/manage-engineering-profiles/`：个人/团队/项目/组件 Profile 和质量策略生命周期；
+- `skills/dev-flow-maintainer/`：显式维护 schema、能力准入、路由、迁移和评测；
 - `hooks/`：仅对显式激活工作包生效的依赖、委派、进度与完成门禁；
 - `evals/`：行为测试、结构契约和代表性项目案例；
 - `governance/industry-practices.json`：外部实践到本地策略的采用记录。
@@ -149,20 +251,47 @@ Hooks 只在仓库显式激活 `.codex/dev-flow/current` 时工作；它们不�
 python3 -m unittest discover -s evals -v
 python3 evals/run_contract_checks.py
 python3 skills/dev-flow/scripts/dev-flow.py check --plugin-root "$PWD"
-python3 -m compileall -q hooks skills evals
+python3 skills/dev-flow-maintainer/scripts/validate-suite.py
+python3 -m compileall -q hooks skills evals tools
 ```
 
 CI 在 Linux、macOS 和 Windows 上覆盖 Python 3.11 与当前 Python 3.14。实时模型行为评测与确定性仓库检查分离，避免把不可复现的模型结果伪装成静态门禁。
+
+发布候选版本可用独立 executor/grader 命令运行至少三轮成对首轮评测；每轮请求、stdout、stderr、结果和汇总会写入隔离目录：
+
+```bash
+python3 evals/run_paired_evaluations.py \
+  --executor '<executor command>' --grader '<grader command>' \
+  --output /absolute/path/to/eval-output --trials 3
+```
+
+配对评测要求 executor 只暴露独立的有界 artifacts 子目录；grader 在不带 treatment 标签的临时根中运行，只接收 fixture、oracle 与清理后的 executor result。报告同时给出均值、标准差、有效 run 分母、candidate-minus-baseline、全量 trial 完整性和质量优先的发布阈值判定；缺失 trial 永远不能得到 release-ready。该隔离用于防止评测条件经正常输入或目录布局泄漏，不把同一 OS 用户下的命令执行伪装成安全沙箱。Schema 1.0 旧配置可省略 `release_thresholds`，此时 runner 使用保守默认值；新配置应显式记录阈值。
+
+## 发布候选与供应链证据
+
+发布流程把 PR CI、模型评测、制品构建、SBOM/provenance、签名标签和最终发布视为不同门禁。确定性源码制品只从指定 Git commit 构建；相同 commit 在同一工具链下重复构建必须得到相同字节，验证器会检查版本、提交、SHA-256、归档根、路径和链接安全：
+
+```bash
+git rev-parse HEAD
+python3 tools/build_release.py build \
+  --root . --output dist --version 1.0.0 --commit FULL_COMMIT_SHA
+python3 tools/build_release.py verify \
+  --artifact-dir dist --expected-version 1.0.0 --expected-commit FULL_COMMIT_SHA
+```
+
+`.github/workflows/release-candidate.yml` 只能手动运行并要求完整 `expected_sha`；它使用固定 SHA 的 Syft、GitHub attestation 和 artifact Actions，生成 SPDX 2.3 JSON、provenance/SBOM attestations、manifest 与 checksums，但没有发布 Release 的权限。新工作流只有进入默认分支后才能 dispatch，不能把 PR 通过误报成 provenance 已生成。
+
+Marketplace 内的插件源使用当前快照相对路径 `.`；因此外层 `codex plugin marketplace add ... --ref <immutable-tag>` 是唯一版本选择，不会在安装时悄悄跳到另一个标签。完整的 gate、验证命令、隔离安装、失败处置与发布/回滚顺序见 [docs/releasing.md](docs/releasing.md)。
 
 ## 版本与兼容性
 
 仓库使用 [Semantic Versioning](https://semver.org/)：
 
-- `MAJOR`：工作包、CLI 或 hook 契约的不兼容变化；
+- `MAJOR`：Skill 名称、工作包、CLI 或 hook 契约的不兼容变化；
 - `MINOR`：向后兼容的新流程、命令、策略或能力；
 - `PATCH`：兼容的修复、文档和规则校正。
 
-源码与 Git tag 使用稳定版本（例如 `0.2.0`）；仅本地 Codex 开发重装时才临时追加 `+codex.<cachebuster>`，不把缓存破坏后缀发布为正式版本。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+源码与 Git tag 使用稳定版本（例如当前源码 `1.0.0`）；仅本地 Codex 开发重装时才临时追加 `+codex.<cachebuster>`，不把缓存破坏后缀发布为正式版本。源码版本不代表对应标签已经发布，发布状态以 Git tag/release 为准。RC 标签只证明候选身份，不等于稳定版发布。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 参与和安全
 

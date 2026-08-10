@@ -1,0 +1,4 @@
+interface:
+  display_name: "Repository Context"
+  short_description: "Discover scoped repository context"
+  default_prompt: "Use $repo-context to establish repository roots, instructions, current behavior, and context readiness for this task."
