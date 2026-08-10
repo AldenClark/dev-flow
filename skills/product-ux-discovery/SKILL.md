@@ -1,6 +1,6 @@
 ---
 name: product-ux-discovery
-description: Establish product intent, information architecture, user flows, states, accessibility, design truth, and UX Ready evidence for user-facing work. Use for new products, material UI/interaction changes, or audits where positioning and behavior are unclear; use preserve mode for visual or structural refreshes that must retain established IA and flows, and skip for work with no user-facing impact.
+description: Establish product intent, IA, flows, states, accessibility, design truth, and UX readiness for new or materially changed user-facing experiences.
 ---
 
 # Product and UX Discovery

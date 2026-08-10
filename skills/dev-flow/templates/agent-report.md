@@ -1,5 +1,7 @@
 # Agent report: <change-id> / <task-id>
 
+This is an optional durable projection when the task brief explicitly requests it. The native final result remains primary, and failure to write this file must not delay child stop.
+
 - Outcome: <completed, blocked, or needs revision>
 - Owned scope respected: <yes or exact deviation>
 - Files and symbols read: <paths>

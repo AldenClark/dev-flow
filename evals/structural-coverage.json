@@ -50,7 +50,7 @@
     "root resolves scoped instructions and maps material INS IDs into downstream work and evidence",
     "root selects a risk-scaled collaboration profile and owns all user-facing readiness decisions",
     "Codex investigates repository-resolvable facts while the user owns final material requirement semantics",
-    "schema 1.2 approval is bound to the current requirement revision and digest",
+    "schema 1.2 and 2.0 approval is bound to the current requirement revision and digest",
     "material or high-risk late ambiguity reopens affected requirements before implementation continues",
     "material UI cannot enter production implementation without recorded UX Ready approval",
     "every child has one written brief and one report",

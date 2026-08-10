@@ -2,3 +2,5 @@ interface:
   display_name: "Dev Flow Maintainer"
   short_description: "Maintain the Dev Flow skill suite"
   default_prompt: "Use $dev-flow-maintainer explicitly to update Dev Flow schemas, routing, migrations, contracts, or paired evaluations."
+policy:
+  allow_implicit_invocation: false

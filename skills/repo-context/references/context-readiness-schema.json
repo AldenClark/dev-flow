@@ -4,9 +4,11 @@
   "title": "Dev Flow Engineering Context Readiness v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "tier", "tier_reasons", "outcome", "scope", "sources", "checks", "recommendations", "conflicts", "quality_coverage", "fingerprint", "recheck_triggers", "errors", "blockers"],
+  "required": ["schema_version", "detail", "host", "tier", "tier_reasons", "outcome", "scope", "sources", "checks", "recommendations", "conflicts", "quality_coverage", "fingerprint", "recheck_triggers", "profile", "errors", "blockers"],
   "properties": {
     "schema_version": {"const": "1.0"},
+    "detail": {"enum": ["compact", "full"]},
+    "host": {"type": "object"},
     "tier": {"enum": ["T0", "T1", "T2", "T3"]},
     "tier_reasons": {"type": "array", "items": {"type": "string"}},
     "outcome": {"enum": ["not_applicable", "ready", "partial_advisory", "checkpoint", "blocked", "waived"]},
@@ -21,6 +23,7 @@
     "fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
     "recheck_triggers": {"type": "array", "items": {"type": "string"}},
     "profile_snapshot": {"type": "object"},
+    "profile": {"type": "object"},
     "errors": {"type": "array", "items": {"type": "string"}},
     "blockers": {"type": "array", "items": {"type": "string"}}
   }

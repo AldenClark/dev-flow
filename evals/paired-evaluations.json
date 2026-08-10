@@ -1,6 +1,7 @@
 {
   "schema_version": "1.0",
   "evaluation_contract": "Compare first-attempt outputs on the same fixed fixture with and without the named capability; keep executor and grader inputs separate.",
+  "default_trials": 3,
   "metrics": ["requirement_fidelity", "coverage", "restraint", "ordinary_defect_retention", "actionability", "rework", "context_cost", "unsafe_actions", "reminder_rate", "false_block_rate"],
   "pairs": [
     {"id": "PAIR-PROFILE-PRECEDENCE", "fixture": "reference-cases/repository-instructions.md", "capabilities": ["repo-context", "manage-engineering-profiles"], "deterministic_oracle": "profile precedence and instruction authority tests"},

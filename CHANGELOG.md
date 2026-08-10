@@ -16,6 +16,9 @@ All notable changes to this project are documented here. The format follows [Kee
 - Backward-compatible packet schema 1.2 with structured `AMB-n` semantic ambiguity records, authority-aware resolution commands, requirement revision/digest binding, and scoped late-ambiguity reopening.
 - A focused semantic clarification protocol, audit finding classification, agent role constraints, and evaluation coverage for complete designs, product requirements, short requests, sparse bug reports, and late audit ambiguity.
 - A suite-wide Default-mode user-interaction contract that prefers host-native `request_user_input` through App Server `item/tool/requestUserInput`, with capability-safe text fallback and separate approval/secret channels.
+- Packet schema 2.0 with direct/traced/governed work modes, append-only event ledgers, atomic current-state projections, and unchanged read compatibility for schemas 1.0-1.2.
+- A versioned Codex host adapter, personal/team/CI profile modes, compact/full readiness projections, and repository-wide versus task-mapped native evidence.
+- Safe idempotent terminal-packet deactivation that preserves packet/event evidence and refuses active, mismatched, or unsafe current pointers.
 
 ### Changed
 
@@ -25,6 +28,9 @@ All notable changes to this project are documented here. The format follows [Kee
 - Packet templates, agent briefs, independent review, metrics, governance records, and public usage documentation now carry instruction, collaboration, and UX evidence.
 - Requirement Ready now proves that material ambiguity has an authorized disposition and that approval matches the current requirement content; schema 1.0/1.1 retain their original validation contract.
 - Every focused Skill now preserves Default mode at user-owned checkpoints; cancellation, malformed answers, missing tool capability, and protocol lifecycle ownership have explicit non-defaulting behavior.
+- Single-agent operation is the baseline; preflight degrades on optional delegation/hook gaps unless delegation is explicitly required.
+- Routine routing no longer adds independent review or delivery readiness automatically, and Skill metadata/static instruction paths have enforced token budgets.
+- Multi-Agent V2 now treats native child finals as primary, optional reports as fail-open evidence, terminal packets as lifecycle-inert, and root reconciliation/deadlines/dispositions as the completion contract.
 
 ### Removed
 
@@ -46,7 +52,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Security
 
-- Runtime markers no longer persist absolute packet paths and are removed after successful subagent completion.
+- Runtime markers no longer persist absolute packet paths, start/stop stay fail-open on marker storage or malformed data, and markers are removed whenever subagent stop is observed.
 - Runtime traces, plugin data, secrets, caches, and build outputs are excluded from source control.
 
 [Unreleased]: https://github.com/AldenClark/dev-flow/compare/v0.2.0...HEAD

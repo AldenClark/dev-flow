@@ -13,6 +13,7 @@ CONTRACT_TEXT_FIELDS = ("id", "profile", "prompt", "fixture")
 CONTRACT_LIST_FIELDS = ("expected_actions", "forbidden_actions", "required_artifacts")
 PACKET_ARTIFACTS = {
     "packet.json",
+    "events.jsonl",
     "trace.md",
     "context.md",
     "requirements.md",
@@ -38,6 +39,14 @@ EXPECTED_SKILLS = {
     "systematic-debugging",
     "verification",
 }
+DESCRIPTION_BUDGET = 2500
+ORDINARY_STATIC_BUDGET = 15000
+ORDINARY_STATIC_FILES = (
+    "skills/dev-flow/SKILL.md",
+    "skills/dev-flow/references/artifact-schemas.md",
+    "skills/repo-context/SKILL.md",
+    "skills/verification/SKILL.md",
+)
 
 
 def validate_contract(path: Path, data: object, *, root: Path = ROOT) -> list[str]:
@@ -103,6 +112,19 @@ def evaluate_user_interaction_case(case: dict[str, object]) -> str:
 
 def main() -> int:
     errors: list[str] = []
+    description_total = 0
+    for skill_name in EXPECTED_SKILLS:
+        text = (ROOT / "skills" / skill_name / "SKILL.md").read_text(encoding="utf-8")
+        description = next(
+            (line.split(":", 1)[1].strip() for line in text.splitlines() if line.startswith("description:")),
+            "",
+        )
+        description_total += len(description)
+    if description_total > DESCRIPTION_BUDGET:
+        errors.append(f"Skill descriptions exceed {DESCRIPTION_BUDGET} characters: {description_total}")
+    ordinary_static_total = sum((ROOT / path).stat().st_size for path in ORDINARY_STATIC_FILES)
+    if ordinary_static_total > ORDINARY_STATIC_BUDGET:
+        errors.append(f"ordinary static path exceeds {ORDINARY_STATIC_BUDGET} bytes: {ordinary_static_total}")
     contracts = sorted((ROOT / "evals" / "contracts").glob("*.json"))
     if len(contracts) < 9:
         errors.append("at least nine representative contracts are required")
@@ -314,6 +336,12 @@ def main() -> int:
             errors.append(f"routing case {case_id}: required/forbidden overlap {sorted(overlap)}")
 
     paired = json.loads((ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8"))
+    if paired.get("default_trials", 0) < 3:
+        errors.append("paired evaluation default_trials must be at least three")
+    if not (ROOT / "evals" / "run_paired_evaluations.py").is_file():
+        errors.append("paired evaluation runner is missing")
+    if not (ROOT / "evals" / "schemas" / "paired-evaluation-report.json").is_file():
+        errors.append("paired evaluation report schema is missing")
     metrics = paired.get("metrics", [])
     for required_metric in ("coverage", "restraint", "actionability", "rework", "context_cost", "unsafe_actions"):
         if required_metric not in metrics:

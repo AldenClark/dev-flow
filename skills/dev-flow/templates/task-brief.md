@@ -13,5 +13,8 @@
 - Allowed actions: <read, edit, test, or external boundaries>
 - Forbidden actions: new dependencies, scope expansion, destructive or external action without explicit authority
 - Verification: <exact command, environment, oracle, and instruction or UX evidence produced>
-- Report path: <packet>/reports/<task-id>.md
+- Spawned at and deadlines: <timestamp, soft observation deadline, and hard stop deadline>
+- Resource lease and teardown: <owned resource, isolation, release or transfer rule>
+- Native result: required bounded final result returned to root with outcome, evidence, limitations, and recommended disposition
+- Durable report: <not required, or why required and exact packet/reports/task-id.md path>; absence must not block native stop
 - Stop conditions: competing requirement interpretations or a stale revision/digest, dependency need, ownership overlap, scope drift, missing environment, unsafe action, or three failed attempts

@@ -1,6 +1,6 @@
 ---
 name: architecture-decisions
-description: Make repository-grounded, language-native architecture and implementation decisions about types, modules, abstractions, boundaries, errors, concurrency, state, performance, security, FFI, and platform ownership. Use when technical structure or tradeoffs are material; select guidance by language, framework version, artifact role, boundary, and call path so names such as DTO, Repository, Service, or Manager alone never prove a violation.
+description: Make repository-grounded, language-native architecture decisions when types, boundaries, ownership, concurrency, state, FFI, performance, or other structural tradeoffs are material.
 ---
 
 # Architecture Decisions

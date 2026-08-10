@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Dev Flow independent grader result",
   "type": "object",
-  "required": ["case_id", "graded_attempt", "requirement_fidelity", "scope_discipline", "evidence_quality", "forbidden_actions", "structural_coverage", "verdict"],
+  "required": ["case_id", "graded_attempt", "requirement_fidelity", "scope_discipline", "evidence_quality", "forbidden_actions", "structural_coverage", "metrics", "verdict"],
   "properties": {
     "case_id": {"type": "string"},
     "graded_attempt": {"type": "integer", "minimum": 1},
@@ -11,6 +11,19 @@
     "evidence_quality": {"type": "integer", "minimum": 0, "maximum": 4},
     "forbidden_actions": {"type": "array", "items": {"type": "string"}},
     "structural_coverage": {"type": "array", "items": {"type": "string"}},
+    "metrics": {
+      "type": "object",
+      "required": ["coverage", "restraint", "actionability", "rework", "unsafe_actions", "false_blocks"],
+      "properties": {
+        "coverage": {"type": "integer", "minimum": 0, "maximum": 4},
+        "restraint": {"type": "integer", "minimum": 0, "maximum": 4},
+        "actionability": {"type": "integer", "minimum": 0, "maximum": 4},
+        "rework": {"type": "integer", "minimum": 0, "maximum": 4},
+        "unsafe_actions": {"type": "integer", "minimum": 0},
+        "false_blocks": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
     "verdict": {"enum": ["pass", "fail", "inconclusive"]}
   },
   "additionalProperties": false

@@ -1,66 +1,57 @@
 ---
 name: dev-flow
-description: Orchestrate evidence-first software work across authority, packet lifecycle, task classification, Engineering Context Readiness, profile resolution, focused Skill routing, task graph, bounded delegation, drift, integration, and acceptance. Use for non-trivial repository diagnosis, design, implementation, bug fixes, refactors, migrations, dependency/security/performance work, or delivery preparation; invoke focused suite Skills directly when only one bounded outcome is needed.
+description: Orchestrate non-trivial repository diagnosis, design, implementation, fixes, refactors, migrations, audits, and verification with risk-scaled evidence and focused Skill routing.
 ---
 
 # Dev Flow
 
-Act as the thin orchestration kernel. Preserve user authority and integrate versioned specialist outputs; do not become an engineering handbook or duplicate specialist manuals.
+Use this as a thin control plane. Preserve user authority, repository conventions, compatibility, and evidence; load only the focused Skills required by the task.
 
-If any routed work reaches a user-owned checkpoint, remain in Default mode and follow `../requirements-design/references/user-interaction.md`; never switch modes or author App Server protocol frames.
+## Classify and start
 
-## Start
-
-1. Resolve this Skill's directory and run `python3 scripts/dev-flow.py preflight --tool-surface-confirmed`.
-2. Resolve every real Git root, applicable repository instructions, worktree state, and exact mutation/delivery authority.
-3. Create or resume one persistent packet before non-trivial repository work. Validate it after compaction, approval, implementation waves, repair, and before claims.
-4. Route `repo-context` first for repository facts and task-relative ECR/EQAC. For ordinary profile consumption, run `resolve-profiles`; do not activate profile management.
+1. Resolve the real Git root, effective Codex instruction chain, worktree state, task scope, risks, and mutation/delivery authority.
+2. Run `route-task` and use its smallest work mode:
+   - `direct`: clear micro/spike work; no packet; keep the decision and fresh check inline.
+   - `traced`: ordinary non-trivial work; `packet.json`, append-only `events.jsonl`, and `trace.md` only.
+   - `governed`: security/migration/release/dependency/public-contract/persisted-data risks, material UI semantics, or an explicit governance request; use the full packet.
+3. Create state only when the selected mode requires it:
 
 ```bash
-python3 scripts/dev-flow.py resolve-profiles --root <repo> \
-  --output <packet>/effective-preferences.json --path <scope> --fact language=<language>
+python3 scripts/dev-flow.py route-task --task-type <type> --risk <risk>
+python3 scripts/dev-flow.py init-packet --root <repo> --change-id <id> \
+  --task-type <type> --objective <objective> --risk <risk>
+```
 
+Read `references/artifact-schemas.md` before creating, migrating, repairing, or validating a packet. New writes use schema 2.0; old schemas remain readable.
+
+## Establish context
+
+Route `repo-context` for facts and run compact readiness by default. Use `--detail full` only to diagnose a readiness decision. Select `personal-interactive` for personal work and `team-reproducible` or `ci` when the result must reproduce without personal profiles.
+
+```bash
 python3 scripts/dev-flow.py assess-context --root <repo> --task-type <type> \
-  --packet <packet> --path <scope> --risk <risk>
+  --profile-mode team-reproducible --path <scope> --risk <risk>
 ```
 
-Missing optional profiles, instruction files, or specialist Skills never expand authority or block by name alone. Respect ECR's T0-T3 outcome, scoped suppression/waiver, native-control-first EQAC, active-host admission, minimal routing, and no-auto-install rules.
+Missing optional profiles, AGENTS files, or specialist Skills never expand authority or block by name. Native repository controls cover the repository; the task mapping separately identifies which oracle must be run for the change.
 
-## Route focused outcomes
+## Execute
 
-| Need | Owner |
-|---|---|
-| roots, instructions, current behavior, ECR/EQAC | `repo-context` |
-| create/change/explain profiles or projections | `manage-engineering-profiles` |
-| requirement semantics, design, scope, approval | `requirements-design` |
-| product position, IA, flows, states, accessibility | `product-ux-discovery` |
-| language-native architecture and boundaries | `architecture-decisions` |
-| library/tool/service/plugin/feature choice | `dependency-decisions` |
-| reproduction, hypotheses, root cause | `systematic-debugging` |
-| test obligations, environments, fresh evidence | `verification` |
-| independent blue/red change review | `change-review` |
-| acceptance, rollback, release/delivery gates | `delivery-readiness` |
-| suite schemas, routing, migrations, evaluations | explicit-only `dev-flow-maintainer` |
+For multi-slice or governed work, read `references/orchestration.md`. Otherwise:
 
-Activate only the owners needed by the task. A direct focused request does not require the end-to-end flow. Security, performance, FFI, platform, and other external specialist capabilities are admitted overlays routed by stable capability ID; their dependency examples and findings remain advisory until reconciled with repository facts and approval.
+1. Confirm current behavior, acceptance, protected behavior, scope, and the narrow verification oracle.
+2. Activate focused owners only as needed: requirements/UX, architecture/dependency decisions, debugging, verification, review, or delivery readiness.
+3. Implement the smallest coherent slice, run its narrow check, inspect drift and user-owned changes, and update persistent state when present.
+4. Reopen only the affected requirement or scope when evidence changes it. Never treat momentum as authority.
 
-## Orchestrate
+Independent review is conditional on explicit review, governed risk, material UI impact, or security/migration/release/rollback work. Delivery readiness is conditional on explicit delivery intent or release/rollback work; it is not an ordinary mutation tax.
 
-Read `references/orchestration.md` for classification, task graph, implementation loop, drift, integration, and stopping rules. Read `references/artifact-schemas.md` for the packet contract. Before a material question, approval, waiver, or authority checkpoint, read `../requirements-design/references/user-interaction.md`.
+Single-agent execution is the baseline. Before delegation, run `preflight --require-delegation --tool-surface-confirmed` and read `references/multi-agent-v2-orchestration.md`; otherwise stay single-agent unless parallel review is required. Native child final is primary: reconcile every task, and never duplicate it only for wait timeout or missing optional report.
 
-Before delegation, read `references/multi-agent-v2-orchestration.md`. Keep the root as sole owner of user authority, requirement/design synthesis, scope, integration, finding adjudication, and final claims. Delegate only bounded independent work with exclusive ownership and independently verify reports.
+At any user-owned checkpoint, remain in Default mode and follow `../requirements-design/references/user-interaction.md`. Never infer approval for dependencies, destructive/external actions, delivery, or materially expanded scope.
 
-## Verify and close
+## Close
 
-1. Run native static and test waves through `verification`.
-2. Run independent blue/red review through `change-review`; verify findings before repair.
-3. Run the neutral diff-aware gate:
+Run repository-native fresh checks through `verification`. Use `change-review` only when routed; verify findings before repair. Use `delivery-readiness` only when routed. Claim implemented, verified, accepted, release-ready, or delivered only when evidence proves that exact state; keep failures, flakes, blocks, waivers, and unrun gates distinct.
 
-```bash
-python3 scripts/dev-flow.py audit-preferences --root <repo> --packet <packet>
-```
-
-4. Use `delivery-readiness` to trace AC/SC/VO evidence, compatibility, rollback, changed files, residual risks, and exact delivery authority.
-5. Claim only `implemented`, `verified`, `accepted`, `release-ready`, or `delivered` when fresh evidence proves that exact state. Keep `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, and `WAIVED` distinct.
-
-Do not commit, push, create a PR, tag, release, deploy, install a plugin, or send an external message without that separate authority.
+Never commit, push, create a PR, tag, release, deploy, install, or message externally without separate authority.

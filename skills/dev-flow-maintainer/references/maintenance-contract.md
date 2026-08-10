@@ -31,7 +31,9 @@ Assess provenance/integrity, active-host metadata and runtime compatibility, sco
 
 ## Evaluation
 
-For every Skill test direct and orchestrated positive triggers, negative triggers, collisions, schema/output ownership, fixed repository contracts, cross-language boundaries, safe counterexamples, unrelated changes, and with/without-Skill utility. Preserve executor/grader isolation and first-attempt output.
+For every Skill test direct and orchestrated positive triggers, negative triggers, collisions, schema/output ownership, fixed repository contracts, cross-language boundaries, safe counterexamples, unrelated changes, and with/without-Skill utility.
+
+Run `evals/run_paired_evaluations.py` with at least three independent first-attempt trials per pair. Counterbalance baseline/candidate order, isolate every run directory, preserve requests/stdout/stderr/results, and reject artifact paths that escape the run. The grader receives the fixture, oracle, and one executor result but no variant label, capability list, or paired output. Record outcome, quality, interaction, usage, safety, false-block, and candidate-minus-baseline values. Live model results are release evidence, not deterministic CI gates.
 
 Measure requirement fidelity, coverage, restraint, ordinary-defect retention, actionability, rework, context/tokens when observable, unsafe actions, reminder/false-block rate, compatibility, and total repair depth. Do not optimize finding or question count.
 

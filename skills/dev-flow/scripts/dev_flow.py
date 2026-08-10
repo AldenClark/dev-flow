@@ -21,9 +21,11 @@ import engineering_context
 
 
 MIN_CODEX = (0, 147, 0)
-SCHEMA_VERSION = "1.2"
-SUPPORTED_SCHEMA_VERSIONS = {"1.0", "1.1", "1.2"}
-READINESS_SCHEMA_VERSIONS = {"1.1", "1.2"}
+SCHEMA_VERSION = "2.0"
+SUPPORTED_SCHEMA_VERSIONS = {"1.0", "1.1", "1.2", "2.0"}
+READINESS_SCHEMA_VERSIONS = {"1.1", "1.2", "2.0"}
+CONTENT_BOUND_SCHEMA_VERSIONS = {"1.2", "2.0"}
+WORK_MODES = {"direct", "traced", "governed"}
 COLLABORATION_PROFILES = {"execute", "checkpointed", "co-design"}
 UI_IMPACTS = {"none", "preserve", "material"}
 READINESS_APPROVAL_IDS = {"requirements": "REQ-READY", "ux": "UX-READY"}
@@ -198,6 +200,45 @@ VERSION_RE = re.compile(r"(?:codex-cli\s+)?(\d+)\.(\d+)\.(\d+)(?:[-+][^\s]+)?")
 FEATURE_RE = re.compile(r"^(multi_agent(?:_v2)?|hooks)\s+\S+\s+(true|false)\s*$", re.MULTILINE)
 
 
+def documentation_family(profile: Any) -> str | None:
+    if profile in {"micro", "trace"}:
+        return "trace"
+    if profile in {"full", "governed"}:
+        return "governed"
+    return None
+
+
+def select_work_mode(task_type: str, risks: Iterable[str], requested: str = "auto") -> tuple[str, list[str]]:
+    risk_set = set(risks)
+    governed = {
+        "security",
+        "unsafe",
+        "ffi",
+        "abi",
+        "public-api",
+        "protocol",
+        "persisted-data",
+        "migration",
+        "release",
+        "deployment",
+        "regulated",
+    }
+    if risk_set & governed or task_type in {"migration", "security", "release-hotfix", "dependency-change", "rollback"}:
+        automatic, reasons = "governed", sorted(risk_set & governed) or [task_type]
+    elif task_type in {"micro", "spike"}:
+        automatic, reasons = "direct", [task_type]
+    else:
+        automatic, reasons = "traced", [task_type]
+    if requested == "auto":
+        return automatic, reasons
+    if requested not in WORK_MODES:
+        raise ValueError(f"work mode must be auto or one of {sorted(WORK_MODES)}")
+    rank = {"direct": 0, "traced": 1, "governed": 2}
+    if rank[requested] < rank[automatic]:
+        raise ValueError(f"work mode {requested} cannot downgrade required {automatic} mode")
+    return requested, ["explicit-work-mode", *reasons]
+
+
 def utc_now() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
 
@@ -291,11 +332,12 @@ def history_windows(
 
 
 def requirement_content(packet: Path, profile: Any) -> bytes | None:
-    """Return the exact requirement baseline bytes for schema 1.2 packets."""
-    if profile == "full":
+    """Return the exact requirement baseline bytes for content-bound packets."""
+    family = documentation_family(profile)
+    if family == "governed":
         path = packet / "requirements.md"
         return path.read_bytes() if path.is_file() else None
-    if profile == "micro":
+    if family == "trace":
         path = packet / "trace.md"
         if not path.is_file():
             return None
@@ -317,7 +359,7 @@ def semantic_metadata_errors(
     declared_trace_ids: set[str],
     require_ready: bool,
 ) -> list[str]:
-    """Validate the schema 1.2 ambiguity ledger without trusting container shapes."""
+    """Validate a content-bound ambiguity ledger without trusting container shapes."""
     errors: list[str] = []
     validation_time = parsed_timestamp(utc_now())
     assert validation_time is not None
@@ -498,7 +540,41 @@ def read_json(path: Path) -> dict[str, Any]:
 
 
 def write_json(path: Path, value: dict[str, Any]) -> None:
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rendered = json.dumps(value, ensure_ascii=False, indent=2) + "\n"
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as handle:
+        handle.write(rendered)
+        handle.flush()
+        os.fsync(handle.fileno())
+        temporary = Path(handle.name)
+    temporary.replace(path)
+
+
+def append_packet_event(packet: Path, metadata: dict[str, Any], event: str, payload: dict[str, Any] | None = None) -> None:
+    if metadata.get("schema_version") != "2.0":
+        return
+    ledger = packet / "events.jsonl"
+    sequence = 1
+    if ledger.is_file():
+        sequence += sum(1 for line in ledger.read_text(encoding="utf-8").splitlines() if line.strip())
+    record = {
+        "schema_version": "1.0",
+        "sequence": sequence,
+        "event": event,
+        "at": metadata.get("updated_at"),
+        "state": metadata.get("state"),
+        "work_mode": metadata.get("work_mode"),
+        "payload": payload or {},
+    }
+    with ledger.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def write_packet(packet: Path, metadata: dict[str, Any], event: str, payload: dict[str, Any] | None = None) -> None:
+    append_packet_event(packet, metadata, event, payload)
+    write_json(packet / "packet.json", metadata)
 
 
 def run(command: list[str], cwd: Path | None = None, timeout: int = 30) -> subprocess.CompletedProcess[str]:
@@ -513,13 +589,15 @@ def parse_version(text: str) -> tuple[int, int, int]:
 
 
 def codex_preflight(args: argparse.Namespace) -> int:
-    errors: list[str] = []
+    capability_issues: list[str] = []
     warnings: list[str] = []
     binary = args.codex or shutil.which("codex")
     version_text = args.version_output
-    features_text = args.features_output_file.read_text(encoding="utf-8") if args.features_output_file else None
+    features_text: str | None = None
 
     try:
+        if args.features_output_file:
+            features_text = args.features_output_file.read_text(encoding="utf-8")
         if version_text is None:
             if not binary:
                 raise RuntimeError("Codex CLI was not found on PATH")
@@ -535,20 +613,20 @@ def codex_preflight(args: argparse.Namespace) -> int:
                 raise RuntimeError(result.stderr.strip() or result.stdout.strip())
             features_text = result.stdout
     except (OSError, RuntimeError, subprocess.TimeoutExpired) as exc:
-        errors.append(str(exc))
+        capability_issues.append(str(exc))
 
     actual: tuple[int, int, int] | None = None
     try:
         actual = parse_version(version_text or "")
         if actual < MIN_CODEX:
-            errors.append(f"Codex {'.'.join(map(str, actual))} is below required 0.147.0")
+            capability_issues.append(f"Codex {'.'.join(map(str, actual))} is below delegation-tested 0.147.0")
     except ValueError as exc:
-        errors.append(str(exc))
+        capability_issues.append(str(exc))
 
     features = dict(FEATURE_RE.findall(features_text or ""))
     for feature in ("multi_agent", "multi_agent_v2", "hooks"):
         if features.get(feature) != "true":
-            errors.append(f"Codex feature {feature} is not enabled")
+            capability_issues.append(f"Codex feature {feature} is not enabled")
 
     config_path = args.config or Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "config.toml"
     effective: dict[str, Any] = {}
@@ -556,31 +634,47 @@ def codex_preflight(args: argparse.Namespace) -> int:
         try:
             effective = tomllib.loads(config_path.read_text(encoding="utf-8"))
             feature_config = effective.get("features", {})
+            if not isinstance(feature_config, dict):
+                raise ValueError("config [features] must be a table")
             if feature_config.get("multi_agent_v2") is not True:
-                errors.append("config must set [features].multi_agent_v2 = true")
+                capability_issues.append("config must set [features].multi_agent_v2 = true for delegation")
             if feature_config.get("multi_agent") is not True:
-                errors.append("config must set [features].multi_agent = true")
+                capability_issues.append("config must set [features].multi_agent = true for delegation")
             if feature_config.get("hooks") is not True:
-                errors.append("config must set [features].hooks = true")
-            limit = effective.get("agents", {}).get("max_concurrent_threads_per_session")
-            if limit != 3:
-                errors.append("config must set [agents].max_concurrent_threads_per_session = 3")
+                capability_issues.append("config must set [features].hooks = true for governed hooks")
+            agent_config = effective.get("agents", {})
+            if not isinstance(agent_config, dict):
+                raise ValueError("config [agents] must be a table")
+            limit = agent_config.get("max_concurrent_threads_per_session")
+            if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
+                capability_issues.append("config must set a positive [agents].max_concurrent_threads_per_session for delegation")
             if isinstance(feature_config.get("multi_agent_v2"), dict):
-                errors.append("obsolete [features.multi_agent_v2] table is not supported")
-        except (OSError, tomllib.TOMLDecodeError) as exc:
-            errors.append(f"cannot read Codex config {config_path}: {exc}")
+                capability_issues.append("obsolete [features.multi_agent_v2] table is not supported")
+        except (OSError, ValueError, tomllib.TOMLDecodeError) as exc:
+            capability_issues.append(f"cannot read Codex config {config_path}: {exc}")
 
     if not args.tool_surface_confirmed:
-        warnings.append("The active root must confirm the collaboration tools before delegation")
+        capability_issues.append("The active root must confirm the collaboration tools before delegation")
+
+    errors = capability_issues if args.require_delegation else []
+    if not args.require_delegation:
+        warnings.extend(capability_issues)
+    delegation_available = not capability_issues
+    status = "blocked" if errors else "ready" if delegation_available else "degraded"
 
     return emit(
         {
-            "status": "ready" if not errors else "blocked",
+            "status": status,
             "codex_binary": binary,
             "actual_version": ".".join(map(str, actual)) if actual else None,
             "features": {name: features.get(name) for name in ("multi_agent", "multi_agent_v2", "hooks")},
             "config": str(config_path),
-            "max_children": 3,
+            "capabilities": {
+                "core_workflow": True,
+                "delegation": delegation_available,
+                "governed_hooks": features.get("hooks") == "true",
+            },
+            "required_capability": "delegation" if args.require_delegation else "core-workflow",
             "errors": errors,
             "warnings": warnings,
         },
@@ -625,20 +719,72 @@ def init_packet(args: argparse.Namespace) -> int:
     if args.task_type not in TASK_TYPES:
         return emit({"status": "error", "errors": [f"unsupported task type: {args.task_type}"]}, 2)
 
+    try:
+        work_mode, mode_reasons = select_work_mode(args.task_type, args.risk, args.work_mode)
+    except ValueError as exc:
+        return emit({"status": "error", "errors": [str(exc)]}, 2)
+    if args.ui_impact == "material" and work_mode != "governed":
+        if args.work_mode != "auto":
+            return emit({"status": "error", "errors": ["material UI impact requires governed work mode"]}, 2)
+        work_mode, mode_reasons = "governed", ["material-ui-impact"]
     packet = root / ".codex" / "dev-flow" / args.change_id
-    if packet.exists() and not args.reuse:
-        return emit({"status": "error", "errors": [f"packet already exists: {packet}"]}, 2)
+    if packet.exists():
+        if not args.reuse:
+            return emit({"status": "error", "errors": [f"packet already exists: {packet}"]}, 2)
+        if not packet.is_dir():
+            return emit({"status": "error", "errors": [f"packet path is not a directory: {packet}"]}, 2)
+        existing, errors = load_packet(packet)
+        if errors:
+            return emit({"status": "error", "errors": errors}, 2)
+        if existing.get("change_id") != args.change_id or existing.get("task_type") != args.task_type:
+            return emit({"status": "error", "errors": ["reused packet identity or task type does not match"]}, 2)
+        existing_mode = existing.get("work_mode")
+        if existing_mode not in WORK_MODES:
+            existing_mode = "governed" if documentation_family(existing.get("documentation_profile")) == "governed" else "traced"
+        rank = {"direct": 0, "traced": 1, "governed": 2}
+        if rank[existing_mode] < rank[work_mode]:
+            return emit(
+                {
+                    "status": "error",
+                    "errors": [f"existing {existing_mode} packet must be explicitly migrated before required {work_mode} work"],
+                },
+                2,
+            )
+        current = root / ".codex" / "dev-flow" / "current"
+        current.write_text(args.change_id + "\n", encoding="utf-8")
+        ensure_local_exclude(root)
+        return emit(
+            {
+                "status": "reused",
+                "packet": str(packet),
+                "work_mode": existing_mode,
+                "profile": existing.get("documentation_profile"),
+                "artifacts": sorted(path.name for path in packet.iterdir() if path.is_file()),
+                "next_state": existing.get("state"),
+            }
+        )
+    if work_mode == "direct":
+        return emit(
+            {
+                "status": "not-required",
+                "work_mode": "direct",
+                "reasons": mode_reasons,
+                "packet": None,
+                "artifacts": [],
+            }
+        )
     packet.mkdir(parents=True, exist_ok=True)
-    for folder in ("briefs", "reports", "artifacts"):
+    folders = ("briefs", "reports", "artifacts") if work_mode == "governed" else ("artifacts",)
+    for folder in folders:
         (packet / folder).mkdir(exist_ok=True)
 
     now = utc_now()
-    profile = "micro" if args.task_type == "micro" else "full"
+    profile = "trace" if work_mode == "traced" else "governed"
     collaboration_profile = args.collaboration_profile
     if collaboration_profile is None:
         if args.ui_impact == "material":
             collaboration_profile = "co-design"
-        elif profile == "micro":
+        elif work_mode == "traced":
             collaboration_profile = "execute"
         else:
             collaboration_profile = "checkpointed"
@@ -647,6 +793,8 @@ def init_packet(args: argparse.Namespace) -> int:
         "skill_version": plugin_version(),
         "change_id": args.change_id,
         "state": "discovering",
+        "work_mode": work_mode,
+        "work_mode_reasons": mode_reasons,
         "documentation_profile": profile,
         "task_type": args.task_type,
         "created_at": now,
@@ -676,7 +824,6 @@ def init_packet(args: argparse.Namespace) -> int:
         },
         "history": [{"from": None, "to": "discovering", "at": now, "note": "packet created"}],
     }
-    write_json(packet / "packet.json", metadata)
 
     values = {
         "change-id": args.change_id,
@@ -692,20 +839,31 @@ def init_packet(args: argparse.Namespace) -> int:
         "ui-impact": args.ui_impact,
     }
     templates = skill_root() / "templates"
-    filenames = ("micro-trace.md",) if profile == "micro" else FULL_FILES
+    filenames = ("micro-trace.md",) if work_mode == "traced" else FULL_FILES
     for filename in filenames:
         source = templates / filename
         destination = packet / ("trace.md" if filename == "micro-trace.md" else filename)
         destination.write_text(replace_tokens(source.read_text(encoding="utf-8"), values), encoding="utf-8")
 
-    brief = replace_tokens((templates / "task-brief.md").read_text(encoding="utf-8"), values)
-    report = replace_tokens((templates / "agent-report.md").read_text(encoding="utf-8"), values)
-    (packet / "briefs" / "README.template.md").write_text(brief, encoding="utf-8")
-    (packet / "reports" / "README.template.md").write_text(report, encoding="utf-8")
+    if work_mode == "governed":
+        brief = replace_tokens((templates / "task-brief.md").read_text(encoding="utf-8"), values)
+        report = replace_tokens((templates / "agent-report.md").read_text(encoding="utf-8"), values)
+        (packet / "briefs" / "README.template.md").write_text(brief, encoding="utf-8")
+        (packet / "reports" / "README.template.md").write_text(report, encoding="utf-8")
+    write_packet(packet, metadata, "packet-created", {"from": None, "to": "discovering", "reasons": mode_reasons})
     current = root / ".codex" / "dev-flow" / "current"
     current.write_text(args.change_id + "\n", encoding="utf-8")
     ensure_local_exclude(root)
-    return emit({"status": "created", "packet": str(packet), "profile": profile, "next_state": "awaiting-approval"})
+    return emit(
+        {
+            "status": "created",
+            "packet": str(packet),
+            "work_mode": work_mode,
+            "profile": profile,
+            "artifacts": ["packet.json", "events.jsonl", *(["trace.md"] if work_mode == "traced" else list(FULL_FILES))],
+            "next_state": "awaiting-approval",
+        }
+    )
 
 
 def load_packet(packet: Path) -> tuple[dict[str, Any], list[str]]:
@@ -722,6 +880,54 @@ def load_packet(packet: Path) -> tuple[dict[str, Any], list[str]]:
     return metadata, errors
 
 
+def validate_event_projection(packet: Path, metadata: dict[str, Any]) -> list[str]:
+    if metadata.get("schema_version") != "2.0":
+        return []
+    ledger = packet / "events.jsonl"
+    if not ledger.is_file():
+        return ["missing required file: events.jsonl"]
+    errors: list[str] = []
+    events: list[dict[str, Any]] = []
+    for index, line in enumerate(ledger.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError as exc:
+            errors.append(f"events.jsonl:{index}: invalid JSON: {exc}")
+            continue
+        if not isinstance(record, dict):
+            errors.append(f"events.jsonl:{index}: event must be an object")
+            continue
+        events.append(record)
+        if record.get("schema_version") != "1.0":
+            errors.append(f"events.jsonl:{index}: unsupported event schema")
+        if record.get("sequence") != len(events):
+            errors.append(f"events.jsonl:{index}: sequence must be contiguous from 1")
+        if not isinstance(record.get("event"), str) or not record["event"]:
+            errors.append(f"events.jsonl:{index}: event name is required")
+        if parsed_timestamp(record.get("at")) is None:
+            errors.append(f"events.jsonl:{index}: timezone-aware timestamp is required")
+        if record.get("work_mode") != metadata.get("work_mode"):
+            errors.append(f"events.jsonl:{index}: work_mode drifted from packet projection")
+    if not events:
+        return [*errors, "events.jsonl: at least one event is required"]
+    if events[0].get("event") != "packet-created":
+        errors.append("events.jsonl: first event must be packet-created")
+    state_events = [item for item in events if item.get("event") in {"packet-created", "transition"}]
+    history = metadata.get("history", [])
+    if not isinstance(history, list) or len(state_events) != len(history):
+        errors.append("events.jsonl: state events must project exactly to packet history")
+    else:
+        for index, (event, projected) in enumerate(zip(state_events, history, strict=True), start=1):
+            payload = event.get("payload", {})
+            if not isinstance(payload, dict) or payload.get("from") != projected.get("from") or payload.get("to") != projected.get("to"):
+                errors.append(f"events.jsonl: state event {index} does not match packet history")
+        if state_events and state_events[-1].get("state") != metadata.get("state"):
+            errors.append("events.jsonl: final state does not match packet projection")
+    return errors
+
+
 def transition_packet(args: argparse.Namespace) -> int:
     packet = args.packet.resolve()
     metadata, errors = load_packet(packet)
@@ -734,7 +940,7 @@ def transition_packet(args: argparse.Namespace) -> int:
     assert transition_at is not None
     schema_version = metadata.get("schema_version")
     direct_reopening = (
-        schema_version == "1.2"
+        schema_version in CONTENT_BOUND_SCHEMA_VERSIONS
         and old in {"implementing", "verifying"}
         and new == "awaiting-approval"
     )
@@ -755,14 +961,14 @@ def transition_packet(args: argparse.Namespace) -> int:
         and record.get("materiality") in {"material", "high-risk"}
     ] if isinstance(metadata.get("ambiguities", []), list) else []
     blocked_reopening = (
-        schema_version == "1.2"
+        schema_version in CONTENT_BOUND_SCHEMA_VERSIONS
         and old == "blocked"
         and new == "awaiting-approval"
         and last_blocked_from in {"implementing", "verifying"}
         and bool(open_material_ambiguities)
     )
     if (
-        schema_version == "1.2"
+        schema_version in CONTENT_BOUND_SCHEMA_VERSIONS
         and old == "blocked"
         and new == "discovering"
         and last_blocked_from in {"implementing", "verifying"}
@@ -785,7 +991,7 @@ def transition_packet(args: argparse.Namespace) -> int:
         ambiguity = find_ambiguity(metadata, ambiguity_id or "")
         if not ambiguity_id or ambiguity is None:
             return emit(
-                {"status": "invalid", "errors": ["schema 1.2 requirement reopening requires a known --ambiguity-id"]},
+                {"status": "invalid", "errors": ["content-bound requirement reopening requires a known --ambiguity-id"]},
                 2,
             )
         if ambiguity.get("status") != "open" or ambiguity.get("materiality") not in {"material", "high-risk"}:
@@ -839,13 +1045,13 @@ def transition_packet(args: argparse.Namespace) -> int:
         if not awaiting_times:
             return emit({"status": "invalid", "errors": ["approval requires an awaiting-approval history event"]}, 2)
         awaiting_at = max(awaiting_times)
-        if schema_version == "1.2" and awaiting_at > transition_at:
+        if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS and awaiting_at > transition_at:
             return emit({"status": "invalid", "errors": ["awaiting-approval history cannot be in the future"]}, 2)
         requirement_records = concrete_readiness_records(approvals, "requirements")
         ux_records = concrete_readiness_records(approvals, "ux")
         current_digest = current_requirements_digest(packet, metadata.get("documentation_profile"))
         revision = metadata.get("requirement_revision")
-        if schema_version == "1.2":
+        if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS:
             semantic_errors = semantic_metadata_errors(
                 metadata,
                 declared_trace_ids=declared_trace_ids(metadata),
@@ -867,7 +1073,7 @@ def transition_packet(args: argparse.Namespace) -> int:
             timestamp = parsed_timestamp(record.get("at"))
             if timestamp is None or not awaiting_at <= timestamp <= transition_at:
                 return False
-            return schema_version != "1.2" or (
+            return schema_version not in CONTENT_BOUND_SCHEMA_VERSIONS or (
                 record.get("requirement_revision") == revision
                 and record.get("requirements_digest") == current_digest
             )
@@ -883,7 +1089,7 @@ def transition_packet(args: argparse.Namespace) -> int:
             for record in ux_records
         ):
             return emit({"status": "invalid", "errors": ["material UI work requires UX Ready approval"]}, 2)
-        if schema_version == "1.2":
+        if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS:
             validation, validation_code = validate_packet_data(packet)
             if validation_code:
                 validation["status"] = "approval-blocked"
@@ -902,18 +1108,18 @@ def transition_packet(args: argparse.Namespace) -> int:
             "at": now,
             "note": args.note,
         }
-        if schema_version == "1.2":
+        if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS:
             design_record["requirement_revision"] = metadata["requirement_revision"]
             design_record["requirements_digest"] = metadata["requirements_digest"]
         metadata.setdefault("approvals", {})["design"] = design_record
-    write_json(packet / "packet.json", metadata)
+    write_packet(packet, metadata, "transition", {"from": old, "to": new, "note": args.note})
     return emit(
         {
             "status": "transitioned",
             "packet": str(packet),
             "from": old,
             "to": new,
-            "requirement_revision": metadata.get("requirement_revision") if schema_version == "1.2" else None,
+            "requirement_revision": metadata.get("requirement_revision") if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS else None,
         }
     )
 
@@ -928,7 +1134,7 @@ def record_approval(args: argparse.Namespace) -> int:
     if args.kind in READINESS_APPROVAL_IDS:
         expected_id = READINESS_APPROVAL_IDS[args.kind]
         if metadata.get("schema_version") not in READINESS_SCHEMA_VERSIONS:
-            return emit({"status": "invalid", "errors": ["readiness approvals require schema 1.1 or 1.2"]}, 2)
+            return emit({"status": "invalid", "errors": ["readiness approvals require schema 1.1, 1.2, or 2.0"]}, 2)
         if args.id != expected_id:
             return emit({"status": "invalid", "errors": [f"{args.kind} approval id must be {expected_id}"]}, 2)
         if metadata.get("state") != "awaiting-approval":
@@ -964,7 +1170,7 @@ def record_approval(args: argparse.Namespace) -> int:
                 "recheck_trigger": args.recheck_trigger,
             }
         )
-    if metadata.get("schema_version") == "1.2" and args.kind == "requirements":
+    if metadata.get("schema_version") in CONTENT_BOUND_SCHEMA_VERSIONS and args.kind == "requirements":
         semantic_errors = semantic_metadata_errors(
             metadata,
             declared_trace_ids=declared_trace_ids(metadata),
@@ -992,7 +1198,7 @@ def record_approval(args: argparse.Namespace) -> int:
     if args.kind == "dependencies" and args.id not in metadata.setdefault("dependency_changes", []):
         metadata["dependency_changes"].append(args.id)
     metadata["updated_at"] = record["at"]
-    write_json(packet / "packet.json", metadata)
+    write_packet(packet, metadata, "approval-recorded", {"kind": args.kind, "id": args.id})
     return emit({"status": "recorded", "kind": args.kind, "record": record})
 
 
@@ -1001,8 +1207,8 @@ def record_ambiguity(args: argparse.Namespace) -> int:
     metadata, errors = load_packet(packet)
     if errors:
         return emit({"status": "invalid", "errors": errors}, 2)
-    if metadata.get("schema_version") != "1.2":
-        return emit({"status": "invalid", "errors": ["ambiguity records require schema 1.2"]}, 2)
+    if metadata.get("schema_version") not in CONTENT_BOUND_SCHEMA_VERSIONS:
+        return emit({"status": "invalid", "errors": ["ambiguity records require a content-bound schema"]}, 2)
     if metadata.get("state") not in {"discovering", "awaiting-approval", "implementing", "verifying"}:
         return emit({"status": "invalid", "errors": ["ambiguities cannot be recorded in the current state"]}, 2)
     semantic_errors = semantic_metadata_errors(
@@ -1076,7 +1282,7 @@ def record_ambiguity(args: argparse.Namespace) -> int:
     ):
         metadata["collaboration_profile"] = "checkpointed"
     metadata["updated_at"] = now
-    write_json(packet / "packet.json", metadata)
+    write_packet(packet, metadata, "ambiguity-recorded", {"id": ambiguity_id})
     return emit(
         {
             "status": "recorded",
@@ -1091,8 +1297,8 @@ def resolve_ambiguity(args: argparse.Namespace) -> int:
     metadata, errors = load_packet(packet)
     if errors:
         return emit({"status": "invalid", "errors": errors}, 2)
-    if metadata.get("schema_version") != "1.2":
-        return emit({"status": "invalid", "errors": ["ambiguity resolution requires schema 1.2"]}, 2)
+    if metadata.get("schema_version") not in CONTENT_BOUND_SCHEMA_VERSIONS:
+        return emit({"status": "invalid", "errors": ["ambiguity resolution requires a content-bound schema"]}, 2)
     record = find_ambiguity(metadata, args.id)
     if record is None:
         return emit({"status": "invalid", "errors": [f"unknown ambiguity {args.id}"]}, 2)
@@ -1125,7 +1331,7 @@ def resolve_ambiguity(args: argparse.Namespace) -> int:
         "evidence": evidence,
     }
     metadata["updated_at"] = now
-    write_json(packet / "packet.json", metadata)
+    write_packet(packet, metadata, "ambiguity-resolved", {"id": args.id, "status": args.status})
     return emit({"status": "resolved", "ambiguity": record})
 
 
@@ -1147,6 +1353,22 @@ def placeholder_error(filename: str, heading: str, body: str | None) -> str | No
 
 def ids(text: str, kind: str) -> set[str]:
     return set(ID_PATTERNS[kind].findall(text))
+
+
+def unresolved_audit_findings(text: str, prefix: str) -> list[str]:
+    """Return prefixed finding IDs whose Markdown status cell is unresolved."""
+    unresolved: list[str] = []
+    for line in text.splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 2:
+            continue
+        finding_id = cells[0].split(":", 1)[0].strip()
+        status = cells[-1].strip("*_`").lower()
+        if re.fullmatch(rf"{re.escape(prefix)}-\d+", finding_id) and status in {"open", "pending", "unresolved"}:
+            unresolved.append(finding_id)
+    return unresolved
 
 
 def validate_packet_data(packet: Path, *, state_override: str | None = None) -> tuple[dict[str, Any], int]:
@@ -1178,6 +1400,7 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
     schema_version = metadata.get("schema_version")
     if schema_version not in SUPPORTED_SCHEMA_VERSIONS:
         errors.append(f"packet.json: unsupported schema_version {metadata.get('schema_version')!r}")
+    errors.extend(validate_event_projection(packet, metadata))
     if metadata.get("state") not in STATES:
         errors.append(f"packet.json: invalid state {metadata.get('state')!r}")
     if metadata.get("task_type") not in TASK_TYPES:
@@ -1193,8 +1416,17 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
             errors.append(f"packet.json: invalid ui_impact {ui_impact!r}")
 
     profile = metadata.get("documentation_profile")
+    family = documentation_family(profile)
+    if schema_version == "2.0":
+        work_mode = metadata.get("work_mode")
+        if work_mode not in {"traced", "governed"}:
+            errors.append(f"packet.json: schema 2.0 packet requires traced or governed work_mode, got {work_mode!r}")
+        if (work_mode, profile) not in {("traced", "trace"), ("governed", "governed")}:
+            errors.append("packet.json: work_mode and documentation_profile do not match")
+    elif profile in {"trace", "governed"}:
+        errors.append(f"packet.json: documentation_profile {profile!r} requires schema 2.0")
     texts: dict[str, str] = {}
-    if profile == "micro":
+    if family == "trace":
         path = packet / "trace.md"
         if not path.is_file():
             errors.append("missing required file: trace.md")
@@ -1205,7 +1437,7 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                 error = placeholder_error(path.name, heading, heading_body(text, heading))
                 if error:
                     errors.append(error)
-    elif profile == "full":
+    elif family == "governed":
         for filename in FULL_FILES:
             path = packet / filename
             if not path.is_file():
@@ -1222,7 +1454,7 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                     error = placeholder_error(filename, heading, heading_body(text, heading))
                     if error:
                         errors.append(error)
-            if schema_version == "1.2":
+            if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS:
                 for heading in SCHEMA_1_2_HEADINGS.get(filename, ()):
                     error = placeholder_error(filename, heading, heading_body(text, heading))
                     if error:
@@ -1232,7 +1464,7 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
 
     all_text = "\n".join(texts.values())
     if schema_version in READINESS_SCHEMA_VERSIONS:
-        if profile == "full":
+        if family == "governed":
             context_instructions = ids(texts.get("context.md", ""), "instruction")
             if not context_instructions:
                 errors.append(f"context.md: schema {schema_version} requires at least one INS-n instruction record")
@@ -1250,9 +1482,13 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                         f"schema {schema_version} instruction IDs must match between context.md and {filename}; "
                         f"context={sorted(context_instructions)}, downstream={sorted(downstream_instructions)}"
                     )
-        elif profile == "micro" and not ids(all_text, "instruction"):
+        elif family == "trace" and not ids(all_text, "instruction"):
             errors.append(f"trace.md: schema {schema_version} requires at least one INS-n instruction record")
-    required_dirs = ("briefs", "reports", "artifacts")
+    required_dirs = (
+        ("briefs", "reports", "artifacts")
+        if schema_version != "2.0" or family == "governed"
+        else ("artifacts",)
+    )
     for dirname in required_dirs:
         if not (packet / dirname).is_dir():
             errors.append(f"missing required directory: {dirname}/")
@@ -1277,7 +1513,7 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                 f"declared={sorted(declared[kind])}, documented={sorted(observed[kind])}"
             )
 
-    if schema_version == "1.2":
+    if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS:
         ambiguity_ids = metadata.get("ambiguity_ids", [])
         declared_ambiguities = set(value for value in ambiguity_ids if isinstance(value, str)) if isinstance(ambiguity_ids, list) else set()
         observed_ambiguities = ids(all_text, "ambiguity")
@@ -1288,7 +1524,7 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
             )
         ledger_ambiguities = (
             ids(texts.get("requirements.md", ""), "ambiguity")
-            if profile == "full"
+            if family == "governed"
             else ids(texts.get("trace.md", ""), "ambiguity")
         )
         if declared_ambiguities != ledger_ambiguities:
@@ -1305,7 +1541,7 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
             )
         )
 
-    if profile == "full":
+    if family == "governed":
         requirements = texts.get("requirements.md", "")
         design = texts.get("design.md", "")
         execution = texts.get("execution.md", "")
@@ -1326,7 +1562,7 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                 errors.append(f"{obligation} is missing from test-matrix.md")
             if obligation not in evidence:
                 errors.append(f"{obligation} is missing from evidence.md")
-        if schema_version == "1.2":
+        if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS:
             for ambiguity_id in declared_ambiguities:
                 if ambiguity_id not in execution:
                     errors.append(f"{ambiguity_id} is missing from execution.md")
@@ -1356,7 +1592,7 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                         errors.append(f"packet.json: `approvals.{kind}` record requires non-empty {field}")
                 if parsed_timestamp(record.get("at")) is None:
                     errors.append(f"packet.json: `approvals.{kind}` record requires a timezone-aware timestamp")
-                if schema_version == "1.2" and kind == "requirements":
+                if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS and kind == "requirements":
                     revision = record.get("requirement_revision")
                     if not isinstance(revision, int) or isinstance(revision, bool) or revision < 1:
                         errors.append("packet.json: Requirement Ready record requires a positive requirement_revision")
@@ -1423,11 +1659,11 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                     errors.append(f"{kind} approval must follow awaiting approval and predate the approved transition")
                 if any(value > approved_at for value in valid_times):
                     errors.append(f"{kind} approval cannot be recorded after the approved transition")
-        if schema_version == "1.2":
+        if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS:
             current_digest = current_requirements_digest(packet, profile)
             revision = metadata.get("requirement_revision")
             if current_digest is None:
-                errors.append("schema 1.2 packet requires a computable requirement baseline")
+                errors.append("content-bound packet requires a computable requirement baseline")
             elif metadata.get("requirements_digest") != current_digest:
                 errors.append("requirements changed after Requirement Ready or design approval")
             design_record = concrete_design_record(approvals)
@@ -1460,38 +1696,47 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
     if state in {"accepted", "archived"}:
         if not declared["acceptance"] or not declared["scope"] or not declared["verification"]:
             errors.append("accepted packet requires non-empty acceptance, scope, and verification ID sets")
-        matrix_rows: list[tuple[str, int, str, bool]] = []
-        for line in texts.get("test-matrix.md", "").splitlines():
-            if not re.match(r"^\|\s*TM-\d+\s*\|", line):
-                continue
-            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-            if len(cells) < 8:
-                errors.append(f"test-matrix.md: malformed matrix row `{line}`")
-                continue
-            try:
-                attempts = int(cells[5])
-            except ValueError:
-                errors.append(f"test-matrix.md: invalid attempts for {cells[0]}")
-                continue
-            status_value = cells[6]
-            if status_value not in STATUS_WORDS:
-                errors.append(f"test-matrix.md: invalid status {status_value!r} for {cells[0]}")
-                continue
-            required = cells[4].lower() == "yes"
-            matrix_rows.append((cells[0], attempts, status_value, required))
-        if not matrix_rows:
-            errors.append("accepted packet requires at least one parsed test-matrix cell")
-        for cell, attempts, status_value, required in matrix_rows:
-            if status_value == "PASSED" and attempts < 1:
-                errors.append(f"{cell}: PASSED requires at least one attempt")
-            if required and status_value not in {"PASSED", "WAIVED"}:
-                errors.append(f"{cell}: required cell is {status_value}")
-            if status_value == "WAIVED" and not approvals.get("waivers"):
-                errors.append(f"{cell}: WAIVED requires a waiver approval record")
-        if profile == "full":
-            for audit in ("blue-audit.md", "red-audit.md"):
-                if re.search(r"\b(?:open|unresolved|pending)\b", texts.get(audit, ""), re.IGNORECASE):
-                    warnings.append(f"{audit}: verify that no finding remains open")
+        if family == "trace":
+            verification_body = heading_body(texts.get("trace.md", ""), "Verification") or ""
+            statuses = set(re.findall(r"\b(?:PASSED|FAILED|FLAKY|BLOCKED|NOT RUN|WAIVED)\b", verification_body))
+            invalid_statuses = statuses & {"FAILED", "FLAKY", "BLOCKED", "NOT RUN"}
+            if invalid_statuses:
+                errors.append(f"accepted trace retains unresolved verification statuses: {sorted(invalid_statuses)}")
+            if "PASSED" not in statuses and not ("WAIVED" in statuses and approvals.get("waivers")):
+                errors.append("accepted trace requires PASSED evidence or an approved WAIVED verification")
+        else:
+            matrix_rows: list[tuple[str, int, str, bool]] = []
+            for line in texts.get("test-matrix.md", "").splitlines():
+                if not re.match(r"^\|\s*TM-\d+\s*\|", line):
+                    continue
+                cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+                if len(cells) < 8:
+                    errors.append(f"test-matrix.md: malformed matrix row `{line}`")
+                    continue
+                try:
+                    attempts = int(cells[5])
+                except ValueError:
+                    errors.append(f"test-matrix.md: invalid attempts for {cells[0]}")
+                    continue
+                status_value = cells[6]
+                if status_value not in STATUS_WORDS:
+                    errors.append(f"test-matrix.md: invalid status {status_value!r} for {cells[0]}")
+                    continue
+                required = cells[4].lower() == "yes"
+                matrix_rows.append((cells[0], attempts, status_value, required))
+            if not matrix_rows:
+                errors.append("accepted packet requires at least one parsed test-matrix cell")
+            for cell, attempts, status_value, required in matrix_rows:
+                if status_value == "PASSED" and attempts < 1:
+                    errors.append(f"{cell}: PASSED requires at least one attempt")
+                if required and status_value not in {"PASSED", "WAIVED"}:
+                    errors.append(f"{cell}: required cell is {status_value}")
+                if status_value == "WAIVED" and not approvals.get("waivers"):
+                    errors.append(f"{cell}: WAIVED requires a waiver approval record")
+            for audit, prefix in (("blue-audit.md", "BLUE"), ("red-audit.md", "RED")):
+                unresolved = unresolved_audit_findings(texts.get(audit, ""), prefix)
+                if unresolved:
+                    warnings.append(f"{audit}: unresolved finding statuses: {', '.join(unresolved)}")
 
     preference_artifact = packet / "effective-preferences.json"
     if preference_artifact.is_file():
@@ -1650,6 +1895,7 @@ def resolve_profiles_command(args: argparse.Namespace) -> int:
             codex_home=args.codex_home,
             baseline=skill_root() / "references" / "neutral-baseline.toml",
             task_profiles=args.task_profile,
+            profile_mode=args.profile_mode,
         )
     except (OSError, ValueError, tomllib.TOMLDecodeError, engineering_context.ContractError) as exc:
         return emit({"status": "invalid", "errors": [str(exc)]}, 2)
@@ -1674,6 +1920,9 @@ def assess_context_command(args: argparse.Namespace) -> int:
             capability_registry=registry,
             task_profiles=args.task_profile,
             packet=args.packet.resolve() if args.packet else None,
+            profile_mode=args.profile_mode,
+            working_directory=args.working_directory,
+            detail=args.detail,
         )
     except (OSError, ValueError, json.JSONDecodeError, tomllib.TOMLDecodeError, engineering_context.ContractError) as exc:
         return emit({"status": "invalid", "errors": [str(exc)]}, 2)
@@ -1697,6 +1946,14 @@ def route_task(args: argparse.Namespace) -> int:
 
     needs = set(args.need)
     risks = set(args.risk)
+    try:
+        work_mode, mode_reasons = select_work_mode(args.task_type, risks, args.work_mode)
+    except ValueError as exc:
+        return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+    if args.ui_impact == "material" and work_mode != "governed":
+        if args.work_mode != "auto":
+            return emit({"status": "invalid", "errors": ["material UI impact requires governed work mode"]}, 2)
+        work_mode, mode_reasons = "governed", ["material-ui-impact"]
     if args.profile_operation:
         add("manage-engineering-profiles", "explicit profile or instruction lifecycle operation")
     if args.ambiguity or args.task_type in {"large-feature", "large-refactor", "migration", "dependency-change"}:
@@ -1712,9 +1969,15 @@ def route_task(args: argparse.Namespace) -> int:
     mutating = args.task_type not in {"read-only-audit", "spike"}
     if mutating or "verification" in needs:
         add("verification", "risk-based fresh evidence")
-    if mutating and args.task_type != "micro" or "review" in needs or risks & {"security", "unsafe", "ffi", "migration"}:
+    review_risks = {"security", "unsafe", "ffi", "abi", "migration", "public-api", "protocol", "persisted-data"}
+    if (
+        "review" in needs
+        or risks & review_risks
+        or args.ui_impact == "material"
+        or args.task_type in {"security", "migration", "release-hotfix", "dependency-change", "rollback"}
+    ):
         add("change-review", "independent specification and adversarial review")
-    if mutating or "delivery" in needs:
+    if "delivery" in needs or args.task_type in {"release-hotfix", "rollback"}:
         add("delivery-readiness", "acceptance, rollback, and delivery authority accounting")
     if args.suite_maintenance:
         add("dev-flow-maintainer", "explicit Dev Flow suite maintenance")
@@ -1722,6 +1985,8 @@ def route_task(args: argparse.Namespace) -> int:
         {
             "status": "routed",
             "kernel": "dev-flow",
+            "work_mode": work_mode,
+            "work_mode_reasons": mode_reasons,
             "routes": [{"skill": skill, "reasons": reasons[skill]} for skill in routes],
             "excluded": {
                 "manage-engineering-profiles": "ordinary profile consumption does not activate management" if not args.profile_operation else None,
@@ -2043,12 +2308,61 @@ def archive_packet(args: argparse.Namespace) -> int:
     metadata["history"].append({"from": "accepted", "to": "archived", "at": now, "note": args.note})
     metadata["state"] = "archived"
     metadata["updated_at"] = now
-    write_json(packet / "packet.json", metadata)
+    write_packet(packet, metadata, "transition", {"from": "accepted", "to": "archived", "note": args.note})
     packet.rename(archive)
     current = parent / "current"
     if current.exists() and current.read_text(encoding="utf-8").strip() == packet.name:
         current.unlink()
     return emit({"status": "archived", "packet": str(archive)})
+
+
+def deactivate_packet(args: argparse.Namespace) -> int:
+    """Remove only a matching terminal packet from the active pointer."""
+    packet = args.packet.resolve()
+    metadata, errors = load_packet(packet)
+    if errors:
+        return emit({"status": "invalid", "errors": errors}, 2)
+    state = metadata.get("state")
+    if state not in {"accepted", "archived"}:
+        return emit(
+            {
+                "status": "blocked",
+                "errors": ["only an accepted or archived packet can be deactivated"],
+            },
+            2,
+        )
+
+    flow = packet.parent.parent if packet.parent.name == "archive" else packet.parent
+    direct_packet = packet.parent == flow
+    archived_packet = packet.parent.name == "archive" and packet.parent.parent == flow
+    valid_flow = flow.name == "dev-flow" and flow.parent.name == ".codex"
+    if not valid_flow or not (direct_packet or archived_packet):
+        return emit({"status": "blocked", "errors": ["packet is outside a Dev Flow packet directory"]}, 2)
+
+    current = flow / "current"
+    if current.is_symlink():
+        return emit({"status": "blocked", "errors": [f"current pointer must not be a symlink: {current}"]}, 2)
+    if not current.exists():
+        return emit({"status": "unchanged", "packet": str(packet), "reason": "current pointer is already absent"})
+    if not current.is_file():
+        return emit({"status": "blocked", "errors": [f"current pointer must be a regular file: {current}"]}, 2)
+    try:
+        active_change_id = current.read_text(encoding="utf-8").strip()
+    except OSError as exc:
+        return emit({"status": "blocked", "errors": [f"cannot read current pointer: {exc}"]}, 2)
+    if active_change_id != packet.name:
+        return emit(
+            {
+                "status": "blocked",
+                "errors": [f"current pointer names {active_change_id!r}, not {packet.name!r}"],
+            },
+            2,
+        )
+    try:
+        current.unlink()
+    except OSError as exc:
+        return emit({"status": "blocked", "errors": [f"cannot deactivate current pointer: {exc}"]}, 2)
+    return emit({"status": "deactivated", "packet": str(packet), "current": str(current)})
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -2062,6 +2376,7 @@ def build_parser() -> argparse.ArgumentParser:
     preflight.add_argument("--config", type=Path)
     preflight.add_argument("--skip-config", action="store_true")
     preflight.add_argument("--tool-surface-confirmed", action="store_true")
+    preflight.add_argument("--require-delegation", action="store_true")
     preflight.set_defaults(func=codex_preflight)
 
     init = sub.add_parser("init-packet")
@@ -2076,6 +2391,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--ui-impact", choices=sorted(UI_IMPACTS), default="none")
     init.add_argument("--compatibility-required", action="store_true")
     init.add_argument("--reuse", action="store_true")
+    init.add_argument("--work-mode", choices=("auto", *sorted(WORK_MODES)), default="auto")
     init.set_defaults(func=init_packet)
 
     validate = sub.add_parser("validate-packet")
@@ -2087,7 +2403,7 @@ def build_parser() -> argparse.ArgumentParser:
     transition.add_argument("state", choices=sorted(STATES))
     transition.add_argument("--note", required=True)
     transition.add_argument("--approved-by")
-    transition.add_argument("--ambiguity-id", help="Open material AMB-n that justifies schema 1.2 reopening")
+    transition.add_argument("--ambiguity-id", help="Open material AMB-n that justifies content-bound reopening")
     transition.set_defaults(func=transition_packet)
 
     approval = sub.add_parser("record-approval")
@@ -2103,7 +2419,7 @@ def build_parser() -> argparse.ArgumentParser:
     approval.add_argument("--recheck-trigger")
     approval.set_defaults(func=record_approval)
 
-    ambiguity = sub.add_parser("record-ambiguity", help="Record a structured schema 1.2 semantic ambiguity")
+    ambiguity = sub.add_parser("record-ambiguity", help="Record a structured content-bound semantic ambiguity")
     ambiguity.add_argument("packet", type=Path)
     ambiguity.add_argument("--summary", required=True)
     ambiguity.add_argument("--source", required=True)
@@ -2115,7 +2431,7 @@ def build_parser() -> argparse.ArgumentParser:
     ambiguity.add_argument("--recommendation", required=True)
     ambiguity.set_defaults(func=record_ambiguity)
 
-    resolution = sub.add_parser("resolve-ambiguity", help="Resolve an open schema 1.2 semantic ambiguity")
+    resolution = sub.add_parser("resolve-ambiguity", help="Resolve an open content-bound semantic ambiguity")
     resolution.add_argument("packet", type=Path)
     resolution.add_argument("--id", required=True)
     resolution.add_argument(
@@ -2145,6 +2461,7 @@ def build_parser() -> argparse.ArgumentParser:
     resolve.add_argument("--fact", action="append", default=[])
     resolve.add_argument("--task-profile", type=Path, action="append", default=[])
     resolve.add_argument("--codex-home", type=Path)
+    resolve.add_argument("--profile-mode", choices=sorted(engineering_context.PROFILE_MODES), default="personal-interactive")
     resolve.set_defaults(func=resolve_profiles_command)
 
     readiness = sub.add_parser("assess-context", help="Assess task-relative Engineering Context Readiness and quality coverage")
@@ -2157,6 +2474,9 @@ def build_parser() -> argparse.ArgumentParser:
     readiness.add_argument("--task-profile", type=Path, action="append", default=[])
     readiness.add_argument("--skill-root", type=Path, action="append", default=[])
     readiness.add_argument("--codex-home", type=Path)
+    readiness.add_argument("--profile-mode", choices=sorted(engineering_context.PROFILE_MODES), default="personal-interactive")
+    readiness.add_argument("--working-directory", type=Path)
+    readiness.add_argument("--detail", choices=sorted(engineering_context.READINESS_DETAILS), default="compact")
     readiness.add_argument("--packet", type=Path)
     readiness.add_argument("--output", type=Path)
     readiness.set_defaults(func=assess_context_command)
@@ -2169,6 +2489,7 @@ def build_parser() -> argparse.ArgumentParser:
     route.add_argument("--ambiguity", action="store_true")
     route.add_argument("--profile-operation", action="store_true")
     route.add_argument("--suite-maintenance", action="store_true")
+    route.add_argument("--work-mode", choices=("auto", *sorted(WORK_MODES)), default="auto")
     route.set_defaults(func=route_task)
 
     check = sub.add_parser("check")
@@ -2188,6 +2509,13 @@ def build_parser() -> argparse.ArgumentParser:
     archive.add_argument("packet", type=Path)
     archive.add_argument("--note", required=True)
     archive.set_defaults(func=archive_packet)
+
+    deactivate = sub.add_parser(
+        "deactivate-packet",
+        help="Remove a matching accepted/archived packet from the active current pointer without deleting the packet",
+    )
+    deactivate.add_argument("packet", type=Path)
+    deactivate.set_defaults(func=deactivate_packet)
     return parser
 
 

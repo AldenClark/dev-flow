@@ -29,6 +29,13 @@ COMPLETION_RE = re.compile(
     r"已完成|已修复|全部通过|验证通过|可以发布|提交完成)",
     re.IGNORECASE,
 )
+AGENT_LIFECYCLE_STATES = {
+    "discovering",
+    "awaiting-approval",
+    "approved",
+    "implementing",
+    "verifying",
+}
 
 
 def output(payload: dict[str, Any]) -> None:
@@ -60,9 +67,15 @@ def tool_text(event: dict[str, Any]) -> str:
 
 def packet_metadata(packet: Path) -> dict[str, Any]:
     try:
-        return json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+        value = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return {}
+    return value if isinstance(value, dict) else {}
+
+
+def agent_lifecycle_active(metadata: dict[str, Any]) -> bool:
+    """Return whether this packet may govern child-agent lifecycle hooks."""
+    return metadata.get("state") in AGENT_LIFECYCLE_STATES
 
 
 def context_readiness(packet: Path) -> dict[str, Any]:
@@ -103,7 +116,7 @@ def mutation_is_packet_only(event: dict[str, Any], packet: Path) -> bool:
 
 
 def open_material_ambiguity_ids(metadata: dict[str, Any]) -> list[str]:
-    if metadata.get("schema_version") != "1.2" or metadata.get("state") not in {
+    if metadata.get("schema_version") not in {"1.2", "2.0"} or metadata.get("state") not in {
         "implementing",
         "verifying",
         "blocked",
@@ -125,7 +138,7 @@ def pre_tool(event: dict[str, Any], packet: Path) -> None:
     name = str(event.get("tool_name", ""))
     text = tool_text(event)
     metadata = packet_metadata(packet)
-    if name == "Agent":
+    if name == "Agent" and agent_lifecycle_active(metadata):
         briefs = [path for path in (packet / "briefs").glob("*.md") if not path.name.startswith("README.")]
         if not briefs:
             output(
@@ -235,6 +248,13 @@ def agent_marker(event: dict[str, Any]) -> Path:
     return data_root / "agent-runs" / f"{hashlib.sha256(identity).hexdigest()}.json"
 
 
+def remove_agent_marker(event: dict[str, Any]) -> None:
+    try:
+        agent_marker(event).unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
 def packet_identifier(packet: Path) -> str:
     return hashlib.sha256(str(packet).encode("utf-8")).hexdigest()
 
@@ -257,19 +277,24 @@ def prune_agent_markers(marker_directory: Path, *, max_age_seconds: float = 7 * 
 
 def subagent_start(event: dict[str, Any], packet: Path) -> None:
     marker = agent_marker(event)
-    marker.parent.mkdir(parents=True, exist_ok=True)
-    prune_agent_markers(marker.parent)
-    marker.write_text(
-        json.dumps({"packet_hash": packet_identifier(packet), "started_at": time.time()}, ensure_ascii=False),
-        encoding="utf-8",
-    )
+    marker_advisory = ""
+    try:
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        prune_agent_markers(marker.parent)
+        marker.write_text(
+            json.dumps({"packet_hash": packet_identifier(packet), "started_at": time.time()}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except OSError:
+        marker_advisory = " DEV_FLOW_AGENT_MARKER_UNAVAILABLE: lifecycle remains fail-open; root reconciliation is required."
     output(
         {
             "hookSpecificOutput": {
                 "hookEventName": "SubagentStart",
                 "additionalContext": (
                     f"Use the written brief under {packet / 'briefs'}. Respect exclusive ownership, do not add "
-                    f"dependencies or expand scope, and write only the assigned report under {packet / 'reports'}."
+                    "dependencies or expand scope, and return a bounded native final result. Write under "
+                    f"{packet / 'reports'} only when the brief explicitly assigns a durable report.{marker_advisory}"
                 ),
             }
         }
@@ -277,24 +302,44 @@ def subagent_start(event: dict[str, Any], packet: Path) -> None:
 
 
 def subagent_stop(event: dict[str, Any], packet: Path) -> None:
-    started_at = 0.0
+    started_at: float | None = None
     marker = agent_marker(event)
     try:
         marker_data = json.loads(marker.read_text(encoding="utf-8"))
-        if marker_data.get("packet_hash") == packet_identifier(packet):
+        if isinstance(marker_data, dict) and marker_data.get("packet_hash") == packet_identifier(packet):
             started_at = float(marker_data.get("started_at", 0.0))
     except (OSError, ValueError, json.JSONDecodeError):
         pass
-    reports = [
-        path
-        for path in (packet / "reports").glob("*.md")
-        if not path.name.startswith("README.") and path.stat().st_mtime >= started_at - 1.0
-    ]
-    if not reports and not bool(event.get("stop_hook_active")):
-        output({"decision": "block", "reason": f"Write the required bounded agent report under {packet / 'reports'} before stopping."})
-    else:
-        marker.unlink(missing_ok=True)
+
+    report_found = False
+    if started_at is not None:
+        try:
+            for path in (packet / "reports").glob("*.md"):
+                try:
+                    if not path.name.startswith("README.") and path.stat().st_mtime >= started_at - 1.0:
+                        report_found = True
+                        break
+                except OSError:
+                    continue
+        except OSError:
+            pass
+    remove_agent_marker(event)
+
+    if report_found:
         output({})
+        return
+    output(
+        {
+            "hookSpecificOutput": {
+                "hookEventName": "SubagentStop",
+                "additionalContext": (
+                    "DEV_FLOW_AGENT_REPORT_MISSING: native subagent stop is allowed. Reconcile the native final "
+                    "result and record an explicit disposition; do not redispatch solely because a durable report "
+                    "is absent."
+                ),
+            }
+        }
+    )
 
 
 def load_validator() -> Any:
@@ -336,10 +381,19 @@ def main() -> int:
         return 0
     packet = locate_packet(Path(str(event.get("cwd") or os.getcwd())).resolve())
     if packet is None:
-        if event.get("hook_event_name") in {"SubagentStop", "Stop"}:
+        if event.get("hook_event_name") == "SubagentStop":
+            remove_agent_marker(event)
+            output({})
+        elif event.get("hook_event_name") == "Stop":
             output({})
         return 0
     hook = event.get("hook_event_name")
+    metadata = packet_metadata(packet)
+    if hook in {"SubagentStart", "SubagentStop"} and not agent_lifecycle_active(metadata):
+        if hook == "SubagentStop":
+            remove_agent_marker(event)
+            output({})
+        return 0
     if hook == "PreToolUse":
         pre_tool(event, packet)
     elif hook == "PostToolUse":

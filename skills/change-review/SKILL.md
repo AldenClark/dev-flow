@@ -1,6 +1,6 @@
 ---
 name: change-review
-description: Independently review a frozen requirement/design/scope and final change through specification, integration, maintainability, and adversarial failure lenses. Use for code review, pre-acceptance review, migration/security/FFI audits, or verified finding adjudication; require current call-path evidence and do not report style preferences or specialist output as defects without applicability and impact proof.
+description: Independently review an approved change for requirement, integration, maintainability, security, compatibility, and failure risks; report only verified, actionable findings.
 ---
 
 # Change Review

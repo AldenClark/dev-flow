@@ -16,6 +16,10 @@ from typing import Any, Iterable
 
 PROFILE_SCHEMA_VERSION = "1.0"
 READINESS_SCHEMA_VERSION = "1.0"
+HOST_ADAPTER_VERSION = "1.0"
+PROFILE_MODES = {"personal-interactive", "team-reproducible", "ci"}
+READINESS_DETAILS = {"compact", "full"}
+DEFAULT_PROJECT_DOC_MAX_BYTES = 32 * 1024
 LAYERS = ("baseline", "personal", "team", "project", "component", "task")
 LAYER_ORDER = {name: index for index, name in enumerate(LAYERS)}
 PROFILE_KINDS = {"constraint", "preference", "quality-policy"}
@@ -67,6 +71,139 @@ def sha256_bytes(value: bytes) -> str:
 
 def sha256_file(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
+
+
+def nonempty_regular_file(path: Path) -> bool:
+    return path.is_file() and not path.is_symlink() and bool(path.read_bytes().strip())
+
+
+class CodexHostAdapter:
+    """Bounded adapter for Codex instruction and Skill discovery semantics."""
+
+    def __init__(
+        self,
+        root: Path,
+        *,
+        codex_home: Path | None = None,
+        working_directory: Path | None = None,
+    ) -> None:
+        self.root = root.resolve()
+        self.codex_home = (codex_home or Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))).resolve()
+        candidate = (working_directory or self.root).resolve()
+        if candidate != self.root and not candidate.is_relative_to(self.root):
+            raise ContractError(f"working directory must be the repository root or a descendant: {candidate}")
+        self.working_directory = candidate if candidate.is_dir() else candidate.parent
+        self.fallback_filenames: list[str] = []
+        self.project_doc_max_bytes = DEFAULT_PROJECT_DOC_MAX_BYTES
+        self.errors: list[str] = []
+        self._load_config()
+
+    def _load_config(self) -> None:
+        path = self.codex_home / "config.toml"
+        if not path.is_file():
+            return
+        try:
+            config = read_toml(path)
+        except (OSError, tomllib.TOMLDecodeError, ContractError) as exc:
+            self.errors.append(f"cannot load Codex host config {path}: {exc}")
+            return
+        fallbacks = config.get("project_doc_fallback_filenames", [])
+        if isinstance(fallbacks, list) and all(
+            isinstance(item, str)
+            and item.strip()
+            and not Path(item.strip()).is_absolute()
+            and Path(item.strip()).name == item.strip()
+            and item.strip() not in {".", ".."}
+            for item in fallbacks
+        ):
+            self.fallback_filenames = [item.strip() for item in fallbacks]
+        elif "project_doc_fallback_filenames" in config:
+            self.errors.append(f"{path}: project_doc_fallback_filenames must contain only non-empty filenames")
+        maximum = config.get("project_doc_max_bytes", DEFAULT_PROJECT_DOC_MAX_BYTES)
+        if isinstance(maximum, int) and not isinstance(maximum, bool) and maximum > 0:
+            self.project_doc_max_bytes = maximum
+        elif "project_doc_max_bytes" in config:
+            self.errors.append(f"{path}: project_doc_max_bytes must be a positive integer")
+
+    def _project_directories(self) -> list[Path]:
+        relative = self.working_directory.relative_to(self.root)
+        directories = [self.root]
+        current = self.root
+        for part in relative.parts:
+            current = current / part
+            directories.append(current)
+        return directories
+
+    def instruction_chain(self) -> list[dict[str, Any]]:
+        result: list[dict[str, Any]] = []
+        for name in ("AGENTS.override.md", "AGENTS.md"):
+            selected = self.codex_home / name
+            if nonempty_regular_file(selected):
+                result.append(
+                    {
+                        "kind": "agents-override" if name == "AGENTS.override.md" else "agents",
+                        "path": str(selected),
+                        "scope": "global",
+                        "hash": sha256_file(selected),
+                        "bytes": selected.stat().st_size,
+                    }
+                )
+                break
+        consumed = 0
+        for directory in self._project_directories():
+            selected: Path | None = None
+            for name in ("AGENTS.override.md", "AGENTS.md", *self.fallback_filenames):
+                candidate = directory / name
+                if nonempty_regular_file(candidate):
+                    selected = candidate
+                    break
+            if selected is None:
+                continue
+            size = selected.stat().st_size
+            if consumed + size > self.project_doc_max_bytes:
+                self.errors.append(
+                    f"Codex project instruction budget exhausted before {selected} "
+                    f"({consumed}+{size}>{self.project_doc_max_bytes} bytes)"
+                )
+                break
+            consumed += size
+            result.append(
+                {
+                    "kind": "agents-override" if selected.name == "AGENTS.override.md" else "agents",
+                    "path": str(selected),
+                    "scope": directory.relative_to(self.root).as_posix() or ".",
+                    "hash": sha256_file(selected),
+                    "bytes": size,
+                }
+            )
+        return result
+
+    def skill_roots(self, explicit_roots: Iterable[Path] = ()) -> list[Path]:
+        candidates = [
+            self.codex_home / "skills",  # legacy Codex location
+            *(directory / ".agents" / "skills" for directory in self._project_directories()),
+            Path.home() / ".agents" / "skills",
+            Path("/etc/codex/skills"),
+            *explicit_roots,
+        ]
+        result: list[Path] = []
+        seen: set[str] = set()
+        for candidate in candidates:
+            resolved = candidate.resolve()
+            if str(resolved) not in seen:
+                seen.add(str(resolved))
+                result.append(resolved)
+        return result
+
+    def summary(self) -> dict[str, Any]:
+        return {
+            "name": "codex",
+            "adapter_version": HOST_ADAPTER_VERSION,
+            "working_directory": str(self.working_directory),
+            "project_doc_max_bytes": self.project_doc_max_bytes,
+            "project_doc_fallback_filenames": self.fallback_filenames,
+            "errors": self.errors,
+        }
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -265,10 +402,13 @@ def discover_profile_sources(
     task_paths: Iterable[str] = (),
     baseline: Path | None = None,
     task_profiles: Iterable[Path] = (),
+    profile_mode: str = "personal-interactive",
 ) -> tuple[list[dict[str, Any]], list[str], Path | None]:
     root = root.resolve()
     paths = [Path(item).as_posix().lstrip("./") for item in task_paths]
     errors: list[str] = []
+    if profile_mode not in PROFILE_MODES:
+        raise ContractError(f"profile mode must be one of {sorted(PROFILE_MODES)}")
     sources: list[dict[str, Any]] = []
     if baseline and baseline.is_file():
         sources.append({"path": baseline.resolve(), "layer": "baseline", "scope": [], "required": True})
@@ -284,7 +424,7 @@ def discover_profile_sources(
                 errors.extend(manifest_errors)
             except (OSError, tomllib.TOMLDecodeError, ContractError) as exc:
                 errors.append(f"cannot load manifest {manifest_path}: {exc}")
-    include_personal = manifest.get("include_personal", True) if not errors else False
+    include_personal = profile_mode == "personal-interactive" and (manifest.get("include_personal", True) if not errors else False)
     effective_codex_home = (codex_home or Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))).resolve()
     if include_personal:
         personal_dir = effective_codex_home / "dev-flow" / "profiles"
@@ -383,6 +523,7 @@ def resolve_profiles(
     codex_home: Path | None = None,
     baseline: Path | None = None,
     task_profiles: Iterable[Path] = (),
+    profile_mode: str = "personal-interactive",
 ) -> dict[str, Any]:
     root = root.resolve()
     paths = [Path(path).as_posix().lstrip("./") for path in task_paths]
@@ -393,6 +534,7 @@ def resolve_profiles(
         task_paths=paths,
         baseline=baseline,
         task_profiles=task_profiles,
+        profile_mode=profile_mode,
     )
     source_records: list[dict[str, Any]] = []
     entries: list[dict[str, Any]] = []
@@ -492,6 +634,7 @@ def resolve_profiles(
                 item["status_reason"] = f"shadowed by {winner['profile_id']} at layer {winner['layer']}"
         winners.append({key_name: winner.get(key_name) for key_name in winner if key_name not in {"status_reason"}})
     stable_input = {
+        "profile_mode": profile_mode,
         "sources": source_records,
         "facts": {key: sorted(value) for key, value in sorted(normalized_facts.items())},
         "winners": winners,
@@ -502,6 +645,7 @@ def resolve_profiles(
     fingerprint = sha256_bytes(canonical_json(stable_input).encode("utf-8"))
     return {
         "schema_version": PROFILE_SCHEMA_VERSION,
+        "profile_mode": profile_mode,
         "repository_root": str(root),
         "manifest": str(manifest_path) if manifest_path else None,
         "facts": stable_input["facts"],
@@ -626,37 +770,16 @@ def discover_native_controls(
     return [unique[key] for key in sorted(unique)]
 
 
-def discover_agent_instructions(root: Path, task_paths: Iterable[str], codex_home: Path | None = None) -> list[dict[str, Any]]:
-    root = root.resolve()
-    result: list[dict[str, Any]] = []
-    effective_codex_home = (codex_home or Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))).resolve()
-    global_path = effective_codex_home / "AGENTS.md"
-    if global_path.is_file():
-        result.append({"kind": "agents", "path": str(global_path), "scope": "global", "hash": sha256_file(global_path), "bytes": global_path.stat().st_size})
-    directories = {root.resolve()}
-    for raw in task_paths:
-        target = (root / raw).resolve()
-        directory = target if target.is_dir() else target.parent
-        while directory == root or directory.is_relative_to(root):
-            directories.add(directory)
-            if directory == root:
-                break
-            directory = directory.parent
-    for directory in sorted(directories, key=lambda item: (len(item.parts), str(item))):
-        override = directory / "AGENTS.override.md"
-        normal = directory / "AGENTS.md"
-        selected = override if override.is_file() else normal if normal.is_file() else None
-        if selected:
-            result.append(
-                {
-                    "kind": "agents-override" if selected == override else "agents",
-                    "path": str(selected),
-                    "scope": directory.relative_to(root).as_posix() or ".",
-                    "hash": sha256_file(selected),
-                    "bytes": selected.stat().st_size,
-                }
-            )
-    return result
+def discover_agent_instructions(
+    root: Path,
+    task_paths: Iterable[str] = (),
+    codex_home: Path | None = None,
+    *,
+    working_directory: Path | None = None,
+) -> list[dict[str, Any]]:
+    """Compatibility wrapper; Codex resolves project instructions from the effective CWD."""
+    del task_paths
+    return CodexHostAdapter(root, codex_home=codex_home, working_directory=working_directory).instruction_chain()
 
 
 def parse_skill_frontmatter(path: Path) -> dict[str, str]:
@@ -875,13 +998,15 @@ def evidence_matches(
     patterns: Iterable[str],
     task_paths: Iterable[str] = (),
     inventory: Iterable[Path] | None = None,
+    *,
+    relevant_only: bool = True,
 ) -> list[str]:
     matches: list[str] = []
     repository_files = list(inventory) if inventory is not None else list(iter_repository_files(root))
     for pattern in patterns:
         for path in repository_files:
             relative = path.relative_to(root)
-            if fnmatch.fnmatch(relative.as_posix(), pattern) and path_relevant(relative, task_paths):
+            if fnmatch.fnmatch(relative.as_posix(), pattern) and (not relevant_only or path_relevant(relative, task_paths)):
                 matches.append(relative.as_posix())
     return sorted(set(matches))
 
@@ -899,8 +1024,13 @@ def assess_context(
     capability_registry: Path,
     task_profiles: Iterable[Path] = (),
     packet: Path | None = None,
+    profile_mode: str = "personal-interactive",
+    working_directory: Path | None = None,
+    detail: str = "compact",
 ) -> dict[str, Any]:
     root = root.resolve()
+    if detail not in READINESS_DETAILS:
+        raise ContractError(f"readiness detail must be one of {sorted(READINESS_DETAILS)}")
     paths = [Path(path).as_posix().lstrip("./") for path in task_paths]
     fact_values = list(facts)
     risk_set = set(risks)
@@ -925,11 +1055,13 @@ def assess_context(
         codex_home=codex_home,
         baseline=baseline,
         task_profiles=task_profiles,
+        profile_mode=profile_mode,
     )
-    instructions = discover_agent_instructions(root, paths, codex_home)
+    host = CodexHostAdapter(root, codex_home=codex_home, working_directory=working_directory)
+    instructions = host.instruction_chain()
     controls = discover_native_controls(root, paths, inventory)
-    default_skill_roots = [Path(__file__).resolve().parents[2], (codex_home or Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))) / "skills"]
-    skills = discover_skills([*default_skill_roots, *skill_roots])
+    default_skill_roots = [Path(__file__).resolve().parents[2]]
+    skills = discover_skills([*default_skill_roots, *host.skill_roots(skill_roots)])
     installed_by_name = {item["name"]: item for item in skills}
     admissions, admission_errors = load_admissions(
         [
@@ -952,7 +1084,8 @@ def assess_context(
     for capability in registry["capabilities"]:
         if not capability_applies(capability, capability_facts):
             continue
-        native = evidence_matches(root, capability.get("native_evidence", []), paths, inventory)
+        native = evidence_matches(root, capability.get("native_evidence", []), paths, inventory, relevant_only=False)
+        task_native = evidence_matches(root, capability.get("native_evidence", []), paths, inventory, relevant_only=True)
         matching_routes: list[dict[str, Any]] = []
         for route_name in capability.get("route_names", []):
             admission = next(
@@ -1026,6 +1159,8 @@ def assess_context(
             "required_for": capability.get("required_for", "applicable-task"),
             "coverage": coverage,
             "native_evidence": native,
+            "task_native_evidence": task_native,
+            "task_mapping": "mapped" if task_native else "verification-required" if native else "absent",
             "selected_route": selected_route,
             "policy_fallbacks": policy_fallbacks,
             "contextual_review_required": contextual_review_required,
@@ -1175,9 +1310,36 @@ def assess_context(
     }
     fingerprint = sha256_bytes(canonical_json(stable_input).encode("utf-8"))
     suppression, suppression_errors = load_suppression(root, fingerprint, selected_tier)
+    admission_errors.extend(host.errors)
     admission_errors.extend(suppression_errors)
-    return {
+    full_quality_coverage = {
+        "obligations": obligations,
+        "policies": quality_policies,
+        "policy_assessments": policy_assessments,
+        "routes": routes,
+        "uncovered": uncovered,
+        "uncovered_policies": uncovered_policies,
+        "conflicts": route_conflicts,
+    }
+    compact_quality_coverage = {
+        "obligations": [
+            {
+                "id": item["id"],
+                "coverage": item["coverage"],
+                "task_mapping": item["task_mapping"],
+                "selected_skill": item["selected_route"]["skill"] if item["selected_route"] else None,
+            }
+            for item in obligations
+        ],
+        "policies": [{"key": item["key"], "coverage": item["coverage"]} for item in policy_assessments],
+        "uncovered": [item["id"] for item in uncovered],
+        "uncovered_policies": [item["key"] for item in uncovered_policies],
+        "conflicts": route_conflicts,
+    }
+    result = {
         "schema_version": READINESS_SCHEMA_VERSION,
+        "detail": detail,
+        "host": host.summary(),
         "tier": selected_tier,
         "tier_reasons": tier_reasons,
         "outcome": outcome,
@@ -1193,23 +1355,26 @@ def assess_context(
         "checks": checks,
         "recommendations": recommendations,
         "conflicts": [*preferences["conflicts"], *route_conflicts],
-        "quality_coverage": {
-            "obligations": obligations,
-            "policies": quality_policies,
-            "policy_assessments": policy_assessments,
-            "routes": routes,
-            "uncovered": uncovered,
-            "uncovered_policies": uncovered_policies,
-            "conflicts": route_conflicts,
-        },
+        "quality_coverage": full_quality_coverage if detail == "full" else compact_quality_coverage,
         "waiver": waiver,
         "suppression": suppression,
         "fingerprint": fingerprint,
         "recheck_triggers": ["task-tier-change", "scope-change", "profile-or-instruction-hash-change", "admission-change", "waiver-expiry"],
-        "profile_snapshot": preferences,
+        "profile": {
+            "mode": profile_mode,
+            "fingerprint": preferences["fingerprint"],
+            "outcome": preferences["outcome"],
+            "winner_keys": [item["key"] for item in preferences["winners"]],
+            "source_hashes": [item["hash"] for item in preferences["sources"]],
+            "conflict_count": len(preferences["conflicts"]),
+            "error_count": len(preferences["errors"]),
+        },
         "errors": admission_errors,
         "blockers": blockers,
     }
+    if detail == "full":
+        result["profile_snapshot"] = preferences
+    return result
 
 
 def write_json(path: Path, value: Any) -> None:

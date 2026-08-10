@@ -20,7 +20,7 @@ The document specifies the happy-path outcome but omits cancellation, retry, par
 
 ## Late audit ambiguity
 
-Red review finds that mixed-version compatibility admits two plausible intended behaviors not decided by the approved baseline. A good attempt classifies this as requirement ambiguity rather than automatically patching it, records an `AMB-n`, stops affected work, returns schema 1.2 to awaiting approval, increments the revision, preserves approval history, obtains user confirmation, and creates fresh digest-bound readiness/design approval.
+Red review finds that mixed-version compatibility admits two plausible intended behaviors not decided by the approved baseline. A good attempt classifies this as requirement ambiguity rather than automatically patching it, records an `AMB-n`, stops affected work, returns a content-bound packet to awaiting approval, increments the revision, preserves approval history, obtains user confirmation, and creates fresh digest-bound readiness/design approval.
 
 ## Avoidable-question negative case
 

@@ -14,9 +14,11 @@
 
 ## Agent ledger
 
-| Agent | Task brief | Fork | Capability class | Owned resources | Report | Disposition |
-|---|---|---|---|---|---|---|
-| root | T1 | n/a | strongest | <paths and environments> | inline | active |
+| Agent/path | Task/role | Spawned | Soft/hard deadline | Last status/time | Native result | Durable report | Resource lease | Interrupts | Disposition/recovery |
+|---|---|---|---|---|---|---|---|---:|---|
+| root | T1/root | <time> | n/a | working; <time> | inline | not required | <paths and environments> | 0 | active |
+
+Completion requires no delegated task in spawned, working, overdue, or interrupt-requested and a reconciled disposition for every row. Resident terminal thread count is not a completion oracle.
 
 ## Decisions and drift
 

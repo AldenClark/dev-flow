@@ -1,6 +1,6 @@
 ---
 name: delivery-readiness
-description: Determine whether an implemented change is verified, accepted, release-ready, and eligible for separately authorized delivery. Use after implementation/review or before commit, push, PR, tag, release, migration, deployment, or external communication to account for acceptance, compatibility, rollback, changed files, residual risk, and exact delivery authority.
+description: Check acceptance, compatibility, rollback, changed files, residual risk, and authority before commit, push, PR, release, migration, deployment, or external delivery.
 ---
 
 # Delivery Readiness

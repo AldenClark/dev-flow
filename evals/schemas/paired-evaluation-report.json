@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dev Flow paired evaluation report",
+  "type": "object",
+  "required": ["schema_version", "status", "seed", "trials_per_pair", "pair_ids", "commands", "records", "aggregates", "pair_aggregates", "candidate_minus_baseline", "interpretation", "errors"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "status": {"enum": ["complete", "incomplete"]},
+    "seed": {"type": "integer"},
+    "trials_per_pair": {"type": "integer", "minimum": 3},
+    "pair_ids": {"type": "array", "items": {"type": "string"}},
+    "commands": {"type": "object"},
+    "records": {"type": "array"},
+    "aggregates": {"type": "object"},
+    "pair_aggregates": {"type": "object"},
+    "candidate_minus_baseline": {"type": "object"},
+    "interpretation": {"type": "object"},
+    "errors": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

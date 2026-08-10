@@ -1,6 +1,6 @@
 ---
 name: manage-engineering-profiles
-description: Assess, scaffold, create, validate, explain, diff, promote, retire, waive, and audit layered Dev Flow engineering profiles and concise AGENTS.md projections. Use when a user or team wants to establish or change personal, team, project, component, task, language, dependency, or quality-policy guidance; do not activate merely to consume an existing profile during ordinary product work.
+description: Create, validate, explain, diff, promote, retire, waive, or audit layered engineering profiles and concise AGENTS.md projections; not for ordinary profile consumption.
 ---
 
 # Manage Engineering Profiles

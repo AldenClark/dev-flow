@@ -1,6 +1,6 @@
 ---
 name: requirements-design
-description: Resolve material requirement semantics and produce an approval-bound requirement, architecture constraint, complete change scope, compatibility, rollback, and verification baseline. Use before non-trivial features, refactors, migrations, public-contract changes, or whenever multiple interpretations would materially change behavior, risk, scope, or acceptance; skip for already-clear micro work.
+description: Resolve material requirement ambiguity and bind outcomes, constraints, scope, compatibility, rollback, verification, and approval before consequential changes.
 ---
 
 # Requirements and Design

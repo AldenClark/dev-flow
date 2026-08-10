@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "cases": [
-    {"id": "ROUTE-MICRO", "args": ["--task-type", "micro"], "required": ["repo-context", "verification", "delivery-readiness"], "forbidden": ["manage-engineering-profiles", "dev-flow-maintainer", "change-review"]},
-    {"id": "ROUTE-BUGFIX", "args": ["--task-type", "bugfix"], "required": ["repo-context", "systematic-debugging", "verification", "change-review", "delivery-readiness"], "forbidden": ["manage-engineering-profiles", "dev-flow-maintainer"]},
-    {"id": "ROUTE-UI", "args": ["--task-type", "large-feature", "--ui-impact", "material"], "required": ["requirements-design", "product-ux-discovery", "architecture-decisions", "verification", "change-review", "delivery-readiness"], "forbidden": ["manage-engineering-profiles", "dev-flow-maintainer"]},
-    {"id": "ROUTE-DEPENDENCY", "args": ["--task-type", "dependency-change"], "required": ["requirements-design", "dependency-decisions", "verification", "change-review", "delivery-readiness"], "forbidden": ["manage-engineering-profiles", "dev-flow-maintainer"]},
+    {"id": "ROUTE-MICRO", "args": ["--task-type", "micro"], "required": ["repo-context", "verification"], "forbidden": ["manage-engineering-profiles", "dev-flow-maintainer", "change-review", "delivery-readiness"]},
+    {"id": "ROUTE-BUGFIX", "args": ["--task-type", "bugfix"], "required": ["repo-context", "systematic-debugging", "verification"], "forbidden": ["manage-engineering-profiles", "dev-flow-maintainer", "change-review", "delivery-readiness"]},
+    {"id": "ROUTE-UI", "args": ["--task-type", "large-feature", "--ui-impact", "material"], "required": ["requirements-design", "product-ux-discovery", "architecture-decisions", "verification", "change-review"], "forbidden": ["manage-engineering-profiles", "dev-flow-maintainer", "delivery-readiness"]},
+    {"id": "ROUTE-DEPENDENCY", "args": ["--task-type", "dependency-change"], "required": ["requirements-design", "dependency-decisions", "verification", "change-review"], "forbidden": ["manage-engineering-profiles", "dev-flow-maintainer", "delivery-readiness"]},
     {"id": "ROUTE-PROFILE", "args": ["--task-type", "routine", "--profile-operation"], "required": ["manage-engineering-profiles"], "forbidden": ["dev-flow-maintainer"]},
     {"id": "ROUTE-MAINTAINER", "args": ["--task-type", "large-refactor", "--suite-maintenance"], "required": ["dev-flow-maintainer"], "forbidden": ["manage-engineering-profiles"]},
     {"id": "ROUTE-READONLY", "args": ["--task-type", "read-only-audit"], "required": ["repo-context"], "forbidden": ["verification", "delivery-readiness", "dev-flow-maintainer"]},

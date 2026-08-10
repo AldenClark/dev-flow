@@ -1,6 +1,6 @@
 ---
 name: dependency-decisions
-description: Govern adding, enabling, updating, replacing, removing, vendoring, or selecting libraries, tools, generators, plugins, runtimes, services, and material dependency features. Use before manifest, lockfile, plugin, service, generated dependency metadata, or supply-chain changes; verify current candidates from primary sources and obtain explicit approval for each named option and impact.
+description: Research and govern library, tool, plugin, runtime, service, feature, manifest, lockfile, generated metadata, and supply-chain changes before selection or mutation.
 ---
 
 # Dependency Decisions

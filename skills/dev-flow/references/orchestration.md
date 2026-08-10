@@ -10,7 +10,7 @@ Escalate when a dependency/public contract appears, scope crosses components/roo
 
 ## Lifecycle
 
-1. Establish authority, runtime, instructions, roots, and persistent packet.
+1. Establish authority, runtime, instructions, roots, risks, and direct/traced/governed work mode; create persistent state only for traced/governed work.
 2. Route repository context and current behavior.
 3. Route requirement/design and product/UX only when their triggers apply.
 4. Resolve effective profiles and material decisions without loading unrelated catalogs.
@@ -18,7 +18,7 @@ Escalate when a dependency/public contract appears, scope crosses components/roo
 6. Build a dependency-aware task graph with outcomes, inputs, owned paths/symbols, non-goals, checks, resources, and stop conditions.
 7. Implement the smallest coherent ready slice; run its narrow check; inspect drift, generated/dependency changes, secrets, and user-owned work; update the packet.
 8. Replan when evidence invalidates an assumption. Stop at authority, dependency, destructive/external, or material scope boundaries.
-9. Route verification, independent review, repairs, fresh rechecks, and delivery readiness.
+9. Route verification. Add independent review for explicit/governed risk and delivery readiness only for explicit delivery or release/rollback work.
 
 No slice closes until progress, decision/drift, scope mapping, verification, and changed-file evidence are durable.
 
@@ -26,8 +26,8 @@ At every user-owned stop, remain in Default mode and apply `../../requirements-d
 
 ## Task routing
 
-- Micro: compact trace, exact file/caller/test, no delegation; escalate on uncertainty or contract risk.
-- Routine: bounded subsystem and analogue, affected tests/static checks, scoped review.
+- Micro: direct inline record, exact file/caller/test, no packet or delegation; escalate on uncertainty or contract risk.
+- Routine: traced mode, bounded subsystem and analogue, affected tests/static checks; review only when another trigger applies.
 - Bugfix: route to systematic debugging and require causal/regression evidence.
 - Read-only: preserve repository state; evidence/findings are deliverable; remediation needs authority.
 - Spike: define learning question, isolation, success evidence, adopt/reject boundary; do not silently ship.

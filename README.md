@@ -10,16 +10,17 @@ Dev Flow 是一套面向 Codex 的中立、可组合、证据驱动工程工作�
 ## 核心能力
 
 - 在需求和方案前扫描真实代码、运行时事实与 Git 边界；
-- 按真实 Git 根和待修改路径解析本地规范、嵌套指令、Skills、机器配置与 CI，并把有效规则映射到实现和证据；
+- 按真实 Git 根和有效工作目录解析 Codex 指令链，按任务路径选择证据、Profiles、原生控制与 CI；
 - 以 `execute`、`checkpointed`、`co-design` 三种协作模式控制需求、设计、漂移与验收检查点；
 - 把输入中的多义性记录为结构化 `AMB-n`，区分“Codex 应从仓库查明的事实”和“必须由用户定稿的需求语义”；
 - 用需求修订号与 SHA-256 摘要绑定 Requirement Ready/设计批准，后续语义变化或审计疑义会使旧批准失效；
 - 将 UI 工作分为 `none`、`preserve`、`material`，只对重大产品/UI 变化强制 UX Ready，避免无差别设计仪式；
 - 明确记录需求、验收标准、设计、改动范围、进度、决策、测试和审计；
 - 按微小修改、日常需求、Bug 修复、大型功能、重构、迁移、安全与性能任务调整流程重量；
+- 使用 `direct`（无工作包）、`traced`（三个核心状态文件）和 `governed`（完整治理记录）三级工作模式；
 - 按 Rust 后端、Web、Apple/Android/Windows 客户端、FFI、CLI/TUI 等项目形态组织验证；
 - 新依赖必须先比较候选方案、影响与维护成本，并取得明确批准；
-- 只把边界清晰的独立工作交给子代理，由根代理负责综合、复核和最终验收；
+- 只把边界清晰的独立工作交给子代理，通常同时运行 1–2 个；根代理按 deadline、resource lease 和 disposition 完成综合、复核与最终验收；
 - 管控浏览器、模拟器、设备、虚拟机、容器和服务等测试资源；
 - 用蓝队审计、红队审计和新鲜验证证据阻止未经证实的完成声明。
 - 以 12 个职责单一的 Skills 支持直接调用和端到端组合，避免加载无关工程手册；
@@ -31,10 +32,10 @@ Dev Flow 是一套面向 Codex 的中立、可组合、证据驱动工程工作�
 
 ## 运行要求
 
-- Codex CLI `0.147.0` 或更高版本；
+- 支持当前 Codex CLI 的基础单代理工作流；委派与 hooks 能力在使用前单独检测；
 - Python `3.11` 或更高版本，仅使用标准库；
 - Git；
-- Codex 配置启用 `multi_agent`、`multi_agent_v2` 和 `hooks`。
+- 如需多代理与 hooks，Codex 配置启用 `multi_agent`、`multi_agent_v2` 和 `hooks`。
 
 推荐配置：
 
@@ -61,7 +62,7 @@ codex plugin add dev-flow@dev-flow
 
 ```bash
 python3 skills/dev-flow/scripts/dev-flow.py check --plugin-root "$PWD"
-python3 skills/dev-flow/scripts/dev-flow.py preflight --tool-surface-confirmed
+python3 skills/dev-flow/scripts/dev-flow.py preflight
 ```
 
 再安装随附的角色配置：
@@ -97,7 +98,7 @@ python3 skills/dev-flow/scripts/dev-flow.py resolve-profiles \
   --root "$PWD" --output .codex/dev-flow/<change-id>/effective-preferences.json
 
 python3 skills/dev-flow/scripts/dev-flow.py assess-context \
-  --root "$PWD" --task-type routine --packet .codex/dev-flow/<change-id>
+  --root "$PWD" --task-type routine --profile-mode team-reproducible
 
 python3 skills/manage-engineering-profiles/scripts/profile-tool.py \
   scaffold --id project.default --layer project --owner team \
@@ -128,7 +129,7 @@ python3 skills/dev-flow/scripts/dev-flow.py init-packet \
   --collaboration-profile co-design --ui-impact material
 ```
 
-新工作包使用向后兼容的 schema 1.2，并继续验证旧 schema 1.0/1.1。`checkpointed`/`co-design` 在批准前记录 Requirement Ready；schema 1.2 会把批准绑定到当前需求修订与摘要，`material` UI 还记录 UX Ready：
+CLI 会自动选择工作模式，也可用 `--work-mode` 显式指定。新工作包使用 schema 2.0 和 append-only `events.jsonl`，并继续读取旧 schema 1.0、1.1、1.2。`checkpointed`/`co-design` 在批准前记录 Requirement Ready；内容绑定会把批准关联到当前需求修订与摘要，`material` UI 还记录 UX Ready：
 
 ```bash
 python3 skills/dev-flow/scripts/dev-flow.py record-approval \
@@ -164,11 +165,22 @@ python3 skills/dev-flow/scripts/dev-flow.py transition \
   --ambiguity-id AMB-2 --note "审计发现兼容性语义存在两种解释"
 ```
 
-非微型任务会在目标仓库建立：
+日常 `traced` 任务只建立：
 
 ```text
 .codex/dev-flow/<change-id>/
 ├── packet.json
+├── events.jsonl
+├── trace.md
+└── artifacts/
+```
+
+高风险或显式治理的 `governed` 任务建立：
+
+```text
+.codex/dev-flow/<change-id>/
+├── packet.json
+├── events.jsonl
 ├── context.md
 ├── requirements.md
 ├── design.md
@@ -183,7 +195,15 @@ python3 skills/dev-flow/scripts/dev-flow.py transition \
 └── artifacts/
 ```
 
-真正的微小变更沿用同一机器状态和目录边界，但把人类可读记录压缩到 `trace.md`。
+清晰的微小变更使用 `direct`，不创建工作包；若不确定性、契约或风险上升则升级为 traced/governed。
+
+多代理完成以“没有仍在运行/待启动的委派任务，且每个任务都已有 reconciled disposition”为准，不要求可复用的终态 thread 从界面中消失。子代理原生 final 是主结果，`reports/` 文件仅在 brief 明确要求时作为持久证据；缺少报告不会阻止退出，也不会单独触发重复派工。`wait_agent` 超时只表示本次观察窗口没有更新。超过 hard deadline 后先检查状态，最多请求一次 interrupt，再记录 terminal 或 `orphan-suspected` 处置。
+
+工作包验收后可显式解除活动指针而不删除证据：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py deactivate-packet .codex/dev-flow/<change-id>
+```
 
 ## 仓库内容与运行时数据
 
@@ -196,7 +216,7 @@ python3 skills/dev-flow/scripts/dev-flow.py transition \
 
 工作包可能包含命令、路径、日志和测试产物，因此默认只保存在使用者项目的本地 `.codex/dev-flow/` 中，不属于插件源码。提交 Issue 或 PR 前应移除凭据、个人数据和不必要的运行时内容。
 
-Hooks 只在仓库显式激活 `.codex/dev-flow/current` 时工作；它们不包含 MCP 服务、不发起网络请求、不读取凭据。子代理运行标记写入 `PLUGIN_DATA`，只保存不可逆的数据包标识哈希和时间戳，并在成功结束后清理。
+Hooks 只在仓库显式激活 `.codex/dev-flow/current` 时工作；子代理生命周期 Hook 还要求工作包处于活动流程状态，accepted、archived 和 blocked 包不会继续治理后续子代理。Hooks 不包含 MCP 服务、不发起网络请求、不读取凭据。子代理运行标记写入 `PLUGIN_DATA`，只保存不可逆的数据包标识哈希和时间戳，并在停止时清理；marker 存储不可用会给出 `DEV_FLOW_AGENT_MARKER_UNAVAILABLE`，缺少可选报告会给出 `DEV_FLOW_AGENT_REPORT_MISSING`，两者都不会阻断原生生命周期。
 
 ## 仓库结构
 
@@ -221,6 +241,14 @@ python3 -m compileall -q hooks skills evals
 ```
 
 CI 在 Linux、macOS 和 Windows 上覆盖 Python 3.11 与当前 Python 3.14。实时模型行为评测与确定性仓库检查分离，避免把不可复现的模型结果伪装成静态门禁。
+
+发布候选版本可用独立 executor/grader 命令运行至少三轮成对首轮评测；每轮请求、stdout、stderr、结果和汇总会写入隔离目录：
+
+```bash
+python3 evals/run_paired_evaluations.py \
+  --executor '<executor command>' --grader '<grader command>' \
+  --output /absolute/path/to/eval-output --trials 3
+```
 
 ## 版本与兼容性
 

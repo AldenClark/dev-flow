@@ -153,7 +153,7 @@
       "decision": "Evaluate ambiguity detection, answerability, clarification precision, downstream requirement binding, and scoped reopening.",
       "adaptation": "Contract scenarios and metrics also track emerging CLARITI (https://arxiv.org/abs/2604.14624) and ClarifyCodeBench (https://arxiv.org/abs/2607.00711) directions.",
       "complexity_limit": "Deterministic structural tests remain separate from optional live model evaluation.",
-      "evaluation": "Semantic clarification reference contract plus schema 1.2 behavior/mutation tests.",
+      "evaluation": "Semantic clarification reference contract plus schema 1.2/2.0 behavior and mutation tests.",
       "review_after": "2027-02-09"
     },
     {

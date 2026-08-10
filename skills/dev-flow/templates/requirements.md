@@ -30,8 +30,8 @@
 ## Requirement baseline
 
 - Revision: <positive requirement revision>
-- Digest: <sha256 digest recorded by the schema 1.2 CLI at Requirement Ready>
-- Baseline content: <full requirements.md, or the Requirement and design section for a micro packet>
+- Digest: <sha256 digest recorded by the content-bound CLI at Requirement Ready>
+- Baseline content: <full requirements.md, or the Requirement and design section for a traced packet>
 - Reopen conditions: <material late ambiguity, requirement correction, or audit finding that changes affected semantics>
 
 ## Ambiguity ledger

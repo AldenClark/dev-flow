@@ -1,6 +1,6 @@
 ---
 name: dev-flow-maintainer
-description: Explicit-only maintenance of the public Dev Flow Skill suite, including schemas, resolver/readiness logic, capability taxonomy and admission contracts, routing, migrations, hooks, role assets, compatibility, governance, structural contracts, and paired evaluations. Use only when the user asks to change Dev Flow itself; never auto-activate during ordinary repository product work or own personal/team/project profile values.
+description: Explicit-only maintenance of Dev Flow schemas, routing, host adapters, hooks, governance, compatibility, capability contracts, migrations, and evaluations.
 ---
 
 # Dev Flow Maintainer

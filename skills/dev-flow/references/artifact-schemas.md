@@ -1,26 +1,22 @@
-# Trace packet contract
+# Dev Flow state contract
 
-Use one packet per change under `<repo>/.codex/dev-flow/<change-id>/`. The packet is the recovery and audit record. Keep it local by default through `.git/info/exclude`; commit or publish it only with explicit user authority.
+Keep local state under `<repo>/.codex/dev-flow/<change-id>/`; exclude it through `.git/info/exclude` unless the user explicitly authorizes publication. New writes use schema 2.0. The validator continues to read schemas 1.0, 1.1, and 1.2 under their original `micro`/`full` contracts.
 
-Two optional machine artifacts connect scoped engineering context to the packet without making file presence a gate:
+## Work modes
 
-- `effective-preferences.json`: deterministic six-layer resolution with input hashes, winners, shadowed entries, conflicts, exceptions, fingerprint, and `resolved`/`blocked` outcome;
-- `context-readiness.json`: task-relative T0-T3 ECR/EQAC result with applicable sources, checks, capability outcomes, admitted routes, fallback/waiver, fingerprinted suppression, blockers, and recheck triggers.
+- `direct`: no packet. Use for clear micro or isolated spike work. Retain the decision, scope, and fresh evidence in the conversation.
+- `traced`: `packet.json`, append-only `events.jsonl`, `trace.md`, and an optional `artifacts/` directory. These are the only three core state files.
+- `governed`: the traced machine state plus `context.md`, `requirements.md`, `design.md`, `execution.md`, `test-matrix.md`, both audit documents, `evidence.md`, `decisions.md`, and child `briefs/`, `reports/`, and `artifacts/` directories.
 
-If present, both artifacts must satisfy their v1 contracts. An accepted packet cannot retain blocked effective preferences or a readiness `checkpoint`/`blocked` outcome. Absence alone remains advisory because T0 work and repositories with sufficient native evidence do not need a profile ceremony.
+Auto-select governed for security, unsafe/FFI/ABI, migration, dependency, release/deployment, public protocol/API, persisted-data, regulated, rollback, or material UI semantics. Explicit user/team policy may escalate; rising risk may never silently downgrade.
 
-## Machine-readable state
+## Schema 2.0 machine state
 
-`packet.json` is the identity and state source of truth. New packets use schema 1.2; the validator continues to accept schema 1.0 and 1.1 packets under their original contracts. Require:
+`packet.json` is the current projection. It contains identity/version, `work_mode`, matching `documentation_profile` (`trace` or `governed`), state/timestamps, roots/base state, authority, collaboration/UI/compatibility/risk data, AC/SC/VO IDs, requirement revision/digest, ambiguity and dependency ledgers, approvals, and projected transition history.
 
-- `schema_version`, `skill_version`, `change_id`, `task_type`, `documentation_profile`, timestamps, repository roots, base Git state, authority, compatibility, and risk modifiers;
-- for schema 1.1 and 1.2, `collaboration_profile` (`execute`, `checkpointed`, or `co-design`) and `ui_impact` (`none`, `preserve`, or `material`);
-- for schema 1.2, a positive `requirement_revision`, nullable/current `requirements_digest`, `ambiguity_ids`, and structured `ambiguities`;
-- declared `acceptance_ids`, `scope_ids`, `verification_ids`, and dependency changes;
-- requirement, conditional UX, design, dependency, waiver, and delivery approvals;
-- append-only state history.
+`events.jsonl` is append-only. Each line has event schema 1.0, contiguous sequence, event name, timestamp, projected state/work mode, and a payload. The first event is `packet-created`; state events must project exactly to `packet.json.history`, and their final state must match `packet.json.state`. Mutators append the event and atomically replace the projection. A mismatch is invalid rather than silently repaired.
 
-Use only these states and transitions:
+States and ordinary transitions are:
 
 ```text
 discovering -> awaiting-approval -> approved -> implementing -> verifying -> accepted -> archived
@@ -28,60 +24,38 @@ discovering -> awaiting-approval -> approved -> implementing -> verifying -> acc
       +--------------> blocked <------+--------------+-------------+
 blocked -> discovering | awaiting-approval
 verifying -> implementing
-implementing | verifying -> awaiting-approval (schema 1.2 only; open material/high-risk AMB-n required)
+implementing | verifying -> awaiting-approval (open material/high-risk AMB-n required)
 ```
 
-For schema 1.1, record the canonical `REQ-READY` Requirement Ready approval before `approved` in checkpointed/co-design work and the canonical `UX-READY` approval before `approved` when `ui_impact` is `material`. Readiness records require a concrete actor, note, and timezone-aware timestamp, may be created only while `awaiting-approval`, and must fall between the applicable awaiting-approval and approved history events. Record a concrete design approval before `approved`; in unambiguous `execute` work, the user's explicit implementation request may be the approval source under the conditions in `collaboration-checkpoints.md`, without a redundant acknowledgement. Do not enter `accepted` with an invalid packet, unapproved dependency, unresolved required test cell, or missing acceptance evidence.
+Checkpointed/co-design work records `REQ-READY` between awaiting and approved. Material UI also records `UX-READY`. A concrete design approval is required for approved and later states. Content-bound approvals carry the current positive requirement revision and SHA-256 digest: governed hashes exact `requirements.md` bytes; traced hashes the `Requirement and design` body. Reopening archives the prior design approval, increments revision, clears the digest/current design, and requires a fresh approval cycle.
 
-Schema 1.2 preserves those readiness rules and adds content binding. `REQ-READY` and design approval record the current requirement revision and SHA-256 digest. Full packets hash exact `requirements.md` bytes; micro packets hash the `Requirement and design` section body. All `AMB-n` records require an authorized disposition and affected trace IDs before approval. Reopening preserves prior design approval in `approvals.design_history`, increments the revision, clears the digest/current design approval, and requires a fresh matching readiness/design cycle.
+Every `AMB-n` records source, at least two interpretations, evidence, materiality, owner, affected AC/SC/VO IDs, recommendation, creation revision, status, and evidence-bearing resolution. Open material or high-risk ambiguity prevents approval.
 
-## Complete documentation profile
+## Documentation
 
-Use for all non-micro implementation and non-trivial read-only audit work:
+`trace.md` keeps concrete authority/repository facts, INS IDs, acceptance/design, AC/SC/VO scope, protected behavior, ordered progress/decisions, fresh verification, proportionate blue/red checks, delivery status, and residual gates. No placeholder may remain.
 
-- `context.md`: authority, repository roots and facts, instruction ledger, collaboration/readiness, current behavior/reproduction, constraints, protected behavior, assumptions, open questions;
-- `requirements.md`: user/product outcome, requirement delta, AC IDs, non-functional needs, compatibility, exclusions, Requirement Ready, confirmation record;
-- `design.md`: decision, preferences, alternatives, architecture/failures, conditional product/UX contract, DEP decisions, complete SC scope, compatibility, rollout/rollback/cleanup, VO obligations, approval;
-- `execution.md`: task graph, append-only progress, agent ledger, decisions/drift, environment leases, findings/repair rounds, blockers/next task;
-- `test-matrix.md`: dimensions, resources, cells, attempts, statuses, flaky triage, teardown, acceptance/release gates;
-- `blue-audit.md`: clean review brief, requirement/scope/integration review, verified findings, disposition;
-- `red-audit.md`: threat/failure hypotheses, adversarial checks, verified findings, disposition;
-- `evidence.md`: AC/SC/VO traceability, instruction/collaboration/UX evidence, exact commands, audit/test summary, changed-file accounting, remaining gates, delivery states;
-- `decisions.md`: material choices, user approvals, consulted sources, superseded decisions;
-- `briefs/`: one immutable assignment brief per child task;
-- `reports/`: child-owned result reports; children do not edit core packet documents;
-- `artifacts/`: logs, screenshots, traces, benchmarks, reports, hashes, or links governed by retention policy.
+Governed documents split those concerns so independent work is recoverable:
 
-For schema 1.1 full packets, require at least one `INS-n` record in `context.md` and the same instruction-ID set in `design.md`, `execution.md`, `test-matrix.md`, both audit documents, and `evidence.md`. Each downstream occurrence must explain the rule's applicable design, task, test, audit, or final-evidence effect. Micro traces require at least one `INS-n` record in the single trace document.
+- context and requirements: authority, facts, instructions, semantics, ambiguity, outcomes, compatibility, exclusions;
+- design and execution: decision, alternatives, failure behavior, complete scope, dependencies, task graph, ownership, drift, findings;
+- test matrix and audits: environments/resources, required cells/attempts/status, clean blue/red review and adjudication;
+- evidence and decisions: AC/SC/VO traceability, exact commands, changed files, remaining gates, approvals, sources, superseded choices.
 
-Schema 1.2 full packets additionally require semantic input/ownership in context, requirement baseline and ambiguity ledger in requirements, baseline/reopening design, finding classification in both audits, and semantic clarification evidence. Every declared `AMB-n` must be documented; an ambiguity originating in requirements must also appear in execution and evidence.
+Only root writes core packet state and owns final claims. Children return native finals; brief-assigned durable reports never gate stop. Root logs each task's reconciliation, deadlines, result/report, lease, interrupt, disposition, and recovery.
 
-## Compact micro profile
+`current` activates hooks, not history; child lifecycle hooks ignore accepted, archived, and blocked packets. `deactivate-packet <packet>` preserves data and removes only its matching terminal regular-file pointer. Absence is idempotent; unsafe or mismatched pointers are refused.
 
-Use `packet.json`, `trace.md`, and the three subdirectories. `trace.md` must still contain collaboration/UI classification, applicable instructions, authority/repository evidence, requirement/design, AC/SC/VO IDs, scope/protected behavior, progress/decisions, verification, a proportionate blue/red check, delivery, and residual risk.
+## Identifiers and evidence
 
-Escalate to the complete profile when scope crosses files/components, a public contract or compatibility issue appears, a dependency is needed, reproduction is uncertain, risk rises, or delegation becomes useful. Preserve the original trace and record the escalation.
+- `AC-n`: observable acceptance.
+- `SC-D/I/C/P/O/Ln`: direct, indirect, conditional, protected, excluded, and delivery scope.
+- `VO-n`: verification obligation.
+- `DEP-n`, `INS-n`, `AMB-n`: dependency, instruction, and ambiguity records.
+- `Tn`, `TM-n`, `BLUE-n`, `RED-n`: tasks, matrix cells, and review findings.
 
-## Identifier and trace rules
+Keep IDs stable and make declared ID sets equal documented sets. Each command record includes command, absolute root, relevant environment/version, time, exit, oracle/counts, artifact, and freshness after the last relevant edit. Preserve the first failure. Status is exactly `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, or `WAIVED`; waiver is never pass.
 
-- `AC-n`: observable acceptance criterion, present in requirements, execution, and evidence.
-- `SC-D/I/C/P/O/Ln`: direct, indirect, conditional, protected, out-of-scope, and delivery scope; present in design, execution, and evidence.
-- `VO-n`: verification obligation; present in design, test matrix, and evidence.
-- `DEP-n`: dependency decision; approval is also recorded in `packet.json`.
-- `INS-n`: material instruction or convention; record source/scope/effect/evidence in context and trace applicable IDs through tasks, audits, and evidence.
-- `AMB-n`: semantic ambiguity; record source, competing interpretations, evidence, materiality, owner, affected AC/SC/VO IDs, recommendation, status, creation revision, and evidence-bearing resolution.
-- `Tn`, `TM-n`, `BLUE-n`, `RED-n`: task, matrix cell, and audit finding identifiers.
+Optional `effective-preferences.json` and `context-readiness.json` retain their v1 contracts. Accepted state cannot retain blocked preferences or readiness checkpoint/block. Absence alone is advisory.
 
-Keep IDs stable. Supersede rather than renumber. Machine-readable ID lists must equal the documented sets.
-
-## Evidence quality
-
-Every command record includes exact command, absolute root, environment/configuration/version, timestamp, exit code, counts, artifact path, and whether it ran after the final relevant edit. Retain the first failure before retries. A child claim, stale run, passing linter, or partial environment is not final product evidence.
-
-Use only `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, or `WAIVED`. A waiver requires named user approval and never becomes `PASSED`.
-
-## Ownership and update policy
-
-The root alone writes `packet.json` and core documents. A child writes only its assigned report/artifact paths unless its brief grants an exclusive product-code boundary. Append progress at meaningful events; do not rewrite history to make execution look linear.
-
-Validate after requirement/design confirmation, each implementation wave, audit repair, final verification, and before state transitions. Use `dev-flow.py transition`, `record-approval`, `record-ambiguity`, and `resolve-ambiguity` so history, semantic state, and approval records remain consistent.
+Validate after approval, compaction, each material implementation/repair wave, final verification, and before transition. Use the CLI mutators so the event ledger and projection remain consistent.

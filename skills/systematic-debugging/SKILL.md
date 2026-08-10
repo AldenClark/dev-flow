@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: Reproduce and diagnose incorrect behavior through competing causal hypotheses, discriminating experiments, call-path evidence, and regression proof. Use for bugs, flaky tests, crashes, hangs, integration failures, performance anomalies, and read-only root-cause investigations; do not use to bundle unrelated cleanup or silently implement a fix when authority is diagnosis-only.
+description: Reproduce and diagnose bugs, flakes, crashes, hangs, integration failures, and performance anomalies through competing hypotheses and discriminating evidence.
 ---
 
 # Systematic Debugging

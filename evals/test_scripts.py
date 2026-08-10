@@ -21,6 +21,7 @@ FLOW = SCRIPTS / "dev-flow.py"
 HOOK = ROOT / "hooks" / "dev_flow_hook.py"
 PYTHON = sys.executable
 AGENT_CONFIGS = ROOT / "skills" / "dev-flow" / "assets" / "agent-configs"
+PAIRED_RUNNER = ROOT / "evals" / "run_paired_evaluations.py"
 
 
 def run(*args: str, cwd: Path | None = None, stdin: str | None = None, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
@@ -299,9 +300,9 @@ class PreflightTests(unittest.TestCase):
             config = root / "config.toml"
             write_features(features)
             write_config(config)
-            result = run(PYTHON, str(FLOW), "preflight", "--version-output", "codex-cli 0.146.9", "--features-output-file", str(features), "--config", str(config))
+            result = run(PYTHON, str(FLOW), "preflight", "--version-output", "codex-cli 0.146.9", "--features-output-file", str(features), "--config", str(config), "--require-delegation")
             self.assertEqual(result.returncode, 2)
-            self.assertIn("below required", result.stdout)
+            self.assertIn("below delegation-tested", result.stdout)
 
     def test_rejects_obsolete_config_shape(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -310,9 +311,154 @@ class PreflightTests(unittest.TestCase):
             config = root / "config.toml"
             write_features(features)
             write_config(config, correct=False)
-            result = run(PYTHON, str(FLOW), "preflight", "--version-output", "codex-cli 0.147.0", "--features-output-file", str(features), "--config", str(config))
+            result = run(PYTHON, str(FLOW), "preflight", "--version-output", "codex-cli 0.147.0", "--features-output-file", str(features), "--config", str(config), "--require-delegation")
             self.assertEqual(result.returncode, 2)
             self.assertIn("obsolete", result.stdout)
+
+    def test_core_workflow_degrades_without_delegation_capabilities(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            features = root / "features.txt"
+            config = root / "config.toml"
+            features.write_text("multi_agent stable false\nmulti_agent_v2 stable false\nhooks stable false\n", encoding="utf-8")
+            write_config(config, correct=False)
+            result = run(
+                PYTHON,
+                str(FLOW),
+                "preflight",
+                "--version-output",
+                "codex-cli 0.146.9",
+                "--features-output-file",
+                str(features),
+                "--config",
+                str(config),
+            )
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            payload = json.loads(result.stdout)
+            self.assertEqual(payload["status"], "degraded")
+            self.assertTrue(payload["capabilities"]["core_workflow"])
+            self.assertFalse(payload["capabilities"]["delegation"])
+
+    def test_malformed_config_shapes_degrade_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            features = root / "features.txt"
+            config = root / "config.toml"
+            write_features(features)
+            config.write_text('features = "invalid"\nagents = []\n', encoding="utf-8")
+            result = run(
+                PYTHON,
+                str(FLOW),
+                "preflight",
+                "--version-output",
+                "codex-cli 0.147.0",
+                "--features-output-file",
+                str(features),
+                "--config",
+                str(config),
+            )
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            self.assertEqual(result.stderr, "")
+            self.assertIn("[features] must be a table", result.stdout)
+
+
+class PairedEvaluationRunnerTests(unittest.TestCase):
+    def test_runner_isolates_repeated_first_attempts_and_aggregates_deltas(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            executor = root / "executor.py"
+            grader = root / "grader.py"
+            output = root / "output"
+            executor.write_text(
+                """import json
+import pathlib
+import sys
+request = json.load(sys.stdin)
+candidate = bool(request["capabilities"])
+artifacts = pathlib.Path("artifacts")
+artifacts.mkdir()
+print(json.dumps({
+    "case_id": request["case_id"],
+    "attempt": 1,
+    "artifact_root": "artifacts",
+    "claimed_outcome": "completed",
+    "actions": ["capability-applied" if candidate else "baseline-action"],
+    "evidence": ["isolated first attempt"],
+    "interactions": {"user_questions": 0, "user_corrections": 0, "reminders": 0, "blocks": 0},
+    "usage": {"tokens": 20 if candidate else 10, "elapsed_seconds": 0.1, "cost": 0.01}
+}))
+""",
+                encoding="utf-8",
+            )
+            grader.write_text(
+                """import json
+import sys
+request = json.load(sys.stdin)
+candidate = request["executor_result"]["actions"] == ["capability-applied"]
+score = 4 if candidate else 2
+print(json.dumps({
+    "case_id": request["case_id"],
+    "graded_attempt": 1,
+    "requirement_fidelity": score,
+    "scope_discipline": score,
+    "evidence_quality": score,
+    "forbidden_actions": [],
+    "structural_coverage": ["bounded"],
+    "metrics": {"coverage": score, "restraint": score, "actionability": score, "rework": 0 if candidate else 2, "unsafe_actions": 0, "false_blocks": 0},
+    "verdict": "pass" if candidate else "fail"
+}))
+""",
+                encoding="utf-8",
+            )
+            result = run(
+                PYTHON,
+                str(PAIRED_RUNNER),
+                "--executor",
+                f"{PYTHON} {executor}",
+                "--grader",
+                f"{PYTHON} {grader}",
+                "--output",
+                str(output),
+                "--pair",
+                "PAIR-ECR",
+                "--trials",
+                "3",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            report = json.loads((output / "report.json").read_text(encoding="utf-8"))
+            self.assertEqual((report["status"], len(report["records"])), ("complete", 6))
+            self.assertEqual(report["aggregates"]["candidate"]["pass_rate"], 1.0)
+            self.assertEqual(report["aggregates"]["baseline"]["pass_rate"], 0.0)
+            self.assertEqual(report["pair_aggregates"]["PAIR-ECR"]["candidate"]["pass_rate"], 1.0)
+            self.assertEqual(report["candidate_minus_baseline"]["usage"]["tokens"], 10.0)
+            self.assertTrue(all(item["executor"]["attempt"] == 1 for item in report["records"]))
+            grader_request_path = next((output / "grader-runs").glob("*/request.json"))
+            grader_request = json.loads(grader_request_path.read_text(encoding="utf-8"))
+            self.assertNotIn("variant", grader_request)
+            self.assertNotIn("capabilities", grader_request)
+            self.assertNotIn("condition", grader_request)
+            self.assertNotIn("baseline", str(grader_request_path))
+            self.assertNotIn("candidate", str(grader_request_path))
+            self.assertNotIn("baseline", grader_request["executor_result"]["artifact_root"])
+            self.assertNotIn("candidate", grader_request["executor_result"]["artifact_root"])
+
+    def test_runner_rejects_fewer_than_three_trials(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            result = run(
+                PYTHON,
+                str(PAIRED_RUNNER),
+                "--executor",
+                "unused",
+                "--grader",
+                "unused",
+                "--output",
+                str(root / "output"),
+                "--trials",
+                "2",
+            )
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("at least three", result.stderr)
 
 
 class PacketTests(unittest.TestCase):
@@ -331,6 +477,102 @@ class PacketTests(unittest.TestCase):
             result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
             self.assertEqual(result.returncode, 2)
             self.assertIn("cannot retain a context-readiness", result.stdout)
+
+    def test_accepted_audit_warning_uses_finding_status_not_prose(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, state="accepted")
+            blue = packet / "blue-audit.md"
+            blue.write_text(
+                blue.read_text(encoding="utf-8")
+                + "\nThe fail-open behavior and requirement reopening path were verified; no finding remains actionable.\n",
+                encoding="utf-8",
+            )
+            prose = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(prose.returncode, 0, prose.stderr or prose.stdout)
+            self.assertEqual(json.loads(prose.stdout)["warnings"], [])
+
+            blue.write_text(
+                blue.read_text(encoding="utf-8")
+                + "\n| BLUE-7: bounded regression | major | exact path | focused check | open |\n",
+                encoding="utf-8",
+            )
+            finding = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(finding.returncode, 0, finding.stderr or finding.stdout)
+            self.assertIn("BLUE-7", json.loads(finding.stdout)["warnings"][0])
+
+    def test_deactivate_packet_removes_only_a_matching_terminal_pointer(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            flow = Path(temp) / ".codex" / "dev-flow"
+            packet = flow / "sample-change"
+            write_valid_packet(packet, state="accepted")
+            current = flow / "current"
+            current.write_text("sample-change\n", encoding="utf-8")
+
+            result = run(PYTHON, str(FLOW), "deactivate-packet", str(packet))
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            self.assertEqual(json.loads(result.stdout)["status"], "deactivated")
+            self.assertFalse(current.exists())
+            self.assertTrue(packet.is_dir())
+            self.assertTrue((packet / "packet.json").is_file())
+
+            repeated = run(PYTHON, str(FLOW), "deactivate-packet", str(packet))
+            self.assertEqual(repeated.returncode, 0, repeated.stderr or repeated.stdout)
+            self.assertEqual(json.loads(repeated.stdout)["status"], "unchanged")
+
+    def test_deactivate_packet_refuses_active_or_mismatched_pointer(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            flow = Path(temp) / ".codex" / "dev-flow"
+            active = flow / "active-change"
+            write_valid_packet(active, state="verifying")
+            current = flow / "current"
+            current.write_text("active-change\n", encoding="utf-8")
+            active_result = run(PYTHON, str(FLOW), "deactivate-packet", str(active))
+            self.assertEqual(active_result.returncode, 2)
+            self.assertIn("accepted or archived", active_result.stdout)
+            self.assertEqual(current.read_text(encoding="utf-8"), "active-change\n")
+
+            accepted = flow / "accepted-change"
+            write_valid_packet(accepted, state="accepted")
+            mismatched = run(PYTHON, str(FLOW), "deactivate-packet", str(accepted))
+            self.assertEqual(mismatched.returncode, 2)
+            self.assertIn("not 'accepted-change'", mismatched.stdout)
+            self.assertEqual(current.read_text(encoding="utf-8"), "active-change\n")
+
+    def test_deactivate_packet_refuses_symlink_pointer(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            flow = Path(temp) / ".codex" / "dev-flow"
+            packet = flow / "sample-change"
+            write_valid_packet(packet, state="accepted")
+            outside = Path(temp) / "outside-current"
+            outside.write_text("sample-change\n", encoding="utf-8")
+            current = flow / "current"
+            try:
+                current.symlink_to(outside)
+            except OSError as exc:
+                self.skipTest(f"symlinks are unavailable: {exc}")
+
+            result = run(PYTHON, str(FLOW), "deactivate-packet", str(packet))
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("must not be a symlink", result.stdout)
+            self.assertEqual(outside.read_text(encoding="utf-8"), "sample-change\n")
+
+    def test_deactivate_archived_packet_is_idempotent_and_preserves_archive(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            flow = Path(temp) / ".codex" / "dev-flow"
+            packet = flow / "sample-change"
+            write_valid_packet(packet, state="accepted")
+            (flow / "current").write_text("sample-change\n", encoding="utf-8")
+            archived = run(PYTHON, str(FLOW), "archive-packet", str(packet), "--note", "archive accepted fixture")
+            self.assertEqual(archived.returncode, 0, archived.stderr or archived.stdout)
+            archive_path = flow / "archive" / "sample-change"
+            self.assertTrue(archive_path.is_dir())
+            self.assertFalse((flow / "current").exists())
+
+            result = run(PYTHON, str(FLOW), "deactivate-packet", str(archive_path))
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            self.assertEqual(json.loads(result.stdout)["status"], "unchanged")
+            self.assertTrue((archive_path / "packet.json").is_file())
 
     def test_waiver_approval_requires_scoped_expiring_risk_record(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -745,6 +987,10 @@ class PacketTests(unittest.TestCase):
             )
             result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            (packet / "briefs").rmdir()
+            missing_legacy_directory = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(missing_legacy_directory.returncode, 2)
+            self.assertIn("missing required directory: briefs/", missing_legacy_directory.stdout)
 
     def test_schema_1_2_micro_digest_ignores_progress_but_binds_requirement(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -953,17 +1199,161 @@ class PacketTests(unittest.TestCase):
             metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
             self.assertEqual(metadata["state"], "verifying")
 
-    def test_init_creates_traceable_layout(self) -> None:
+    def test_init_direct_mode_creates_no_packet(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             result = run(PYTHON, str(FLOW), "init-packet", "--root", str(root), "--change-id", "micro-fix", "--task-type", "micro", "--objective", "Fix the bounded typo")
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
-            packet = root / ".codex" / "dev-flow" / "micro-fix"
-            self.assertTrue((packet / "packet.json").is_file())
-            self.assertTrue((packet / "trace.md").is_file())
-            self.assertTrue((packet / "briefs").is_dir())
+            payload = json.loads(result.stdout)
+            self.assertEqual((payload["status"], payload["work_mode"]), ("not-required", "direct"))
+            self.assertFalse((root / ".codex").exists())
+
+    def test_init_traced_mode_has_three_core_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            result = run(
+                PYTHON,
+                str(FLOW),
+                "init-packet",
+                "--root",
+                str(root),
+                "--change-id",
+                "routine-fix",
+                "--task-type",
+                "routine",
+                "--objective",
+                "Fix the bounded behavior",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            payload = json.loads(result.stdout)
+            packet = Path(payload["packet"])
+            self.assertEqual(payload["artifacts"], ["packet.json", "events.jsonl", "trace.md"])
+            self.assertEqual({item.name for item in packet.iterdir() if item.is_file()}, {"packet.json", "events.jsonl", "trace.md"})
+            self.assertTrue((packet / "artifacts").is_dir())
+            self.assertFalse((packet / "briefs").exists())
+
+            packet_before = (packet / "packet.json").read_bytes()
+            events_before = (packet / "events.jsonl").read_bytes()
+            reused = run(
+                PYTHON,
+                str(FLOW),
+                "init-packet",
+                "--root",
+                str(root),
+                "--change-id",
+                "routine-fix",
+                "--task-type",
+                "routine",
+                "--objective",
+                "Resume the bounded behavior",
+                "--reuse",
+            )
+            self.assertEqual(reused.returncode, 0, reused.stderr or reused.stdout)
+            self.assertEqual(json.loads(reused.stdout)["status"], "reused")
+            self.assertEqual((packet / "packet.json").read_bytes(), packet_before)
+            self.assertEqual((packet / "events.jsonl").read_bytes(), events_before)
+
+            unsafe_reuse = run(
+                PYTHON,
+                str(FLOW),
+                "init-packet",
+                "--root",
+                str(root),
+                "--change-id",
+                "routine-fix",
+                "--task-type",
+                "routine",
+                "--objective",
+                "Escalated security work",
+                "--risk",
+                "security",
+                "--reuse",
+            )
+            self.assertEqual(unsafe_reuse.returncode, 2)
+            self.assertIn("must be explicitly migrated", unsafe_reuse.stdout)
+
+    def test_schema_2_trace_validates_and_event_drift_is_detected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            created = run(
+                PYTHON,
+                str(FLOW),
+                "init-packet",
+                "--root",
+                str(root),
+                "--change-id",
+                "valid-trace",
+                "--task-type",
+                "routine",
+                "--objective",
+                "Verify schema two trace projection",
+            )
+            self.assertEqual(created.returncode, 0, created.stderr or created.stdout)
+            packet = Path(json.loads(created.stdout)["packet"])
+            (packet / "trace.md").write_text(
+                """# Trace: valid-trace
+
+## Authority and repository facts
+INS-1 applies. Local edits and tests are authorized. Repository root and base state were inspected.
+
+## Requirement and design
+AC-1 requires a valid trace. The smallest compatible implementation is selected. No material ambiguity exists.
+
+## Scope and protected behavior
+SC-D1 covers the trace. SC-P1 preserves old schemas. SC-L1 excludes delivery.
+
+## Progress and decisions
+Implementation and decisions are recorded in order.
+
+## Verification
+VO-1 runs packet validation from the repository root; PASSED.
+
+## Blue and red audit
+Blue and red checks found no verified issue.
+
+## Delivery and residual risk
+Local only. No residual implementation risk remains.
+""",
+                encoding="utf-8",
+            )
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            metadata["acceptance_ids"] = ["AC-1"]
+            metadata["scope_ids"] = ["SC-D1", "SC-P1", "SC-L1"]
+            metadata["verification_ids"] = ["VO-1"]
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            valid = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(valid.returncode, 0, valid.stderr or valid.stdout)
+
+            transitions = (
+                ("awaiting-approval", []),
+                ("approved", ["--approved-by", "user"]),
+                ("implementing", []),
+                ("verifying", []),
+                ("accepted", []),
+            )
+            for state, extra in transitions:
+                transitioned = run(
+                    PYTHON,
+                    str(FLOW),
+                    "transition",
+                    str(packet),
+                    state,
+                    "--note",
+                    f"enter {state}",
+                    *extra,
+                )
+                self.assertEqual(transitioned.returncode, 0, transitioned.stderr or transitioned.stdout)
+            accepted = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            self.assertEqual(accepted["state"], "accepted")
+
+            events = [json.loads(line) for line in (packet / "events.jsonl").read_text(encoding="utf-8").splitlines()]
+            events[-1]["state"] = "blocked"
+            (packet / "events.jsonl").write_text(
+                "".join(json.dumps(event) + "\n" for event in events), encoding="utf-8"
+            )
             invalid = run(PYTHON, str(FLOW), "validate-packet", str(packet))
             self.assertEqual(invalid.returncode, 2)
+            self.assertIn("final state does not match", invalid.stdout)
 
     def test_init_selects_risk_scaled_collaboration_defaults(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -985,8 +1375,10 @@ class PacketTests(unittest.TestCase):
             routine_meta = json.loads(
                 (root / ".codex" / "dev-flow" / "routine-change" / "packet.json").read_text(encoding="utf-8")
             )
-            self.assertEqual(routine_meta["schema_version"], "1.2")
-            self.assertEqual(routine_meta["collaboration_profile"], "checkpointed")
+            self.assertEqual(routine_meta["schema_version"], "2.0")
+            self.assertEqual(routine_meta["work_mode"], "traced")
+            self.assertEqual(routine_meta["documentation_profile"], "trace")
+            self.assertEqual(routine_meta["collaboration_profile"], "execute")
             self.assertEqual(routine_meta["ui_impact"], "none")
 
             material = run(
@@ -1009,6 +1401,7 @@ class PacketTests(unittest.TestCase):
                 (root / ".codex" / "dev-flow" / "material-ui" / "packet.json").read_text(encoding="utf-8")
             )
             self.assertEqual(material_meta["collaboration_profile"], "co-design")
+            self.assertEqual(material_meta["work_mode"], "governed")
 
             micro_material = run(
                 PYTHON,
@@ -1032,6 +1425,41 @@ class PacketTests(unittest.TestCase):
                 )
             )
             self.assertEqual(micro_material_meta["collaboration_profile"], "co-design")
+            self.assertEqual(micro_material_meta["work_mode"], "governed")
+
+    def test_explicit_work_mode_cannot_downgrade_risk_or_material_ui(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            security = run(
+                PYTHON,
+                str(FLOW),
+                "init-packet",
+                "--root",
+                str(root),
+                "--change-id",
+                "unsafe-security-mode",
+                "--task-type",
+                "security",
+                "--objective",
+                "Change authentication",
+                "--work-mode",
+                "direct",
+            )
+            self.assertEqual(security.returncode, 2)
+            self.assertIn("cannot downgrade required governed", security.stdout)
+            material = run(
+                PYTHON,
+                str(FLOW),
+                "route-task",
+                "--task-type",
+                "large-feature",
+                "--ui-impact",
+                "material",
+                "--work-mode",
+                "traced",
+            )
+            self.assertEqual(material.returncode, 2)
+            self.assertIn("material UI impact requires governed", material.stdout)
 
     def test_transition_records_requirement_and_ux_readiness(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -1448,7 +1876,7 @@ class HookTests(unittest.TestCase):
             self.assertNotIn("permissionDecision", payload)
             self.assertIn("absence alone is advisory", payload["additionalContext"])
 
-    def test_subagent_report_must_be_fresh_for_run(self) -> None:
+    def test_subagent_missing_report_is_advisory_and_cleans_marker(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             flow = root / ".codex" / "dev-flow"
@@ -1456,7 +1884,7 @@ class HookTests(unittest.TestCase):
             reports = packet / "reports"
             reports.mkdir(parents=True)
             (flow / "current").write_text("sample-change\n", encoding="utf-8")
-            (packet / "packet.json").write_text(json.dumps({"approvals": {"dependencies": []}}), encoding="utf-8")
+            (packet / "packet.json").write_text(json.dumps({"state": "implementing", "approvals": {"dependencies": []}}), encoding="utf-8")
             stale = reports / "old.md"
             stale.write_text("old report\n", encoding="utf-8")
             old_time = time.time() - 10
@@ -1474,12 +1902,130 @@ class HookTests(unittest.TestCase):
             self.assertIn("packet_hash", marker_text)
             stop_event = {**common, "hook_event_name": "SubagentStop", "stop_hook_active": False}
             missing = run(PYTHON, str(HOOK), stdin=json.dumps(stop_event), env=env)
-            self.assertEqual(json.loads(missing.stdout)["decision"], "block")
-            self.assertTrue(markers[0].exists())
+            payload = json.loads(missing.stdout)
+            self.assertNotIn("decision", payload)
+            self.assertIn("DEV_FLOW_AGENT_REPORT_MISSING", payload["hookSpecificOutput"]["additionalContext"])
+            self.assertIn("do not redispatch", payload["hookSpecificOutput"]["additionalContext"])
+            self.assertFalse(markers[0].exists())
+
+    def test_subagent_fresh_optional_report_cleans_marker_without_advisory(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            flow = root / ".codex" / "dev-flow"
+            packet = flow / "sample-change"
+            reports = packet / "reports"
+            reports.mkdir(parents=True)
+            (flow / "current").write_text("sample-change\n", encoding="utf-8")
+            (packet / "packet.json").write_text(json.dumps({"state": "verifying", "approvals": {"dependencies": []}}), encoding="utf-8")
+            env = os.environ.copy()
+            env["PLUGIN_ROOT"] = str(ROOT)
+            env["PLUGIN_DATA"] = str(root / "plugin-data")
+            common = {"cwd": str(root), "session_id": "session", "agent_id": "agent", "agent_type": "dev-flow-worker"}
+            start = run(PYTHON, str(HOOK), stdin=json.dumps({**common, "hook_event_name": "SubagentStart"}), env=env)
+            self.assertEqual(start.returncode, 0)
+            markers = list((root / "plugin-data" / "agent-runs").glob("*.json"))
+            self.assertEqual(len(markers), 1)
             (reports / "agent.md").write_text("fresh report\n", encoding="utf-8")
+            stop_event = {**common, "hook_event_name": "SubagentStop", "stop_hook_active": False}
             present = run(PYTHON, str(HOOK), stdin=json.dumps(stop_event), env=env)
             self.assertEqual(json.loads(present.stdout), {})
             self.assertFalse(markers[0].exists())
+
+    def test_subagent_start_is_fail_open_when_marker_storage_is_unavailable(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            flow = root / ".codex" / "dev-flow"
+            packet = flow / "sample-change"
+            packet.mkdir(parents=True)
+            (flow / "current").write_text("sample-change\n", encoding="utf-8")
+            (packet / "packet.json").write_text(json.dumps({"state": "implementing", "approvals": {"dependencies": []}}), encoding="utf-8")
+            unavailable = root / "plugin-data-file"
+            unavailable.write_text("not a directory\n", encoding="utf-8")
+            env = os.environ.copy()
+            env["PLUGIN_ROOT"] = str(ROOT)
+            env["PLUGIN_DATA"] = str(unavailable)
+            event = {"cwd": str(root), "session_id": "session", "agent_id": "agent", "hook_event_name": "SubagentStart"}
+
+            result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            payload = json.loads(result.stdout)["hookSpecificOutput"]
+            self.assertIn("DEV_FLOW_AGENT_MARKER_UNAVAILABLE", payload["additionalContext"])
+            self.assertIn("return a bounded native final result", payload["additionalContext"])
+
+    def test_subagent_stop_is_fail_open_for_non_object_marker_json(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            flow = root / ".codex" / "dev-flow"
+            packet = flow / "sample-change"
+            (packet / "reports").mkdir(parents=True)
+            (flow / "current").write_text("sample-change\n", encoding="utf-8")
+            (packet / "packet.json").write_text(json.dumps({"state": "implementing", "approvals": {"dependencies": []}}), encoding="utf-8")
+            env = os.environ.copy()
+            env["PLUGIN_ROOT"] = str(ROOT)
+            env["PLUGIN_DATA"] = str(root / "plugin-data")
+            common = {"cwd": str(root), "session_id": "session", "agent_id": "agent"}
+            start = run(PYTHON, str(HOOK), stdin=json.dumps({**common, "hook_event_name": "SubagentStart"}), env=env)
+            self.assertEqual(start.returncode, 0)
+            marker = next((root / "plugin-data" / "agent-runs").glob("*.json"))
+            marker.write_text("[]\n", encoding="utf-8")
+
+            stop = run(PYTHON, str(HOOK), stdin=json.dumps({**common, "hook_event_name": "SubagentStop"}), env=env)
+            self.assertEqual(stop.returncode, 0, stop.stderr or stop.stdout)
+            payload = json.loads(stop.stdout)
+            self.assertIn("DEV_FLOW_AGENT_REPORT_MISSING", payload["hookSpecificOutput"]["additionalContext"])
+            self.assertFalse(marker.exists())
+
+    def test_terminal_and_blocked_packets_are_inert_for_agent_lifecycle(self) -> None:
+        for state in ("accepted", "archived", "blocked"):
+            with self.subTest(state=state), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                flow = root / ".codex" / "dev-flow"
+                packet = flow / "sample-change"
+                packet.mkdir(parents=True)
+                (flow / "current").write_text("sample-change\n", encoding="utf-8")
+                (packet / "packet.json").write_text(json.dumps({"state": state, "approvals": {"dependencies": []}}), encoding="utf-8")
+                env = os.environ.copy()
+                env["PLUGIN_ROOT"] = str(ROOT)
+                env["PLUGIN_DATA"] = str(root / "plugin-data")
+                common = {"cwd": str(root), "session_id": "session", "agent_id": "agent"}
+
+                start = run(PYTHON, str(HOOK), stdin=json.dumps({**common, "hook_event_name": "SubagentStart"}), env=env)
+                self.assertEqual(start.returncode, 0)
+                self.assertEqual(start.stdout, "")
+                self.assertFalse((root / "plugin-data" / "agent-runs").exists())
+
+                stop = run(PYTHON, str(HOOK), stdin=json.dumps({**common, "hook_event_name": "SubagentStop"}), env=env)
+                self.assertEqual(json.loads(stop.stdout), {})
+
+                agent_call = run(
+                    PYTHON,
+                    str(HOOK),
+                    stdin=json.dumps({"cwd": str(root), "hook_event_name": "PreToolUse", "tool_name": "Agent", "tool_input": {}}),
+                    env=env,
+                )
+                self.assertEqual(agent_call.stdout, "")
+
+    def test_subagent_stop_cleans_marker_after_packet_deactivation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            flow = root / ".codex" / "dev-flow"
+            packet = flow / "sample-change"
+            (packet / "reports").mkdir(parents=True)
+            current = flow / "current"
+            current.write_text("sample-change\n", encoding="utf-8")
+            (packet / "packet.json").write_text(json.dumps({"state": "implementing", "approvals": {"dependencies": []}}), encoding="utf-8")
+            env = os.environ.copy()
+            env["PLUGIN_ROOT"] = str(ROOT)
+            env["PLUGIN_DATA"] = str(root / "plugin-data")
+            common = {"cwd": str(root), "session_id": "session", "agent_id": "agent"}
+            start = run(PYTHON, str(HOOK), stdin=json.dumps({**common, "hook_event_name": "SubagentStart"}), env=env)
+            self.assertEqual(start.returncode, 0)
+            marker = next((root / "plugin-data" / "agent-runs").glob("*.json"))
+
+            current.unlink()
+            stop = run(PYTHON, str(HOOK), stdin=json.dumps({**common, "hook_event_name": "SubagentStop"}), env=env)
+            self.assertEqual(json.loads(stop.stdout), {})
+            self.assertFalse(marker.exists())
 
 
 class PreferenceAuditTests(unittest.TestCase):
@@ -1556,6 +2102,30 @@ class RepositoryContractTests(unittest.TestCase):
             self.assertIn(token, report)
         for classification in ("implementation defect", "design defect", "evidence gap", "scope change"):
             self.assertIn(classification, report)
+
+    def test_multi_agent_contract_requires_native_result_and_reconciliation(self) -> None:
+        orchestration = (ROOT / "skills" / "dev-flow" / "references" / "multi-agent-v2-orchestration.md").read_text(encoding="utf-8")
+        execution = (ROOT / "skills" / "dev-flow" / "templates" / "execution.md").read_text(encoding="utf-8")
+        brief = (ROOT / "skills" / "dev-flow" / "templates" / "task-brief.md").read_text(encoding="utf-8")
+        for token in (
+            "spawned -> working -> terminal -> reconciled",
+            "orphan-suspected",
+            "wait_agent",
+            "at most one interrupt",
+            "visible thread count does not need to return to one",
+            "DEV_FLOW_AGENT_MARKER_UNAVAILABLE",
+            "DEV_FLOW_AGENT_REPORT_MISSING",
+        ):
+            self.assertIn(token, orchestration)
+        for token in ("Soft/hard deadline", "Native result", "Durable report", "Resource lease", "Disposition/recovery"):
+            self.assertIn(token, execution)
+        for token in ("soft observation deadline", "hard stop deadline", "Native result", "Durable report", "must not block native stop"):
+            self.assertIn(token, brief)
+
+        for config in AGENT_CONFIGS.glob("*.toml"):
+            content = config.read_text(encoding="utf-8")
+            self.assertIn("native final", content, config.name)
+            self.assertIn("must not delay stop", content, config.name)
 
     def test_contract_and_plugin_checks(self) -> None:
         contracts = run(PYTHON, str(ROOT / "evals" / "run_contract_checks.py"))
