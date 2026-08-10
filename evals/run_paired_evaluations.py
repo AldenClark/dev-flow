@@ -57,6 +57,36 @@ def split_program_command(command: str, *, windows: bool | None = None) -> list[
             for argument in arguments
         ]
     return arguments
+
+
+def bind_bundled_adapter_command(arguments: list[str]) -> list[str]:
+    """Bind the documented first-party adapter to this immutable source tree.
+
+    Evaluator programs run with their evidence directory as cwd.  The release
+    documentation intentionally names the bundled adapter relative to the
+    repository, so resolve only that exact first-party script before changing
+    cwd.  Arbitrary external command arguments remain untouched.
+    """
+    bound = list(arguments)
+    if not bound:
+        return bound
+    relative_adapter = Path("evals/codex_model_adapter.py")
+    index: int | None = None
+    if Path(bound[0]) == relative_adapter:
+        index = 0
+    elif len(bound) > 1:
+        executable_name = bound[0].replace("\\", "/").rsplit("/", 1)[-1]
+        if re.fullmatch(r"python(?:\d+(?:\.\d+)?)?(?:\.exe)?", executable_name, re.IGNORECASE):
+            if Path(bound[1]) == relative_adapter:
+                index = 1
+    if index is not None:
+        adapter = ROOT / relative_adapter
+        if adapter.is_symlink() or not adapter.is_file():
+            raise EvaluationError("bundled Codex model adapter is missing or unsafe")
+        bound[index] = str(adapter)
+    return bound
+
+
 EXECUTOR_KEYS = {
     "case_id",
     "attempt",
@@ -817,8 +847,11 @@ def main() -> int:
     trials = args.trials if args.trials is not None else config.get("default_trials", 3)
     if not isinstance(trials, int) or isinstance(trials, bool) or trials < 3:
         parser.error("paired evaluations require at least three independent trials")
-    executor_command = split_program_command(args.executor)
-    grader_command = split_program_command(args.grader)
+    try:
+        executor_command = bind_bundled_adapter_command(split_program_command(args.executor))
+        grader_command = bind_bundled_adapter_command(split_program_command(args.grader))
+    except EvaluationError as exc:
+        parser.error(str(exc))
     if not executor_command or not grader_command:
         parser.error("executor and grader commands must not be empty")
     selected_ids = set(args.pair)

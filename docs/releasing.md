@@ -74,6 +74,8 @@ The SBOM must report SPDX 2.3, document name `dev-flow`, a non-empty file invent
 
 The provider-neutral runner receives separate executor and blind-grader commands. The Codex adapter disables plugins, hooks, multi-agent execution, both shell surfaces, browser use, computer use, and apps; it uses ephemeral read-only sessions, an allowlisted subprocess environment, a private temporary directory, and ignored user configuration/rules. It parses Codex JSONL and fails the call on any tool event while retaining only redacted category counts. Fixed fixtures are ordinary engineering cases; do not introduce hostile prompts or live security targets.
 
+The runner binds the exact documented first-party path `evals/codex_model_adapter.py` to the current repository snapshot before launching it with the per-run evidence directory as its working directory. Supported relative forms are the adapter path as the executable, or a Python executable immediately followed by that path, as shown below. Other executor/grader command arguments are not rewritten. External adapters, and Python invocations that need interpreter flags before the script, must use an absolute executable or script path.
+
 ```bash
 python3 evals/run_paired_evaluations.py \
   --executor 'python3 evals/codex_model_adapter.py executor --model gpt-5.6-terra --reasoning-effort medium' \

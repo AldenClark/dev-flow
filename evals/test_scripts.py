@@ -375,6 +375,48 @@ class PairedEvaluationRunnerTests(unittest.TestCase):
             [r"C:\Program Files\Python\python.exe", r"C:\Temp Dir\executor.py", "--flag"],
         )
 
+    def test_documented_bundled_adapter_is_bound_before_isolated_cwd(self) -> None:
+        command = paired_eval.split_program_command(
+            "python3 evals/codex_model_adapter.py executor --model test-model"
+        )
+        bound = paired_eval.bind_bundled_adapter_command(command)
+        self.assertEqual(bound[0], "python3")
+        self.assertEqual(bound[1], str(ROOT / "evals" / "codex_model_adapter.py"))
+        self.assertEqual(bound[2:], command[2:])
+        with tempfile.TemporaryDirectory() as temp:
+            parsed, error, _ = paired_eval.run_program(
+                [PYTHON, bound[1], "--help"],
+                {"bounded": True},
+                Path(temp) / "isolated-evidence",
+                2,
+            )
+        self.assertIsNone(parsed)
+        self.assertIn("stdout is not one JSON value", error or "")
+
+    def test_external_executor_arguments_are_not_rewritten(self) -> None:
+        commands = (
+            ["external-evaluator", "evals/codex_model_adapter.py"],
+            ["python3", "custom_executor.py", "evals/codex_model_adapter.py"],
+            ["python3", "-I", "evals/codex_model_adapter.py"],
+        )
+        for command in commands:
+            with self.subTest(command=command):
+                self.assertEqual(paired_eval.bind_bundled_adapter_command(command), command)
+
+    def test_supported_python_executable_spellings_bind_the_bundled_adapter(self) -> None:
+        script = "evals/codex_model_adapter.py"
+        self.assertEqual(
+            paired_eval.bind_bundled_adapter_command([script, "executor"]),
+            [str(ROOT / script), "executor"],
+        )
+        for executable in ("python", "python3", "python3.11", "Python", r"C:\Python311\python.exe"):
+            with self.subTest(executable=executable):
+                bound = paired_eval.bind_bundled_adapter_command([executable, script, "executor"])
+                self.assertEqual(bound, [executable, str(ROOT / script), "executor"])
+
+    def test_empty_executor_command_remains_invalid_without_traceback(self) -> None:
+        self.assertEqual(paired_eval.bind_bundled_adapter_command([]), [])
+
     def test_runner_isolates_repeated_first_attempts_and_aggregates_deltas(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
