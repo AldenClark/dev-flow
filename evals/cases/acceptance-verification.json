@@ -15,7 +15,7 @@
               "kind": "verification.artifact"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "freeze correctness, memory, eviction, and concurrency invariants",
           "facets": [
             {
@@ -32,7 +32,7 @@
               "kind": "verification.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "capture representative latency, throughput, allocation, and churn baselines",
           "facets": [
             {
@@ -49,7 +49,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "run controlled before/after workloads with warmup and variance reporting",
           "facets": [
             {
@@ -66,7 +66,7 @@
               "kind": "verification.limitation"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "retain portable fallback and explicit environment limitations",
           "facets": [
             {
@@ -103,7 +103,7 @@
               "kind": "verification.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "state round-trip, canonicalization, compatibility, and rejection invariants",
           "facets": [
             {
@@ -120,7 +120,7 @@
               "kind": "verification.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "combine table cases with generated and metamorphic inputs",
           "facets": [
             {
@@ -137,7 +137,7 @@
               "kind": "verification.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "retain minimized first failures and deterministic seeds",
           "facets": [
             {
@@ -154,7 +154,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "test old/new reader-writer directions and malformed boundaries",
           "facets": [
             {
@@ -191,7 +191,7 @@
               "kind": "verification.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "preserve the first failure and build a deterministic cancellation interleaving",
           "facets": [
             {
@@ -208,7 +208,7 @@
               "kind": "verification.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "assert ownership, close, join, timeout, and process or descriptor leak oracles",
           "facets": [
             {
@@ -225,7 +225,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "run nearby repetition or stress without converting retry into acceptance",
           "facets": [
             {
@@ -242,7 +242,7 @@
               "kind": "verification.limitation"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "separate local evidence from each hosted operating-system cell",
           "facets": [
             {

@@ -13,7 +13,7 @@
           "kind": "repo-context.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "inventory versions, readers, writers, data, deployments, generated artifacts, and CI",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "rehearse representative forward and rollback paths",
       "facets": [
         {

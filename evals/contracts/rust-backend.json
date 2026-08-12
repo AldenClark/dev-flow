@@ -13,7 +13,7 @@
           "kind": "verification.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "inspect job lifecycle, shutdown, persistence, capacity, and existing verification before choosing oracles",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "verification.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "define bounded admission, overload or backpressure, retry, deduplication, cancellation, collision, and restart recovery checks",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "create deterministic or bounded repeated tests for claim exclusivity, retry limits, restart recovery, and drain behavior",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "run Rust static, focused unit, integration, restart, drain, and resource evidence as applicable",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "verification.artifact"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "record exact commands and outcomes while preserving failed, flaky, blocked, and not-run gates",
       "facets": [
         {

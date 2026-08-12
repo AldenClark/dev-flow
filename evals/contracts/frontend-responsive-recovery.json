@@ -13,7 +13,7 @@
           "kind": "product-ux-discovery.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "inspect current source, rendered states, design system, routes, data ownership, and freshest product truth",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "product-ux-discovery.artifact"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "record navigation, information architecture, features, page relationships, and flows as protected",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "product-ux-discovery.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "model primary, loading, empty, partial, permission, error, destructive confirmation, recovery, and offline or retry states",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "product-ux-discovery.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "define narrow and wide layouts, keyboard order, focus restoration, accessible names, and reduced motion",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "verify representative viewport, input, browser, accessibility, and recovery transitions",
       "facets": [
         {

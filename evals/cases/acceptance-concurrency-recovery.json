@@ -15,7 +15,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "define message identity, per-key order, effect, and dedup ownership",
           "facets": [
             {
@@ -49,7 +49,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "handle crash points, retry, retention expiry, and reconciliation",
           "facets": [
             {
@@ -103,7 +103,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "map parent, child, callback, channel, state, and generation ownership",
           "facets": [
             {
@@ -137,7 +137,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "quiesce callbacks and reject stale-generation commits",
           "facets": [
             {
@@ -191,7 +191,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "define transaction, file, progress, staging, and cleanup ownership",
           "facets": [
             {
@@ -225,7 +225,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "reconcile partial state before accepting new work",
           "facets": [
             {
@@ -279,7 +279,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "reproduce the stop/start/write/callback timeline",
           "facets": [
             {
@@ -313,7 +313,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "cancel and join old work while rejecting stale commits",
           "facets": [
             {
@@ -367,7 +367,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "define admission close, accepted work, in-flight ownership, and retry durability",
           "facets": [
             {
@@ -401,7 +401,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "make deadline, partial completion, observability, and restart behavior explicit",
           "facets": [
             {

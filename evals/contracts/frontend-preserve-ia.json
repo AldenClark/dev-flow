@@ -13,7 +13,7 @@
           "kind": "product-ux-discovery.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "inspect current source and rendered states, repository design assets, and the freshest product truth before proposing changes",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "product-ux-discovery.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "classify the UI impact as preserve unless evidence proves a material product decision is unavoidable",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "product-ux-discovery.artifact"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "record positioning, features, information architecture, page relationships, and flows as protected scope",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "product-ux-discovery.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "propose a coherent visual and component direction without collapsing distinct domain pages into title-only reuse",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "verify representative rendered states, responsiveness, keyboard/focus behavior, accessibility, and fidelity to protected flows",
       "facets": [
         {

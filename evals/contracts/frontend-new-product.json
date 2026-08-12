@@ -13,7 +13,7 @@
           "kind": "requirements-design.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "classify the UI impact as material and select co-design unless the user chooses another safe profile",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "product-ux-discovery.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "discover target users, tasks, product constraints, available assets, platform and viewport needs before production code",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "product-ux-discovery.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "offer a repository-backed recommended design direction and meaningful alternatives instead of asking for abstract style vocabulary",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "product-ux-discovery.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "model primary, loading, empty, partial, error, permission, destructive, recovery, responsive, keyboard, focus, and accessibility states",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "product-ux-discovery.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "choose the lightest useful design artifact and record UX Ready approval before production implementation",
       "facets": [
         {

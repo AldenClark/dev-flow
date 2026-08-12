@@ -15,7 +15,7 @@
               "kind": "repo-context.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "discover current wire behavior and supported client matrix",
           "facets": [
             {
@@ -32,7 +32,7 @@
               "kind": "requirements-design.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "identify the enforcement timing as a material user-owned choice",
           "facets": [
             {
@@ -49,7 +49,7 @@
               "kind": "requirements-design.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "recommend a staged compatible default with explicit tradeoff",
           "facets": [
             {
@@ -66,7 +66,7 @@
               "kind": "requirements-design.artifact"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "bind acceptance, rollback, and affected scope before enforcement",
           "facets": [
             {
@@ -103,7 +103,7 @@
               "kind": "repo-context.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "resolve existing storage and policy facts from the repository",
           "facets": [
             {
@@ -120,7 +120,7 @@
               "kind": "requirements-design.artifact"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "record retention, legal hold, restore, and notification as material semantics",
           "facets": [
             {
@@ -137,7 +137,7 @@
               "kind": "requirements-design.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "offer a conservative reversible recommendation and name affected work",
           "facets": [
             {
@@ -154,7 +154,7 @@
               "kind": "requirements-design.limitation"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "stop destructive implementation until the user confirms the policy",
           "facets": [
             {
@@ -191,7 +191,7 @@
               "kind": "repo-context.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "inspect current wire, SDK, retry, and compatibility behavior",
           "facets": [
             {
@@ -208,7 +208,7 @@
               "kind": "requirements-design.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "separate repository facts from the material public error taxonomy choice",
           "facets": [
             {
@@ -225,7 +225,7 @@
               "kind": "requirements-design.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "recommend typed stable categories with unknown-value fallback",
           "facets": [
             {
@@ -242,7 +242,7 @@
               "kind": "requirements-design.artifact"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "bind versioning, retry semantics, tests, and migration acceptance",
           "facets": [
             {

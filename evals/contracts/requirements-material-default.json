@@ -13,7 +13,7 @@
           "kind": "repo-context.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "inspect current defaults, persisted state, migration behavior, compatibility, tests, and analogous rollouts",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "requirements-design.artifact"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "record the competing meanings, evidence, materiality, owner, and affected acceptance/scope/verification IDs",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "requirements-design.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "state data, compatibility, rollout, rollback, and user-visible impact for each meaning",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "requirements-design.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "recommend one option with a safe fallback and ask one focused user-answerable question",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "requirements-design.limitation"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "block only the affected implementation and bind the answer to a new requirement revision and digest",
       "facets": [
         {

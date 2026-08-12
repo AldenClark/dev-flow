@@ -13,7 +13,7 @@
           "kind": "change-review.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "parse every workflow representation and identify third-party Actions, refs, operation, path, permissions, triggers, and untrusted inputs",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "verify hook and terminal audit coverage plus negative syntax, path, operation, and tamper cases",
       "facets": [
         {

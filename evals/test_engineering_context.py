@@ -772,6 +772,50 @@ class RoutingTests(unittest.TestCase):
                 self.assertTrue(set(case["required"]) <= routes)
                 self.assertFalse(set(case["forbidden"]) & routes)
 
+    def test_core_workflows_bind_owner_artifacts_before_proof_or_review(self) -> None:
+        routing = json.loads(
+            (ROOT / "evals" / "skill-routing-cases.json").read_text(encoding="utf-8")
+        )
+        registry = json.loads(
+            (ROOT / "governance" / "capability-contracts.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        capabilities = {item["skill"]: item for item in registry["capabilities"]}
+        output_owners = {
+            output: item["skill"]
+            for item in registry["capabilities"]
+            for output in item["primary_outputs"]
+        }
+        workflows = {
+            case["id"]: case
+            for case in routing["cases"]
+            if "workflow" in case
+        }
+        self.assertEqual(
+            set(workflows),
+            {"ROUTE-BUGFIX", "ROUTE-FFI-BUGFIX", "ROUTE-PUBLIC-CONTRACT"},
+        )
+        for case_id, case in workflows.items():
+            with self.subTest(case=case_id):
+                flow = case["workflow"]["artifact_flow"]
+                flow_skills = [item["skill"] for item in flow]
+                flow_outputs = [item["output"] for item in flow]
+                self.assertEqual(flow_skills, case["expected"])
+                self.assertEqual(case["workflow"]["final_evidence"], flow_outputs[-1])
+                for item in flow:
+                    self.assertEqual(output_owners[item["output"]], item["skill"])
+                    self.assertIn(item["output"], capabilities[item["skill"]]["primary_outputs"])
+                for boundary in case["workflow"]["forbidden_backfill"]:
+                    owner = output_owners[boundary["output"]]
+                    consumer = boundary["consumer"]
+                    self.assertNotEqual(owner, consumer)
+                    self.assertLess(flow_skills.index(owner), flow_skills.index(consumer))
+                if "change-review" in flow_skills:
+                    review_inputs = capabilities["change-review"]["consumes"]
+                    self.assertIn("owner decisions", review_inputs)
+                    self.assertIn("raw verification evidence when available", review_inputs)
+
 
 if __name__ == "__main__":
     unittest.main()

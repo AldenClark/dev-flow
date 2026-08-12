@@ -13,7 +13,7 @@
           "kind": "systematic-debugging.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "reconstruct the event timeline, generation identity, callback owner, cancellation, publication, and replacement boundaries",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "systematic-debugging.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "create a deterministic interleaving or controlled barrier reproducer that fails before the fix",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "systematic-debugging.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "move the invariant to the ownership or publication boundary rather than add timing delays",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "verify quiescence, late callback rejection, shutdown, replacement, cleanup, and resource joins",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "rerun normal current-generation callbacks and nearby retry or cancellation behavior",
       "facets": [
         {

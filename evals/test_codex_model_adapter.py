@@ -734,7 +734,7 @@ class CodexModelAdapterTests(unittest.TestCase):
         self.assertIn("Never reuse the same support span", prompt)
         self.assertIn("shortest whole-word span", prompt)
         self.assertIn("do not overlap", prompt)
-        self.assertIn("across critical work units", prompt)
+        self.assertIn("hard-gated critical or required work units", prompt)
         self.assertIn("first-attempt workflow quality, not completed repository execution", prompt)
         self.assertIn(
             "`claimed_outcome: completed` means only that this bounded analysis response is complete",

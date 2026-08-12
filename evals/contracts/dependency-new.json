@@ -13,7 +13,7 @@
           "kind": "dependency-decisions.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "inventory current code, standard library, approved dependencies, and exact required parsing surface",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "dependency-decisions.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "compare standard library, existing dependency, bounded local implementation, and viable maintained packages",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "dependency-decisions.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "recommend one exact option with manifest, feature, lockfile, generated, CI, test, and removal impact",
       "facets": [
         {

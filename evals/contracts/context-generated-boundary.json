@@ -13,7 +13,7 @@
           "kind": "repo-context.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "establish every real Git root and touched-path instruction chain",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "repo-context.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "identify authoritative source, generator, generated output, consumers, and ownership boundaries",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "repo-context.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "resolve toolchain, formatter, CI, and nearby analogue conflicts with evidence",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "repo-context.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "change authoritative input rather than hand-editing generated output",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "verify deterministic regeneration and representative consumer compatibility",
       "facets": [
         {

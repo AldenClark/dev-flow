@@ -15,7 +15,7 @@
               "kind": "change-review.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "trace identity, tenant scope, lookup, cache, and response boundaries",
           "facets": [
             {
@@ -103,7 +103,7 @@
               "kind": "change-review.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "inventory all diagnostic sinks and sensitive field sources",
           "facets": [
             {
@@ -191,7 +191,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "separate secret value, non-secret reference, account, and lifecycle ownership",
           "facets": [
             {
@@ -279,7 +279,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "normalize and validate every entry before writing",
           "facets": [
             {
@@ -367,7 +367,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "define actor, authority, operation, target, result, correlation, and redacted field ownership",
           "facets": [
             {

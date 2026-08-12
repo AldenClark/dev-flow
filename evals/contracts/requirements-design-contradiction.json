@@ -13,7 +13,7 @@
           "kind": "requirements-design.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "normalize the two conflicting statements into affected actors, flows, compatibility directions, acceptance criteria, and exclusions without treating document length as readiness",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "repo-context.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "inspect repository instructions, protocol history, tests, runtime evidence, and nearby compatibility behavior before asking the user",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "requirements-design.artifact"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "record one stable ambiguity with competing interpretations, evidence, materiality, owner, affected AC/SC/VO IDs, recommendation, and blocked scope",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "requirements-design.interaction"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "state alternatives, compatibility impact, recommended safe default, and ask one consolidated user-answerable product-intent question",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "dev-flow.limitation"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "stop only implementation whose outcome depends on the unresolved contradiction and preserve unrelated evidence-backed work",
       "facets": [
         {

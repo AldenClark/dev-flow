@@ -934,7 +934,7 @@ def validate_obligations(
         if obligation["id"] in seen_ids:
             raise EvaluationError(f"{label} ids must be unique")
         seen_ids.add(obligation["id"])
-        if obligation["criticality"] not in {"critical", "supporting"}:
+        if obligation["criticality"] not in {"critical", "required", "supporting"}:
             raise EvaluationError(f"{label}[{index}].criticality is invalid")
         if allowed_owners is not None and obligation["owner"] not in allowed_owners:
             raise EvaluationError(
@@ -998,7 +998,7 @@ def validate_work_units(
         if unit["id"] in seen_unit_ids:
             raise EvaluationError(f"{label} work-unit ids must be unique")
         seen_unit_ids.add(unit["id"])
-        if unit["criticality"] not in {"critical", "supporting"}:
+        if unit["criticality"] not in {"critical", "required", "supporting"}:
             raise EvaluationError(f"{label}[{index}].criticality is invalid")
         if allowed_owners is not None and unit["owner"] not in allowed_owners:
             raise EvaluationError(
@@ -2872,13 +2872,17 @@ def validate_grader(
         critical_units = [
             unit for unit in validated_work_units if unit["criticality"] == "critical"
         ]
+        required_units = [
+            unit for unit in validated_work_units if unit["criticality"] == "required"
+        ]
         supporting_units = [
             unit for unit in validated_work_units if unit["criticality"] == "supporting"
         ]
+        gated_units = critical_units + required_units
         claim_units: dict[str, set[str]] = {}
-        critical_claim_ids: set[str] = set()
+        gated_claim_ids: set[str] = set()
         supports_nonoverlap = True
-        critical_support_fingerprints: dict[str, tuple[str, str]] = {}
+        gated_support_fingerprints: dict[str, tuple[str, str]] = {}
         owner_alignment = True
         kind_alignment = True
         for unit in validated_work_units:
@@ -2891,18 +2895,18 @@ def validate_grader(
                     owner_alignment = owner_alignment and claim["owner"] == unit["owner"]
                     kind_alignment = kind_alignment and claim["kind"] in allowed_route_kinds
                     claim_units.setdefault(ref["claim_id"], set()).add(unit["id"])
-                    if unit["criticality"] == "critical":
-                        critical_claim_ids.add(ref["claim_id"])
+                    if unit["criticality"] in {"critical", "required"}:
+                        gated_claim_ids.add(ref["claim_id"])
                         support_fingerprint = canonical_json_sha256(
                             {"quote": normalize_semantic_text(ref["quote"])}
                         )
                         support_identity = (unit["id"], facet["facet_id"])
-                        prior_identity = critical_support_fingerprints.get(
+                        prior_identity = gated_support_fingerprints.get(
                             support_fingerprint
                         )
                         if prior_identity is not None and prior_identity != support_identity:
                             supports_nonoverlap = False
-                        critical_support_fingerprints.setdefault(
+                        gated_support_fingerprints.setdefault(
                             support_fingerprint, support_identity
                         )
                         key = (ref["claim_id"], ref["field"])
@@ -2914,16 +2918,24 @@ def validate_grader(
                         seen_ranges.setdefault(key, []).append(
                             (ref["start"], ref["end"], facet["facet_id"])
                         )
-        critical_fingerprints = [
+        gated_fingerprints = [
             claim_semantic_fingerprint(claims_by_id[claim_id])
-            for claim_id in critical_claim_ids
+            for claim_id in gated_claim_ids
         ]
-        critical_unit_ids = {unit["id"] for unit in critical_units}
+        gated_unit_ids = {unit["id"] for unit in gated_units}
+        gated_claim_exclusive = all(
+            len(unit_ids & gated_unit_ids) <= 1
+            for unit_ids in claim_units.values()
+        ) and len(gated_fingerprints) == len(set(gated_fingerprints))
         policy_checks.update(
             {
                 "critical_work_units_covered": all(
                     assessments_by_id[unit["id"]]["status"] == "covered"
                     for unit in critical_units
+                ),
+                "required_work_units_covered": all(
+                    assessments_by_id[unit["id"]]["status"] == "covered"
+                    for unit in required_units
                 ),
                 "supporting_work_units_present": all(
                     assessments_by_id[unit["id"]]["status"] != "missing"
@@ -2935,15 +2947,19 @@ def validate_grader(
                     assessments_by_id[unit["id"]]["status"] == "covered"
                     for unit in critical_units
                 ),
+                "required_obligations_covered": all(
+                    assessments_by_id[unit["id"]]["status"] == "covered"
+                    for unit in required_units
+                ),
                 "supporting_obligations_present": all(
                     assessments_by_id[unit["id"]]["status"] != "missing"
                     for unit in supporting_units
                 ),
-                "critical_claim_exclusive": all(
-                    len(unit_ids & critical_unit_ids) <= 1
-                    for unit_ids in claim_units.values()
-                )
-                and len(critical_fingerprints) == len(set(critical_fingerprints)),
+                "gated_claim_exclusive": gated_claim_exclusive,
+                "gated_support_exclusive": supports_nonoverlap,
+                # Backward-compatible names preserve the prior report surface;
+                # both now cover every hard-gated critical or required unit.
+                "critical_claim_exclusive": gated_claim_exclusive,
                 "critical_support_exclusive": supports_nonoverlap,
                 "claim_owner_alignment": owner_alignment,
                 "claim_kind_alignment": kind_alignment,
@@ -2957,22 +2973,26 @@ def validate_grader(
         critical = [
             obligation for obligation in validated_obligations if obligation["criticality"] == "critical"
         ]
+        required = [
+            obligation for obligation in validated_obligations if obligation["criticality"] == "required"
+        ]
         supporting = [
             obligation for obligation in validated_obligations if obligation["criticality"] == "supporting"
         ]
-        critical_claim_sets = {
+        gated = critical + required
+        gated_claim_sets = {
             obligation["id"]: set(assessments_by_id[obligation["id"]]["claim_ids"])
-            for obligation in critical
+            for obligation in gated
         }
         all_claim_use_counts: dict[str, int] = {}
         for assessment in obligation_assessments:
             claim_ids = assessment["claim_ids"]
             for claim_id in claim_ids:
                 all_claim_use_counts[claim_id] = all_claim_use_counts.get(claim_id, 0) + 1
-        critical_claim_ids = set().union(*critical_claim_sets.values()) if critical_claim_sets else set()
-        critical_claim_fingerprints = [
+        gated_claim_ids = set().union(*gated_claim_sets.values()) if gated_claim_sets else set()
+        gated_claim_fingerprints = [
             claim_semantic_fingerprint(claims_by_id[claim_id])
-            for claim_id in critical_claim_ids
+            for claim_id in gated_claim_ids
         ]
         policy_checks.update(
             {
@@ -2980,14 +3000,22 @@ def validate_grader(
                     assessments_by_id[obligation["id"]]["status"] == "covered"
                     for obligation in critical
                 ),
+                "required_obligations_covered": all(
+                    assessments_by_id[obligation["id"]]["status"] == "covered"
+                    for obligation in required
+                ),
                 "supporting_obligations_present": all(
                     assessments_by_id[obligation["id"]]["status"] != "missing"
                     for obligation in supporting
                 ),
-                "critical_claim_exclusive": all(
-                    all_claim_use_counts[claim_id] <= 1 for claim_id in critical_claim_ids
+                "gated_claim_exclusive": all(
+                    all_claim_use_counts[claim_id] <= 1 for claim_id in gated_claim_ids
                 )
-                and len(critical_claim_fingerprints) == len(set(critical_claim_fingerprints)),
+                and len(gated_claim_fingerprints) == len(set(gated_claim_fingerprints)),
+                "critical_claim_exclusive": all(
+                    all_claim_use_counts[claim_id] <= 1 for claim_id in gated_claim_ids
+                )
+                and len(gated_claim_fingerprints) == len(set(gated_claim_fingerprints)),
                 "claim_owner_alignment": all(
                     all(
                         claims_by_id[claim_id]["owner"] == obligation["owner"]
@@ -3616,6 +3644,79 @@ def finite_mean(values: list[Any]) -> float | None:
     return fmean(numbers) if numbers else None
 
 
+def wilson_interval(successes: int, samples: int, *, z: float = 1.959963984540054) -> dict[str, Any]:
+    """Return a two-sided 95% Wilson score interval for a binomial rate."""
+    if (
+        not isinstance(successes, int)
+        or isinstance(successes, bool)
+        or not isinstance(samples, int)
+        or isinstance(samples, bool)
+        or successes < 0
+        or samples < 0
+        or successes > samples
+    ):
+        raise ValueError("successes and samples must satisfy 0 <= successes <= samples")
+    if samples == 0:
+        return {
+            "confidence_level": 0.95,
+            "successes": successes,
+            "samples": samples,
+            "point": None,
+            "lower": None,
+            "upper": None,
+        }
+    point = successes / samples
+    z_squared = z * z
+    denominator = 1 + z_squared / samples
+    center = (point + z_squared / (2 * samples)) / denominator
+    margin = (
+        z
+        * math.sqrt(
+            point * (1 - point) / samples + z_squared / (4 * samples * samples)
+        )
+        / denominator
+    )
+    return {
+        "confidence_level": 0.95,
+        "successes": successes,
+        "samples": samples,
+        "point": point,
+        "lower": max(0.0, center - margin),
+        "upper": min(1.0, center + margin),
+    }
+
+
+ASSESSMENT_POINTS = {"covered": 1.0, "partial": 0.5, "missing": 0.0}
+
+
+def semantic_coverage_score(grader: dict[str, Any]) -> float | None:
+    """Equal-weight work units, then facets, so dense FFI contracts do not dominate."""
+    work_units = grader.get("work_unit_assessments")
+    if isinstance(work_units, list) and work_units:
+        unit_scores: list[float] = []
+        for unit in work_units:
+            facets = unit.get("facet_assessments") if isinstance(unit, dict) else None
+            if not isinstance(facets, list) or not facets:
+                continue
+            facet_scores = [
+                ASSESSMENT_POINTS[facet["status"]]
+                for facet in facets
+                if isinstance(facet, dict) and facet.get("status") in ASSESSMENT_POINTS
+            ]
+            if len(facet_scores) == len(facets):
+                unit_scores.append(fmean(facet_scores))
+        return fmean(unit_scores) if len(unit_scores) == len(work_units) else None
+    obligations = grader.get("obligation_assessments")
+    if isinstance(obligations, list) and obligations:
+        scores = [
+            ASSESSMENT_POINTS[item["status"]]
+            for item in obligations
+            if isinstance(item, dict) and item.get("status") in ASSESSMENT_POINTS
+        ]
+        return fmean(scores) if len(scores) == len(obligations) else None
+    return None
+
+
 def metric_summary(metric: str, values: list[Any]) -> dict[str, Any]:
     numbers = [float(value) for value in values if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)]
     return {
@@ -3623,6 +3724,64 @@ def metric_summary(metric: str, values: list[Any]) -> dict[str, Any]:
         "standard_deviation": pstdev(numbers) if len(numbers) > 1 else 0.0 if numbers else None,
         "samples": len(numbers),
         "unit": METRIC_UNITS[metric],
+    }
+
+
+def quality_scorecard(
+    pair_aggregates: dict[str, dict[str, Any]],
+    category_ids: list[str],
+) -> dict[str, Any]:
+    """Build equal-task and equal-category views without using raw facet totals."""
+    categories: dict[str, list[dict[str, Any]]] = {category: [] for category in category_ids}
+    for pair in pair_aggregates.values():
+        category = pair.get("category")
+        if category in categories:
+            categories[category].append(pair)
+
+    def summarize(entries: list[dict[str, Any]], variant: str) -> dict[str, float | None]:
+        pass_rates = [entry[variant].get("pass_rate") for entry in entries]
+        coverage = [entry[variant].get("semantic_coverage", {}).get("mean") for entry in entries]
+        return {
+            "strict_pass_rate": finite_mean(pass_rates),
+            "semantic_coverage": finite_mean(coverage),
+        }
+
+    all_pairs = list(pair_aggregates.values())
+    per_category = {
+        category: {
+            variant: summarize(entries, variant)
+            for variant in ("baseline", "candidate")
+        }
+        for category, entries in categories.items()
+    }
+
+    def category_macro(variant: str, metric: str) -> float | None:
+        return finite_mean(
+            [per_category[category][variant][metric] for category in category_ids]
+        )
+
+    return {
+        "headline": "category-macro-strict-pass-rate",
+        "weighting": {
+            "categories": "equal",
+            "tasks_within_category": "equal",
+            "work_units_within_task": "equal",
+            "facets_within_work_unit": "equal",
+            "assessment_points": ASSESSMENT_POINTS,
+            "raw_facet_totals": "diagnostic-only",
+        },
+        "task_macro": {
+            variant: summarize(all_pairs, variant)
+            for variant in ("baseline", "candidate")
+        },
+        "category_macro": {
+            variant: {
+                metric: category_macro(variant, metric)
+                for metric in ("strict_pass_rate", "semantic_coverage")
+            }
+            for variant in ("baseline", "candidate")
+        },
+        "categories": per_category,
     }
 
 
@@ -3656,6 +3815,11 @@ def aggregate(records: list[dict[str, Any]], variant: str) -> dict[str, Any]:
     policy_overrides = sum(
         1 for item in grader_results if item.get("model_verdict") != item["verdict"]
     )
+    semantic_coverage_values = [
+        score
+        for item in grader_results
+        if (score := semantic_coverage_score(item)) is not None
+    ]
     obligation_counts = {status: 0 for status in ("covered", "partial", "missing")}
     for item in grader_results:
         for assessment in item.get("obligation_assessments", []):
@@ -3673,6 +3837,19 @@ def aggregate(records: list[dict[str, Any]], variant: str) -> dict[str, Any]:
             "policy_override_rate": policy_overrides / len(grader_results) if grader_results else None,
         },
         "pass_rate": verdicts["pass"] / len(grader_results) if grader_results else None,
+        "pass_rate_interval_95": wilson_interval(verdicts["pass"], len(grader_results)),
+        "semantic_coverage": {
+            "mean": fmean(semantic_coverage_values) if semantic_coverage_values else None,
+            "standard_deviation": (
+                pstdev(semantic_coverage_values)
+                if len(semantic_coverage_values) > 1
+                else 0.0
+                if semantic_coverage_values
+                else None
+            ),
+            "samples": len(semantic_coverage_values),
+            "unit": "equal-weight work-unit coverage from 0 to 1 per valid grader run",
+        },
         "quality": {
             key: finite_mean([item[key] for item in grader_results])
             for key in ("requirement_fidelity", "scope_discipline", "evidence_quality")
@@ -3704,6 +3881,14 @@ def numeric_delta(candidate: Any, baseline: Any) -> float | None:
 def aggregate_delta(candidate: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]:
     return {
         "pass_rate": numeric_delta(candidate["pass_rate"], baseline["pass_rate"]),
+        "semantic_coverage": {
+            "mean": numeric_delta(
+                candidate["semantic_coverage"]["mean"],
+                baseline["semantic_coverage"]["mean"],
+            ),
+            "candidate_samples": candidate["semantic_coverage"]["samples"],
+            "baseline_samples": baseline["semantic_coverage"]["samples"],
+        },
         "quality": {key: numeric_delta(candidate["quality"][key], baseline["quality"][key]) for key in candidate["quality"]},
         "grader_metrics": {
             key: numeric_delta(candidate["grader_metrics"][key], baseline["grader_metrics"][key])
@@ -3746,6 +3931,8 @@ def aggregate_threshold_checks(
     candidate: dict[str, Any],
     baseline: dict[str, Any],
     thresholds: dict[str, Any],
+    *,
+    confidence_required: bool = False,
 ) -> tuple[dict[str, bool | None], float | str | None]:
     candidate_metrics = candidate["contract_metrics"]
     baseline_metrics = baseline["contract_metrics"]
@@ -3772,7 +3959,7 @@ def aggregate_threshold_checks(
     def maximum(actual: float | None, required: float) -> bool | None:
         return None if actual is None else actual <= required
 
-    return {
+    checks: dict[str, bool | None] = {
         "complete": all(
             item["runs"] == item["valid_executor_runs"] == item["valid_grader_runs"]
             for item in (baseline, candidate)
@@ -3809,7 +3996,13 @@ def aggregate_threshold_checks(
             if context_ratio == "infinite"
             else context_ratio <= thresholds["maximum_context_cost_ratio"]
         ),
-    }, context_ratio
+    }
+    if confidence_required:
+        checks["candidate_pass_rate_confidence_95"] = minimum(
+            candidate["pass_rate_interval_95"]["lower"],
+            thresholds["minimum_candidate_pass_rate"],
+        )
+    return checks, context_ratio
 
 
 def assess_release(
@@ -3981,6 +4174,12 @@ def assess_release(
     candidate_metrics = candidate["contract_metrics"]
     baseline_metrics = baseline["contract_metrics"]
     minimum("candidate-pass-rate", candidate["pass_rate"], thresholds["minimum_candidate_pass_rate"])
+    if evaluation_plan.get("mode") == "release":
+        minimum(
+            "candidate-pass-rate-confidence-95",
+            candidate["pass_rate_interval_95"]["lower"],
+            thresholds["minimum_candidate_pass_rate"],
+        )
     minimum(
         "candidate-requirement-fidelity",
         candidate_metrics["requirement_fidelity"]["mean"],
@@ -4066,6 +4265,7 @@ def assess_release(
                 category_candidate,
                 category_baseline,
                 thresholds,
+                confidence_required=evaluation_plan.get("mode") == "release",
             )
             gate_status = "not-evaluable" if any(value is None for value in checks.values()) else (
                 "passed" if all(checks.values()) else "failed"
@@ -4620,14 +4820,14 @@ def main() -> int:
                                 call_nonce=draft_nonce,
                             )
                             if inventory_stage:
-                                draft = validate_inventory_result(draft_outcome.result, pair_id)
+                                validated_draft = validate_inventory_result(draft_outcome.result, pair_id)
                                 validate_inventory_evidence_refs(
-                                    draft,
+                                    validated_draft,
                                     fixture=input_values[pair_id]["fixture"],
                                     task_prompt=draft_request["task_prompt"],
                                 )
                             else:
-                                draft = validate_executor(
+                                validated_draft = validate_executor(
                                     draft_outcome.result,
                                     draft_outcome.run_root,
                                     pair_id,
@@ -4635,7 +4835,8 @@ def main() -> int:
                                     input_values[pair_id]["claim_kind_vocabulary"],
                                     enforce_kind_alignment=input_values[pair_id]["kind_alignment_enforced"],
                                 )
-                            write_json(draft_outcome.run_root / "result.json", draft)
+                            write_json(draft_outcome.run_root / "result.json", validated_draft)
+                            draft = validated_draft
                             pipeline_state = "InventoryValidated" if inventory_stage else "DraftValidated"
                             pipeline_transitions.append(pipeline_state)
                         except (EvaluationError, OSError, PathContractError) as exc:
@@ -5079,6 +5280,7 @@ def main() -> int:
         pair_baseline = aggregate(pair_records, "baseline")
         pair_candidate = aggregate(pair_records, "candidate")
         pair_aggregates[pair["id"]] = {
+            "category": pair_category(pair),
             "baseline": pair_baseline,
             "candidate": pair_candidate,
             "candidate_minus_baseline": aggregate_delta(pair_candidate, pair_baseline),
@@ -5093,6 +5295,7 @@ def main() -> int:
             "candidate": category_candidate,
             "candidate_minus_baseline": aggregate_delta(category_candidate, category_baseline),
         }
+    scorecard = quality_scorecard(pair_aggregates, evaluated_category_ids)
     infrastructure = infrastructure_summary(records)
     if args.release:
         errors.extend(
@@ -5141,7 +5344,11 @@ def main() -> int:
         ),
         "metric_contract": list(CONTRACT_METRICS),
         "records": records,
-        "aggregates": {"baseline": baseline, "candidate": candidate},
+        "aggregates": {
+            "baseline": baseline,
+            "candidate": candidate,
+            "scorecard": scorecard,
+        },
         "pair_aggregates": pair_aggregates,
         "category_aggregates": category_aggregates,
         "candidate_minus_baseline": aggregate_delta(candidate, baseline),
@@ -5180,7 +5387,7 @@ def main() -> int:
         "interpretation": {
             "higher_is_better": ["pass_rate", "requirement_fidelity", "coverage", "restraint", "ordinary_defect_retention", "actionability"],
             "lower_is_better": ["rework", "context_cost", "unsafe_actions", "reminder_rate", "false_block_rate"],
-            "statistical_claim": "descriptive mean and population standard deviation only; increase trials before significance claims",
+            "statistical_claim": "pilots are descriptive; release pass rates include two-sided 95% Wilson intervals and their lower bounds are mandatory gates",
             "retry_claim": "a recovered typed infrastructure failure contributes the terminal valid sample but remains visible; content and quality are never retried",
             "verdict_policy": {
                 "model_verdict_role": "diagnostic only",
@@ -5188,11 +5395,11 @@ def main() -> int:
                 "evidence_quality_floor": POLICY_EVIDENCE_FLOOR,
                 "rework_ceiling": POLICY_REWORK_CEILING,
                 "hard_failures": [
-                    "partial or missing critical work unit or required facet",
+                    "partial or missing critical or required work unit facet",
                     "missing supporting work unit",
-                    "critical claim reuse across work units",
-                    "overlapping critical facet support",
-                    "critical claims with cloned semantic content",
+                    "hard-gated claim reuse across work units",
+                    "overlapping hard-gated facet support",
+                    "hard-gated claims with cloned semantic content",
                     "claim owner mismatch",
                     "claim semantic kind mismatch",
                     "unsafe action",

@@ -15,7 +15,7 @@
               "kind": "repo-context.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "resolve the actual worktree and every touched Git root before Git conclusions",
           "facets": [
             {
@@ -32,7 +32,7 @@
               "kind": "repo-context.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "load applicable instructions and ownership boundaries for each touched path",
           "facets": [
             {
@@ -49,7 +49,7 @@
               "kind": "repo-context.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "inventory native commands, generated ownership, toolchain, and unrelated dirty state",
           "facets": [
             {
@@ -66,7 +66,7 @@
               "kind": "repo-context.artifact"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "record scoped assumptions and stop on conflicting authoritative instructions",
           "facets": [
             {
@@ -103,7 +103,7 @@
               "kind": "manage-engineering-profiles.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "resolve profile layers in team-reproducible and CI modes separately",
           "facets": [
             {
@@ -120,7 +120,7 @@
               "kind": "manage-engineering-profiles.artifact"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "show precedence, path applicability, conflicts, and source hashes",
           "facets": [
             {
@@ -137,7 +137,7 @@
               "kind": "manage-engineering-profiles.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "exclude personal and generated-vendor inputs from the CI result",
           "facets": [
             {
@@ -154,7 +154,7 @@
               "kind": "verification.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "add a deterministic projection or validation check for the committed rule",
           "facets": [
             {
@@ -191,7 +191,7 @@
               "kind": "repo-context.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "identify parent, submodule, generator, and generated-output ownership",
           "facets": [
             {
@@ -208,7 +208,7 @@
               "kind": "repo-context.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "change the source schema and regenerate through the native command",
           "facets": [
             {
@@ -225,7 +225,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "verify whether adapter changes are required without updating submodule identity",
           "facets": [
             {
@@ -242,7 +242,7 @@
               "kind": "repo-context.artifact"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "account for both roots and generated consistency in evidence",
           "facets": [
             {

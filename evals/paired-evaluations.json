@@ -590,7 +590,10 @@
       "contract": "contracts/structured-user-input.json",
       "capabilities": [
         "dev-flow",
-        "requirements-design"
+        "requirements-design",
+        "dependency-decisions",
+        "verification",
+        "delivery-readiness"
       ],
       "capability_context": {
         "dev-flow": [
@@ -600,6 +603,16 @@
         "requirements-design": [
           "references/semantic-and-scope.md",
           "references/user-interaction.md"
+        ],
+        "dependency-decisions": [
+          "references/dependency-governance.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ],
+        "delivery-readiness": [
+          "references/readiness-contract.md"
         ]
       },
       "deterministic_oracle": "native choice, fallback, Other, stale response, cancellation, authority, and secret cases"

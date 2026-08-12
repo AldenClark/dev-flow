@@ -15,7 +15,7 @@
               "kind": "delivery-readiness.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "define old/new read-write compatibility and unknown-field behavior",
           "facets": [
             {
@@ -49,7 +49,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "test replay, duplicate delivery, rollback, and mixed deployment order",
           "facets": [
             {
@@ -103,7 +103,7 @@
               "kind": "delivery-readiness.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "separate format version, key identifier, and secret storage ownership",
           "facets": [
             {
@@ -137,7 +137,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "verify crash recovery, partial migration, offline return, and rollback reads",
           "facets": [
             {
@@ -191,7 +191,7 @@
               "kind": "repo-context.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "map supported upgrade, skip-upgrade, backup-restore, and downgrade directions",
           "facets": [
             {
@@ -225,7 +225,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "test representative old/new database and application combinations",
           "facets": [
             {

@@ -926,7 +926,7 @@ def validated_work_units(value: object) -> list[dict[str, Any]]:
             raise AdapterError(
                 f"evaluation_contract.work_units[{unit_index}].owner is invalid"
             )
-        if unit["criticality"] not in {"critical", "supporting"}:
+        if unit["criticality"] not in {"critical", "required", "supporting"}:
             raise AdapterError(
                 f"evaluation_contract.work_units[{unit_index}].criticality is invalid"
             )
@@ -1105,8 +1105,9 @@ Canonical structured evaluation contract:
                 "may support multiple facets only through separately identifiable support spans. Use the shortest "
                 "whole-word span that is independently sufficient for the facet; do not quote a whole list when one "
                 "distinct list item is sufficient. Before returning, verify that support spans for different facets "
-                "do not overlap and that no normalized support text or parent claim is reused across critical work "
-                "units. Never reuse the same support span for two facets in critical work units. Judge semantic "
+                "do not overlap and that no normalized support text or parent claim is reused across hard-gated "
+                "critical or required work units. Never reuse the same support span for two facets in those work "
+                "units. Judge semantic "
                 "coverage from the claim content; "
                 "do not infer a hidden facet from a claim that does not state it."
             )
@@ -1137,7 +1138,7 @@ Canonical structured evaluation contract:
                         raise AdapterError(
                             f"evaluation_contract.obligations[{index}].{key} is invalid or exceeds bounds"
                         )
-                if obligation["criticality"] not in {"critical", "supporting"}:
+                if obligation["criticality"] not in {"critical", "required", "supporting"}:
                     raise AdapterError(
                         f"evaluation_contract.obligations[{index}].criticality is invalid"
                     )
@@ -1179,9 +1180,9 @@ Structured evaluation contract:
                 "one entry for every obligation id in the supplied order. Map only existing executor claim_ids. "
                 + alignment_instruction
                 + "covered and partial require at least one mapped claim; missing requires an empty claim_ids list. "
-                "Judge semantic coverage from the claims and compatible actions/evidence. A critical obligation is "
-                "not complete unless it is covered by an aligned claim. Every claim used for a critical obligation is "
-                "exclusive to that one critical obligation; never reuse it for a second critical obligation."
+                "Judge semantic coverage from the claims and compatible actions/evidence. A critical or required "
+                "obligation is not complete unless it is covered by an aligned claim. Every claim used for either "
+                "hard-gated tier is exclusive to that one obligation; never reuse it for a second hard-gated obligation."
             )
         elif expected_actions is not None:
             if (

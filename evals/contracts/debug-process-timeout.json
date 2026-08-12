@@ -13,7 +13,7 @@
           "kind": "systematic-debugging.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "capture the first timeout, environment, process tree, blocked I/O, output size, and reproduction reliability",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "systematic-debugging.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "trace process ownership, stdin/stdout handling, timeout ordering, termination, join, and cleanup",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "systematic-debugging.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "state one causal hypothesis and run the smallest safe discriminating experiment",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "add a regression that proves bounded timeout, output, descendant teardown, and no marker leak",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "rerun nearby success, failure, and interruption paths after the root-cause fix",
       "facets": [
         {

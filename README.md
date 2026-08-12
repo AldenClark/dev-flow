@@ -279,13 +279,13 @@ CI 在 Linux、macOS 和 Windows 上覆盖 Python 3.11 与当前 Python 3.14。�
 ```bash
 python3 evals/run_paired_evaluations.py \
   --attested-pilot --pair PAIR-CROSS-LANGUAGE \
-  --executor-draft 'python3 evals/codex_model_adapter.py executor --model gpt-5.6-sol --reasoning-effort medium' \
+  --executor-draft 'python3 evals/codex_model_adapter.py inventory --model gpt-5.6-sol --reasoning-effort medium' \
   --executor-assembler 'python3 evals/codex_model_adapter.py assembler --model gpt-5.6-sol --reasoning-effort high' \
   --grader 'python3 evals/codex_model_adapter.py grader --model gpt-5.6-sol --reasoning-effort medium' \
   --output /absolute/path/to/eval-output --trials 3
 ```
 
-开发评测把一次 first attempt 固定为 `draft → blind assembler → grader`：draft 与 assembler 使用独立 opaque 根，只接收同一任务、fixture、任务中立的能力正文与 content-only draft；它们看不到 trial/variant、真实路径、receipt、usage、金标、work unit/facet 或 grader 反馈。每阶段的 request/result/backend/nonce/receipt 都进入哈希链，assembler 不能把 planned/not-run 升为 verified、删除 limitation、改写 evidence 或伪造执行事实。grader 只接收最终 content DTO，并把隐藏 work unit 的每个原子 facet 映射到 owner/kind 一致且互不冲突的 support spans。关键 work unit 的任一 facet 为 `partial` 都会失败。`--attested-pilot` 只允许经过筛选的 schema-1.7 development 任务；它仍是 pilot，绝不产生 release 声明。三轮单 pair 需要 6 次 draft、6 次 assembler、6 次 grader；39 个开发案例的三轮广测共 702 次调用。冻结验收仍保持独立 schema-1.6 release 路径，待两阶段开发门与独立复审稳定通过后才迁移并重新冻结；任何旧验收结果都不能替代新 freeze 的一次性 held-out 证据。
+开发评测把一次 first attempt 固定为 `blind inventory → routing assembler → grader`：inventory 只形成无 owner/kind 的原子事实，assembler 只返回完整 routing manifest，runner 再确定性物化最终 claim ledger。三个阶段使用独立 opaque 根，看不到 trial/variant、真实路径、usage、金标或 grader 反馈；每阶段的 request/result/backend/nonce/receipt-1.2 都进入哈希链。grader 把隐藏 work unit 的每个原子 facet 映射到 owner/kind 一致且互不冲突的 support spans。critical 与 required work unit 的任一 facet 为 `partial` 都会失败。`--attested-pilot` 只允许经过筛选的 schema-1.8 development 任务；它仍是 pilot，绝不产生 release 声明。三轮单 pair 需要 6 次 inventory、6 次 assembler、6 次 grader；39 个开发案例的三轮广测共 702 次调用。冻结验收保持独立 schema-1.6 release 路径；任何旧验收结果都不能替代新 freeze 的一次性 held-out 证据。
 
 ## 发布候选与供应链证据
 

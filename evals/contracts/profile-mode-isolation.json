@@ -13,7 +13,7 @@
           "kind": "manage-engineering-profiles.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "identify the effective personal-interactive, team-reproducible, and CI modes and their sources",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "manage-engineering-profiles.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "keep personal preferences and credentials out of committed team and CI artifacts",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "manage-engineering-profiles.artifact"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "record precedence, conflicts, provenance, fingerprints, and unresolved material choices",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "manage-engineering-profiles.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "apply explicit work mode only to raise and never lower the evidence-derived risk level",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "verify deterministic team and CI resolution from clean isolated profiles",
       "facets": [
         {

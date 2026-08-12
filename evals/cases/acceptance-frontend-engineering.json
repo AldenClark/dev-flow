@@ -15,7 +15,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "reproduce the route, hydration, cache, and cancellation timeline",
           "facets": [
             {
@@ -32,7 +32,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "assign server and client state ownership without duplicating the cache",
           "facets": [
             {
@@ -49,7 +49,7 @@
               "kind": "product-ux-discovery.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "prevent stale generation commits and preserve loading/error states",
           "facets": [
             {
@@ -66,7 +66,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "test navigation, account switch, cancellation, hydration, and rendered output",
           "facets": [
             {
@@ -103,7 +103,7 @@
               "kind": "architecture-decisions.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "measure render, scroll, memory, update, and interaction baselines",
           "facets": [
             {
@@ -120,7 +120,7 @@
               "kind": "product-ux-discovery.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "preserve semantic relationships, focus, keyboard, and accessible names",
           "facets": [
             {
@@ -137,7 +137,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "choose bounded virtualization and update ownership from repository capabilities",
           "facets": [
             {
@@ -154,7 +154,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "verify large data, variable height, expansion, live updates, and reduced motion",
           "facets": [
             {
@@ -191,7 +191,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "reproduce the request ordering and cache ownership timeline",
           "facets": [
             {
@@ -208,7 +208,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "use generation or mutation identity to reject stale commits",
           "facets": [
             {
@@ -225,7 +225,7 @@
               "kind": "product-ux-discovery.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "define optimistic rollback for success, rejection, cancel, and navigation",
           "facets": [
             {
@@ -242,7 +242,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "test deterministic out-of-order responses and rendered recovery",
           "facets": [
             {

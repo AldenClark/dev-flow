@@ -9,7 +9,7 @@
       "properties": {
         "id": {"type": "string", "pattern": "^OB-[1-9][0-9]*$"},
         "owner": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
-        "criticality": {"enum": ["critical", "supporting"]},
+        "criticality": {"enum": ["critical", "required", "supporting"]},
         "action": {"type": "string", "minLength": 1, "maxLength": 1000},
         "evidence_kind": {"enum": ["analysis", "decision", "test", "artifact", "interaction", "limitation"]}
       },
@@ -22,7 +22,7 @@
         "id": {"type": "string", "pattern": "^OB-[1-9][0-9]*$"},
         "owner": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
         "kind": {"type": "string", "pattern": "^[a-z][a-z0-9.-]{0,127}$", "maxLength": 128},
-        "criticality": {"enum": ["critical", "supporting"]},
+        "criticality": {"enum": ["critical", "required", "supporting"]},
         "action": {"type": "string", "minLength": 1, "maxLength": 1000},
         "evidence_kind": {"enum": ["analysis", "decision", "test", "artifact", "interaction", "limitation"]}
       },
@@ -58,7 +58,7 @@
           "uniqueItems": true,
           "items": {"$ref": "#/$defs/claimRouteV13"}
         },
-        "criticality": {"enum": ["critical", "supporting"]},
+        "criticality": {"enum": ["critical", "required", "supporting"]},
         "protected_behavior": {"type": "string", "minLength": 1, "maxLength": 1000},
         "facets": {
           "type": "array",

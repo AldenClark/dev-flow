@@ -13,7 +13,7 @@
           "kind": "product-ux-discovery.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "inspect rendered behavior, semantic structure, event ownership, design system, and existing browser projects",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "product-ux-discovery.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "replace clickable generic containers with native semantic controls or justified accessible patterns",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "product-ux-discovery.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "define keyboard activation, focus entry/return, accessible names, live errors, and destructive confirmation",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "verification.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "respect reduced motion and verify narrow and wide layouts without hiding required content",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "verification.artifact"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "record representative browser project, retry, trace, and automated plus manual accessibility evidence",
       "facets": [
         {

@@ -15,7 +15,7 @@
               "kind": "systematic-debugging.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "preserve the first failure and reconstruct clock and zone inputs",
           "facets": [
             {
@@ -32,7 +32,7 @@
               "kind": "systematic-debugging.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "separate wall-clock, monotonic, local-zone, and injected-clock hypotheses",
           "facets": [
             {
@@ -49,7 +49,7 @@
               "kind": "systematic-debugging.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "run a discriminating fixed-zone boundary experiment",
           "facets": [
             {
@@ -66,7 +66,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "add deterministic transition and nearby regression tests before the fix",
           "facets": [
             {
@@ -103,7 +103,7 @@
               "kind": "systematic-debugging.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "capture a reproducible open-close timeline and retained-object evidence",
           "facets": [
             {
@@ -120,7 +120,7 @@
               "kind": "systematic-debugging.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "rank cache, subscription, callback, and task-ownership hypotheses",
           "facets": [
             {
@@ -137,7 +137,7 @@
               "kind": "systematic-debugging.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "run one boundary experiment per hypothesis",
           "facets": [
             {
@@ -154,7 +154,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "add lifecycle, cancellation, callback-quiescence, and retained-size regression checks",
           "facets": [
             {
@@ -191,7 +191,7 @@
               "kind": "systematic-debugging.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "reproduce kill points and inspect payload/metadata state transitions",
           "facets": [
             {
@@ -208,7 +208,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "test atomicity, ordering, fsync, generation, and recovery hypotheses separately",
           "facets": [
             {
@@ -225,7 +225,7 @@
               "kind": "systematic-debugging.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "define fail-safe detection and bounded rebuild ownership",
           "facets": [
             {
@@ -242,7 +242,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "add deterministic kill-point, stale-generation, restart, and cleanup tests",
           "facets": [
             {

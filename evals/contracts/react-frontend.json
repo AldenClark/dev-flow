@@ -13,7 +13,7 @@
           "kind": "architecture-decisions.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "scan routes, query ownership, current rendered UI, design system, package manager, and existing tests",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "product-ux-discovery.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "classify the bounded extension as preserve UI impact and record existing product and flow constraints",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "architecture-decisions.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "use TanStack Table v9 by default when compatible",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "dependency-decisions.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "compare the two preferred chart families and select only one after approval if new",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "product-ux-discovery.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "model loading, empty, error, permission, keyboard, focus, and responsive behavior",
       "facets": [
         {
@@ -98,7 +98,7 @@
           "kind": "verification.artifact"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "record Playwright project, retry, trace, and accessibility evidence",
       "facets": [
         {

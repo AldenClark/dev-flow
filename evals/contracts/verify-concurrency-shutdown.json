@@ -13,7 +13,7 @@
           "kind": "verification.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "preserve the first failure, environment, timeline, and reproduction reliability",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "verification.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "identify task, queue, lock, timer, I/O, cancellation, and join ownership before changing code",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "create a deterministic interleaving or bounded repeated reproducer with a discriminating oracle",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "verify deadline, cancellation propagation, drain, join, resource release, and restart behavior",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "verification.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "classify product race, test race, environment contamination, timeout, or infrastructure failure before retry",
       "facets": [
         {

@@ -15,7 +15,7 @@
               "kind": "product-ux-discovery.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "inventory current IA, components, states, localization, and design truth",
           "facets": [
             {
@@ -32,7 +32,7 @@
               "kind": "product-ux-discovery.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "define RTL, long-string, numeric, large-text, keyboard, and focus behavior",
           "facets": [
             {
@@ -49,7 +49,7 @@
               "kind": "product-ux-discovery.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "preserve navigation and destructive confirmation or recovery",
           "facets": [
             {
@@ -66,7 +66,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "verify representative rendered states rather than code structure alone",
           "facets": [
             {
@@ -103,7 +103,7 @@
               "kind": "product-ux-discovery.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "map selection, protected, confirmation, progress, partial failure, and recovery states",
           "facets": [
             {
@@ -120,7 +120,7 @@
               "kind": "requirements-design.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "identify undo or irreversibility as a material product choice",
           "facets": [
             {
@@ -137,7 +137,7 @@
               "kind": "product-ux-discovery.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "preserve focus, keyboard, responsive, and screen-reader behavior",
           "facets": [
             {
@@ -154,7 +154,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "verify mixed-success rendered flows and durable outcome receipts",
           "facets": [
             {
@@ -191,7 +191,7 @@
               "kind": "product-ux-discovery.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "preserve existing IA and identify source-of-truth ownership",
           "facets": [
             {
@@ -208,7 +208,7 @@
               "kind": "product-ux-discovery.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "design offline, queued, syncing, conflict, error, and recovery states",
           "facets": [
             {
@@ -225,7 +225,7 @@
               "kind": "requirements-design.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "surface material conflict-resolution semantics for confirmation",
           "facets": [
             {
@@ -242,7 +242,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "verify accessibility, interruption, stale response, and cross-device flows",
           "facets": [
             {

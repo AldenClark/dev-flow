@@ -13,7 +13,7 @@
           "kind": "repo-context.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "inspect instructions, notification call path, retries, idempotency keys, tests, logs, and nearby analogues before questioning the user",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "systematic-debugging.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "state the observed current and intended behavior with fact, inference, and unknown separated",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "requirements-design.artifact"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "record bounded acceptance, direct/protected/out-of-scope change scope, and verification obligations",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "reproduce the causal regression and prove a focused test detects it before the fix when practical",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "requirements-design.limitation"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "proceed without ceremonial product questions when no material ambiguity survives investigation",
       "facets": [
         {

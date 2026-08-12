@@ -13,7 +13,7 @@
           "kind": "dependency-decisions.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "search source, tests, examples, build scripts, generated files, features, platform targets, and downstream consumers",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "dependency-decisions.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "establish baseline default, minimal, all-feature, and representative platform or consumer behavior",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "run affected compile, tests, feature combinations, generated consistency, advisory, and license checks",
       "facets": [
         {

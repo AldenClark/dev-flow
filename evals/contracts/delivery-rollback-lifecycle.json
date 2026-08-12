@@ -30,7 +30,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "verify fresh install, upgrade, rollback, re-upgrade, uninstall, and post-action identity at every transition",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "test configuration ownership and block whole-set removal when user-modified files would be deleted",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "delivery-readiness.artifact"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "record process/profile cleanup, retained receipts, platform matrix, and restoration of the prior state",
       "facets": [
         {

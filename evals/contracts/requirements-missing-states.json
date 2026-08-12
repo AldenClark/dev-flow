@@ -13,7 +13,7 @@
           "kind": "repo-context.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "inspect current state machines, analogous flows, tests, configuration, runtime behavior, and instructions before questioning the user",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "product-ux-discovery.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "enumerate cancellation, retry, partial failure, authorization failure, empty, loading, success, and recovery states with transitions and user-visible feedback",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "requirements-design.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "separate discovered protected behavior and evidence-backed defaults from unresolved material product semantics",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "requirements-design.artifact"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "record each surviving ambiguity with stable ID, interpretations, evidence, impact, recommendation, affected acceptance and scope IDs, and blocked work",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "requirements-design.interaction"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "ask at most three consolidated user-answerable questions with alternatives, impact, safe defaults, and explicit decision ownership",
       "facets": [
         {

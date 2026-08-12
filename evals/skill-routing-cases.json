@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "1.2",
   "cases": [
     {
       "id": "ROUTE-MICRO",
@@ -15,7 +15,18 @@
       "work_mode": "traced",
       "expected": ["repo-context", "systematic-debugging", "verification"],
       "required": ["repo-context", "systematic-debugging", "verification"],
-      "forbidden": ["requirements-design", "architecture-decisions", "change-review", "delivery-readiness"]
+      "forbidden": ["requirements-design", "architecture-decisions", "change-review", "delivery-readiness"],
+      "workflow": {
+        "artifact_flow": [
+          {"skill": "repo-context", "output": "context.snapshot.v1"},
+          {"skill": "systematic-debugging", "output": "diagnosis.ledger.v1"},
+          {"skill": "verification", "output": "verification.results.v1"}
+        ],
+        "final_evidence": "verification.results.v1",
+        "forbidden_backfill": [
+          {"consumer": "verification", "output": "diagnosis.ledger.v1"}
+        ]
+      }
     },
     {
       "id": "ROUTE-FFI-BUGFIX",
@@ -23,7 +34,21 @@
       "work_mode": "governed",
       "expected": ["repo-context", "systematic-debugging", "architecture-decisions", "verification", "change-review"],
       "required": ["systematic-debugging", "architecture-decisions", "verification", "change-review"],
-      "forbidden": ["requirements-design", "dependency-decisions", "delivery-readiness"]
+      "forbidden": ["requirements-design", "dependency-decisions", "delivery-readiness"],
+      "workflow": {
+        "artifact_flow": [
+          {"skill": "repo-context", "output": "context.snapshot.v1"},
+          {"skill": "systematic-debugging", "output": "diagnosis.ledger.v1"},
+          {"skill": "architecture-decisions", "output": "architecture.decision.v1"},
+          {"skill": "verification", "output": "verification.results.v1"},
+          {"skill": "change-review", "output": "review.findings.v1"}
+        ],
+        "final_evidence": "review.findings.v1",
+        "forbidden_backfill": [
+          {"consumer": "verification", "output": "architecture.decision.v1"},
+          {"consumer": "change-review", "output": "architecture.decision.v1"}
+        ]
+      }
     },
     {
       "id": "ROUTE-ABI-BUGFIX",
@@ -55,7 +80,21 @@
       "work_mode": "governed",
       "expected": ["repo-context", "requirements-design", "architecture-decisions", "verification", "change-review"],
       "required": ["requirements-design", "architecture-decisions", "verification", "change-review"],
-      "forbidden": ["systematic-debugging", "dependency-decisions", "delivery-readiness"]
+      "forbidden": ["systematic-debugging", "dependency-decisions", "delivery-readiness"],
+      "workflow": {
+        "artifact_flow": [
+          {"skill": "repo-context", "output": "context.snapshot.v1"},
+          {"skill": "requirements-design", "output": "requirements.baseline.v1"},
+          {"skill": "architecture-decisions", "output": "architecture.decision.v1"},
+          {"skill": "verification", "output": "verification.results.v1"},
+          {"skill": "change-review", "output": "review.findings.v1"}
+        ],
+        "final_evidence": "review.findings.v1",
+        "forbidden_backfill": [
+          {"consumer": "verification", "output": "requirements.baseline.v1"},
+          {"consumer": "change-review", "output": "architecture.decision.v1"}
+        ]
+      }
     },
     {
       "id": "ROUTE-PROTOCOL",

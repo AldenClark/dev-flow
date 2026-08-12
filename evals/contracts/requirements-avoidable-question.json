@@ -13,7 +13,7 @@
           "kind": "repo-context.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "verify the request, applicable instructions, current contract, deterministic tests, affected component, and absence of surviving material alternatives",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "requirements-design.artifact"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "record a bounded execute-mode baseline with acceptance, direct scope, protected behavior, exclusions, and honest assumptions",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "requirements-design.interaction"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "proceed without asking a user question when no material ambiguity or user-owned decision survives repository investigation",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "dev-flow.limitation"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "preserve required verification, evidence, review, and delivery-authority boundaries without turning them into ceremonial approval questions",
       "facets": [
         {

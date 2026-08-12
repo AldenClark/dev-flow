@@ -15,7 +15,7 @@
               "kind": "change-review.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "trace the exact diff through serializers, clients, retry behavior, and compatibility contract",
           "facets": [
             {
@@ -103,7 +103,7 @@
               "kind": "change-review.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "inspect claim ownership, idempotency, retry, progress, and reconciliation paths",
           "facets": [
             {
@@ -191,7 +191,7 @@
               "kind": "change-review.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "trace each new field through log, metric, error, and retention sinks",
           "facets": [
             {

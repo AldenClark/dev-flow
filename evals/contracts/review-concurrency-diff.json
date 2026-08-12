@@ -13,7 +13,7 @@
           "kind": "change-review.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "trace job, task, queue, durable state, retry, acknowledgement, cancellation, and shutdown ownership",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "change-review.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "account for rollback and operational observability without expanding scope",
       "facets": [
         {

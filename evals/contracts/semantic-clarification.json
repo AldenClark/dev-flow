@@ -13,7 +13,7 @@
           "kind": "requirements-design.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "classify the late finding as implementation defect, design defect, evidence gap, scope change, or requirement ambiguity before choosing a repair path",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "requirements-design.artifact"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "record a stable AMB ID with competing interpretations, repository evidence, materiality, owner, affected AC/SC/VO IDs, recommendation, and open status",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "dev-flow.artifact"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "stop only affected work, return the content-bound packet to awaiting approval, increment the requirement revision, and preserve approval history",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "requirements-design.interaction"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "obtain the user disposition and create fresh requirement-digest-bound Requirement Ready and design approvals before affected work resumes",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "dev-flow.limitation"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "allow only demonstrably unaffected work to continue and prevent reviewers or workers from resolving user-owned product semantics",
       "facets": [
         {

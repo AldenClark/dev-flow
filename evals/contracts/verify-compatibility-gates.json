@@ -13,7 +13,7 @@
           "kind": "verification.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "derive dimensions from changed contracts, supported environments, and historical failures rather than a blind Cartesian product",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "verification.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "use representative pairwise cells for low-risk combinations and every critical boundary cell",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "verification.artifact"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "record exact environment, command, configuration, oracle, attempt, timestamp, artifact, and freshness",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "verification.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "keep PASSED, FAILED, FLAKY, BLOCKED, NOT RUN, and WAIVED distinct",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "verification.limitation"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "block compatibility and release claims while a required cell is failed, flaky, blocked, or not run",
       "facets": [
         {

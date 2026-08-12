@@ -32,7 +32,7 @@ FACET_FIELDS = {"id", "action"}
 KIND_ID_RE = re.compile(r"^[a-z][a-z0-9.-]{0,127}$")
 WORK_UNIT_ID_RE = re.compile(r"^WU-[1-9][0-9]*$")
 FACET_ID_RE = re.compile(r"^OB-[1-9][0-9]*$")
-OBLIGATION_CRITICALITIES = {"critical", "supporting"}
+OBLIGATION_CRITICALITIES = {"critical", "required", "supporting"}
 OBLIGATION_EVIDENCE_KINDS = {
     "analysis",
     "decision",
@@ -255,7 +255,7 @@ def validate_contract(
             criticality = work_unit.get("criticality")
             if criticality not in OBLIGATION_CRITICALITIES:
                 errors.append(
-                    f"{path.name}: work unit {expected_id} criticality must be critical or supporting"
+                    f"{path.name}: work unit {expected_id} criticality must be critical, required, or supporting"
                 )
             protected_behavior = work_unit.get("protected_behavior")
             if not isinstance(protected_behavior, str) or not protected_behavior.strip():
@@ -311,10 +311,11 @@ def validate_contract(
         if len(facet_actions) != len(set(facet_actions)):
             errors.append(f"{path.name}: facet actions must be unique")
         if not any(
-            isinstance(work_unit, dict) and work_unit.get("criticality") == "critical"
+            isinstance(work_unit, dict)
+            and work_unit.get("criticality") in {"critical", "required"}
             for work_unit in obligations
         ):
-            errors.append(f"{path.name}: at least one work unit must be critical")
+            errors.append(f"{path.name}: at least one work unit must be critical or required")
     else:
         if len(obligations) > 64:
             errors.append(f"{path.name}: obligations must contain at most 64 items")
@@ -355,7 +356,7 @@ def validate_contract(
             criticality = obligation.get("criticality")
             if criticality not in OBLIGATION_CRITICALITIES:
                 errors.append(
-                    f"{path.name}: obligation {expected_id} criticality must be critical or supporting"
+                    f"{path.name}: obligation {expected_id} criticality must be critical, required, or supporting"
                 )
             action = obligation.get("action")
             if not isinstance(action, str) or not action.strip():
@@ -381,10 +382,11 @@ def validate_contract(
         if len(obligation_actions) != len(set(obligation_actions)):
             errors.append(f"{path.name}: obligation actions must be unique")
         if not any(
-            isinstance(obligation, dict) and obligation.get("criticality") == "critical"
+            isinstance(obligation, dict)
+            and obligation.get("criticality") in {"critical", "required"}
             for obligation in obligations
         ):
-            errors.append(f"{path.name}: at least one obligation must be critical")
+            errors.append(f"{path.name}: at least one obligation must be critical or required")
     for field in CONTRACT_LIST_FIELDS:
         value = data.get(field)
         if not isinstance(value, list) or not value:
@@ -776,6 +778,55 @@ def main() -> int:
         ) - EXPECTED_SKILLS
         if unknown:
             errors.append(f"routing case {case_id}: unknown Skills {sorted(unknown)}")
+        workflow = case.get("workflow")
+        if workflow is not None:
+            if not isinstance(workflow, dict) or set(workflow) != {
+                "artifact_flow",
+                "final_evidence",
+                "forbidden_backfill",
+            }:
+                errors.append(f"routing case {case_id}: workflow shape is invalid")
+                continue
+            flow = workflow.get("artifact_flow")
+            if not isinstance(flow, list) or not flow:
+                errors.append(f"routing case {case_id}: workflow artifact_flow is empty")
+                continue
+            flow_skills: list[str] = []
+            flow_outputs: list[str] = []
+            for item in flow:
+                if not isinstance(item, dict) or set(item) != {"skill", "output"}:
+                    errors.append(f"routing case {case_id}: workflow artifact shape is invalid")
+                    continue
+                skill = item.get("skill")
+                output = item.get("output")
+                if output_owners.get(output) != skill:
+                    errors.append(
+                        f"routing case {case_id}: {output!r} is not owned by {skill!r}"
+                    )
+                flow_skills.append(str(skill))
+                flow_outputs.append(str(output))
+            if flow_skills != case.get("expected"):
+                errors.append(
+                    f"routing case {case_id}: workflow artifact order must match routed owners"
+                )
+            if flow_outputs and workflow.get("final_evidence") != flow_outputs[-1]:
+                errors.append(f"routing case {case_id}: final evidence must close artifact_flow")
+            boundaries = workflow.get("forbidden_backfill")
+            if not isinstance(boundaries, list) or not boundaries:
+                errors.append(f"routing case {case_id}: forbidden_backfill must be non-empty")
+                continue
+            for boundary in boundaries:
+                if not isinstance(boundary, dict) or set(boundary) != {"consumer", "output"}:
+                    errors.append(f"routing case {case_id}: backfill boundary shape is invalid")
+                    continue
+                consumer = boundary.get("consumer")
+                owner = output_owners.get(boundary.get("output"))
+                if owner == consumer or owner not in flow_skills or consumer not in flow_skills:
+                    errors.append(f"routing case {case_id}: backfill boundary owner is invalid")
+                elif flow_skills.index(owner) >= flow_skills.index(consumer):
+                    errors.append(
+                        f"routing case {case_id}: {consumer} cannot backfill later-owned {boundary.get('output')}"
+                    )
         overlap = set(case.get("required", [])) & set(case.get("forbidden", []))
         if overlap:
             errors.append(f"routing case {case_id}: required/forbidden overlap {sorted(overlap)}")
@@ -862,7 +913,10 @@ def main() -> int:
     case_prompts: dict[str, str] = {}
     case_fixtures: dict[str, str] = {}
     case_semantics: list[tuple[str, str, set[str]]] = []
+    criticality_counts = {"critical": 0, "required": 0, "supporting": 0}
+    critical_tasks_by_category: dict[str, int] = {}
     for role, config in (("development", paired), ("acceptance", acceptance)):
+        expected_trials = 12 if role == "acceptance" else 5
         configured_pair_ids = [
             pair.get("id") for pair in config.get("pairs", []) if isinstance(pair, dict)
         ]
@@ -876,11 +930,12 @@ def main() -> int:
             )
         elif (
             release_plan.get("pair_ids") != configured_pair_ids
-            or release_plan.get("trials_per_pair") != 5
+            or release_plan.get("trials_per_pair") != expected_trials
             or release_plan.get("minimum_cases_per_category") != 3
         ):
             errors.append(
-                f"{role} paired evaluation plan must bind all pairs, three cases per category, and five trials"
+                f"{role} paired evaluation plan must bind all pairs, three cases per category, "
+                f"and {expected_trials} trials"
             )
         thresholds = config.get("release_thresholds")
         if not isinstance(thresholds, dict) or set(thresholds) != expected_thresholds:
@@ -1025,6 +1080,19 @@ def main() -> int:
                 registered_kinds,
             ):
                 errors.append(f"paired evaluation {pair_id}: {alignment_error}")
+            if isinstance(obligations, list):
+                levels = {
+                    item.get("criticality")
+                    for item in obligations
+                    if isinstance(item, dict)
+                }
+                for item in obligations:
+                    if isinstance(item, dict) and item.get("criticality") in criticality_counts:
+                        criticality_counts[item["criticality"]] += 1
+                if isinstance(category, str) and "critical" in levels:
+                    critical_tasks_by_category[category] = (
+                        critical_tasks_by_category.get(category, 0) + 1
+                    )
             if isinstance(prompt, str):
                 previous = case_prompts.setdefault(prompt.strip(), str(pair_id))
                 if previous != pair_id:
@@ -1068,6 +1136,33 @@ def main() -> int:
         errors.append(f"combined evaluation suite must provide at least five cases in all 16 categories: {combined_counts}")
     if not required_new_categories.issubset(combined_counts):
         errors.append(f"combined evaluation suite is missing categories {sorted(required_new_categories - combined_counts.keys())}")
+    total_work_units = sum(criticality_counts.values())
+    if (
+        total_work_units == 0
+        or criticality_counts["critical"] / total_work_units >= 0.3
+        or criticality_counts["required"] <= criticality_counts["critical"]
+        or criticality_counts["supporting"] == 0
+    ):
+        errors.append(
+            "evaluation work units must separate a minority safety-critical tier from the "
+            f"larger required-completeness tier: {criticality_counts}"
+        )
+    high_consequence_categories = {
+        "CAT-CONCURRENCY-RECOVERY",
+        "CAT-DELIVERY",
+        "CAT-DEPENDENCY",
+        "CAT-FFI",
+        "CAT-INTERACTION",
+        "CAT-MIGRATION",
+        "CAT-REVIEW",
+        "CAT-SECURITY-PRIVACY",
+    }
+    missing_critical_categories = high_consequence_categories - critical_tasks_by_category.keys()
+    if missing_critical_categories:
+        errors.append(
+            "high-consequence categories must retain explicit critical work units: "
+            f"{sorted(missing_critical_categories)}"
+        )
     if not pair_ids_by_role.get("development", set()).isdisjoint(pair_ids_by_role.get("acceptance", set())):
         errors.append("development and acceptance pair IDs must be disjoint")
     if len(case_prompts) != 95 or len(case_fixtures) != 95:

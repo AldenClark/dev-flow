@@ -31,7 +31,7 @@ Prove behavior and risk with minimal fresh evidence.
 
 Run native controls first; specialist review never proves a command. Record incomplete automation as a qualified manual/contextual oracle or waiver.
 
-Each falsifiable evidence family gets a verification-owned claim with stimulus, oracle, status, and limitation; umbrella labels never substitute. Detailed FFI, overload, compatibility, and environment matrices live in `references/test-strategy.md`.
+A behavior or interaction claim never doubles as proof. Emit a separate verification-owned test cell for each falsifiable evidence family; umbrella labels never substitute. Detailed matrices and cell rules live in `references/test-strategy.md`.
 
 ## Boundaries
 

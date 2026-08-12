@@ -15,7 +15,7 @@
               "kind": "requirements-design.interaction"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "ask only the first bounded material choice with a recommendation",
           "facets": [
             {
@@ -32,7 +32,7 @@
               "kind": "requirements-design.artifact"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "bind question identity and requirement revision",
           "facets": [
             {
@@ -49,7 +49,7 @@
               "kind": "requirements-design.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "derive and ask the second question only after a valid first answer",
           "facets": [
             {
@@ -103,7 +103,7 @@
               "kind": "dev-flow.limitation"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "leave the gated decision unresolved without immediate reprompt",
           "facets": [
             {
@@ -120,7 +120,7 @@
               "kind": "dev-flow.limitation"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "continue only independent read-only analysis",
           "facets": [
             {
@@ -137,7 +137,7 @@
               "kind": "requirements-design.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "answer the unrelated question without treating it as approval",
           "facets": [
             {
@@ -191,7 +191,7 @@
               "kind": "dev-flow.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "detect that no secure input route is available",
           "facets": [
             {
@@ -208,7 +208,7 @@
               "kind": "dev-flow.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "explain the bounded credential blocker without soliciting the value",
           "facets": [
             {
@@ -225,7 +225,7 @@
               "kind": "dev-flow.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "continue non-secret setup or documentation when independent",
           "facets": [
             {

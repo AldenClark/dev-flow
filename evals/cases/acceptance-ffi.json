@@ -15,7 +15,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "Required cross-language specialist routes are selected before boundary design.",
           "facets": [
             {
@@ -40,7 +40,7 @@
               "kind": "repo-context.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "Status evolution is grounded in a complete cross-language inventory or an explicit context gap.",
           "facets": [
             {
@@ -294,7 +294,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "Required cross-language specialist routes are selected before boundary design.",
           "facets": [
             {
@@ -319,7 +319,7 @@
               "kind": "repo-context.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "Callback repair is grounded in a complete cross-language inventory or an explicit context gap.",
           "facets": [
             {
@@ -576,7 +576,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "Required cross-language specialist routes are selected before boundary design.",
           "facets": [
             {
@@ -601,7 +601,7 @@
               "kind": "repo-context.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "String repair is grounded in a complete cross-language inventory or an explicit context gap.",
           "facets": [
             {

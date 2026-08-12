@@ -13,7 +13,7 @@
           "kind": "repo-context.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "establish every real Git root and resolve the scoped instruction chain for each prospective touched path",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "repo-context.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "inspect task-relevant project guidance, local Skills, executable formatter/linter/toolchain configuration, CI, and nearby analogues",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "manage-engineering-profiles.artifact"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "record concise INS IDs with source, scope, authority, downstream effect, conflict, freshness, and final evidence",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "manage-engineering-profiles.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "surface material document/config/runtime conflicts with evidence and a recommendation instead of silently guessing",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "repo-context.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "map applicable instructions into requirements, design, task briefs, tests, blue review, and acceptance evidence",
       "facets": [
         {

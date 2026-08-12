@@ -30,7 +30,7 @@
           "kind": "delivery-readiness.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "build two fresh reproducible archives and verify contents, version, commit, and SHA-256",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "delivery-readiness.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "generate and verify non-empty SPDX SBOM plus provenance bound to the archive digest",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "delivery-readiness.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "check the user-controlled signing identity and separately authorized tag and Draft prerelease actions",
       "facets": [
         {

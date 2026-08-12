@@ -32,7 +32,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "test fresh install, each upgrade path, first-start failure, rollback, uninstall, and reinstall",
           "facets": [
             {
@@ -49,7 +49,7 @@
               "kind": "delivery-readiness.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "separate product data from owned generated/runtime files",
           "facets": [
             {
@@ -66,7 +66,7 @@
               "kind": "delivery-readiness.limitation"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "block release on destructive or untested lifecycle cells",
           "facets": [
             {
@@ -120,7 +120,7 @@
               "kind": "delivery-readiness.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "inspect architecture, loader paths, metadata, and generated binding compatibility",
           "facets": [
             {
@@ -137,7 +137,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "run representative install and launch on each supported physical target",
           "facets": [
             {
@@ -154,7 +154,7 @@
               "kind": "delivery-readiness.limitation"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "block signing or release when any target is NOT RUN or mismatched",
           "facets": [
             {
@@ -208,7 +208,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "verify old and new verifier behavior across the transition",
           "facets": [
             {
@@ -225,7 +225,7 @@
               "kind": "delivery-readiness.limitation"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "keep signing and publication as separate named authorities",
           "facets": [
             {
@@ -242,7 +242,7 @@
               "kind": "delivery-readiness.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "retain tamper, wrong-key, expired-key, and rollback-artifact negative tests",
           "facets": [
             {

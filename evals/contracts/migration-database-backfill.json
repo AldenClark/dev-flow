@@ -13,7 +13,7 @@
           "kind": "repo-context.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "inventory schema versions, readers, writers, jobs, data volume, deployment order, and operational constraints",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "delivery-readiness.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "make checkpoints, retries, idempotency, throttling, observability, and failure recovery explicit",
       "facets": [
         {

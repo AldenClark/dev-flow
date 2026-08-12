@@ -108,7 +108,7 @@
       "CAT-CONCURRENCY-RECOVERY"
     ],
     "minimum_cases_per_category": 3,
-    "trials_per_pair": 5
+    "trials_per_pair": 12
   },
   "metrics": [
     "requirement_fidelity",

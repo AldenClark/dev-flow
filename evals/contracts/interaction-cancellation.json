@@ -13,7 +13,7 @@
           "kind": "dev-flow.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "keep the product decision and affected work unresolved after cancellation",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "dev-flow.artifact"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "record cancellation or client interruption without immediate re-prompt or recommendation default",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "requirements-design.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "reject or ignore answers bound to an unknown question or stale requirement revision",
       "facets": [
         {

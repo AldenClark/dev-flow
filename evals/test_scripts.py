@@ -385,6 +385,50 @@ class PreflightTests(unittest.TestCase):
 
 
 class PairedEvaluationRunnerTests(unittest.TestCase):
+    def test_wilson_interval_does_not_overstate_small_samples(self) -> None:
+        fourteen_of_fifteen = paired_eval.wilson_interval(14, 15)
+        self.assertAlmostEqual(fourteen_of_fifteen["point"], 14 / 15)
+        self.assertLess(fourteen_of_fifteen["lower"], 0.71)
+        self.assertGreater(fourteen_of_fifteen["upper"], 0.98)
+
+        thirty_five_of_thirty_six = paired_eval.wilson_interval(35, 36)
+        perfect_thirty_six = paired_eval.wilson_interval(36, 36)
+        self.assertLess(thirty_five_of_thirty_six["lower"], 0.9)
+        self.assertGreaterEqual(perfect_thirty_six["lower"], 0.9)
+
+        underpowered = {"pass_rate_interval_95": fourteen_of_fifteen}
+        self.assertLess(
+            underpowered["pass_rate_interval_95"]["lower"],
+            0.9,
+        )
+
+    def test_quality_scorecard_equal_weights_tasks_and_categories(self) -> None:
+        def pair(category: str, pass_rate: float, semantic_coverage: float) -> dict[str, object]:
+            aggregate = {
+                "pass_rate": pass_rate,
+                "semantic_coverage": {
+                    "mean": semantic_coverage,
+                    "standard_deviation": 0.0,
+                    "samples": 3,
+                    "unit": "equal-weight work-unit coverage from 0 to 1 per valid grader run",
+                },
+            }
+            return {"category": category, "baseline": aggregate, "candidate": aggregate}
+
+        scorecard = paired_eval.quality_scorecard(
+            {
+                "PAIR-SMALL": pair("CAT-SMALL", 0.0, 0.0),
+                "PAIR-LARGE-1": pair("CAT-LARGE", 1.0, 1.0),
+                "PAIR-LARGE-2": pair("CAT-LARGE", 1.0, 1.0),
+                "PAIR-LARGE-3": pair("CAT-LARGE", 1.0, 1.0),
+            },
+            ["CAT-SMALL", "CAT-LARGE"],
+        )
+        self.assertAlmostEqual(scorecard["task_macro"]["candidate"]["strict_pass_rate"], 0.75)
+        self.assertAlmostEqual(scorecard["category_macro"]["candidate"]["strict_pass_rate"], 0.5)
+        self.assertAlmostEqual(scorecard["category_macro"]["candidate"]["semantic_coverage"], 0.5)
+        self.assertEqual(scorecard["headline"], "category-macro-strict-pass-rate")
+
     def test_inventory_v2_materializes_a_complete_owner_kind_ledger(self) -> None:
         inventory = {
             "schema_version": "1.0", "case_id": "PAIR-INVENTORY", "attempt": 1,
@@ -522,6 +566,94 @@ class PairedEvaluationRunnerTests(unittest.TestCase):
         self.assertNotIn("claim_kind_vocabulary", request)
         self.assertNotIn("CANARY", json.dumps(request))
         self.assertNotIn("secret", json.dumps(request))
+
+    def test_inventory_grounding_failure_blocks_assembler_and_grader(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            fake_codex = root / "codex"
+            call_log = root / "calls.jsonl"
+            output = root / "output"
+            fake_codex.write_text(
+                f'''#!{PYTHON}
+import json, pathlib, sys
+if "--version" in sys.argv:
+    print("codex-cli fake 1.0")
+    raise SystemExit(0)
+schema = pathlib.Path(sys.argv[sys.argv.index("--output-schema") + 1]).name
+role = "inventory" if schema == "inventory-result.json" else ("assembler" if schema == "assembler-result.json" else "grader")
+output = pathlib.Path(sys.argv[sys.argv.index("--output-last-message") + 1])
+prompt = sys.stdin.read()
+case_id = prompt.split('case_id must be "', 1)[1].split('"', 1)[0]
+with pathlib.Path({str(call_log)!r}).open("a", encoding="utf-8") as handle:
+    handle.write(json.dumps({{"role": role}}) + "\\n")
+if role == "inventory":
+    result = {{
+        "schema_version": "1.0", "case_id": case_id, "attempt": 1,
+        "claimed_outcome": "completed",
+        "inventory_items": [{{
+            "item_id": "IT-1", "evidence_family": "analysis",
+            "action": "Inspect the bounded structured-input behavior.",
+            "protected_behavior": "Ambiguous evidence never reaches a downstream stage.",
+            "oracle_or_evidence": "The duplicated fixture phrase is intentionally ambiguous.",
+            "status": "verified", "limitation": None,
+            "evidence_refs": [{{"source": "fixture", "quote": "request_user_input"}}]
+        }}],
+        "interactions": {{"user_questions": 0, "user_corrections": 0, "reminders": 0, "blocks": 0}}
+    }}
+else:
+    result = {{}}
+output.write_text(json.dumps(result), encoding="utf-8")
+print(json.dumps({{"type": "turn.completed", "usage": {{"input_tokens": 5, "output_tokens": 2, "total_tokens": 7}}}}))
+''',
+                encoding="utf-8",
+            )
+            fake_codex.chmod(0o755)
+            config = json.loads(
+                (ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8")
+            )
+            spec = {"model": "fake-model", "reasoning_effort": "medium"}
+            config["evaluator_identity"] = {
+                "adapter": "evals/codex_model_adapter.py",
+                "backend": {
+                    "command": "codex", "version": "codex-cli fake 1.0",
+                    "artifacts": {
+                        paired_eval.release_platform_key():
+                            "sha256:" + hashlib.sha256(fake_codex.read_bytes()).hexdigest()
+                    },
+                },
+                "result_schema_version": "1.3", "receipt_schema_version": "1.2",
+                "inventory": spec, "assembler": spec, "grader": spec,
+            }
+            config_path = root / "config.json"
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+            adapter = f"{PYTHON} evals/codex_model_adapter.py"
+            environment = dict(os.environ)
+            environment["PATH"] = str(root) + os.pathsep + environment.get("PATH", "")
+            result = run(
+                PYTHON, str(PAIRED_RUNNER),
+                "--attested-pilot", "--config", str(config_path),
+                "--executor-draft", f"{adapter} inventory --model fake-model --reasoning-effort medium",
+                "--executor-assembler", f"{adapter} assembler --model fake-model --reasoning-effort medium",
+                "--grader", f"{adapter} grader --model fake-model --reasoning-effort medium",
+                "--output", str(output),
+                "--pair", "PAIR-STRUCTURED-INPUT", "--trials", "3", "--timeout", "30",
+                env=environment,
+            )
+            self.assertEqual(result.returncode, 2, result.stderr or result.stdout)
+            self.assertTrue((output / "report.json").exists(), result.stderr or result.stdout)
+            report = json.loads((output / "report.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(report["records"]), 1)
+            record = report["records"][0]
+            self.assertIn("quote must occur exactly once", record["executor_error"])
+            self.assertEqual(len(record["draft_attempts"]), 1)
+            self.assertEqual(record["assembler_attempts"], [])
+            self.assertEqual(record["grader_attempts"], [])
+            self.assertIsNone(record["inventory_result"])
+            self.assertEqual(
+                [json.loads(line)["role"] for line in call_log.read_text(encoding="utf-8").splitlines()],
+                ["inventory"],
+            )
+            self.assertIn("terminal evaluator failure circuit opened", " ".join(report["errors"]))
 
     def test_inventory_v2_native_semantic_stop_is_strict_and_diagnostic_only(self) -> None:
         self.assertTrue(paired_eval.strict_candidate_pass({
@@ -1636,6 +1768,12 @@ print(json.dumps(result))
             self.assertEqual((report["status"], len(report["records"])), ("complete", 6))
             self.assertEqual(report["aggregates"]["candidate"]["pass_rate"], 1.0)
             self.assertEqual(report["aggregates"]["baseline"]["pass_rate"], 0.0)
+            self.assertEqual(report["aggregates"]["candidate"]["semantic_coverage"]["mean"], 1.0)
+            self.assertLess(report["aggregates"]["candidate"]["pass_rate_interval_95"]["lower"], 0.5)
+            self.assertEqual(
+                report["aggregates"]["scorecard"]["category_macro"]["candidate"],
+                {"strict_pass_rate": 1.0, "semantic_coverage": 1.0},
+            )
             self.assertEqual(report["aggregates"]["candidate"]["grader_calibration"]["policy_overrides"], 0)
             self.assertEqual(report["pair_aggregates"]["PAIR-ECR"]["candidate"]["pass_rate"], 1.0)
             self.assertEqual(report["category_aggregates"]["CAT-MIGRATION"]["candidate"]["pass_rate"], 1.0)
@@ -1746,6 +1884,9 @@ print(json.dumps(result))
                 "runs": expected_runs,
                 "valid_executor_runs": expected_runs,
                 "valid_grader_runs": expected_runs,
+                "pass_rate_interval_95": paired_eval.wilson_interval(
+                    expected_runs, expected_runs
+                ),
             }
             release_plan = {
                 "mode": "release",
@@ -1774,6 +1915,12 @@ print(json.dumps(result))
                 * canonical["release_plan"]["trials_per_pair"],
                 "valid_grader_runs": canonical["release_plan"]["minimum_cases_per_category"]
                 * canonical["release_plan"]["trials_per_pair"],
+                "pass_rate_interval_95": paired_eval.wilson_interval(
+                    canonical["release_plan"]["minimum_cases_per_category"]
+                    * canonical["release_plan"]["trials_per_pair"],
+                    canonical["release_plan"]["minimum_cases_per_category"]
+                    * canonical["release_plan"]["trials_per_pair"],
+                ),
             }
             full_categories = {
                 category: {"baseline": full_category, "candidate": full_category}
@@ -1808,6 +1955,14 @@ print(json.dumps(result))
                 )
             self.assertTrue(complete_assessment["model_gate_ready"])
             self.assertFalse(complete_assessment["release_ready"])
+            self.assertEqual(
+                next(
+                    item
+                    for item in complete_assessment["gates"]
+                    if item["gate"] == "candidate-pass-rate-confidence-95"
+                )["status"],
+                "passed",
+            )
 
     def test_executor_artifacts_must_be_a_strict_descendant_not_the_control_root(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -2057,7 +2212,7 @@ print(json.dumps(result))
                 "--expected-commit",
                 run("git", "rev-parse", "HEAD", cwd=ROOT).stdout.strip(),
                 "--trials",
-                "5",
+                "12",
                 "--executor",
                 "external-executor",
                 "--grader",
@@ -2455,6 +2610,8 @@ print(json.dumps(result))
             acceptance["release_plan"]["category_ids"],
             list(acceptance_counts),
         )
+        self.assertEqual(development["release_plan"]["trials_per_pair"], 5)
+        self.assertEqual(acceptance["release_plan"]["trials_per_pair"], 12)
 
         requirement_pairs = [
             pair for pair in development["pairs"] if pair["category"] == "CAT-REQUIREMENTS"
@@ -2472,6 +2629,60 @@ print(json.dumps(result))
         )
         self.assertEqual(len({pair["fixture"] for pair in requirement_pairs}), 6)
         self.assertEqual(len({pair["contract"] for pair in requirement_pairs}), 6)
+
+    def test_contract_criticality_separates_safety_from_required_completeness(self) -> None:
+        development = json.loads(
+            (ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8")
+        )
+        acceptance = json.loads(
+            (ROOT / "evals" / "paired-evaluations-acceptance.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        counts = {"critical": 0, "required": 0, "supporting": 0}
+        task_levels: list[tuple[str, set[str]]] = []
+        for pair in development["pairs"]:
+            contract = json.loads(
+                (ROOT / "evals" / pair["contract"]).read_text(encoding="utf-8")
+            )
+            levels = {unit["criticality"] for unit in contract["work_units"]}
+            task_levels.append((pair["category"], levels))
+            for unit in contract["work_units"]:
+                counts[unit["criticality"]] += 1
+        catalogs: dict[str, dict[str, object]] = {}
+        for pair in acceptance["pairs"]:
+            catalog = catalogs.setdefault(
+                pair["case_source"],
+                json.loads(
+                    (ROOT / "evals" / pair["case_source"]).read_text(encoding="utf-8")
+                ),
+            )
+            case = next(item for item in catalog["cases"] if item["id"] == pair["case_id"])
+            levels = {unit["criticality"] for unit in case["work_units"]}
+            task_levels.append((pair["category"], levels))
+            for unit in case["work_units"]:
+                counts[unit["criticality"]] += 1
+
+        self.assertEqual(counts, {"critical": 134, "required": 330, "supporting": 6})
+        self.assertLess(counts["critical"] / sum(counts.values()), 0.3)
+        self.assertTrue(all(levels & {"critical", "required"} for _, levels in task_levels))
+        self.assertTrue(
+            all(
+                "critical" in levels
+                for category, levels in task_levels
+                if category
+                in {
+                    "CAT-CONCURRENCY-RECOVERY",
+                    "CAT-DELIVERY",
+                    "CAT-DEPENDENCY",
+                    "CAT-FFI",
+                    "CAT-INTERACTION",
+                    "CAT-MIGRATION",
+                    "CAT-REVIEW",
+                    "CAT-SECURITY-PRIVACY",
+                }
+            )
+        )
 
     def test_schema_1_2_rejects_contract_mismatch_and_underpopulated_category(self) -> None:
         config = json.loads((ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8"))
@@ -2767,6 +2978,23 @@ print(json.dumps(result))
             missing, "PAIR-WORK-UNITS", work_units, claims
         )
         self.assertFalse(rejected["policy_verdict_checks"]["critical_work_units_covered"])
+
+        required_units = json.loads(json.dumps(work_units))
+        required_units[0]["criticality"] = "required"
+        required_missing = json.loads(json.dumps(base))
+        required_facet = required_missing["work_unit_assessments"][0]["facet_assessments"][1]
+        required_facet["status"] = "missing"
+        required_facet["support_refs"] = []
+        required_rejected = paired_eval.validate_grader(
+            required_missing, "PAIR-WORK-UNITS", required_units, claims
+        )
+        self.assertTrue(
+            required_rejected["policy_verdict_checks"]["critical_work_units_covered"]
+        )
+        self.assertFalse(
+            required_rejected["policy_verdict_checks"]["required_work_units_covered"]
+        )
+        self.assertEqual(required_rejected["verdict"], "fail")
 
         absent = json.loads(json.dumps(base))
         absent["work_unit_assessments"][0]["facet_assessments"][0]["support_refs"][0]["quote"] = "missing support phrase"
@@ -3512,7 +3740,7 @@ print(json.dumps(result))
                 "--pair",
                 "PAIR-ACC-CONTEXT-WORKTREE",
                 "--trials",
-                "5",
+                "12",
                 "--release",
                 "--expected-commit",
                 "a" * 40,
@@ -6308,6 +6536,74 @@ class RepositoryContractTests(unittest.TestCase):
             concurrency["capability_context"]["change-review"],
         )
 
+    def test_structured_input_contract_follows_capability_ownership_and_atomicity(self) -> None:
+        contract = json.loads(
+            (ROOT / "evals" / "contracts" / "structured-user-input.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        expected_routes = [
+            ("dev-flow", "dev-flow.decision"),
+            ("requirements-design", "requirements-design.interaction"),
+            ("requirements-design", "requirements-design.analysis"),
+            ("requirements-design", "requirements-design.interaction"),
+            ("requirements-design", "requirements-design.interaction"),
+            ("dev-flow", "dev-flow.interaction"),
+            ("dev-flow", "dev-flow.interaction"),
+            ("requirements-design", "requirements-design.artifact"),
+            ("dependency-decisions", "dependency-decisions.decision"),
+            ("dev-flow", "dev-flow.decision"),
+            ("delivery-readiness", "delivery-readiness.decision"),
+            *[("verification", "verification.test")] * 11,
+            ("requirements-design", "requirements-design.interaction"),
+            ("verification", "verification.test"),
+            ("dev-flow", "dev-flow.decision"),
+            ("requirements-design", "requirements-design.decision"),
+            ("requirements-design", "requirements-design.decision"),
+            ("verification", "verification.test"),
+            ("verification", "verification.test"),
+            ("dev-flow", "dev-flow.limitation"),
+        ]
+        self.assertEqual(len(contract["work_units"]), 30)
+        self.assertEqual(
+            [
+                (unit["owner"], unit["claim_routes"][0]["kind"])
+                for unit in contract["work_units"]
+            ],
+            expected_routes,
+        )
+        self.assertTrue(all(len(unit["facets"]) == 1 for unit in contract["work_units"]))
+        self.assertEqual(
+            [unit["facets"][0]["id"] for unit in contract["work_units"]],
+            [f"OB-{index}" for index in range(1, 31)],
+        )
+
+        dev_flow = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
+        interaction = (
+            ROOT / "skills" / "requirements-design" / "references" / "user-interaction.md"
+        ).read_text(encoding="utf-8")
+        verification = (ROOT / "skills" / "verification" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        test_strategy = (
+            ROOT / "skills" / "verification" / "references" / "test-strategy.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "the control plane owns operational approval, secret routing, and waiver state",
+            dev_flow,
+        )
+        self.assertIn("Requirements Design owns product meaning and semantic answer records", interaction)
+        self.assertIn("Verification owns executable response and lifecycle checks", interaction)
+        self.assertIn(
+            "Default-mode control, waiver state, and post-interaction continuation are owned by Dev Flow",
+            interaction,
+        )
+        self.assertIn("A behavior or interaction claim never doubles as proof", verification)
+        self.assertIn("Emit a separate verification-owned test cell", verification)
+        self.assertIn("create a separate verification-owned test cell", test_strategy)
+        self.assertIn("`NOT RUN` status", test_strategy)
+        self.assertIn("contrasts available and unavailable paths", test_strategy)
+
     def test_release_quality_contracts_are_top_level_and_actionable(self) -> None:
         def section(text: str, heading: str) -> str:
             marker = f"## {heading}\n"
@@ -6443,7 +6739,7 @@ class RepositoryContractTests(unittest.TestCase):
                 and "route" in item["action"].casefold()
             ]
             self.assertEqual(len(routes), 3)
-            self.assertTrue(all(item["criticality"] == "critical" for item in routes))
+            self.assertTrue(all(item["criticality"] == "required" for item in routes))
             self.assertTrue(any("Rust-Swift" in item["action"] for item in routes))
             self.assertTrue(any("Rust-Kotlin" in item["action"] for item in routes))
             self.assertTrue(any("independent FFI review" in item["action"] for item in routes))
@@ -6455,7 +6751,7 @@ class RepositoryContractTests(unittest.TestCase):
                 and "inventory" in item["action"].casefold()
             ]
             self.assertEqual(len(discovery), 9)
-            self.assertTrue(all(item["criticality"] == "critical" for item in discovery))
+            self.assertTrue(all(item["criticality"] == "required" for item in discovery))
             review_actions = "\n".join(
                 item["action"] for item in facets if item["owner"] == "change-review"
             ).casefold()
@@ -6549,7 +6845,7 @@ class RepositoryContractTests(unittest.TestCase):
             section(requirements, "Procedure"),
         )
         self.assertIn(
-            "Detailed FFI, overload, compatibility, and environment matrices live in `references/test-strategy.md`.",
+            "Detailed matrices and cell rules live in `references/test-strategy.md`.",
             section(verification, "EQAC rule"),
         )
         self.assertIn(
@@ -6697,7 +6993,7 @@ class RepositoryContractTests(unittest.TestCase):
         ).encode("utf-8")
         self.assertEqual(
             hashlib.sha256(facet_contract_bytes).hexdigest(),
-            "14533c8c5da5da2b686ae35cd1bb6e9a51d58db31ace3639ea45ef2fe2417775",
+            "b932c17d1ec12ea3c758240dce714255e8978941e1d18a8c18370bafd7626e37",
         )
         self.assertEqual(
             [
@@ -6714,14 +7010,14 @@ class RepositoryContractTests(unittest.TestCase):
                 (
                     "WU-1",
                     "architecture-decisions",
-                    "critical",
+                    "required",
                     ("architecture-decisions.decision",),
                     tuple(f"OB-{index}" for index in range(1, 4)),
                 ),
                 (
                     "WU-2",
                     "repo-context",
-                    "critical",
+                    "required",
                     ("repo-context.analysis",),
                     tuple(f"OB-{index}" for index in range(4, 13)),
                 ),

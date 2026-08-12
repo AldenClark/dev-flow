@@ -13,7 +13,7 @@
           "kind": "systematic-debugging.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "capture exact argv, launcher form, cwd, path separators, platform, Python version, and failure",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "systematic-debugging.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "distinguish the documented first-party script position from arbitrary external executable arguments",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "systematic-debugging.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "avoid shell reinterpretation and bind only an exact recognized direct or Python-script form",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "verification.test"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "add positive and negative POSIX and Windows parsing, option, external-argument, and isolated-cwd tests",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "systematic-debugging.limitation"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "report native Windows execution separately from local static or simulated parsing evidence",
       "facets": [
         {

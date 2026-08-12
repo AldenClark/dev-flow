@@ -30,7 +30,7 @@
           "kind": "delivery-readiness.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "trace immutable source, build input, archive manifest, SBOM subject, provenance subject, and uploaded asset identity",
       "facets": [
         {
@@ -47,7 +47,7 @@
           "kind": "systematic-debugging.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "distinguish stale artifact, nondeterministic build, wrong subject, post-build mutation, and upload substitution",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "systematic-debugging.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "fix the causal builder or binding and create a distinct controlled attempt rather than editing metadata",
       "facets": [
         {

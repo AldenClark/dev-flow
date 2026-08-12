@@ -13,7 +13,7 @@
           "kind": "dependency-decisions.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "trace actual API usage, enabled features, lockfile graph, build scripts, native components, and supported toolchains",
       "facets": [
         {
@@ -30,7 +30,7 @@
           "kind": "dependency-decisions.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "verify advisory, maintenance, release, license, and compatibility facts for the current major, backport, and new major",
       "facets": [
         {
@@ -64,7 +64,7 @@
           "kind": "dependency-decisions.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "recommend the smallest option that meets security and product requirements with exact verification",
       "facets": [
         {

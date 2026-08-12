@@ -15,7 +15,7 @@
               "kind": "dependency-decisions.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "establish the exact capability and existing graph before expansion",
           "facets": [
             {
@@ -32,7 +32,7 @@
               "kind": "dependency-decisions.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "compare platform, existing, local, and feature-enabled options",
           "facets": [
             {
@@ -66,7 +66,7 @@
               "kind": "dependency-decisions.interaction"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "request named feature expansion approval before manifest or lockfile mutation",
           "facets": [
             {
@@ -103,7 +103,7 @@
               "kind": "dependency-decisions.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "identify the exact command and direct cause of lockfile regeneration",
           "facets": [
             {
@@ -120,7 +120,7 @@
               "kind": "dependency-decisions.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "compare graph, checksums, duplicates, build scripts, licenses, and advisories",
           "facets": [
             {
@@ -154,7 +154,7 @@
               "kind": "dependency-decisions.artifact"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "bind any intentional update to exact operation, files, and final bytes",
           "facets": [
             {
@@ -191,7 +191,7 @@
               "kind": "dependency-decisions.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "search target, build, generated, packaging, CI, and consumer activation paths",
           "facets": [
             {
@@ -208,7 +208,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "run comparable pre-change platform and generated baselines",
           "facets": [
             {
@@ -242,7 +242,7 @@
               "kind": "dependency-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "remove through native tooling, repeat checks, inspect graph/license/advisory cleanup, and retain rollback",
           "facets": [
             {

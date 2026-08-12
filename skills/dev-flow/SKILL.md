@@ -5,9 +5,9 @@ description: Orchestrate repository diagnosis, change, audit and verification wi
 
 # Dev Flow
 
-Use this as a thin control plane. Preserve user authority, repository conventions, compatibility, and evidence; load only the focused Skills required by the task.
+Use this thin control plane to preserve authority, conventions, compatibility, and evidence while loading focused Skills.
 
-For multi-owner work, read `references/core-lifecycle.md`. Packet and evaluation machinery only record or test that workflow.
+For multi-owner work, read `references/core-lifecycle.md`; packets and evaluations only record or test it.
 
 ## Responsibility contract
 
@@ -44,7 +44,7 @@ Independent review is conditional on explicit review, governed risk, material UI
 
 Single-agent execution is the baseline. Before delegation, follow `references/multi-agent-v2-orchestration.md`; reconcile every delegated task without duplicating work because of a wait timeout.
 
-At any user-owned checkpoint, remain in Default mode and follow `../requirements-design/references/user-interaction.md`. Never infer approval for dependencies, destructive/external actions, delivery, or materially expanded scope.
+At user-owned checkpoints, remain in Default mode and follow `../requirements-design/references/user-interaction.md`. Requirements owns product meaning; dependency and delivery own named decisions; the control plane owns operational approval, secret routing, and waiver state. Never infer authority.
 
 ## Close
 

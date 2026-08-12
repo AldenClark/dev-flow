@@ -6,6 +6,10 @@ Derive `VO-n` from acceptance and protected behavior; changed branches/states/er
 
 Each matrix cell declares obligation, scope/environment, setup/fixture, command or manual procedure, oracle, resources/owner, attempts, status, artifacts, teardown, and limitation.
 
+When a task requires exercise, validation, or checking, create a separate verification-owned test cell for every independently observable outcome. A behavior, interaction, decision, or implementation claim never substitutes for that evidence cell. Keep the cell explicit even when execution is unavailable: record its stimulus, oracle, environment, `NOT RUN` status, and limitation.
+
+When a task contrasts available and unavailable paths, success and failure, virtual and physical environments, or old and new versions, retain each side as its own cell. Evidence for one side never proves the other.
+
 ## Layers
 
 - static: format, compile/typecheck, selected lint/static analysis, generated consistency, dependency/security/license/secret checks;

@@ -15,7 +15,7 @@
               "kind": "verification.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "measure arrival, service, queue, memory, latency, and loss baselines",
           "facets": [
             {
@@ -32,7 +32,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "choose a bounded queue and explicit admission or shedding policy",
           "facets": [
             {
@@ -49,7 +49,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "define fairness, timeout, cancellation, drain, and overload observability",
           "facets": [
             {
@@ -66,7 +66,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "test burst, sustained overload, recovery, shutdown, and accepted-work accounting",
           "facets": [
             {
@@ -103,7 +103,7 @@
               "kind": "verification.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "measure byte residency, pinning, hit rate, miss cost, latency, and churn",
           "facets": [
             {
@@ -120,7 +120,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "select size-aware bounded ownership and eviction semantics",
           "facets": [
             {
@@ -137,7 +137,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "define concurrent access, expiration, cancellation, and cleanup behavior",
           "facets": [
             {
@@ -154,7 +154,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "benchmark representative distributions and verify correctness under eviction",
           "facets": [
             {
@@ -191,7 +191,7 @@
               "kind": "verification.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "capture throughput, p50/p99, durability, batch size, fairness, and retry baselines",
           "facets": [
             {
@@ -208,7 +208,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "choose bounded size/time batching with explicit flush ownership",
           "facets": [
             {
@@ -225,7 +225,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "define partial failure, idempotency, shutdown flush, and backpressure",
           "facets": [
             {
@@ -242,7 +242,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "benchmark representative load and verify durable outcomes",
           "facets": [
             {
@@ -279,7 +279,7 @@
               "kind": "verification.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "profile allocation, decode, cache, prefetch, cancellation, and frame baselines",
           "facets": [
             {
@@ -296,7 +296,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "assign image request, decoded value, cache, and view lifecycle ownership",
           "facets": [
             {
@@ -313,7 +313,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "bound concurrency and residency while canceling stale work",
           "facets": [
             {
@@ -330,7 +330,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "verify fast scroll, reuse, memory warning, recovery, and frame pacing",
           "facets": [
             {
@@ -367,7 +367,7 @@
               "kind": "verification.analysis"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "measure phase timing, critical path, first-ready, first-use, and failure baselines",
           "facets": [
             {
@@ -384,7 +384,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "classify required versus deferrable initialization by ownership and dependency",
           "facets": [
             {
@@ -401,7 +401,7 @@
               "kind": "architecture-decisions.decision"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "define lazy concurrency, readiness, cancellation, retry, and fallback states",
           "facets": [
             {
@@ -418,7 +418,7 @@
               "kind": "verification.test"
             }
           ],
-          "criticality": "critical",
+          "criticality": "required",
           "protected_behavior": "verify cold/warm startup, first use, migration, offline, and failure paths",
           "facets": [
             {

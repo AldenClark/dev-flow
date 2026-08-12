@@ -13,7 +13,7 @@
           "kind": "change-review.analysis"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "trace authentication, actor, tenant, resource, policy, service, persistence, response, and log paths",
       "facets": [
         {
@@ -81,7 +81,7 @@
           "kind": "change-review.decision"
         }
       ],
-      "criticality": "critical",
+      "criticality": "required",
       "protected_behavior": "report only causally verified findings with severity, affected contract, and focused remediation",
       "facets": [
         {
