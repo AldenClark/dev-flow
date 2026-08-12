@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-FRONTEND-RESPONSIVE-RECOVERY",
+  "profile": "Existing frontend responsive, failure, and recovery states",
+  "prompt": "Complete responsive and recovery behavior for an existing operations view without changing its product structure.",
+  "fixture": "reference-cases/frontend-responsive-recovery.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "product-ux-discovery",
+      "claim_routes": [
+        {
+          "kind": "product-ux-discovery.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "inspect current source, rendered states, design system, routes, data ownership, and freshest product truth",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "inspect current source, rendered states, design system, routes, data ownership, and freshest product truth"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "product-ux-discovery",
+      "claim_routes": [
+        {
+          "kind": "product-ux-discovery.artifact"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "record navigation, information architecture, features, page relationships, and flows as protected",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "record navigation, information architecture, features, page relationships, and flows as protected"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "product-ux-discovery",
+      "claim_routes": [
+        {
+          "kind": "product-ux-discovery.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "model primary, loading, empty, partial, permission, error, destructive confirmation, recovery, and offline or retry states",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "model primary, loading, empty, partial, permission, error, destructive confirmation, recovery, and offline or retry states"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "product-ux-discovery",
+      "claim_routes": [
+        {
+          "kind": "product-ux-discovery.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "define narrow and wide layouts, keyboard order, focus restoration, accessible names, and reduced motion",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "define narrow and wide layouts, keyboard order, focus restoration, accessible names, and reduced motion"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "verify representative viewport, input, browser, accessibility, and recovery transitions",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "verify representative viewport, input, browser, accessibility, and recovery transitions"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "invent new product features or navigation",
+    "treat a single desktop happy path as complete",
+    "collapse distinct domain states into one generic card",
+    "claim accessibility or responsive compatibility without rendered evidence"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "requirements.md",
+    "design.md",
+    "test-matrix.md",
+    "evidence.md"
+  ]
+}

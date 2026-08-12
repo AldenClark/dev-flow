@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-DELIVERY-ROLLBACK-LIFECYCLE",
+  "profile": "Isolated install, upgrade, rollback, re-upgrade, and uninstall lifecycle",
+  "prompt": "Verify an RC lifecycle without altering the user's primary profile or deleting user-owned configuration.",
+  "fixture": "reference-cases/delivery-rollback-lifecycle.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "use a dedicated temporary profile and freeze prior tag, RC tag, source, version, and expected installed bytes",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "use a dedicated temporary profile and freeze prior tag, RC tag, source, version, and expected installed bytes"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "verify fresh install, upgrade, rollback, re-upgrade, uninstall, and post-action identity at every transition",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "verify fresh install, upgrade, rollback, re-upgrade, uninstall, and post-action identity at every transition"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "test configuration ownership and block whole-set removal when user-modified files would be deleted",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "test configuration ownership and block whole-set removal when user-modified files would be deleted"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.artifact"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "record process/profile cleanup, retained receipts, platform matrix, and restoration of the prior state",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "record process/profile cleanup, retained receipts, platform matrix, and restoration of the prior state"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.limitation"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "keep local snapshot behavior separate from remote immutable tag and target-platform evidence",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "keep local snapshot behavior separate from remote immutable tag and target-platform evidence"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "use the primary user profile for lifecycle testing",
+    "delete user-modified configuration",
+    "claim remote tag resolution from a local path install",
+    "leave credentials, processes, or temporary profiles unaccounted"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "execution.md",
+    "test-matrix.md",
+    "red-audit.md",
+    "evidence.md"
+  ]
+}

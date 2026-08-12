@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-DEPENDENCY-REMOVAL",
+  "profile": "Safe direct dependency and feature removal",
+  "prompt": "Remove an apparently unused dependency without breaking conditional or generated consumers.",
+  "fixture": "reference-cases/dependency-removal.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "dependency-decisions",
+      "claim_routes": [
+        {
+          "kind": "dependency-decisions.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "search source, tests, examples, build scripts, generated files, features, platform targets, and downstream consumers",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "search source, tests, examples, build scripts, generated files, features, platform targets, and downstream consumers"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "dependency-decisions",
+      "claim_routes": [
+        {
+          "kind": "dependency-decisions.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "establish baseline default, minimal, all-feature, and representative platform or consumer behavior",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "establish baseline default, minimal, all-feature, and representative platform or consumer behavior"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "dependency-decisions",
+      "claim_routes": [
+        {
+          "kind": "dependency-decisions.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "remove manifest usage with the ecosystem tool and inspect the resulting graph and lockfile diff",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "remove manifest usage with the ecosystem tool and inspect the resulting graph and lockfile diff"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "run affected compile, tests, feature combinations, generated consistency, advisory, and license checks",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "run affected compile, tests, feature combinations, generated consistency, advisory, and license checks"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "dependency-decisions",
+      "claim_routes": [
+        {
+          "kind": "dependency-decisions.artifact"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "record cleanup, rollback, and any consumer or environment not run",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "record cleanup, rollback, and any consumer or environment not run"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "delete a lockfile entry by hand",
+    "assume text search alone proves no conditional use",
+    "remove build or generated support without regeneration evidence",
+    "claim all platforms from one default build"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "execution.md",
+    "test-matrix.md",
+    "blue-audit.md",
+    "evidence.md"
+  ]
+}

@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dev Flow evaluation case catalog",
+  "type": "object",
+  "$defs": {
+    "obligationV11": {
+      "type": "object",
+      "required": ["id", "owner", "criticality", "action", "evidence_kind"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^OB-[1-9][0-9]*$"},
+        "owner": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
+        "criticality": {"enum": ["critical", "required", "supporting"]},
+        "action": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "evidence_kind": {"enum": ["analysis", "decision", "test", "artifact", "interaction", "limitation"]}
+      },
+      "additionalProperties": false
+    },
+    "obligationV12": {
+      "type": "object",
+      "required": ["id", "owner", "kind", "criticality", "action", "evidence_kind"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^OB-[1-9][0-9]*$"},
+        "owner": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
+        "kind": {"type": "string", "pattern": "^[a-z][a-z0-9.-]{0,127}$", "maxLength": 128},
+        "criticality": {"enum": ["critical", "required", "supporting"]},
+        "action": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "evidence_kind": {"enum": ["analysis", "decision", "test", "artifact", "interaction", "limitation"]}
+      },
+      "additionalProperties": false
+    },
+    "claimRouteV13": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": {"type": "string", "pattern": "^[a-z][a-z0-9.-]{0,127}$", "maxLength": 128}
+      },
+      "additionalProperties": false
+    },
+    "facetV13": {
+      "type": "object",
+      "required": ["id", "action"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^OB-[1-9][0-9]*$"},
+        "action": {"type": "string", "minLength": 1, "maxLength": 1000}
+      },
+      "additionalProperties": false
+    },
+    "workUnitV13": {
+      "type": "object",
+      "required": ["id", "owner", "claim_routes", "criticality", "protected_behavior", "facets"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^WU-[1-9][0-9]*$"},
+        "owner": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
+        "claim_routes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/claimRouteV13"}
+        },
+        "criticality": {"enum": ["critical", "required", "supporting"]},
+        "protected_behavior": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "facets": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/facetV13"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "caseV11": {
+      "type": "object",
+      "required": ["id", "profile", "prompt", "fixture", "obligations", "forbidden_actions", "required_artifacts"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
+        "profile": {"type": "string", "minLength": 1},
+        "prompt": {"type": "string", "minLength": 1},
+        "fixture": {"type": "string", "minLength": 1},
+        "obligations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 24,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/obligationV11"}
+        },
+        "forbidden_actions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 24,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 1000}
+        },
+        "required_artifacts": {"$ref": "#/$defs/requiredArtifacts"}
+      },
+      "additionalProperties": false
+    },
+    "caseV12": {
+      "type": "object",
+      "required": ["id", "profile", "prompt", "fixture", "obligations", "forbidden_actions", "required_artifacts"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
+        "profile": {"type": "string", "minLength": 1},
+        "prompt": {"type": "string", "minLength": 1},
+        "fixture": {"type": "string", "minLength": 1},
+        "obligations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/obligationV12"}
+        },
+        "forbidden_actions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 24,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 1000}
+        },
+        "required_artifacts": {"$ref": "#/$defs/requiredArtifacts"}
+      },
+      "additionalProperties": false
+    },
+    "caseV13": {
+      "type": "object",
+      "required": ["id", "profile", "prompt", "fixture", "work_units", "forbidden_actions", "required_artifacts"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
+        "profile": {"type": "string", "minLength": 1},
+        "prompt": {"type": "string", "minLength": 1},
+        "fixture": {"type": "string", "minLength": 1},
+        "work_units": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/workUnitV13"}
+        },
+        "forbidden_actions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 24,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 1000}
+        },
+        "required_artifacts": {"$ref": "#/$defs/requiredArtifacts"}
+      },
+      "additionalProperties": false
+    },
+    "requiredArtifacts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 24,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "packet.json",
+          "events.jsonl",
+          "trace.md",
+          "context.md",
+          "requirements.md",
+          "design.md",
+          "execution.md",
+          "test-matrix.md",
+          "blue-audit.md",
+          "red-audit.md",
+          "evidence.md",
+          "decisions.md"
+        ]
+      }
+    }
+  },
+  "required": ["schema_version", "cases"],
+  "properties": {
+    "schema_version": {"enum": ["1.1", "1.2", "1.3"]},
+    "cases": {"type": "array", "minItems": 1}
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {"properties": {"schema_version": {"const": "1.1"}}, "required": ["schema_version"]},
+      "then": {"properties": {"cases": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/caseV11"}}}}
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "1.2"}}, "required": ["schema_version"]},
+      "then": {"properties": {"cases": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/caseV12"}}}}
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "1.3"}}, "required": ["schema_version"]},
+      "then": {"properties": {"cases": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/caseV13"}}}}
+    }
+  ]
+}

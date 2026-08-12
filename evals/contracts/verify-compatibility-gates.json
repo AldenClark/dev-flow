@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-VERIFY-COMPATIBILITY-GATES",
+  "profile": "Risk-based compatibility matrix and evidence status",
+  "prompt": "Define verification for a cross-OS, cross-Python, source/package, upgrade/rollback change with limited local environments.",
+  "fixture": "reference-cases/verify-compatibility-gates.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "derive dimensions from changed contracts, supported environments, and historical failures rather than a blind Cartesian product",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "derive dimensions from changed contracts, supported environments, and historical failures rather than a blind Cartesian product"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "use representative pairwise cells for low-risk combinations and every critical boundary cell",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "use representative pairwise cells for low-risk combinations and every critical boundary cell"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.artifact"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "record exact environment, command, configuration, oracle, attempt, timestamp, artifact, and freshness",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "record exact environment, command, configuration, oracle, attempt, timestamp, artifact, and freshness"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "keep PASSED, FAILED, FLAKY, BLOCKED, NOT RUN, and WAIVED distinct",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "keep PASSED, FAILED, FLAKY, BLOCKED, NOT RUN, and WAIVED distinct"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.limitation"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "block compatibility and release claims while a required cell is failed, flaky, blocked, or not run",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "block compatibility and release claims while a required cell is failed, flaky, blocked, or not run"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "call an unexecuted environment passed",
+    "erase a first failure with retries",
+    "claim package behavior from source execution only",
+    "use a global line coverage percentage as the compatibility oracle"
+  ],
+  "required_artifacts": [
+    "design.md",
+    "test-matrix.md",
+    "blue-audit.md",
+    "red-audit.md",
+    "evidence.md"
+  ]
+}

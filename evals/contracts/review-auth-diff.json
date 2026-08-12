@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-REVIEW-AUTH-DIFF",
+  "profile": "Authorization, tenant, and privacy change review",
+  "prompt": "Review an administrative endpoint that reuses tenant-scoped code and adds error logging.",
+  "fixture": "reference-cases/review-auth-diff.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "change-review",
+      "claim_routes": [
+        {
+          "kind": "change-review.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "trace authentication, actor, tenant, resource, policy, service, persistence, response, and log paths",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "trace authentication, actor, tenant, resource, policy, service, persistence, response, and log paths"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "construct positive and negative authorization and cross-tenant cases including missing, stale, and confused identities",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "construct positive and negative authorization and cross-tenant cases including missing, stale, and confused identities"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "verify stable non-sensitive errors, enumeration resistance, audit events, and secret or personal-data redaction",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "verify stable non-sensitive errors, enumeration resistance, audit events, and secret or personal-data redaction"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "change-review",
+      "claim_routes": [
+        {
+          "kind": "change-review.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "check limits, malformed input, retry, cancellation, and rollback effects relevant to the change",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "check limits, malformed input, retry, cancellation, and rollback effects relevant to the change"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "change-review",
+      "claim_routes": [
+        {
+          "kind": "change-review.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "report only causally verified findings with severity, affected contract, and focused remediation",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "report only causally verified findings with severity, affected contract, and focused remediation"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "infer authorization from authentication alone",
+    "log tokens, personal payloads, or sensitive internal errors",
+    "report speculative style concerns as security findings",
+    "recommend unrelated authentication redesign without evidence"
+  ],
+  "required_artifacts": [
+    "requirements.md",
+    "design.md",
+    "blue-audit.md",
+    "red-audit.md",
+    "evidence.md"
+  ]
+}

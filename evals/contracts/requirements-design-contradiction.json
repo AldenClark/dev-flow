@@ -1,0 +1,110 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-REQUIREMENTS-DESIGN-CONTRADICTION",
+  "profile": "Detailed design with contradictory compatibility semantics",
+  "prompt": "Resolve a detailed design that promises legacy compatibility while also requiring rejection of legacy payloads.",
+  "fixture": "reference-cases/requirements-design-contradiction.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "normalize the two conflicting statements into affected actors, flows, compatibility directions, acceptance criteria, and exclusions without treating document length as readiness",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "normalize the two conflicting statements into affected actors, flows, compatibility directions, acceptance criteria, and exclusions without treating document length as readiness"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "repo-context",
+      "claim_routes": [
+        {
+          "kind": "repo-context.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "inspect repository instructions, protocol history, tests, runtime evidence, and nearby compatibility behavior before asking the user",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "inspect repository instructions, protocol history, tests, runtime evidence, and nearby compatibility behavior before asking the user"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.artifact"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "record one stable ambiguity with competing interpretations, evidence, materiality, owner, affected AC/SC/VO IDs, recommendation, and blocked scope",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "record one stable ambiguity with competing interpretations, evidence, materiality, owner, affected AC/SC/VO IDs, recommendation, and blocked scope"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.interaction"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "state alternatives, compatibility impact, recommended safe default, and ask one consolidated user-answerable product-intent question",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "state alternatives, compatibility impact, recommended safe default, and ask one consolidated user-answerable product-intent question"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "dev-flow",
+      "claim_routes": [
+        {
+          "kind": "dev-flow.limitation"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "stop only implementation whose outcome depends on the unresolved contradiction and preserve unrelated evidence-backed work",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "stop only implementation whose outcome depends on the unresolved contradiction and preserve unrelated evidence-backed work"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "assume a detailed document is ready merely because it is long",
+    "silently choose either compatibility interpretation",
+    "ask the user for protocol facts that repository inspection can resolve",
+    "block unrelated work on the contradiction",
+    "present multiple low-value questions instead of one decision"
+  ],
+  "required_artifacts": [
+    "packet.json",
+    "context.md",
+    "requirements.md",
+    "design.md",
+    "execution.md",
+    "evidence.md",
+    "decisions.md"
+  ]
+}

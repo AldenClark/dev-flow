@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dev Flow blind assembler request",
+  "$defs": {
+    "capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "capabilitySources": {
+      "type": "object",
+      "additionalProperties": {"type": "string"}
+    },
+    "claimOwners": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "claimKinds": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "owner"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z][a-z0-9.-]{0,127}$"},
+          "owner": {"type": "string", "minLength": 1, "maxLength": 128}
+        },
+        "additionalProperties": false
+      }
+    },
+    "interactions": {
+      "type": "object",
+      "required": ["user_questions", "user_corrections", "reminders", "blocks"],
+      "properties": {
+        "user_questions": {"type": "integer", "minimum": 0},
+        "user_corrections": {"type": "integer", "minimum": 0},
+        "reminders": {"type": "integer", "minimum": 0},
+        "blocks": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "inventoryItem": {
+      "type": "object",
+      "required": ["item_id", "evidence_family", "action", "protected_behavior", "oracle_or_evidence", "status", "limitation", "evidence_refs"],
+      "properties": {
+        "item_id": {"type": "string", "pattern": "^IT-[A-Za-z0-9][A-Za-z0-9._-]*$", "maxLength": 128},
+        "evidence_family": {"type": "string", "enum": ["analysis", "artifact", "decision", "interaction", "limitation", "test"]},
+        "action": {"type": "string", "minLength": 1, "maxLength": 2000},
+        "protected_behavior": {"type": "string", "minLength": 1, "maxLength": 2000},
+        "oracle_or_evidence": {"type": "string", "minLength": 1, "maxLength": 2000},
+        "status": {"type": "string", "enum": ["planned", "verified", "blocked", "not-run"]},
+        "limitation": {"type": ["string", "null"], "minLength": 1, "maxLength": 2000},
+        "evidence_refs": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "required": ["source", "quote"],
+            "properties": {
+              "source": {"type": "string", "enum": ["fixture", "task_prompt"]},
+              "quote": {"type": "string", "minLength": 8, "maxLength": 500}
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "inventoryResult": {
+      "type": "object",
+      "required": ["schema_version", "case_id", "attempt", "claimed_outcome", "inventory_items", "interactions"],
+      "properties": {
+        "schema_version": {"const": "1.0"},
+        "case_id": {"type": "string", "minLength": 1},
+        "attempt": {"const": 1},
+        "claimed_outcome": {"enum": ["completed", "blocked", "needs-user-decision"]},
+        "inventory_items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {"$ref": "#/$defs/inventoryItem"}
+        },
+        "interactions": {"$ref": "#/$defs/interactions"}
+      },
+      "additionalProperties": false
+    },
+    "draftResult": {
+      "type": "object",
+      "required": ["schema_version", "case_id", "attempt", "claimed_outcome", "actions", "evidence", "claims", "interactions"],
+      "properties": {
+        "schema_version": {"const": "1.3"},
+        "case_id": {"type": "string", "minLength": 1},
+        "attempt": {"const": 1},
+        "claimed_outcome": {"enum": ["completed", "blocked", "needs-user-decision"]},
+        "actions": {"type": "array", "items": {"type": "string"}},
+        "evidence": {"type": "array", "items": {"type": "string"}},
+        "claims": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "required": ["claim_id", "owner", "kind", "action", "protected_behavior", "oracle_or_evidence", "status", "limitation"],
+            "properties": {
+              "claim_id": {"type": "string", "pattern": "^CL-[A-Za-z0-9][A-Za-z0-9._-]*$", "maxLength": 128},
+              "owner": {"type": "string", "minLength": 1, "maxLength": 128},
+              "kind": {"type": "string", "pattern": "^[a-z][a-z0-9.-]{0,127}$"},
+              "action": {"type": "string", "minLength": 1, "maxLength": 2000},
+              "protected_behavior": {"type": "string", "minLength": 1, "maxLength": 2000},
+              "oracle_or_evidence": {"type": "string", "minLength": 1, "maxLength": 2000},
+              "status": {"enum": ["planned", "verified", "blocked", "not-run"]},
+              "limitation": {"type": ["string", "null"], "minLength": 1, "maxLength": 2000}
+            },
+            "additionalProperties": false
+          }
+        },
+        "interactions": {"$ref": "#/$defs/interactions"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["schema_version", "case_id", "attempt", "capabilities", "capability_sources", "claim_owner_vocabulary", "claim_kind_vocabulary", "fixture", "task_prompt", "draft_result"],
+      "properties": {
+        "schema_version": {"const": "1.0"},
+        "case_id": {"type": "string", "minLength": 1},
+        "attempt": {"const": 1},
+        "capabilities": {"$ref": "#/$defs/capabilities"},
+        "capability_sources": {"$ref": "#/$defs/capabilitySources"},
+        "claim_owner_vocabulary": {"$ref": "#/$defs/claimOwners"},
+        "claim_kind_vocabulary": {"$ref": "#/$defs/claimKinds"},
+        "fixture": {"type": "string"},
+        "task_prompt": {"type": "string"},
+        "draft_result": {"$ref": "#/$defs/draftResult"}
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["schema_version", "case_id", "attempt", "capabilities", "capability_sources", "claim_owner_vocabulary", "claim_kind_vocabulary", "fixture", "task_prompt", "inventory_result"],
+      "properties": {
+        "schema_version": {"const": "2.0"},
+        "case_id": {"type": "string", "minLength": 1},
+        "attempt": {"const": 1},
+        "capabilities": {"$ref": "#/$defs/capabilities"},
+        "capability_sources": {"$ref": "#/$defs/capabilitySources"},
+        "claim_owner_vocabulary": {"$ref": "#/$defs/claimOwners"},
+        "claim_kind_vocabulary": {"$ref": "#/$defs/claimKinds"},
+        "fixture": {"type": "string", "minLength": 1},
+        "task_prompt": {"type": "string", "minLength": 1},
+        "inventory_result": {"$ref": "#/$defs/inventoryResult"}
+      },
+      "additionalProperties": false
+    }
+  ]
+}

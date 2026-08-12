@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-INTERACTION-CANCELLATION",
+  "profile": "Native structured request cancellation and stale response",
+  "prompt": "Handle cancellation of a revision-bound product choice followed by a stale late answer.",
+  "fixture": "reference-cases/interaction-cancellation.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "dev-flow",
+      "claim_routes": [
+        {
+          "kind": "dev-flow.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "keep the product decision and affected work unresolved after cancellation",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "keep the product decision and affected work unresolved after cancellation"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "dev-flow",
+      "claim_routes": [
+        {
+          "kind": "dev-flow.artifact"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "record cancellation or client interruption without immediate re-prompt or recommendation default",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "record cancellation or client interruption without immediate re-prompt or recommendation default"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "reject or ignore answers bound to an unknown question or stale requirement revision",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "reject or ignore answers bound to an unknown question or stale requirement revision"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "dev-flow",
+      "claim_routes": [
+        {
+          "kind": "dev-flow.limitation"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "continue only independent reversible work already authorized",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "continue only independent reversible work already authorized"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.limitation"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "retry only after new user intent and bind a valid answer to current AMB/AC/SC/VO and digest state",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "retry only after new user intent and bind a valid answer to current AMB/AC/SC/VO and digest state"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "treat cancellation as approval of the recommended option",
+    "accept a late answer for an older revision",
+    "immediately fall back to another prompt surface",
+    "block unrelated safe read-only work"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "requirements.md",
+    "execution.md",
+    "decisions.md",
+    "evidence.md"
+  ]
+}

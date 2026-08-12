@@ -1,0 +1,306 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-FFI-LIFECYCLE-PACKAGING",
+  "profile": "FFI callback lifecycle, native loading, and packaging",
+  "prompt": "Make Rust callbacks safe across mobile backgrounding, runtime replacement, shutdown, and packaged architectures.",
+  "fixture": "reference-cases/ffi-lifecycle-packaging.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "architecture-decisions",
+      "claim_routes": [
+        {
+          "kind": "architecture-decisions.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "Required cross-language specialist routes are selected before boundary design.",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "select and record the Rust-Swift FFI specialist route before boundary design"
+        },
+        {
+          "id": "OB-2",
+          "action": "select and record the Rust-Kotlin FFI specialist route before boundary design"
+        },
+        {
+          "id": "OB-3",
+          "action": "select and record the independent FFI review route as an admission decision, not as an executed review"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "repo-context",
+      "claim_routes": [
+        {
+          "kind": "repo-context.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "Boundary design is grounded in a complete cross-language inventory or an explicit context gap.",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "inventory the current Rust exports before boundary design or record the repository context gap"
+        },
+        {
+          "id": "OB-5",
+          "action": "inventory the generated Swift bindings before boundary design or record the repository context gap"
+        },
+        {
+          "id": "OB-6",
+          "action": "inventory the generated Kotlin bindings before boundary design or record the repository context gap"
+        },
+        {
+          "id": "OB-7",
+          "action": "inventory the handwritten Swift consumers before boundary design or record the repository context gap"
+        },
+        {
+          "id": "OB-8",
+          "action": "inventory the handwritten Kotlin consumers before boundary design or record the repository context gap"
+        },
+        {
+          "id": "OB-9",
+          "action": "inventory the native package artifacts before boundary design or record the repository context gap"
+        },
+        {
+          "id": "OB-10",
+          "action": "inventory the supported consumer and core versions before boundary design or record the repository context gap"
+        },
+        {
+          "id": "OB-11",
+          "action": "inventory the deployed consumer and core versions before boundary design or record the repository context gap"
+        },
+        {
+          "id": "OB-12",
+          "action": "inventory the native loading paths before boundary design or record the repository context gap"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "architecture-decisions",
+      "claim_routes": [
+        {
+          "kind": "architecture-decisions.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "Callback ownership reaches observable quiescence across cancellation and runtime transitions.",
+      "facets": [
+        {
+          "id": "OB-13",
+          "action": "define callback owner generation"
+        },
+        {
+          "id": "OB-14",
+          "action": "define thread or actor affinity for callback delivery"
+        },
+        {
+          "id": "OB-15",
+          "action": "define callback reentrancy behavior"
+        },
+        {
+          "id": "OB-16",
+          "action": "define callback cancellation ownership"
+        },
+        {
+          "id": "OB-17",
+          "action": "define callback cancellation ordering"
+        },
+        {
+          "id": "OB-18",
+          "action": "define the observable callback-quiescence condition"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "Every supported package contains and loads the required native symbols and architectures.",
+      "facets": [
+        {
+          "id": "OB-19",
+          "action": "verify required native symbols for every supported package"
+        },
+        {
+          "id": "OB-21",
+          "action": "verify native loader paths"
+        },
+        {
+          "id": "OB-22",
+          "action": "verify every supported packaged architecture"
+        },
+        {
+          "id": "OB-23",
+          "action": "inspect and verify package contents"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "Generated binding versions match the packaged core.",
+      "facets": [
+        {
+          "id": "OB-20",
+          "action": "verify generated binding versions against the packaged core"
+        }
+      ]
+    },
+    {
+      "id": "WU-6",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "Lifecycle transitions reject late delivery and complete bounded cleanup.",
+      "facets": [
+        {
+          "id": "OB-24",
+          "action": "exercise callback behavior during app backgrounding"
+        },
+        {
+          "id": "OB-25",
+          "action": "exercise callback behavior during shutdown"
+        },
+        {
+          "id": "OB-26",
+          "action": "exercise callback behavior during runtime replacement"
+        },
+        {
+          "id": "OB-27",
+          "action": "exercise late callback rejection"
+        },
+        {
+          "id": "OB-28",
+          "action": "verify bounded cleanup after cancellation"
+        },
+        {
+          "id": "OB-29",
+          "action": "verify bounded cleanup after shutdown"
+        }
+      ]
+    },
+    {
+      "id": "WU-7",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.limitation"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "Virtual and physical Apple and Android gates remain separate and honestly reported.",
+      "facets": [
+        {
+          "id": "OB-30",
+          "action": "report Apple simulator evidence separately and do not treat it as a physical-device pass"
+        },
+        {
+          "id": "OB-31",
+          "action": "report Android emulator evidence separately and do not treat it as a physical-device pass"
+        },
+        {
+          "id": "OB-32",
+          "action": "retain the required Apple physical-device gate as NOT RUN until fresh device evidence exists"
+        },
+        {
+          "id": "OB-33",
+          "action": "retain the required Android physical-device gate as NOT RUN until fresh device evidence exists"
+        }
+      ]
+    },
+    {
+      "id": "WU-8",
+      "owner": "change-review",
+      "claim_routes": [
+        {
+          "kind": "change-review.limitation"
+        },
+        {
+          "kind": "change-review.analysis"
+        }
+      ],
+      "criticality": "supporting",
+      "protected_behavior": "Post-change FFI review remains evidence-gated and covers every material consumer and risk axis.",
+      "facets": [
+        {
+          "id": "OB-34",
+          "action": "require an approved diff before post-change FFI review; otherwise record NOT RUN and the missing diff"
+        },
+        {
+          "id": "OB-35",
+          "action": "require generated artifacts before post-change FFI review; otherwise record NOT RUN and the missing artifacts"
+        },
+        {
+          "id": "OB-36",
+          "action": "require a changed-file list before post-change FFI review; otherwise record NOT RUN and the missing list"
+        },
+        {
+          "id": "OB-37",
+          "action": "require raw verification evidence before post-change FFI review; otherwise record NOT RUN and the missing evidence"
+        },
+        {
+          "id": "OB-38",
+          "action": "when review evidence is admitted, independently review the Swift consumer path; otherwise keep this review NOT RUN"
+        },
+        {
+          "id": "OB-39",
+          "action": "when review evidence is admitted, independently review the Kotlin consumer path; otherwise keep this review NOT RUN"
+        },
+        {
+          "id": "OB-40",
+          "action": "when review evidence is admitted, independently review ABI risks; otherwise keep this review NOT RUN"
+        },
+        {
+          "id": "OB-41",
+          "action": "when review evidence is admitted, independently review callback lifecycle risks; otherwise keep this review NOT RUN"
+        },
+        {
+          "id": "OB-42",
+          "action": "when review evidence is admitted, independently review packaging risks; otherwise keep this review NOT RUN"
+        },
+        {
+          "id": "OB-43",
+          "action": "when review evidence is admitted, independently review mixed-version risks; otherwise keep this review NOT RUN"
+        },
+        {
+          "id": "OB-44",
+          "action": "when review evidence is admitted, independently review rollback risks; otherwise keep this review NOT RUN"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "treat simulator or emulator success as physical-device compatibility",
+    "allow stale callbacks to publish into a replacement runtime",
+    "assume generated bindings or packaged symbols are correct without inspection",
+    "detach callback work without an owner, cancellation, and join policy"
+  ],
+  "required_artifacts": [
+    "requirements.md",
+    "design.md",
+    "execution.md",
+    "test-matrix.md",
+    "red-audit.md",
+    "evidence.md"
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-REQUIREMENTS-SPARSE-BUG",
+  "profile": "Sparse bug with repository-discoverable semantics",
+  "prompt": "Fix duplicate notifications when the repository already exposes the intended idempotency contract.",
+  "fixture": "reference-cases/requirements-sparse-bug.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "repo-context",
+      "claim_routes": [
+        {
+          "kind": "repo-context.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "inspect instructions, notification call path, retries, idempotency keys, tests, logs, and nearby analogues before questioning the user",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "inspect instructions, notification call path, retries, idempotency keys, tests, logs, and nearby analogues before questioning the user"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "systematic-debugging",
+      "claim_routes": [
+        {
+          "kind": "systematic-debugging.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "state the observed current and intended behavior with fact, inference, and unknown separated",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "state the observed current and intended behavior with fact, inference, and unknown separated"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.artifact"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "record bounded acceptance, direct/protected/out-of-scope change scope, and verification obligations",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "record bounded acceptance, direct/protected/out-of-scope change scope, and verification obligations"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "reproduce the causal regression and prove a focused test detects it before the fix when practical",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "reproduce the causal regression and prove a focused test detects it before the fix when practical"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.limitation"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "proceed without ceremonial product questions when no material ambiguity survives investigation",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "proceed without ceremonial product questions when no material ambiguity survives investigation"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "ask the user to identify code or repeat repository-established behavior",
+    "invent multiple product meanings after evidence resolves them",
+    "bundle unrelated notification refactors",
+    "claim fixed from a linter or one stale test"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "requirements.md",
+    "execution.md",
+    "test-matrix.md",
+    "evidence.md"
+  ]
+}

@@ -1,20 +1,22 @@
 # Dev Flow state contract
 
-Keep local state under `<repo>/.codex/dev-flow/<change-id>/`; exclude it through `.git/info/exclude` unless the user explicitly authorizes publication. New writes use schema 2.0. The validator continues to read schemas 1.0, 1.1, and 1.2 under their original `micro`/`full` contracts.
+`<repo>/.codex/dev-flow/<change-id>/` is local state; exclude it with `.git/info/exclude` unless publication is authorized. New writes use schema 2.0; the validator still reads schemas 1.0, 1.1, and 1.2 under their original `micro`/`full` contracts.
 
 ## Work modes
 
-- `direct`: no packet. Use for clear micro or isolated spike work. Retain the decision, scope, and fresh evidence in the conversation.
-- `traced`: `packet.json`, append-only `events.jsonl`, `trace.md`, and an optional `artifacts/` directory. These are the only three core state files.
-- `governed`: the traced machine state plus `context.md`, `requirements.md`, `design.md`, `execution.md`, `test-matrix.md`, both audit documents, `evidence.md`, `decisions.md`, and child `briefs/`, `reports/`, and `artifacts/` directories.
+- `direct`: no packet; retain the decision, scope, and fresh evidence inline for clear micro/spike work.
+- `traced`: `packet.json`, append-only `events.jsonl`, `trace.md`, and optional `artifacts/`.
+- `governed`: traced state plus context, requirements, design, execution, matrix, two audits, evidence, decisions, and child brief/report/artifact directories.
 
 Auto-select governed for security, unsafe/FFI/ABI, migration, dependency, release/deployment, public protocol/API, persisted-data, regulated, rollback, or material UI semantics. Explicit user/team policy may escalate; rising risk may never silently downgrade.
 
 ## Schema 2.0 machine state
 
-`packet.json` is the current projection. It contains identity/version, `work_mode`, matching `documentation_profile` (`trace` or `governed`), state/timestamps, roots/base state, authority, collaboration/UI/compatibility/risk data, AC/SC/VO IDs, requirement revision/digest, ambiguity and dependency ledgers, approvals, and projected transition history.
+`packet.json` projects identity/version, work/documentation mode, state/time, roots/base, authority, collaboration/UI/compatibility/risk, AC/SC/VO IDs, requirement revision/digest, ambiguity/dependency ledgers, iteration control, approvals, and transition history.
 
-`events.jsonl` is append-only. Each line has event schema 1.0, contiguous sequence, event name, timestamp, projected state/work mode, and a payload. The first event is `packet-created`; state events must project exactly to `packet.json.history`, and their final state must match `packet.json.state`. Mutators append the event and atomically replace the projection. A mismatch is invalid rather than silently repaired.
+`events.jsonl` is append-only schema 1.0 with contiguous sequence, event, time, projected state/mode, and payload. It starts with `packet-created`; state events exactly project `packet.json.history` and final state. Mutators append then atomically replace the projection; mismatch is invalid.
+
+Schema 2.0 iteration state enforces the breaker in `orchestration.md`.
 
 States and ordinary transitions are:
 

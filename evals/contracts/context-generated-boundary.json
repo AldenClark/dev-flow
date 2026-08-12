@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-CONTEXT-GENERATED-BOUNDARY",
+  "profile": "Nested generated-code ownership and instruction context",
+  "prompt": "Change an authoritative schema that regenerates bindings in a nested package.",
+  "fixture": "reference-cases/context-generated-boundary.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "repo-context",
+      "claim_routes": [
+        {
+          "kind": "repo-context.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "establish every real Git root and touched-path instruction chain",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "establish every real Git root and touched-path instruction chain"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "repo-context",
+      "claim_routes": [
+        {
+          "kind": "repo-context.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "identify authoritative source, generator, generated output, consumers, and ownership boundaries",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "identify authoritative source, generator, generated output, consumers, and ownership boundaries"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "repo-context",
+      "claim_routes": [
+        {
+          "kind": "repo-context.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "resolve toolchain, formatter, CI, and nearby analogue conflicts with evidence",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "resolve toolchain, formatter, CI, and nearby analogue conflicts with evidence"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "repo-context",
+      "claim_routes": [
+        {
+          "kind": "repo-context.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "change authoritative input rather than hand-editing generated output",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "change authoritative input rather than hand-editing generated output"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "verify deterministic regeneration and representative consumer compatibility",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "verify deterministic regeneration and representative consumer compatibility"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "assume one repository root or instruction file governs every path",
+    "edit generated output without its authoritative source",
+    "load unrelated repository documents or Skills without a scoped reason",
+    "claim compatibility from generation success alone"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "design.md",
+    "execution.md",
+    "test-matrix.md",
+    "evidence.md"
+  ]
+}

@@ -1,28 +1,105 @@
 {
-  "id": "CASE-SEMANTIC-CLARIFICATION",
-  "profile": "Variable-completeness requirements, selective clarification, and late audit reopening",
-  "prompt": "Handle six variants of the same change: a complete design with one contradiction, a product requirement missing state/error behavior, a short request with two material meanings, a sparse bug whose context is discoverable locally, an audit finding that changes intended compatibility, and a clear request where extra questions have no decision value.",
+  "schema_version": "2.2",
+  "id": "CASE-SEMANTIC-LATE-REOPENING",
+  "profile": "Late audit ambiguity, scoped stop, and stale-approval rejection",
+  "prompt": "Handle a late red-review finding that reveals undecided mixed-version product behavior while unrelated work is in progress.",
   "fixture": "reference-cases/semantic-clarification.md",
-  "expected_actions": [
-    "normalize the available input into actors, flows, states, failures, compatibility, acceptance, exclusions, and provenance without treating document length as readiness",
-    "investigate repository instructions, code paths, tests, configuration, runtime evidence, analogues, and history before asking the user",
-    "record each surviving semantic ambiguity as a stable AMB ID with competing interpretations, evidence, materiality, owner, affected AC/SC/VO IDs, recommendation, and status",
-    "let Codex resolve repository-discoverable facts with evidence while requiring the user to finalize material behavior, contract, security, compatibility, scope, acceptance, or delivery semantics",
-    "bind Requirement Ready and design approval to the current requirement revision and SHA-256 digest",
-    "classify a late audit finding as implementation defect, design defect, evidence gap, scope change, or requirement ambiguity and reopen only affected material/high-risk semantics before implementation continues",
-    "ask one to three consolidated high-value user-answerable questions and state the recommendation, alternatives, impact, safe default, and blocked work"
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "classify the late finding as implementation defect, design defect, evidence gap, scope change, or requirement ambiguity before choosing a repair path",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "classify the late finding as implementation defect, design defect, evidence gap, scope change, or requirement ambiguity before choosing a repair path"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.artifact"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "record a stable AMB ID with competing interpretations, repository evidence, materiality, owner, affected AC/SC/VO IDs, recommendation, and open status",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "record a stable AMB ID with competing interpretations, repository evidence, materiality, owner, affected AC/SC/VO IDs, recommendation, and open status"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "dev-flow",
+      "claim_routes": [
+        {
+          "kind": "dev-flow.artifact"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "stop only affected work, return the content-bound packet to awaiting approval, increment the requirement revision, and preserve approval history",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "stop only affected work, return the content-bound packet to awaiting approval, increment the requirement revision, and preserve approval history"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.interaction"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "obtain the user disposition and create fresh requirement-digest-bound Requirement Ready and design approvals before affected work resumes",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "obtain the user disposition and create fresh requirement-digest-bound Requirement Ready and design approvals before affected work resumes"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "dev-flow",
+      "claim_routes": [
+        {
+          "kind": "dev-flow.limitation"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "allow only demonstrably unaffected work to continue and prevent reviewers or workers from resolving user-owned product semantics",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "allow only demonstrably unaffected work to continue and prevent reviewers or workers from resolving user-owned product semantics"
+        }
+      ]
+    }
   ],
   "forbidden_actions": [
-    "assume a complete design is unambiguous merely because it is detailed",
-    "ask the user for repository facts that local inspection can resolve",
-    "silently select one material interpretation or let a worker or reviewer finalize user-owned semantics",
-    "reuse a stale requirement or design approval after requirement content or revision changes",
-    "treat every audit finding as a coding defect when intended behavior is genuinely ambiguous",
-    "maximize question count or block clear reversible work on ceremonial confirmation"
+    "patch the first plausible implementation without classifying the finding",
+    "let a reviewer or worker choose the intended mixed-version behavior",
+    "reuse stale requirement or design approval after requirement content changes",
+    "stop unrelated work whose approved inputs and evidence remain valid",
+    "erase the old revision or approval history"
   ],
   "required_artifacts": [
     "packet.json",
-    "context.md",
     "requirements.md",
     "design.md",
     "execution.md",

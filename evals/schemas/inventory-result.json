@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dev Flow blind atomic inventory result",
+  "type": "object",
+  "required": ["schema_version", "case_id", "attempt", "claimed_outcome", "inventory_items", "interactions"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1.0"},
+    "case_id": {"type": "string", "minLength": 1},
+    "attempt": {"type": "integer", "const": 1},
+    "claimed_outcome": {"type": "string", "enum": ["completed", "blocked", "needs-user-decision"]},
+    "inventory_items": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "required": ["item_id", "evidence_family", "action", "protected_behavior", "oracle_or_evidence", "status", "limitation", "evidence_refs"],
+        "properties": {
+          "item_id": {"type": "string", "pattern": "^IT-[A-Za-z0-9][A-Za-z0-9._-]*$", "maxLength": 128},
+          "evidence_family": {"type": "string", "enum": ["analysis", "artifact", "decision", "interaction", "limitation", "test"]},
+          "action": {"type": "string", "minLength": 1, "maxLength": 2000},
+          "protected_behavior": {"type": "string", "minLength": 1, "maxLength": 2000},
+          "oracle_or_evidence": {"type": "string", "minLength": 1, "maxLength": 2000},
+          "status": {"type": "string", "enum": ["planned", "verified", "blocked", "not-run"]},
+          "limitation": {"type": ["string", "null"], "minLength": 1, "maxLength": 2000},
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "required": ["source", "quote"],
+              "properties": {
+                "source": {"type": "string", "enum": ["fixture", "task_prompt"]},
+                "quote": {"type": "string", "minLength": 8, "maxLength": 500}
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "interactions": {
+      "type": "object",
+      "required": ["user_questions", "user_corrections", "reminders", "blocks"],
+      "properties": {
+        "user_questions": {"type": "integer", "minimum": 0},
+        "user_corrections": {"type": "integer", "minimum": 0},
+        "reminders": {"type": "integer", "minimum": 0},
+        "blocks": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

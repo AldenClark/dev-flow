@@ -1,0 +1,445 @@
+{
+  "schema_version": "1.3",
+  "cases": [
+    {
+      "id": "CASE-ACC-PERF-BACKPRESSURE",
+      "profile": "Bounded queue backpressure under burst load",
+      "prompt": "Stop a worker queue from exhausting memory during bursts.",
+      "fixture": "Producers outpace consumers for minutes. Dropping, blocking, and shedding have different product effects. Shutdown must drain accepted work.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.analysis"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "measure arrival, service, queue, memory, latency, and loss baselines",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "measure arrival, service, queue, memory, latency, and loss baselines"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "choose a bounded queue and explicit admission or shedding policy",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "choose a bounded queue and explicit admission or shedding policy"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "define fairness, timeout, cancellation, drain, and overload observability",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "define fairness, timeout, cancellation, drain, and overload observability"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "test burst, sustained overload, recovery, shutdown, and accepted-work accounting",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "test burst, sustained overload, recovery, shutdown, and accepted-work accounting"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "increase the queue without a bound",
+        "block an event-loop thread indefinitely",
+        "call dropped work successful"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-PERF-EVICTION",
+      "profile": "Cache eviction, memory bound, and hit-rate tradeoff",
+      "prompt": "Reduce cache memory without destroying useful hit rate.",
+      "fixture": "Entries vary greatly in size and cost. Current eviction counts entries, and concurrent readers can pin values. Production traffic is skewed.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.analysis"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "measure byte residency, pinning, hit rate, miss cost, latency, and churn",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "measure byte residency, pinning, hit rate, miss cost, latency, and churn"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "select size-aware bounded ownership and eviction semantics",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "select size-aware bounded ownership and eviction semantics"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "define concurrent access, expiration, cancellation, and cleanup behavior",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "define concurrent access, expiration, cancellation, and cleanup behavior"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "benchmark representative distributions and verify correctness under eviction",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "benchmark representative distributions and verify correctness under eviction"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "optimize only entry count",
+        "evict values still owned by readers",
+        "claim success from lower memory without miss-cost evidence"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-PERF-BATCH",
+      "profile": "Database batch throughput and tail latency",
+      "prompt": "Tune a batch writer that improves throughput but causes long tail latency.",
+      "fixture": "Writes have a durability requirement, mixed sizes, and tenant fairness constraints. Failure can split a batch and retries may duplicate work.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.analysis"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "capture throughput, p50/p99, durability, batch size, fairness, and retry baselines",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "capture throughput, p50/p99, durability, batch size, fairness, and retry baselines"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "choose bounded size/time batching with explicit flush ownership",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "choose bounded size/time batching with explicit flush ownership"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "define partial failure, idempotency, shutdown flush, and backpressure",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "define partial failure, idempotency, shutdown flush, and backpressure"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "benchmark representative load and verify durable outcomes",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "benchmark representative load and verify durable outcomes"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "maximize throughput while ignoring p99",
+        "acknowledge before required durability",
+        "retry a partial batch without idempotency"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-PERF-UI-MEMORY",
+      "profile": "Image-heavy UI memory and cancellation",
+      "prompt": "Reduce memory spikes while scrolling an image-heavy feed.",
+      "fixture": "Prefetch, decode, cache, animation, and view reuse overlap. Fast scrolling leaves canceled work and decoded images resident.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.analysis"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "profile allocation, decode, cache, prefetch, cancellation, and frame baselines",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "profile allocation, decode, cache, prefetch, cancellation, and frame baselines"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "assign image request, decoded value, cache, and view lifecycle ownership",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "assign image request, decoded value, cache, and view lifecycle ownership"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "bound concurrency and residency while canceling stale work",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "bound concurrency and residency while canceling stale work"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "verify fast scroll, reuse, memory warning, recovery, and frame pacing",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "verify fast scroll, reuse, memory warning, recovery, and frame pacing"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "disable images as the optimization",
+        "clear all caches on every scroll",
+        "claim UI smoothness from allocation counts alone"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-PERF-STARTUP",
+      "profile": "Startup budget and deferred initialization",
+      "prompt": "Cut startup time without making first use unreliable.",
+      "fixture": "Configuration, database migration, plugin discovery, and network refresh currently run before the first window. Some are required for correctness and others can be lazy.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.analysis"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "measure phase timing, critical path, first-ready, first-use, and failure baselines",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "measure phase timing, critical path, first-ready, first-use, and failure baselines"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "classify required versus deferrable initialization by ownership and dependency",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "classify required versus deferrable initialization by ownership and dependency"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "define lazy concurrency, readiness, cancellation, retry, and fallback states",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "define lazy concurrency, readiness, cancellation, retry, and fallback states"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "verify cold/warm startup, first use, migration, offline, and failure paths",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "verify cold/warm startup, first use, migration, offline, and failure paths"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "delay work without defining first-use behavior",
+        "report process start as user-ready",
+        "parallelize dependent initialization blindly"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    }
+  ]
+}

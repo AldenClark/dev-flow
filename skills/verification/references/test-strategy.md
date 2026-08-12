@@ -6,6 +6,10 @@ Derive `VO-n` from acceptance and protected behavior; changed branches/states/er
 
 Each matrix cell declares obligation, scope/environment, setup/fixture, command or manual procedure, oracle, resources/owner, attempts, status, artifacts, teardown, and limitation.
 
+When a task requires exercise, validation, or checking, create a separate verification-owned test cell for every independently observable outcome. A behavior, interaction, decision, or implementation claim never substitutes for that evidence cell. Keep the cell explicit even when execution is unavailable: record its stimulus, oracle, environment, `NOT RUN` status, and limitation.
+
+When a task contrasts available and unavailable paths, success and failure, virtual and physical environments, or old and new versions, retain each side as its own cell. Evidence for one side never proves the other.
+
 ## Layers
 
 - static: format, compile/typecheck, selected lint/static analysis, generated consistency, dependency/security/license/secret checks;
@@ -41,3 +45,5 @@ Evidence must be after the final relevant change and include root, environment/c
 ## Regression proof
 
 For bug fixes, prove the oracle fails before the correction when practical. For migrations/refactors, compare old/new outputs and consumers. For performance, record workload, dataset/distribution, hardware, build profile, warmup/sample method, variance, baseline, target, and correctness guard.
+
+For FFI, keep language-native, package/binding, lifecycle, virtual/physical, invalid/failure/leak, and each applicable directional consumer/core mixed-version cell visible. For overload, cover bounded admission, capacity, rejection/backpressure, retry amplification, and recovery.

@@ -1,15 +1,112 @@
 {
+  "schema_version": "2.2",
   "id": "CASE-REACT-FRONTEND",
   "profile": "React frontend",
   "prompt": "Add a server-driven operations table and one required chart to an existing console.",
   "fixture": "reference-cases/react-frontend.md",
-  "expected_actions": [
-    "scan routes, query ownership, current rendered UI, design system, package manager, and existing tests",
-    "classify the bounded extension as preserve UI impact and record existing product and flow constraints",
-    "use TanStack Table v9 by default when compatible",
-    "compare the two preferred chart families and select only one after approval if new",
-    "model loading, empty, error, permission, keyboard, focus, and responsive behavior",
-    "record Playwright project, retry, trace, and accessibility evidence"
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "architecture-decisions",
+      "claim_routes": [
+        {
+          "kind": "architecture-decisions.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "scan routes, query ownership, current rendered UI, design system, package manager, and existing tests",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "scan routes, query ownership, current rendered UI, design system, package manager, and existing tests"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "product-ux-discovery",
+      "claim_routes": [
+        {
+          "kind": "product-ux-discovery.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "classify the bounded extension as preserve UI impact and record existing product and flow constraints",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "classify the bounded extension as preserve UI impact and record existing product and flow constraints"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "architecture-decisions",
+      "claim_routes": [
+        {
+          "kind": "architecture-decisions.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "use TanStack Table v9 by default when compatible",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "use TanStack Table v9 by default when compatible"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "dependency-decisions",
+      "claim_routes": [
+        {
+          "kind": "dependency-decisions.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "compare the two preferred chart families and select only one after approval if new",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "compare the two preferred chart families and select only one after approval if new"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "product-ux-discovery",
+      "claim_routes": [
+        {
+          "kind": "product-ux-discovery.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "model loading, empty, error, permission, keyboard, focus, and responsive behavior",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "model loading, empty, error, permission, keyboard, focus, and responsive behavior"
+        }
+      ]
+    },
+    {
+      "id": "WU-6",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.artifact"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "record Playwright project, retry, trace, and accessibility evidence",
+      "facets": [
+        {
+          "id": "OB-6",
+          "action": "record Playwright project, retry, trace, and accessibility evidence"
+        }
+      ]
+    }
   ],
   "forbidden_actions": [
     "introduce both chart families",
@@ -18,5 +115,11 @@
     "claim browser compatibility from one unrecorded run",
     "change information architecture or interaction flows as incidental table or chart cleanup"
   ],
-  "required_artifacts": ["design.md", "test-matrix.md", "blue-audit.md", "red-audit.md", "evidence.md"]
+  "required_artifacts": [
+    "design.md",
+    "test-matrix.md",
+    "blue-audit.md",
+    "red-audit.md",
+    "evidence.md"
+  ]
 }

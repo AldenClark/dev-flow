@@ -81,6 +81,76 @@ TASK_TYPES = {
     "dependency-change",
     "rollback",
 }
+REQUIREMENTS_ROUTING_RISKS = {
+    "accessibility",
+    "authentication",
+    "authorization",
+    "compatibility",
+    "data-deletion",
+    "migration",
+    "persisted-data",
+    "privacy",
+    "protocol",
+    "public-api",
+    "schema",
+    "security",
+    "version-compatibility",
+}
+ARCHITECTURE_ROUTING_RISKS = {
+    "abi",
+    "architecture",
+    "authentication",
+    "authorization",
+    "backpressure",
+    "cancellation",
+    "compatibility",
+    "concurrency",
+    "distributed-state",
+    "entitlement",
+    "ffi",
+    "idempotency",
+    "memory",
+    "migration",
+    "native-packaging",
+    "ordering",
+    "performance",
+    "persisted-data",
+    "platform-lifecycle",
+    "privacy",
+    "protocol",
+    "public-api",
+    "recovery",
+    "resource-limits",
+    "schema",
+    "secrets",
+    "security",
+    "unsafe",
+    "untrusted-input",
+    "version-compatibility",
+}
+DIAGNOSIS_ROUTING_RISKS = {"flaky-baseline", "incomplete-reproduction"}
+ITERATION_KINDS = {"hypothesis", "repair"}
+ITERATION_OUTCOMES = {"failed", "succeeded", "reassessed"}
+ITERATION_OWNERS = {
+    "architecture-decisions",
+    "dependency-decisions",
+    "dev-flow",
+    "product-ux-discovery",
+    "repo-context",
+    "requirements-design",
+    "systematic-debugging",
+    "verification",
+}
+PACKET_EVENTS = {
+    "ambiguity-recorded",
+    "ambiguity-resolved",
+    "approval-recorded",
+    "iteration-recorded",
+    "iteration-reassessed",
+    "packet-created",
+    "transition",
+}
+ITERATION_CAUSE_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,127}$")
 FULL_FILES = (
     "context.md",
     "requirements.md",
@@ -816,6 +886,12 @@ def init_packet(args: argparse.Namespace) -> int:
         "ambiguity_ids": [],
         "ambiguities": [],
         "dependency_changes": [],
+        "iteration_control": {
+            "schema_version": "1.0",
+            "generation": 1,
+            "records": [],
+            "blocked": None,
+        },
         "approvals": {
             "requirements": [],
             "ux": [],
@@ -878,6 +954,10 @@ def load_packet(packet: Path) -> tuple[dict[str, Any], list[str]]:
         return {}, [f"invalid packet.json: {exc}"]
     if not isinstance(metadata, dict):
         return {}, ["invalid packet.json: top-level value must be an object"]
+    if metadata.get("schema_version") == "2.0":
+        errors.extend(validate_iteration_control(metadata))
+        errors.extend(validate_iteration_evidence(packet, metadata))
+        errors.extend(validate_event_projection(packet, metadata))
     return metadata, errors
 
 
@@ -905,8 +985,8 @@ def validate_event_projection(packet: Path, metadata: dict[str, Any]) -> list[st
             errors.append(f"events.jsonl:{index}: unsupported event schema")
         if record.get("sequence") != len(events):
             errors.append(f"events.jsonl:{index}: sequence must be contiguous from 1")
-        if not isinstance(record.get("event"), str) or not record["event"]:
-            errors.append(f"events.jsonl:{index}: event name is required")
+        if record.get("event") not in PACKET_EVENTS:
+            errors.append(f"events.jsonl:{index}: unsupported event name {record.get('event')!r}")
         if parsed_timestamp(record.get("at")) is None:
             errors.append(f"events.jsonl:{index}: timezone-aware timestamp is required")
         if record.get("work_mode") != metadata.get("work_mode"):
@@ -924,8 +1004,210 @@ def validate_event_projection(packet: Path, metadata: dict[str, Any]) -> list[st
             payload = event.get("payload", {})
             if not isinstance(payload, dict) or payload.get("from") != projected.get("from") or payload.get("to") != projected.get("to"):
                 errors.append(f"events.jsonl: state event {index} does not match packet history")
+            if event.get("state") != projected.get("to"):
+                errors.append(f"events.jsonl: state event {index} projected state does not match packet history")
         if state_events and state_events[-1].get("state") != metadata.get("state"):
             errors.append("events.jsonl: final state does not match packet projection")
+    control = metadata.get("iteration_control")
+    if isinstance(control, dict) and isinstance(control.get("records"), list):
+        iteration_events = [
+            item for item in events if item.get("event") in {"iteration-recorded", "iteration-reassessed"}
+        ]
+        if len(iteration_events) != len(control["records"]):
+            errors.append("events.jsonl: iteration events must project exactly to iteration_control.records")
+        else:
+            for index, (event, projected) in enumerate(zip(iteration_events, control["records"], strict=True), start=1):
+                if event.get("payload") != projected:
+                    errors.append(f"events.jsonl: iteration event {index} does not match packet projection")
+                expected_state = "blocked" if projected.get("outcome") == "failed" and projected.get("round") == 3 else None
+                if expected_state is None:
+                    sequence = event.get("sequence")
+                    if isinstance(sequence, int) and sequence > 1:
+                        expected_state = events[sequence - 2].get("state")
+                if expected_state is not None and event.get("state") != expected_state:
+                    errors.append(f"events.jsonl: iteration event {index} projected state is invalid")
+    return errors
+
+
+def validate_iteration_control(metadata: dict[str, Any]) -> list[str]:
+    control = metadata.get("iteration_control")
+    if control is None:
+        if metadata.get("schema_version") == "2.0":
+            return ["packet.json: schema 2.0 requires iteration_control"]
+        return []
+    if not isinstance(control, dict) or set(control) != {"schema_version", "generation", "records", "blocked"}:
+        return ["packet.json: iteration_control must use the exact schema"]
+    errors: list[str] = []
+    generation = control.get("generation")
+    records = control.get("records")
+    if control.get("schema_version") != "1.0":
+        errors.append("packet.json: iteration_control schema_version must be 1.0")
+    if not isinstance(generation, int) or isinstance(generation, bool) or generation < 1:
+        errors.append("packet.json: iteration_control generation must be a positive integer")
+    if not isinstance(records, list):
+        return [*errors, "packet.json: iteration_control records must be a list"]
+    expected_keys = {
+        "generation",
+        "kind",
+        "cause_id",
+        "cause_artifact",
+        "cause_digest",
+        "round",
+        "outcome",
+        "reopened_owner",
+        "at",
+        "note",
+    }
+    failure_rounds: dict[tuple[int, str, str], int] = {}
+    cause_bindings: dict[tuple[int, str], tuple[str, str]] = {}
+    digest_bindings: dict[tuple[int, str], str] = {}
+    for index, record in enumerate(records):
+        label = f"packet.json: iteration_control.records[{index}]"
+        if not isinstance(record, dict) or set(record) != expected_keys:
+            errors.append(f"{label} must use the exact record schema")
+            continue
+        record_generation = record.get("generation")
+        kind = record.get("kind")
+        cause_id = record.get("cause_id")
+        outcome = record.get("outcome")
+        round_number = record.get("round")
+        if (
+            not isinstance(record_generation, int)
+            or isinstance(record_generation, bool)
+            or record_generation < 1
+            or not isinstance(generation, int)
+            or record_generation > generation
+        ):
+            errors.append(f"{label} has invalid generation")
+        if kind not in ITERATION_KINDS:
+            errors.append(f"{label} has invalid kind")
+        if not isinstance(cause_id, str) or ITERATION_CAUSE_RE.fullmatch(cause_id) is None:
+            errors.append(f"{label} has invalid cause_id")
+        cause_artifact = record.get("cause_artifact")
+        cause_digest = record.get("cause_digest")
+        if (
+            not isinstance(cause_artifact, str)
+            or not cause_artifact.startswith("artifacts/")
+            or Path(cause_artifact).is_absolute()
+            or any(part in {"", ".", ".."} for part in Path(cause_artifact).parts)
+        ):
+            errors.append(f"{label} has invalid cause_artifact")
+        if not isinstance(cause_digest, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", cause_digest) is None:
+            errors.append(f"{label} has invalid cause_digest")
+        if isinstance(record_generation, int) and isinstance(cause_id, str) and isinstance(cause_artifact, str) and isinstance(cause_digest, str):
+            binding_key = (record_generation, cause_id)
+            binding = (cause_artifact, cause_digest)
+            if binding_key in cause_bindings and cause_bindings[binding_key] != binding:
+                errors.append(f"{label} changes the evidence binding for an existing cause_id")
+            cause_bindings[binding_key] = binding
+            digest_key = (record_generation, cause_digest)
+            if digest_key in digest_bindings and digest_bindings[digest_key] != cause_id:
+                errors.append(f"{label} aliases an existing cause digest with a different cause_id")
+            digest_bindings[digest_key] = cause_id
+        if outcome not in ITERATION_OUTCOMES:
+            errors.append(f"{label} has invalid outcome")
+        if parsed_timestamp(record.get("at")) is None or not isinstance(record.get("note"), str) or not record["note"].strip():
+            errors.append(f"{label} requires timestamp and note")
+        key = (record_generation, str(kind), str(cause_id))
+        if outcome == "failed":
+            expected_round = failure_rounds.get(key, 0) + 1
+            if round_number != expected_round:
+                errors.append(f"{label} failed round must be contiguous for its cause")
+            failure_rounds[key] = expected_round
+            if record.get("reopened_owner") is not None:
+                errors.append(f"{label} failed outcome cannot reopen an owner")
+        elif outcome == "succeeded":
+            if round_number != 0 or record.get("reopened_owner") is not None:
+                errors.append(f"{label} succeeded outcome must reset with round zero")
+            failure_rounds[key] = 0
+        elif outcome == "reassessed":
+            if round_number != 0 or record.get("reopened_owner") not in ITERATION_OWNERS:
+                errors.append(f"{label} reassessed outcome requires a reopened owner and round zero")
+            failure_rounds[key] = 0
+    active_failures = [
+        (key, count)
+        for key, count in failure_rounds.items()
+        if isinstance(generation, int) and key[0] == generation and count >= 3
+    ]
+    blocked = control.get("blocked")
+    if active_failures and blocked is None:
+        errors.append("packet.json: third failed round requires an active iteration breaker")
+    if len(active_failures) > 1:
+        errors.append("packet.json: multiple active iteration breakers are invalid")
+    if blocked is not None:
+        if not isinstance(blocked, dict) or set(blocked) != {
+            "generation",
+            "kind",
+            "cause_id",
+            "cause_artifact",
+            "cause_digest",
+            "round",
+            "at",
+        }:
+            errors.append("packet.json: iteration_control blocked must use the exact breaker schema")
+        else:
+            blocked_round = blocked.get("round")
+            if (
+                not isinstance(blocked_round, int)
+                or isinstance(blocked_round, bool)
+                or blocked_round != 3
+                or parsed_timestamp(blocked.get("at")) is None
+            ):
+                errors.append("packet.json: iteration_control blocked requires the third failed round")
+            matching = [
+                record
+                for record in records
+                if isinstance(record, dict)
+                and record.get("generation") == blocked.get("generation")
+                and record.get("kind") == blocked.get("kind")
+                and record.get("cause_id") == blocked.get("cause_id")
+                and record.get("cause_artifact") == blocked.get("cause_artifact")
+                and record.get("cause_digest") == blocked.get("cause_digest")
+                and record.get("round") == blocked.get("round")
+                and record.get("outcome") == "failed"
+            ]
+            if not matching:
+                errors.append("packet.json: iteration_control blocked is not backed by a failed record")
+            active_key = (blocked.get("generation"), blocked.get("kind"), blocked.get("cause_id"))
+            if not active_failures or active_failures[0][0] != active_key or active_failures[0][1] != 3:
+                errors.append("packet.json: iteration_control blocked does not match the active third failure")
+        if metadata.get("state") != "blocked":
+            errors.append("packet.json: active iteration breaker requires blocked packet state")
+    return errors
+
+
+def validate_iteration_evidence(packet: Path, metadata: dict[str, Any]) -> list[str]:
+    control = metadata.get("iteration_control")
+    if not isinstance(control, dict) or not isinstance(control.get("records"), list):
+        return []
+    errors: list[str] = []
+    checked: set[tuple[str, str]] = set()
+    for index, record in enumerate(control["records"]):
+        if not isinstance(record, dict):
+            continue
+        artifact = record.get("cause_artifact")
+        digest = record.get("cause_digest")
+        if not isinstance(artifact, str) or not isinstance(digest, str) or (artifact, digest) in checked:
+            continue
+        checked.add((artifact, digest))
+        try:
+            relative = Path(artifact).relative_to("artifacts")
+            path = contained_path(
+                packet / "artifacts",
+                relative,
+                label="iteration cause artifact",
+                require_relative=True,
+                reject_symlinks=True,
+            )
+        except (PathContractError, ValueError) as exc:
+            errors.append(f"packet.json: iteration_control.records[{index}] cause artifact is invalid: {exc}")
+            continue
+        if not path.is_file():
+            errors.append(f"packet.json: iteration_control.records[{index}] cause artifact is missing")
+            continue
+        observed = f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
+        if observed != digest:
+            errors.append(f"packet.json: iteration_control.records[{index}] cause artifact digest drifted")
     return errors
 
 
@@ -940,6 +1222,22 @@ def transition_packet(args: argparse.Namespace) -> int:
     transition_at = parsed_timestamp(now)
     assert transition_at is not None
     schema_version = metadata.get("schema_version")
+    iteration_control = metadata.get("iteration_control")
+    active_iteration_block = (
+        iteration_control.get("blocked")
+        if isinstance(iteration_control, dict)
+        else None
+    )
+    if old == "blocked" and new != "blocked" and active_iteration_block is not None:
+        return emit(
+            {
+                "status": "invalid-transition",
+                "from": old,
+                "to": new,
+                "errors": ["three-attempt breaker requires record-iteration --outcome reassessed before resuming"],
+            },
+            2,
+        )
     direct_reopening = (
         schema_version in CONTENT_BOUND_SCHEMA_VERSIONS
         and old in {"implementing", "verifying"}
@@ -1121,6 +1419,175 @@ def transition_packet(args: argparse.Namespace) -> int:
             "from": old,
             "to": new,
             "requirement_revision": metadata.get("requirement_revision") if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS else None,
+        }
+    )
+
+
+def record_iteration(args: argparse.Namespace) -> int:
+    packet = args.packet.resolve()
+    metadata, errors = load_packet(packet)
+    if errors:
+        return emit({"status": "invalid", "errors": errors}, 2)
+    if metadata.get("schema_version") != "2.0":
+        return emit({"status": "invalid", "errors": ["iteration control requires packet schema 2.0"]}, 2)
+    if ITERATION_CAUSE_RE.fullmatch(args.cause_id) is None:
+        return emit({"status": "invalid", "errors": ["cause-id must be a safe lowercase identifier"]}, 2)
+    if not args.note.strip():
+        return emit({"status": "invalid", "errors": ["iteration note must be non-empty"]}, 2)
+    if args.reopened_owner is not None and args.reopened_owner not in ITERATION_OWNERS:
+        return emit({"status": "invalid", "errors": ["reopened-owner must name an upstream core owner"]}, 2)
+
+    try:
+        cause_path = contained_path(
+            packet / "artifacts",
+            args.cause_file,
+            label="iteration cause file",
+            require_relative=True,
+            reject_symlinks=True,
+        )
+    except PathContractError as exc:
+        return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+    if not cause_path.is_file():
+        return emit({"status": "invalid", "errors": ["iteration cause file must be an existing regular file"]}, 2)
+    cause_artifact = cause_path.relative_to(packet).as_posix()
+    cause_digest = f"sha256:{hashlib.sha256(cause_path.read_bytes()).hexdigest()}"
+
+    control = metadata.get("iteration_control")
+    if not isinstance(control, dict):
+        return emit({"status": "invalid", "errors": ["schema 2.0 packet requires intact iteration_control"]}, 2)
+    control_errors = validate_iteration_control(metadata)
+    if control_errors:
+        return emit({"status": "invalid", "errors": control_errors}, 2)
+    records = control.get("records")
+    if (
+        control.get("schema_version") != "1.0"
+        or not isinstance(control.get("generation"), int)
+        or isinstance(control.get("generation"), bool)
+        or control["generation"] < 1
+        or not isinstance(records, list)
+    ):
+        return emit({"status": "invalid", "errors": ["packet iteration_control is invalid"]}, 2)
+    blocked = control.get("blocked")
+    now = utc_now()
+    generation_records = [
+        item for item in records
+        if isinstance(item, dict) and item.get("generation") == control["generation"]
+    ]
+    for item in generation_records:
+        if item.get("cause_id") == args.cause_id and (
+            item.get("cause_artifact") != cause_artifact or item.get("cause_digest") != cause_digest
+        ):
+            return emit({"status": "invalid", "errors": ["cause-id is already bound to different evidence in this generation"]}, 2)
+        if item.get("cause_digest") == cause_digest and item.get("cause_id") != args.cause_id:
+            return emit({"status": "invalid", "errors": ["cause evidence is already bound to a different cause-id in this generation"]}, 2)
+
+    if args.outcome == "reassessed":
+        if not isinstance(blocked, dict):
+            return emit({"status": "invalid", "errors": ["no tripped iteration breaker requires reassessment"]}, 2)
+        if args.reopened_owner is None:
+            return emit({"status": "invalid", "errors": ["reassessment requires --reopened-owner"]}, 2)
+        if blocked.get("kind") != args.kind or blocked.get("cause_id") != args.cause_id:
+            return emit({"status": "invalid", "errors": ["reassessment must bind the blocked kind and cause-id"]}, 2)
+        if blocked.get("cause_artifact") != cause_artifact or blocked.get("cause_digest") != cause_digest:
+            return emit({"status": "invalid", "errors": ["reassessment must bind the original cause evidence"]}, 2)
+        record = {
+            "generation": control["generation"],
+            "kind": args.kind,
+            "cause_id": args.cause_id,
+            "cause_artifact": cause_artifact,
+            "cause_digest": cause_digest,
+            "round": 0,
+            "outcome": "reassessed",
+            "reopened_owner": args.reopened_owner,
+            "at": now,
+            "note": args.note,
+        }
+        records.append(record)
+        control["blocked"] = None
+        control["generation"] += 1
+        metadata["updated_at"] = now
+        write_packet(packet, metadata, "iteration-reassessed", record)
+        return emit({"status": "reassessed", "packet": str(packet), **record})
+
+    if args.reopened_owner is not None:
+        return emit({"status": "invalid", "errors": ["--reopened-owner is valid only for reassessed outcome"]}, 2)
+    if isinstance(blocked, dict):
+        return emit(
+            {
+                "status": "iteration-blocked",
+                "errors": ["three failed rounds already reached; reassess and reopen the owning capability before another attempt"],
+                "blocked": blocked,
+            },
+            2,
+        )
+    if metadata.get("state") == "blocked":
+        return emit({"status": "iteration-blocked", "errors": ["resolve the existing packet blocker before another iteration"]}, 2)
+    if metadata.get("state") in {"accepted", "archived"}:
+        return emit({"status": "invalid", "errors": ["accepted or archived packets cannot record new iterations"]}, 2)
+
+    matching = [
+        item
+        for item in records
+        if isinstance(item, dict)
+        and item.get("generation") == control["generation"]
+        and item.get("kind") == args.kind
+        and item.get("cause_id") == args.cause_id
+    ]
+    previous_failures = 0
+    for item in reversed(matching):
+        if item.get("outcome") != "failed":
+            break
+        previous_failures += 1
+    round_number = previous_failures + 1 if args.outcome == "failed" else 0
+    record = {
+        "generation": control["generation"],
+        "kind": args.kind,
+        "cause_id": args.cause_id,
+        "cause_artifact": cause_artifact,
+        "cause_digest": cause_digest,
+        "round": round_number,
+        "outcome": args.outcome,
+        "reopened_owner": None,
+        "at": now,
+        "note": args.note,
+    }
+    records.append(record)
+    metadata["updated_at"] = now
+    breaker_tripped = args.outcome == "failed" and round_number >= 3
+    if breaker_tripped:
+        old_state = metadata.get("state")
+        blocked_record = {
+            "generation": control["generation"],
+            "kind": args.kind,
+            "cause_id": args.cause_id,
+            "cause_artifact": cause_artifact,
+            "cause_digest": cause_digest,
+            "round": round_number,
+            "at": now,
+        }
+        control["blocked"] = blocked_record
+        metadata["state"] = "blocked"
+        metadata.setdefault("history", []).append(
+            {"from": old_state, "to": "blocked", "at": now, "note": f"three failed {args.kind} rounds for {args.cause_id}"}
+        )
+        append_packet_event(packet, metadata, "iteration-recorded", record)
+        write_packet(
+            packet,
+            metadata,
+            "transition",
+            {"from": old_state, "to": "blocked", "note": f"three failed {args.kind} rounds for {args.cause_id}"},
+        )
+    else:
+        write_packet(packet, metadata, "iteration-recorded", record)
+    return emit(
+        {
+            "status": "iteration-recorded",
+            "packet": str(packet),
+            "kind": args.kind,
+            "cause_id": args.cause_id,
+            "outcome": args.outcome,
+            "round": round_number,
+            "breaker_tripped": breaker_tripped,
         }
     )
 
@@ -1549,7 +2016,6 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
     errors.extend(metadata_errors)
     if not metadata:
         return {"status": "invalid", "packet": str(packet), "errors": errors, "warnings": warnings}, 2
-
     for field in (
         "schema_version",
         "skill_version",
@@ -1571,7 +2037,6 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
     schema_version = metadata.get("schema_version")
     if schema_version not in SUPPORTED_SCHEMA_VERSIONS:
         errors.append(f"packet.json: unsupported schema_version {metadata.get('schema_version')!r}")
-    errors.extend(validate_event_projection(packet, metadata))
     if metadata.get("state") not in STATES:
         errors.append(f"packet.json: invalid state {metadata.get('state')!r}")
     if metadata.get("task_type") not in TASK_TYPES:
@@ -2197,28 +2662,43 @@ def route_task(args: argparse.Namespace) -> int:
         reasons.setdefault(skill, []).append(reason)
 
     needs = set(args.need)
-    risks = set(args.risk)
     try:
+        risks = engineering_context.canonical_risks(args.risk)
         work_mode, mode_reasons = select_work_mode(args.task_type, risks, args.work_mode)
     except ValueError as exc:
         return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+    decision_work = args.task_type != "read-only-audit"
+    mutating = args.task_type not in {"read-only-audit", "spike"}
     if args.ui_impact == "material" and work_mode != "governed":
         if args.work_mode != "auto":
             return emit({"status": "invalid", "errors": ["material UI impact requires governed work mode"]}, 2)
         work_mode, mode_reasons = "governed", ["material-ui-impact"]
     if args.profile_operation:
         add("manage-engineering-profiles", "explicit profile or instruction lifecycle operation")
-    if args.ambiguity or args.task_type in {"large-feature", "large-refactor", "migration", "dependency-change"}:
-        add("requirements-design", "material requirement, design, scope, or compatibility baseline")
     if args.ui_impact in {"preserve", "material"}:
-        add("product-ux-discovery", f"UI impact is {args.ui_impact}")
-    if "architecture" in needs or args.task_type in {"large-feature", "large-refactor", "performance"}:
-        add("architecture-decisions", "material architecture or language/boundary decision")
-    if "dependency" in needs or args.task_type == "dependency-change":
-        add("dependency-decisions", "dependency, tool, service, plugin, or feature decision")
-    if args.task_type == "bugfix" or "diagnosis" in needs:
+        add(
+            "product-ux-discovery",
+            "material UI intent and UX Ready baseline" if args.ui_impact == "material" else "existing UI intent and protected behavior",
+        )
+    if (
+        args.ambiguity
+        or args.task_type in {"large-feature", "large-refactor", "migration", "dependency-change", "security"}
+        or args.ui_impact == "material"
+        or decision_work and risks & REQUIREMENTS_ROUTING_RISKS
+    ):
+        add("requirements-design", "material requirement, design, scope, or compatibility baseline")
+    if args.task_type == "bugfix" or "diagnosis" in needs or risks & DIAGNOSIS_ROUTING_RISKS:
         add("systematic-debugging", "failure reproduction and causal diagnosis")
-    mutating = args.task_type not in {"read-only-audit", "spike"}
+    if (
+        "architecture" in needs
+        or args.task_type in {"large-feature", "large-refactor", "migration", "performance", "security"}
+        or decision_work and risks & ARCHITECTURE_ROUTING_RISKS
+    ):
+        add("architecture-decisions", "material boundary, ownership, state, compatibility, or resource decision")
+    if "dependency" in needs or args.task_type == "dependency-change" or decision_work and "dependency" in risks:
+        add("dependency-decisions", "dependency, tool, service, plugin, or feature decision")
+    if args.suite_maintenance:
+        add("dev-flow-maintainer", "explicit Dev Flow suite maintenance")
     if mutating or "verification" in needs:
         add("verification", "risk-based fresh evidence")
     review_risks = engineering_context.GOVERNED_RISKS
@@ -2226,13 +2706,12 @@ def route_task(args: argparse.Namespace) -> int:
         "review" in needs
         or risks & review_risks
         or args.ui_impact == "material"
+        or args.suite_maintenance
         or args.task_type in {"security", "migration", "release-hotfix", "dependency-change", "rollback"}
     ):
         add("change-review", "independent specification and adversarial review")
     if "delivery" in needs or args.task_type in {"release-hotfix", "rollback"}:
         add("delivery-readiness", "acceptance, rollback, and delivery authority accounting")
-    if args.suite_maintenance:
-        add("dev-flow-maintainer", "explicit Dev Flow suite maintenance")
     return emit(
         {
             "status": "routed",
@@ -2672,6 +3151,16 @@ def build_parser() -> argparse.ArgumentParser:
     transition.add_argument("--approved-by")
     transition.add_argument("--ambiguity-id", help="Open material AMB-n that justifies content-bound reopening")
     transition.set_defaults(func=transition_packet)
+
+    iteration = sub.add_parser("record-iteration", help="Record a causal hypothesis or repair attempt and enforce the three-round breaker")
+    iteration.add_argument("packet", type=Path)
+    iteration.add_argument("--kind", choices=sorted(ITERATION_KINDS), required=True)
+    iteration.add_argument("--cause-id", required=True)
+    iteration.add_argument("--cause-file", required=True, help="relative path below packet artifacts/ containing stable causal evidence")
+    iteration.add_argument("--outcome", choices=sorted(ITERATION_OUTCOMES), required=True)
+    iteration.add_argument("--reopened-owner", choices=sorted(ITERATION_OWNERS))
+    iteration.add_argument("--note", required=True)
+    iteration.set_defaults(func=record_iteration)
 
     approval = sub.add_parser("record-approval")
     approval.add_argument("packet", type=Path)

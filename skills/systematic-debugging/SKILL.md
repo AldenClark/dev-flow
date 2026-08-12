@@ -9,6 +9,13 @@ If diagnosis reaches a missing user-owned fact or semantic boundary, remain in D
 
 Trace the earliest incorrect state rather than patching the final symptom.
 
+## Responsibility contract
+
+- Consumes: repository context, expected behavior, the symptom, environment, and first-failure evidence.
+- Owns: reproduction, hypotheses, earliest cause, affected invariant, and a regression-oracle proposal.
+- Stops: at missing semantic/environment authority or after three failed hypotheses or repair attempts.
+- Hands off: semantic mismatch to requirements, structural cause to architecture, the bounded correction to the control plane, and executed proof to verification.
+
 ## Procedure
 
 1. Capture symptom, environment, version, input, expected/actual result, logs/trace, and reproduction reliability.

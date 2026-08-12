@@ -1,0 +1,110 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-REQUIREMENTS-MISSING-STATES",
+  "profile": "Happy-path requirement missing failure and recovery states",
+  "prompt": "Complete a product requirement that omits cancellation, retry, partial failure, authorization failure, and empty states.",
+  "fixture": "reference-cases/requirements-missing-states.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "repo-context",
+      "claim_routes": [
+        {
+          "kind": "repo-context.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "inspect current state machines, analogous flows, tests, configuration, runtime behavior, and instructions before questioning the user",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "inspect current state machines, analogous flows, tests, configuration, runtime behavior, and instructions before questioning the user"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "product-ux-discovery",
+      "claim_routes": [
+        {
+          "kind": "product-ux-discovery.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "enumerate cancellation, retry, partial failure, authorization failure, empty, loading, success, and recovery states with transitions and user-visible feedback",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "enumerate cancellation, retry, partial failure, authorization failure, empty, loading, success, and recovery states with transitions and user-visible feedback"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "separate discovered protected behavior and evidence-backed defaults from unresolved material product semantics",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "separate discovered protected behavior and evidence-backed defaults from unresolved material product semantics"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.artifact"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "record each surviving ambiguity with stable ID, interpretations, evidence, impact, recommendation, affected acceptance and scope IDs, and blocked work",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "record each surviving ambiguity with stable ID, interpretations, evidence, impact, recommendation, affected acceptance and scope IDs, and blocked work"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.interaction"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "ask at most three consolidated user-answerable questions with alternatives, impact, safe defaults, and explicit decision ownership",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "ask at most three consolidated user-answerable questions with alternatives, impact, safe defaults, and explicit decision ownership"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "invent failure-state behavior without inspecting the existing product",
+    "ask the user to describe state-machine facts available in the repository",
+    "treat the happy path as a complete product contract",
+    "silently choose a material authorization or recovery semantic",
+    "ask broad questions unrelated to the missing states"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "requirements.md",
+    "design.md",
+    "execution.md",
+    "test-matrix.md",
+    "evidence.md",
+    "decisions.md"
+  ]
+}

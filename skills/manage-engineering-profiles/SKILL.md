@@ -9,6 +9,13 @@ For profile ownership, write, promotion, suppression, or waiver decisions, remai
 
 Manage preference assets without turning current code frequency, installed Skills, or personal taste into unreviewed team policy.
 
+## Responsibility contract
+
+- Consumes: repository context plus the target layer, owner, scope, and authority.
+- Owns: profile lifecycle, resolution, conflicts, promotion/retirement/waiver, and concise projection.
+- Stops: before a write without owner approval or at an unresolved applicable must-level conflict.
+- Hands off: the effective snapshot to the control plane and other decision owners; it never makes their decisions.
+
 ## Procedure
 
 1. Read `references/profile-contract.md` completely before changing a manifest, profile, decision, or projection.
@@ -16,7 +23,7 @@ Manage preference assets without turning current code frequency, installed Skill
 3. Extract candidates from manifests, CI, scripts, ADRs, source, and existing instructions. Label each `observed`, `inferred`, or `owner-input-required`.
 4. Propose minimal, separate changes for `AGENTS.md`, `.dev-flow/preferences.toml`, profiles, or decision records. Never infer a team-wide rule or public compatibility promise from frequency alone.
 5. Require approval before writing or replacing any instruction/profile asset. Use `scripts/profile-tool.py` without `--write` for review-first proposals.
-6. Validate and resolve the full affected layer stack. Applicable `must` conflicts require an authorized decision; missing optional layers degrade safely.
+6. Validate and resolve the full affected layer stack and requested personal/team/CI modes; run the clean-profile invariance checks in `Resolution modes`. Applicable `must` conflicts require an authorized decision; missing optional layers degrade safely.
 7. Explain winners, shadowed entries, conflicts, exceptions, source hashes, mismatches, and recheck triggers.
 8. Promote only from trial evidence and owner approval; retire without erasing history.
 

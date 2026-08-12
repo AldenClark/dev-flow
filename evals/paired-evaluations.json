@@ -1,12 +1,126 @@
 {
-  "schema_version": "1.1",
-  "evaluation_contract": "Compare first-attempt outputs on the same fixed fixture with and without the named capability; keep executor and grader inputs separate.",
+  "schema_version": "1.8",
+  "dataset_role": "development",
+  "case_contract": {
+    "source_kind": "contract",
+    "schema_version": "2.2",
+    "obligations": "work-unit-facets-v3",
+    "owner_registry": "governance/capability-contracts.json",
+    "kind_registry": "governance/claim-kinds.json"
+  },
+  "evaluator_identity": {
+    "adapter": "evals/codex_model_adapter.py",
+    "backend": {
+      "command": "codex",
+      "version": "codex-cli 0.147.0",
+      "artifacts": {
+        "darwin-arm64": "sha256:19c4f144c5226a9f17c58e6f0fa854843b0f77a6eb420f40e2745a12f10f5d37"
+      }
+    },
+    "result_schema_version": "1.3",
+    "receipt_schema_version": "1.2",
+    "inventory": {
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "medium"
+    },
+    "assembler": {
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high"
+    },
+    "grader": {
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "medium"
+    }
+  },
+  "executor_pipeline": {
+    "protocol": "blind-inventory-assembler-v2",
+    "stage_order": [
+      "inventory",
+      "assembler"
+    ],
+    "inventory_request_schema_version": "1.0",
+    "inventory_result_schema_version": "1.0",
+    "assembler_request_schema_version": "2.0",
+    "assembler_result_schema_version": "1.0",
+    "final_result_schema_version": "1.3",
+    "assembly_manifest": "complete-source-partition-v1",
+    "materialization": "deterministic-claim-v1",
+    "first_attempt_semantics": "single-inventory-no-regeneration-v2",
+    "capability_projection": "task-neutral-content-only-v1"
+  },
+  "evaluation_contract": "Compare first-attempt outputs on the same fixed task and fixture with and without the named capabilities; keep executor and grader inputs separate, grade structured obligations blindly, and gate every task category independently.",
   "default_trials": 3,
   "release_plan": {
-    "pair_ids": ["PAIR-PROFILE-PRECEDENCE", "PAIR-CROSS-LANGUAGE", "PAIR-ECR", "PAIR-EQAC", "PAIR-ROUTING"],
+    "pair_ids": [
+      "PAIR-PROFILE-PRECEDENCE",
+      "PAIR-PROFILE-MODE-ISOLATION",
+      "PAIR-CONTEXT-GENERATED-BOUNDARY",
+      "PAIR-CROSS-LANGUAGE",
+      "PAIR-FFI-OWNERSHIP-ERROR",
+      "PAIR-FFI-LIFECYCLE-PACKAGING",
+      "PAIR-ECR",
+      "PAIR-MIGRATION-DATABASE-BACKFILL",
+      "PAIR-MIGRATION-SDK-PROTOCOL",
+      "PAIR-EQAC",
+      "PAIR-VERIFY-CONCURRENCY-SHUTDOWN",
+      "PAIR-VERIFY-COMPATIBILITY-GATES",
+      "PAIR-ROUTING",
+      "PAIR-REQ-DESIGN-CONTRADICTION",
+      "PAIR-REQ-MISSING-STATES",
+      "PAIR-REQ-AVOIDABLE-QUESTION",
+      "PAIR-REQ-SPARSE-BUG",
+      "PAIR-REQ-MATERIAL-DEFAULT",
+      "PAIR-STRUCTURED-INPUT",
+      "PAIR-INTERACTION-CANCELLATION",
+      "PAIR-INTERACTION-AUTHORITY-SECRET",
+      "PAIR-FRONTEND-NEW-PRODUCT",
+      "PAIR-FRONTEND-PRESERVE-IA",
+      "PAIR-FRONTEND-RESPONSIVE-RECOVERY",
+      "PAIR-REACT-FRONTEND",
+      "PAIR-REACT-SERVER-STATE",
+      "PAIR-REACT-ACCESSIBILITY",
+      "PAIR-DEBUG-PROCESS-TIMEOUT",
+      "PAIR-DEBUG-CROSS-PLATFORM-PATH",
+      "PAIR-DEBUG-ASYNC-RACE",
+      "PAIR-DEPENDENCY-NEW",
+      "PAIR-DEPENDENCY-UPDATE",
+      "PAIR-DEPENDENCY-REMOVAL",
+      "PAIR-DELIVERY-SIGNED-RC",
+      "PAIR-DELIVERY-ROLLBACK-LIFECYCLE",
+      "PAIR-DELIVERY-PROVENANCE-MISMATCH",
+      "PAIR-REVIEW-AUTH-DIFF",
+      "PAIR-REVIEW-CONCURRENCY-DIFF",
+      "PAIR-REVIEW-WORKFLOW-SUPPLY-CHAIN"
+    ],
+    "category_ids": [
+      "CAT-CONTEXT",
+      "CAT-FFI",
+      "CAT-MIGRATION",
+      "CAT-VERIFICATION",
+      "CAT-REQUIREMENTS",
+      "CAT-INTERACTION",
+      "CAT-FRONTEND-UX",
+      "CAT-FRONTEND-ENGINEERING",
+      "CAT-DEBUGGING",
+      "CAT-DEPENDENCY",
+      "CAT-DELIVERY",
+      "CAT-REVIEW"
+    ],
+    "minimum_cases_per_category": 3,
     "trials_per_pair": 5
   },
-  "metrics": ["requirement_fidelity", "coverage", "restraint", "ordinary_defect_retention", "actionability", "rework", "context_cost", "unsafe_actions", "reminder_rate", "false_block_rate"],
+  "metrics": [
+    "requirement_fidelity",
+    "coverage",
+    "restraint",
+    "ordinary_defect_retention",
+    "actionability",
+    "rework",
+    "context_cost",
+    "unsafe_actions",
+    "reminder_rate",
+    "false_block_rate"
+  ],
   "release_thresholds": {
     "minimum_candidate_pass_rate": 0.8,
     "minimum_candidate_requirement_fidelity": 3.0,
@@ -18,10 +132,921 @@
     "maximum_context_cost_ratio": 1.5
   },
   "pairs": [
-    {"id": "PAIR-PROFILE-PRECEDENCE", "fixture": "reference-cases/repository-instructions.md", "capabilities": ["repo-context", "manage-engineering-profiles"], "deterministic_oracle": "profile precedence and instruction authority tests"},
-    {"id": "PAIR-CROSS-LANGUAGE", "fixture": "reference-cases/ffi-mobile.md", "capabilities": ["architecture-decisions", "change-review"], "deterministic_oracle": "language and boundary isolation tests"},
-    {"id": "PAIR-ECR", "fixture": "reference-cases/migration.md", "capabilities": ["repo-context"], "deterministic_oracle": "T0-T3 outcome and waiver tests"},
-    {"id": "PAIR-EQAC", "fixture": "reference-cases/rust-backend.md", "capabilities": ["verification", "change-review"], "deterministic_oracle": "native-first admission and collision tests"},
-    {"id": "PAIR-ROUTING", "fixture": "reference-cases/semantic-clarification.md", "capabilities": ["dev-flow", "requirements-design"], "deterministic_oracle": "positive, negative, collision, and explicit-only routing cases"}
+    {
+      "id": "PAIR-PROFILE-PRECEDENCE",
+      "category": "CAT-CONTEXT",
+      "fixture": "reference-cases/repository-instructions.md",
+      "contract": "contracts/repository-instructions.json",
+      "capabilities": [
+        "repo-context",
+        "manage-engineering-profiles"
+      ],
+      "capability_context": {
+        "repo-context": [
+          "references/repository-discovery.md",
+          "references/context-readiness.md"
+        ],
+        "manage-engineering-profiles": [
+          "references/profile-contract.md",
+          "references/quality-policy.md"
+        ]
+      },
+      "deterministic_oracle": "profile precedence, multi-root scope, instruction authority, and executable-contract tests"
+    },
+    {
+      "id": "PAIR-PROFILE-MODE-ISOLATION",
+      "category": "CAT-CONTEXT",
+      "fixture": "reference-cases/profile-mode-isolation.md",
+      "contract": "contracts/profile-mode-isolation.json",
+      "capabilities": [
+        "repo-context",
+        "manage-engineering-profiles",
+        "verification"
+      ],
+      "capability_context": {
+        "repo-context": [
+          "references/repository-discovery.md",
+          "references/context-readiness.md"
+        ],
+        "manage-engineering-profiles": [
+          "references/profile-contract.md",
+          "references/quality-policy.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "personal, team-reproducible, and CI preference isolation tests"
+    },
+    {
+      "id": "PAIR-CONTEXT-GENERATED-BOUNDARY",
+      "category": "CAT-CONTEXT",
+      "fixture": "reference-cases/context-generated-boundary.md",
+      "contract": "contracts/context-generated-boundary.json",
+      "capabilities": [
+        "repo-context",
+        "manage-engineering-profiles",
+        "verification"
+      ],
+      "capability_context": {
+        "repo-context": [
+          "references/repository-discovery.md",
+          "references/context-readiness.md"
+        ],
+        "manage-engineering-profiles": [
+          "references/profile-contract.md",
+          "references/quality-policy.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "generated ownership, nested instruction, toolchain, and touched-path ledger tests"
+    },
+    {
+      "id": "PAIR-CROSS-LANGUAGE",
+      "category": "CAT-FFI",
+      "fixture": "reference-cases/ffi-mobile.md",
+      "contract": "contracts/ffi-mobile.json",
+      "capabilities": [
+        "repo-context",
+        "architecture-decisions",
+        "change-review",
+        "verification"
+      ],
+      "capability_context": {
+        "repo-context": [],
+        "architecture-decisions": [
+          "references/neutral-engineering-policy.md",
+          "references/language-native-guidance.md"
+        ],
+        "change-review": [
+          "references/review-protocol.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "specialist-route ordering plus language and boundary isolation tests"
+    },
+    {
+      "id": "PAIR-FFI-OWNERSHIP-ERROR",
+      "category": "CAT-FFI",
+      "fixture": "reference-cases/ffi-ownership-error.md",
+      "contract": "contracts/ffi-ownership-error.json",
+      "capabilities": [
+        "repo-context",
+        "architecture-decisions",
+        "change-review",
+        "verification"
+      ],
+      "capability_context": {
+        "repo-context": [],
+        "architecture-decisions": [
+          "references/neutral-engineering-policy.md",
+          "references/language-native-guidance.md"
+        ],
+        "change-review": [
+          "references/review-protocol.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "allocation/free symmetry, typed error, panic containment, and mixed-version ABI tests"
+    },
+    {
+      "id": "PAIR-FFI-LIFECYCLE-PACKAGING",
+      "category": "CAT-FFI",
+      "fixture": "reference-cases/ffi-lifecycle-packaging.md",
+      "contract": "contracts/ffi-lifecycle-packaging.json",
+      "capabilities": [
+        "repo-context",
+        "architecture-decisions",
+        "change-review",
+        "verification"
+      ],
+      "capability_context": {
+        "repo-context": [],
+        "architecture-decisions": [
+          "references/neutral-engineering-policy.md",
+          "references/language-native-guidance.md"
+        ],
+        "change-review": [
+          "references/review-protocol.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "callback quiescence, lifecycle, architecture, loader, packaging, and physical-device gates"
+    },
+    {
+      "id": "PAIR-ECR",
+      "category": "CAT-MIGRATION",
+      "fixture": "reference-cases/migration.md",
+      "contract": "contracts/migration.json",
+      "capabilities": [
+        "repo-context",
+        "delivery-readiness",
+        "verification"
+      ],
+      "capability_context": {
+        "repo-context": [
+          "references/repository-discovery.md",
+          "references/context-readiness.md"
+        ],
+        "delivery-readiness": [
+          "references/readiness-contract.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "T0-T3 outcome, coexistence, rollback, cleanup, and waiver tests"
+    },
+    {
+      "id": "PAIR-MIGRATION-DATABASE-BACKFILL",
+      "category": "CAT-MIGRATION",
+      "fixture": "reference-cases/migration-database-backfill.md",
+      "contract": "contracts/migration-database-backfill.json",
+      "capabilities": [
+        "repo-context",
+        "delivery-readiness",
+        "verification"
+      ],
+      "capability_context": {
+        "repo-context": [
+          "references/repository-discovery.md",
+          "references/context-readiness.md"
+        ],
+        "delivery-readiness": [
+          "references/readiness-contract.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "expand-migrate-contract, resumable backfill, dual-version, rollback, and data reconciliation tests"
+    },
+    {
+      "id": "PAIR-MIGRATION-SDK-PROTOCOL",
+      "category": "CAT-MIGRATION",
+      "fixture": "reference-cases/migration-sdk-protocol.md",
+      "contract": "contracts/migration-sdk-protocol.json",
+      "capabilities": [
+        "repo-context",
+        "delivery-readiness",
+        "verification"
+      ],
+      "capability_context": {
+        "repo-context": [
+          "references/repository-discovery.md",
+          "references/context-readiness.md"
+        ],
+        "delivery-readiness": [
+          "references/readiness-contract.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "old/new client-server compatibility, unknown fields, staged rollout, rollback, and cleanup tests"
+    },
+    {
+      "id": "PAIR-EQAC",
+      "category": "CAT-VERIFICATION",
+      "fixture": "reference-cases/rust-backend.md",
+      "contract": "contracts/rust-backend.json",
+      "capabilities": [
+        "verification",
+        "change-review"
+      ],
+      "capability_context": {
+        "verification": [
+          "references/test-strategy.md",
+          "references/test-environments.md",
+          "references/evidence-contract.md"
+        ],
+        "change-review": [
+          "references/review-protocol.md"
+        ]
+      },
+      "deterministic_oracle": "native-first admission, retry, collision, restart, and drain tests"
+    },
+    {
+      "id": "PAIR-VERIFY-CONCURRENCY-SHUTDOWN",
+      "category": "CAT-VERIFICATION",
+      "fixture": "reference-cases/verify-concurrency-shutdown.md",
+      "contract": "contracts/verify-concurrency-shutdown.json",
+      "capabilities": [
+        "verification",
+        "change-review"
+      ],
+      "capability_context": {
+        "verification": [
+          "references/test-strategy.md",
+          "references/test-environments.md",
+          "references/evidence-contract.md"
+        ],
+        "change-review": [
+          "references/review-protocol.md"
+        ]
+      },
+      "deterministic_oracle": "race reproduction, cancellation ownership, join, timeout, drain, and leak tests"
+    },
+    {
+      "id": "PAIR-VERIFY-COMPATIBILITY-GATES",
+      "category": "CAT-VERIFICATION",
+      "fixture": "reference-cases/verify-compatibility-gates.md",
+      "contract": "contracts/verify-compatibility-gates.json",
+      "capabilities": [
+        "verification",
+        "change-review"
+      ],
+      "capability_context": {
+        "verification": [
+          "references/test-strategy.md",
+          "references/test-environments.md",
+          "references/evidence-contract.md"
+        ],
+        "change-review": [
+          "references/review-protocol.md"
+        ]
+      },
+      "deterministic_oracle": "representative compatibility selection and explicit PASSED/FAILED/FLAKY/BLOCKED/NOT RUN tests"
+    },
+    {
+      "id": "PAIR-ROUTING",
+      "category": "CAT-REQUIREMENTS",
+      "fixture": "reference-cases/semantic-clarification.md",
+      "contract": "contracts/semantic-clarification.json",
+      "capabilities": [
+        "dev-flow",
+        "requirements-design"
+      ],
+      "capability_context": {
+        "dev-flow": [
+          "references/orchestration.md",
+          "references/artifact-schemas.md"
+        ],
+        "requirements-design": [
+          "references/semantic-and-scope.md",
+          "references/user-interaction.md"
+        ]
+      },
+      "deterministic_oracle": "late ambiguity classification, scoped stop, stale-approval rejection, and unaffected-work continuation tests"
+    },
+    {
+      "id": "PAIR-REQ-DESIGN-CONTRADICTION",
+      "category": "CAT-REQUIREMENTS",
+      "fixture": "reference-cases/requirements-design-contradiction.md",
+      "contract": "contracts/requirements-design-contradiction.json",
+      "capabilities": [
+        "dev-flow",
+        "requirements-design",
+        "repo-context"
+      ],
+      "capability_context": {
+        "dev-flow": [
+          "references/orchestration.md",
+          "references/artifact-schemas.md"
+        ],
+        "requirements-design": [
+          "references/semantic-and-scope.md",
+          "references/user-interaction.md"
+        ],
+        "repo-context": [
+          "references/repository-discovery.md",
+          "references/context-readiness.md"
+        ]
+      },
+      "deterministic_oracle": "contradiction trace, repository-fact separation, one material decision, and bounded-stop tests"
+    },
+    {
+      "id": "PAIR-REQ-MISSING-STATES",
+      "category": "CAT-REQUIREMENTS",
+      "fixture": "reference-cases/requirements-missing-states.md",
+      "contract": "contracts/requirements-missing-states.json",
+      "capabilities": [
+        "requirements-design",
+        "repo-context",
+        "product-ux-discovery"
+      ],
+      "capability_context": {
+        "requirements-design": [
+          "references/semantic-and-scope.md",
+          "references/user-interaction.md"
+        ],
+        "repo-context": [
+          "references/repository-discovery.md",
+          "references/context-readiness.md"
+        ],
+        "product-ux-discovery": [
+          "references/product-ux-contract.md"
+        ]
+      },
+      "deterministic_oracle": "state inventory, current-product discovery, protected-default separation, and consolidated-question tests"
+    },
+    {
+      "id": "PAIR-REQ-AVOIDABLE-QUESTION",
+      "category": "CAT-REQUIREMENTS",
+      "fixture": "reference-cases/requirements-avoidable-question.md",
+      "contract": "contracts/requirements-avoidable-question.json",
+      "capabilities": [
+        "dev-flow",
+        "requirements-design",
+        "repo-context"
+      ],
+      "capability_context": {
+        "dev-flow": [
+          "references/orchestration.md",
+          "references/artifact-schemas.md"
+        ],
+        "requirements-design": [
+          "references/semantic-and-scope.md",
+          "references/user-interaction.md"
+        ],
+        "repo-context": [
+          "references/repository-discovery.md",
+          "references/context-readiness.md"
+        ]
+      },
+      "deterministic_oracle": "evidence-backed execute mode, zero ceremonial question, bounded scope, and authority separation tests"
+    },
+    {
+      "id": "PAIR-REQ-SPARSE-BUG",
+      "category": "CAT-REQUIREMENTS",
+      "fixture": "reference-cases/requirements-sparse-bug.md",
+      "contract": "contracts/requirements-sparse-bug.json",
+      "capabilities": [
+        "dev-flow",
+        "requirements-design",
+        "repo-context",
+        "systematic-debugging",
+        "verification"
+      ],
+      "capability_context": {
+        "dev-flow": [
+          "references/orchestration.md",
+          "references/artifact-schemas.md"
+        ],
+        "requirements-design": [
+          "references/semantic-and-scope.md",
+          "references/user-interaction.md"
+        ],
+        "repo-context": [
+          "references/repository-discovery.md",
+          "references/context-readiness.md"
+        ],
+        "systematic-debugging": [
+          "references/hypothesis-ledger.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "repository-answerable fact discovery, bounded regression, and no-ceremonial-question tests"
+    },
+    {
+      "id": "PAIR-REQ-MATERIAL-DEFAULT",
+      "category": "CAT-REQUIREMENTS",
+      "fixture": "reference-cases/requirements-material-default.md",
+      "contract": "contracts/requirements-material-default.json",
+      "capabilities": [
+        "dev-flow",
+        "requirements-design",
+        "repo-context"
+      ],
+      "capability_context": {
+        "dev-flow": [
+          "references/orchestration.md",
+          "references/artifact-schemas.md"
+        ],
+        "requirements-design": [
+          "references/semantic-and-scope.md",
+          "references/user-interaction.md"
+        ],
+        "repo-context": [
+          "references/repository-discovery.md",
+          "references/context-readiness.md"
+        ]
+      },
+      "deterministic_oracle": "material product meaning, affected scope, recommendation, blocked work, and content-bound approval tests"
+    },
+    {
+      "id": "PAIR-STRUCTURED-INPUT",
+      "category": "CAT-INTERACTION",
+      "fixture": "reference-cases/structured-user-input.md",
+      "contract": "contracts/structured-user-input.json",
+      "capabilities": [
+        "dev-flow",
+        "requirements-design",
+        "dependency-decisions",
+        "verification",
+        "delivery-readiness"
+      ],
+      "capability_context": {
+        "dev-flow": [
+          "references/orchestration.md",
+          "references/artifact-schemas.md"
+        ],
+        "requirements-design": [
+          "references/semantic-and-scope.md",
+          "references/user-interaction.md"
+        ],
+        "dependency-decisions": [
+          "references/dependency-governance.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ],
+        "delivery-readiness": [
+          "references/readiness-contract.md"
+        ]
+      },
+      "deterministic_oracle": "native choice, fallback, Other, stale response, cancellation, authority, and secret cases"
+    },
+    {
+      "id": "PAIR-INTERACTION-CANCELLATION",
+      "category": "CAT-INTERACTION",
+      "fixture": "reference-cases/interaction-cancellation.md",
+      "contract": "contracts/interaction-cancellation.json",
+      "capabilities": [
+        "dev-flow",
+        "requirements-design"
+      ],
+      "capability_context": {
+        "dev-flow": [
+          "references/orchestration.md",
+          "references/artifact-schemas.md"
+        ],
+        "requirements-design": [
+          "references/semantic-and-scope.md",
+          "references/user-interaction.md"
+        ]
+      },
+      "deterministic_oracle": "cancel, interrupt, stale answer, revision binding, no-reprompt, and independent-work tests"
+    },
+    {
+      "id": "PAIR-INTERACTION-AUTHORITY-SECRET",
+      "category": "CAT-INTERACTION",
+      "fixture": "reference-cases/interaction-authority-secret.md",
+      "contract": "contracts/interaction-authority-secret.json",
+      "capabilities": [
+        "dev-flow",
+        "requirements-design"
+      ],
+      "capability_context": {
+        "dev-flow": [
+          "references/orchestration.md",
+          "references/artifact-schemas.md"
+        ],
+        "requirements-design": [
+          "references/semantic-and-scope.md",
+          "references/user-interaction.md"
+        ]
+      },
+      "deterministic_oracle": "product choice versus command approval, credential surface, named authorization, and stop behavior tests"
+    },
+    {
+      "id": "PAIR-FRONTEND-NEW-PRODUCT",
+      "category": "CAT-FRONTEND-UX",
+      "fixture": "reference-cases/frontend-new-product.md",
+      "contract": "contracts/frontend-new-product.json",
+      "capabilities": [
+        "product-ux-discovery",
+        "requirements-design"
+      ],
+      "capability_context": {
+        "product-ux-discovery": [
+          "references/product-ux-contract.md"
+        ],
+        "requirements-design": [
+          "references/semantic-and-scope.md",
+          "references/user-interaction.md"
+        ]
+      },
+      "deterministic_oracle": "material UI classification, discovery, co-design, state model, and UX Ready tests"
+    },
+    {
+      "id": "PAIR-FRONTEND-PRESERVE-IA",
+      "category": "CAT-FRONTEND-UX",
+      "fixture": "reference-cases/frontend-preserve-ia.md",
+      "contract": "contracts/frontend-preserve-ia.json",
+      "capabilities": [
+        "product-ux-discovery",
+        "requirements-design",
+        "verification"
+      ],
+      "capability_context": {
+        "product-ux-discovery": [
+          "references/product-ux-contract.md"
+        ],
+        "requirements-design": [
+          "references/semantic-and-scope.md",
+          "references/user-interaction.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "fresh product truth, protected information architecture, distinct pages, accessibility, and rendered-state tests"
+    },
+    {
+      "id": "PAIR-FRONTEND-RESPONSIVE-RECOVERY",
+      "category": "CAT-FRONTEND-UX",
+      "fixture": "reference-cases/frontend-responsive-recovery.md",
+      "contract": "contracts/frontend-responsive-recovery.json",
+      "capabilities": [
+        "product-ux-discovery",
+        "requirements-design",
+        "verification"
+      ],
+      "capability_context": {
+        "product-ux-discovery": [
+          "references/product-ux-contract.md"
+        ],
+        "requirements-design": [
+          "references/semantic-and-scope.md",
+          "references/user-interaction.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "responsive, loading, empty, partial, error, destructive, recovery, keyboard, and focus-state tests"
+    },
+    {
+      "id": "PAIR-REACT-FRONTEND",
+      "category": "CAT-FRONTEND-ENGINEERING",
+      "fixture": "reference-cases/react-frontend.md",
+      "contract": "contracts/react-frontend.json",
+      "capabilities": [
+        "architecture-decisions",
+        "product-ux-discovery",
+        "verification",
+        "dependency-decisions"
+      ],
+      "capability_context": {
+        "architecture-decisions": [
+          "references/neutral-engineering-policy.md",
+          "references/language-native-guidance.md"
+        ],
+        "product-ux-discovery": [],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ],
+        "dependency-decisions": [
+          "references/dependency-governance.md"
+        ]
+      },
+      "deterministic_oracle": "route/query ownership, table/chart dependency, accessibility, and browser-evidence tests"
+    },
+    {
+      "id": "PAIR-REACT-SERVER-STATE",
+      "category": "CAT-FRONTEND-ENGINEERING",
+      "fixture": "reference-cases/react-server-state.md",
+      "contract": "contracts/react-server-state.json",
+      "capabilities": [
+        "architecture-decisions",
+        "product-ux-discovery",
+        "verification"
+      ],
+      "capability_context": {
+        "architecture-decisions": [
+          "references/neutral-engineering-policy.md",
+          "references/language-native-guidance.md"
+        ],
+        "product-ux-discovery": [],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "server-state ownership, optimistic rollback, cancellation, stale response, and rendered integration tests"
+    },
+    {
+      "id": "PAIR-REACT-ACCESSIBILITY",
+      "category": "CAT-FRONTEND-ENGINEERING",
+      "fixture": "reference-cases/react-accessibility.md",
+      "contract": "contracts/react-accessibility.json",
+      "capabilities": [
+        "architecture-decisions",
+        "product-ux-discovery",
+        "verification"
+      ],
+      "capability_context": {
+        "architecture-decisions": [
+          "references/neutral-engineering-policy.md",
+          "references/language-native-guidance.md"
+        ],
+        "product-ux-discovery": [],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "semantic HTML, keyboard, focus, accessible name, reduced motion, responsive, and browser project tests"
+    },
+    {
+      "id": "PAIR-DEBUG-PROCESS-TIMEOUT",
+      "category": "CAT-DEBUGGING",
+      "fixture": "reference-cases/debug-process-timeout.md",
+      "contract": "contracts/debug-process-timeout.json",
+      "capabilities": [
+        "systematic-debugging",
+        "verification"
+      ],
+      "capability_context": {
+        "systematic-debugging": [
+          "references/hypothesis-ledger.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "first-failure preservation, process-tree ownership, timeout reproduction, discriminating experiment, and leak tests"
+    },
+    {
+      "id": "PAIR-DEBUG-CROSS-PLATFORM-PATH",
+      "category": "CAT-DEBUGGING",
+      "fixture": "reference-cases/debug-cross-platform-path.md",
+      "contract": "contracts/debug-cross-platform-path.json",
+      "capabilities": [
+        "systematic-debugging",
+        "verification"
+      ],
+      "capability_context": {
+        "systematic-debugging": [
+          "references/hypothesis-ledger.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "argv/path binding, Windows/POSIX distinction, isolated cwd, regression, and hosted limitation tests"
+    },
+    {
+      "id": "PAIR-DEBUG-ASYNC-RACE",
+      "category": "CAT-DEBUGGING",
+      "fixture": "reference-cases/debug-async-race.md",
+      "contract": "contracts/debug-async-race.json",
+      "capabilities": [
+        "systematic-debugging",
+        "verification"
+      ],
+      "capability_context": {
+        "systematic-debugging": [
+          "references/hypothesis-ledger.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "causal timeline, ownership generation, deterministic interleaving, cancellation, and nearby regression tests"
+    },
+    {
+      "id": "PAIR-DEPENDENCY-NEW",
+      "category": "CAT-DEPENDENCY",
+      "fixture": "reference-cases/dependency-new.md",
+      "contract": "contracts/dependency-new.json",
+      "capabilities": [
+        "dependency-decisions",
+        "architecture-decisions"
+      ],
+      "capability_context": {
+        "dependency-decisions": [
+          "references/dependency-governance.md"
+        ],
+        "architecture-decisions": [
+          "references/language-native-guidance.md"
+        ]
+      },
+      "deterministic_oracle": "standard/existing/local/external comparison, named approval, graph/license/security, and rollback tests"
+    },
+    {
+      "id": "PAIR-DEPENDENCY-UPDATE",
+      "category": "CAT-DEPENDENCY",
+      "fixture": "reference-cases/dependency-update.md",
+      "contract": "contracts/dependency-update.json",
+      "capabilities": [
+        "dependency-decisions",
+        "architecture-decisions"
+      ],
+      "capability_context": {
+        "dependency-decisions": [
+          "references/dependency-governance.md"
+        ],
+        "architecture-decisions": [
+          "references/language-native-guidance.md"
+        ]
+      },
+      "deterministic_oracle": "current usage, behavior/feature/native graph diff, advisory/license, compatibility, and rollback tests"
+    },
+    {
+      "id": "PAIR-DEPENDENCY-REMOVAL",
+      "category": "CAT-DEPENDENCY",
+      "fixture": "reference-cases/dependency-removal.md",
+      "contract": "contracts/dependency-removal.json",
+      "capabilities": [
+        "dependency-decisions",
+        "architecture-decisions",
+        "verification"
+      ],
+      "capability_context": {
+        "dependency-decisions": [
+          "references/dependency-governance.md"
+        ],
+        "architecture-decisions": [
+          "references/language-native-guidance.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "reference/feature/lockfile proof, default/minimal build, cleanup, and no-manual-lockfile tests"
+    },
+    {
+      "id": "PAIR-DELIVERY-SIGNED-RC",
+      "category": "CAT-DELIVERY",
+      "fixture": "reference-cases/delivery-signed-rc.md",
+      "contract": "contracts/delivery-signed-rc.json",
+      "capabilities": [
+        "delivery-readiness",
+        "verification"
+      ],
+      "capability_context": {
+        "delivery-readiness": [
+          "references/readiness-contract.md"
+        ],
+        "verification": [
+          "references/test-environments.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "frozen identity, clean artifact, signature, SBOM/provenance, draft release, and authority tests"
+    },
+    {
+      "id": "PAIR-DELIVERY-ROLLBACK-LIFECYCLE",
+      "category": "CAT-DELIVERY",
+      "fixture": "reference-cases/delivery-rollback-lifecycle.md",
+      "contract": "contracts/delivery-rollback-lifecycle.json",
+      "capabilities": [
+        "delivery-readiness",
+        "verification"
+      ],
+      "capability_context": {
+        "delivery-readiness": [
+          "references/readiness-contract.md"
+        ],
+        "verification": [
+          "references/test-environments.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "fresh install, upgrade, rollback, uninstall, ownership, cleanup, and restoration tests"
+    },
+    {
+      "id": "PAIR-DELIVERY-PROVENANCE-MISMATCH",
+      "category": "CAT-DELIVERY",
+      "fixture": "reference-cases/delivery-provenance-mismatch.md",
+      "contract": "contracts/delivery-provenance-mismatch.json",
+      "capabilities": [
+        "delivery-readiness",
+        "verification",
+        "systematic-debugging"
+      ],
+      "capability_context": {
+        "delivery-readiness": [
+          "references/readiness-contract.md"
+        ],
+        "verification": [
+          "references/test-environments.md",
+          "references/evidence-contract.md"
+        ],
+        "systematic-debugging": [
+          "references/hypothesis-ledger.md"
+        ]
+      },
+      "deterministic_oracle": "source/artifact/SBOM/attestation digest binding, tamper rejection, retained first failure, and release block tests"
+    },
+    {
+      "id": "PAIR-REVIEW-AUTH-DIFF",
+      "category": "CAT-REVIEW",
+      "fixture": "reference-cases/review-auth-diff.md",
+      "contract": "contracts/review-auth-diff.json",
+      "capabilities": [
+        "change-review",
+        "verification"
+      ],
+      "capability_context": {
+        "change-review": [
+          "references/authorization-privacy.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "trust boundary, authorization matrix, tenant isolation, error/log privacy, and regression tests"
+    },
+    {
+      "id": "PAIR-REVIEW-CONCURRENCY-DIFF",
+      "category": "CAT-REVIEW",
+      "fixture": "reference-cases/review-concurrency-diff.md",
+      "contract": "contracts/review-concurrency-diff.json",
+      "capabilities": [
+        "change-review",
+        "verification"
+      ],
+      "capability_context": {
+        "change-review": [
+          "references/review-protocol.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "owner, ordering, cancellation, duplicate delivery, shutdown, leak, and rollback review tests"
+    },
+    {
+      "id": "PAIR-REVIEW-WORKFLOW-SUPPLY-CHAIN",
+      "category": "CAT-REVIEW",
+      "fixture": "reference-cases/review-workflow-supply-chain.md",
+      "contract": "contracts/review-workflow-supply-chain.json",
+      "capabilities": [
+        "change-review",
+        "verification"
+      ],
+      "capability_context": {
+        "change-review": [
+          "references/review-protocol.md"
+        ],
+        "verification": [
+          "references/test-strategy.md",
+          "references/evidence-contract.md"
+        ]
+      },
+      "deterministic_oracle": "action pinning, permissions, operation/path approval, untrusted input, artifact identity, and final audit tests"
+    }
   ]
 }

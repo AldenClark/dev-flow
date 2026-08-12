@@ -1,0 +1,92 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-REQUIREMENTS-AVOIDABLE-QUESTION",
+  "profile": "Clear reversible work where clarification has no decision value",
+  "prompt": "Handle a reversible local change whose request, current contract, tests, and instructions already agree.",
+  "fixture": "reference-cases/requirements-avoidable-question.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "repo-context",
+      "claim_routes": [
+        {
+          "kind": "repo-context.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "verify the request, applicable instructions, current contract, deterministic tests, affected component, and absence of surviving material alternatives",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "verify the request, applicable instructions, current contract, deterministic tests, affected component, and absence of surviving material alternatives"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.artifact"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "record a bounded execute-mode baseline with acceptance, direct scope, protected behavior, exclusions, and honest assumptions",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "record a bounded execute-mode baseline with acceptance, direct scope, protected behavior, exclusions, and honest assumptions"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.interaction"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "proceed without asking a user question when no material ambiguity or user-owned decision survives repository investigation",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "proceed without asking a user question when no material ambiguity or user-owned decision survives repository investigation"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "dev-flow",
+      "claim_routes": [
+        {
+          "kind": "dev-flow.limitation"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "preserve required verification, evidence, review, and delivery-authority boundaries without turning them into ceremonial approval questions",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "preserve required verification, evidence, review, and delivery-authority boundaries without turning them into ceremonial approval questions"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "ask naming, architecture, UI, release, or delivery questions that cannot change the bounded outcome",
+    "invent competing product interpretations after evidence resolves behavior",
+    "skip verification because clarification is unnecessary",
+    "claim commit, push, release, or deployment authority",
+    "expand the reversible fix into an unrelated refactor"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "requirements.md",
+    "execution.md",
+    "test-matrix.md",
+    "evidence.md",
+    "decisions.md"
+  ]
+}

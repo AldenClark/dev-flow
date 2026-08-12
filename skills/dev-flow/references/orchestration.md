@@ -28,7 +28,7 @@ At every user-owned stop, remain in Default mode and apply `../../requirements-d
 
 - Micro: direct inline record, exact file/caller/test, no packet or delegation; escalate on uncertainty or contract risk.
 - Routine: traced mode, bounded subsystem and analogue, affected tests/static checks; review only when another trigger applies.
-- Bugfix: route to systematic debugging and require causal/regression evidence.
+- Bugfix: inspect applicable instructions, causal path, tests, logs, and analogues; separate fact, inference, and unknown; bind direct, protected, and out-of-scope behavior; reproduce the failure and, when practical, prove a focused regression fails before the fix; then rerun the protected and nearby paths.
 - Read-only: preserve repository state; evidence/findings are deliverable; remediation needs authority.
 - Spike: define learning question, isolation, success evidence, adopt/reject boundary; do not silently ship.
 - Large feature/refactor: map full flows/contracts/state/consumers; use coherent vertical slices and integrated review.
@@ -43,6 +43,8 @@ Classify a new fact before mutation as already scoped, conditional activation, i
 ## Failure breaker
 
 After three failed hypotheses or repair rounds, stop layering changes. Re-read first evidence and approved architecture; determine whether reproduction, model, design, environment, oracle, or authority is wrong, then reopen the appropriate owner.
+
+Record each result with `record-iteration --kind <hypothesis|repair> --cause-id <stable-id> --cause-file <file-below-packet-artifacts> --outcome <failed|succeeded>`. The command binds the cause ID to the evidence file path and SHA-256 for the generation; aliases, evidence drift, deleted control state, and a cleared third-failure breaker fail closed. Three consecutive failures for the same generation, kind, and evidence-bound cause atomically block a schema 2.0 packet; a fourth attempt and state resumption are rejected. Resume only after the same evidence binding plus `--outcome reassessed --reopened-owner <owner>` records which upstream owner replaced the causal model, then explicitly transition out of `blocked`. Different evidence-bound causes do not share a counter, and success resets that cause.
 
 ## Metrics
 

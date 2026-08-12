@@ -53,4 +53,7 @@ These are portable preferences among correct options. They do not override expli
 - Never invent cryptographic primitives or protocols.
 - Isolate unsafe code and document its adjacent safety contract.
 - Review both sides of FFI: layout, ownership, errors, panic containment, threading, cancellation, callback teardown, ABI evolution, symbols, packaging, and platform lifecycle.
+- Before cross-language design, require and consume a repo-context-owned discovery record for exports, generated bindings, handwritten consumers, package artifacts, support ranges, deployed versions, and native loading paths; if absent, record a context gap. Reference that upstream claim without relabeling discovery as architecture evidence. Preserve mixed-version migration and rollback, allocator symmetry, leak evidence, and boundary-isolation tests.
+- Never detach callback producers across teardown. Bind cancellation to an owner, join/drain in-flight work to a documented quiescence point, reject late generations, and only then release foreign state.
+- For Apple/Android mobile FFI, keep Xcode Test Plan and xcresult evidence separate from Android API/ABI matrices and CheckJNI; keep simulator/emulator evidence separate from physical-device loading, lifecycle, packaging, and architecture gates.
 - Never log secrets, credentials, personal data, or full sensitive payloads.

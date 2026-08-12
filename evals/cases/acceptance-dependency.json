@@ -1,0 +1,269 @@
+{
+  "schema_version": "1.3",
+  "cases": [
+    {
+      "id": "CASE-ACC-DEP-FEATURE",
+      "profile": "Existing dependency material feature expansion",
+      "prompt": "Enable an existing dependency feature that pulls native compression code into mobile builds.",
+      "fixture": "The direct dependency is already approved without native features. The new feature adds build scripts, platform toolchains, and transitive licenses.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "dependency-decisions",
+          "claim_routes": [
+            {
+              "kind": "dependency-decisions.analysis"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "establish the exact capability and existing graph before expansion",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "establish the exact capability and existing graph before expansion"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "dependency-decisions",
+          "claim_routes": [
+            {
+              "kind": "dependency-decisions.analysis"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "compare platform, existing, local, and feature-enabled options",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "compare platform, existing, local, and feature-enabled options"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "dependency-decisions",
+          "claim_routes": [
+            {
+              "kind": "dependency-decisions.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "verify native/build, platform, license, advisory, graph, size, and rollback impact",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "verify native/build, platform, license, advisory, graph, size, and rollback impact"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "dependency-decisions",
+          "claim_routes": [
+            {
+              "kind": "dependency-decisions.interaction"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "request named feature expansion approval before manifest or lockfile mutation",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "request named feature expansion approval before manifest or lockfile mutation"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "treat existing package approval as feature approval",
+        "enable default features broadly",
+        "claim mobile support from a desktop build"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "decisions.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-DEP-LOCKFILE",
+      "profile": "Unexpected lockfile-only transitive drift",
+      "prompt": "Review a lockfile change that has no intentional manifest edit.",
+      "fixture": "A package-manager command refreshed many transitives, changed one checksum, and introduced a duplicate major version. No dependency decision exists.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "dependency-decisions",
+          "claim_routes": [
+            {
+              "kind": "dependency-decisions.analysis"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "identify the exact command and direct cause of lockfile regeneration",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "identify the exact command and direct cause of lockfile regeneration"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "dependency-decisions",
+          "claim_routes": [
+            {
+              "kind": "dependency-decisions.analysis"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "compare graph, checksums, duplicates, build scripts, licenses, and advisories",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "compare graph, checksums, duplicates, build scripts, licenses, and advisories"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "dependency-decisions",
+          "claim_routes": [
+            {
+              "kind": "dependency-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "restore or isolate unrelated drift instead of approving it implicitly",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "restore or isolate unrelated drift instead of approving it implicitly"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "dependency-decisions",
+          "claim_routes": [
+            {
+              "kind": "dependency-decisions.artifact"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "bind any intentional update to exact operation, files, and final bytes",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "bind any intentional update to exact operation, files, and final bytes"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "accept lockfile churn because manifests are unchanged",
+        "edit lockfile entries by hand",
+        "use an unrelated approval record"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "execution.md",
+        "decisions.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-DEP-NATIVE-REMOVE",
+      "profile": "Removal of a build-time native dependency",
+      "prompt": "Remove a native build dependency that appears unused on the main platform.",
+      "fixture": "It may still support another target, generated binding step, or packaging job. The user explicitly requested the removal.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "dependency-decisions",
+          "claim_routes": [
+            {
+              "kind": "dependency-decisions.analysis"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "search target, build, generated, packaging, CI, and consumer activation paths",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "search target, build, generated, packaging, CI, and consumer activation paths"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "run comparable pre-change platform and generated baselines",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "run comparable pre-change platform and generated baselines"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "dependency-decisions",
+          "claim_routes": [
+            {
+              "kind": "dependency-decisions.artifact"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "bind the explicit removal request into exact machine authorization without reprompt",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "bind the explicit removal request into exact machine authorization without reprompt"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "dependency-decisions",
+          "claim_routes": [
+            {
+              "kind": "dependency-decisions.decision"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "remove through native tooling, repeat checks, inspect graph/license/advisory cleanup, and retain rollback",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "remove through native tooling, repeat checks, inspect graph/license/advisory cleanup, and retain rollback"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "infer unused from the main platform only",
+        "hand-edit the lockfile",
+        "ask the user to repeat the exact removal intent when binding is deterministic"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "decisions.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    }
+  ]
+}

@@ -1,14 +1,95 @@
 {
+  "schema_version": "2.2",
   "id": "CASE-REPOSITORY-INSTRUCTIONS",
   "profile": "Nested multi-root repository instructions and machine-contract conflicts",
   "prompt": "Change files across two nested project scopes whose AGENTS files, contribution guide, formatter, CI, and nearby code do not fully agree.",
   "fixture": "reference-cases/repository-instructions.md",
-  "expected_actions": [
-    "establish every real Git root and resolve the scoped instruction chain for each prospective touched path",
-    "inspect task-relevant project guidance, local Skills, executable formatter/linter/toolchain configuration, CI, and nearby analogues",
-    "record concise INS IDs with source, scope, authority, downstream effect, conflict, freshness, and final evidence",
-    "surface material document/config/runtime conflicts with evidence and a recommendation instead of silently guessing",
-    "map applicable instructions into requirements, design, task briefs, tests, blue review, and acceptance evidence"
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "repo-context",
+      "claim_routes": [
+        {
+          "kind": "repo-context.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "establish every real Git root and resolve the scoped instruction chain for each prospective touched path",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "establish every real Git root and resolve the scoped instruction chain for each prospective touched path"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "repo-context",
+      "claim_routes": [
+        {
+          "kind": "repo-context.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "inspect task-relevant project guidance, local Skills, executable formatter/linter/toolchain configuration, CI, and nearby analogues",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "inspect task-relevant project guidance, local Skills, executable formatter/linter/toolchain configuration, CI, and nearby analogues"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "manage-engineering-profiles",
+      "claim_routes": [
+        {
+          "kind": "manage-engineering-profiles.artifact"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "record concise INS IDs with source, scope, authority, downstream effect, conflict, freshness, and final evidence",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "record concise INS IDs with source, scope, authority, downstream effect, conflict, freshness, and final evidence"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "manage-engineering-profiles",
+      "claim_routes": [
+        {
+          "kind": "manage-engineering-profiles.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "surface material document/config/runtime conflicts with evidence and a recommendation instead of silently guessing",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "surface material document/config/runtime conflicts with evidence and a recommendation instead of silently guessing"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "repo-context",
+      "claim_routes": [
+        {
+          "kind": "repo-context.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "map applicable instructions into requirements, design, task briefs, tests, blue review, and acceptance evidence",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "map applicable instructions into requirements, design, task briefs, tests, blue review, and acceptance evidence"
+        }
+      ]
+    }
   ],
   "forbidden_actions": [
     "assume the top-level directory or first AGENTS file governs every nested repository",
@@ -16,5 +97,13 @@
     "claim conformance merely because instruction files were listed",
     "allow a repository instruction to widen dependency, destructive, external, or delivery authority"
   ],
-  "required_artifacts": ["context.md", "requirements.md", "design.md", "execution.md", "blue-audit.md", "evidence.md", "decisions.md"]
+  "required_artifacts": [
+    "context.md",
+    "requirements.md",
+    "design.md",
+    "execution.md",
+    "blue-audit.md",
+    "evidence.md",
+    "decisions.md"
+  ]
 }

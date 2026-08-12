@@ -1,0 +1,108 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-DELIVERY-SIGNED-RC",
+  "profile": "Signed release candidate with attestations and Draft Release",
+  "prompt": "Produce a signed RC only after model, artifact, provenance, lifecycle, and authority gates pass.",
+  "fixture": "reference-cases/delivery-signed-rc.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.artifact"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "freeze exact version, commit, config, scope, artifacts, signing identity, release target, observation, and rollback owner",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "freeze exact version, commit, config, scope, artifacts, signing identity, release target, observation, and rollback owner"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "build two fresh reproducible archives and verify contents, version, commit, and SHA-256",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "build two fresh reproducible archives and verify contents, version, commit, and SHA-256"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "generate and verify non-empty SPDX SBOM plus provenance bound to the archive digest",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "generate and verify non-empty SPDX SBOM plus provenance bound to the archive digest"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "check the user-controlled signing identity and separately authorized tag and Draft prerelease actions",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "check the user-controlled signing identity and separately authorized tag and Draft prerelease actions"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.limitation"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "block tag or release on any failed, flaky, blocked, not-run, mismatched, or unsigned required gate",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "block tag or release on any failed, flaky, blocked, not-run, mismatched, or unsigned required gate"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "generate or expose a private signing key implicitly",
+    "reuse artifacts from another commit",
+    "treat a Draft Release or CI pass as proof of signature or provenance",
+    "expand implementation authority into tag or publication authority"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "design.md",
+    "execution.md",
+    "test-matrix.md",
+    "red-audit.md",
+    "evidence.md"
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-REACT-SERVER-STATE",
+  "profile": "React route, query, mutation, and optimistic state ownership",
+  "prompt": "Remove stale optimistic updates caused by duplicating server state into a global store.",
+  "fixture": "reference-cases/react-server-state.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "architecture-decisions",
+      "claim_routes": [
+        {
+          "kind": "architecture-decisions.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "trace route loader, query key, cache, mutation, optimistic update, cancellation, and component ownership",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "trace route loader, query key, cache, mutation, optimistic update, cancellation, and component ownership"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "architecture-decisions",
+      "claim_routes": [
+        {
+          "kind": "architecture-decisions.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "keep server state in TanStack Query and local interaction state at the narrowest owner unless evidence justifies otherwise",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "keep server state in TanStack Query and local interaction state at the narrowest owner unless evidence justifies otherwise"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "architecture-decisions",
+      "claim_routes": [
+        {
+          "kind": "architecture-decisions.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "define optimistic snapshot, rollback, invalidation, stale response, route change, retry, and error recovery behavior",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "define optimistic snapshot, rollback, invalidation, stale response, route change, retry, and error recovery behavior"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "product-ux-discovery",
+      "claim_routes": [
+        {
+          "kind": "product-ux-discovery.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "preserve current information architecture, permissions, and URL or navigation contracts",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "preserve current information architecture, permissions, and URL or navigation contracts"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "verify component behavior plus rendered route transitions and accessibility states",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "verify component behavior plus rendered route transitions and accessibility states"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "add another global store for server-owned state",
+    "ignore cancellation or stale responses after route changes",
+    "invalidate every query as an unbounded workaround",
+    "change navigation or product flow during state cleanup"
+  ],
+  "required_artifacts": [
+    "design.md",
+    "execution.md",
+    "test-matrix.md",
+    "blue-audit.md",
+    "evidence.md"
+  ]
+}

@@ -1,0 +1,269 @@
+{
+  "schema_version": "1.3",
+  "cases": [
+    {
+      "id": "CASE-ACC-DEBUG-CLOCK",
+      "profile": "Wall-clock flake across time zones and DST",
+      "prompt": "Diagnose a date-boundary test that fails only in some CI regions.",
+      "fixture": "The test mixes wall clock, monotonic duration, local midnight, and an injected fake clock. Failures cluster around daylight-saving transitions.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "systematic-debugging",
+          "claim_routes": [
+            {
+              "kind": "systematic-debugging.decision"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "preserve the first failure and reconstruct clock and zone inputs",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "preserve the first failure and reconstruct clock and zone inputs"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "systematic-debugging",
+          "claim_routes": [
+            {
+              "kind": "systematic-debugging.decision"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "separate wall-clock, monotonic, local-zone, and injected-clock hypotheses",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "separate wall-clock, monotonic, local-zone, and injected-clock hypotheses"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "systematic-debugging",
+          "claim_routes": [
+            {
+              "kind": "systematic-debugging.test"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "run a discriminating fixed-zone boundary experiment",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "run a discriminating fixed-zone boundary experiment"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "add deterministic transition and nearby regression tests before the fix",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "add deterministic transition and nearby regression tests before the fix"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "add sleep or retry as the fix",
+        "force UTC without checking product semantics",
+        "change multiple time abstractions before testing a hypothesis"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "execution.md",
+        "test-matrix.md",
+        "blue-audit.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-DEBUG-MEMORY",
+      "profile": "Long-session memory growth and ownership leak",
+      "prompt": "Find why memory grows after opening and closing the same screen repeatedly.",
+      "fixture": "Heap growth may come from image cache retention, subscriptions, native callbacks, or task cancellation. A restart clears it.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "systematic-debugging",
+          "claim_routes": [
+            {
+              "kind": "systematic-debugging.analysis"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "capture a reproducible open-close timeline and retained-object evidence",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "capture a reproducible open-close timeline and retained-object evidence"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "systematic-debugging",
+          "claim_routes": [
+            {
+              "kind": "systematic-debugging.analysis"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "rank cache, subscription, callback, and task-ownership hypotheses",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "rank cache, subscription, callback, and task-ownership hypotheses"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "systematic-debugging",
+          "claim_routes": [
+            {
+              "kind": "systematic-debugging.test"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "run one boundary experiment per hypothesis",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "run one boundary experiment per hypothesis"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "add lifecycle, cancellation, callback-quiescence, and retained-size regression checks",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "add lifecycle, cancellation, callback-quiescence, and retained-size regression checks"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "clear every cache on close without attribution",
+        "call garbage collection as the fix",
+        "claim leak closure from one short session"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "execution.md",
+        "test-matrix.md",
+        "blue-audit.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-DEBUG-CACHE",
+      "profile": "Crash-restart corrupted cache recovery",
+      "prompt": "Diagnose startup failures after the process is killed during a cache write.",
+      "fixture": "The cache uses a temp file and rename, but metadata and payload are separate. Some restarts loop instead of rebuilding.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "systematic-debugging",
+          "claim_routes": [
+            {
+              "kind": "systematic-debugging.test"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "reproduce kill points and inspect payload/metadata state transitions",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "reproduce kill points and inspect payload/metadata state transitions"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "test atomicity, ordering, fsync, generation, and recovery hypotheses separately",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "test atomicity, ordering, fsync, generation, and recovery hypotheses separately"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "systematic-debugging",
+          "claim_routes": [
+            {
+              "kind": "systematic-debugging.decision"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "define fail-safe detection and bounded rebuild ownership",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "define fail-safe detection and bounded rebuild ownership"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "required",
+          "protected_behavior": "add deterministic kill-point, stale-generation, restart, and cleanup tests",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "add deterministic kill-point, stale-generation, restart, and cleanup tests"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "delete all user data with the cache",
+        "retry startup forever",
+        "change the storage format before proving the corrupt state"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "execution.md",
+        "test-matrix.md",
+        "blue-audit.md",
+        "evidence.md"
+      ]
+    }
+  ]
+}

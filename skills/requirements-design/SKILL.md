@@ -9,6 +9,13 @@ Own user-visible semantics and the content-bound approval baseline; do not subst
 
 At every user-owned checkpoint, remain in Default mode and follow `references/user-interaction.md`; prefer the native `request_user_input` tool when the effective host surface exposes it.
 
+## Responsibility contract
+
+- Consumes: fresh repository context and the product/UX contract when applicable.
+- Owns: user-visible semantics, acceptance, scope, compatibility intent, and content-bound approval.
+- Stops: at open material ambiguity, stale approval digest, or missing user disposition.
+- Hands off: structure to architecture, external capability to dependency, and a ready baseline to the control plane.
+
 ## Procedure
 
 1. Consume a fresh `context.snapshot.v1`. Scan unresolved repository facts before asking questions.

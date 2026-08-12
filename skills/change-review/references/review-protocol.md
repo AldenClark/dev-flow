@@ -2,7 +2,7 @@
 
 ## Frozen brief
 
-Provide the approved requirement revision/digest, AC/SC/VO IDs, architecture/dependency decisions, protected/out-of-scope behavior, base and final diff, changed-file list, and raw verification results. Exclude implementer self-review and expected conclusions.
+For a source audit, freeze the exact source tree/revision or content digest, audited paths, applicable contracts, explicit exclusions, environment facts, and any evidence already available; change-only inputs remain `not applicable`, not silently invented. For an approved change review, provide the approved requirement revision/digest, AC/SC/VO IDs, architecture/dependency decisions, protected/out-of-scope behavior, base and final diff, changed-file list, and raw verification results. Exclude implementer self-review and expected conclusions in both modes.
 
 ## Blue lens
 
@@ -34,6 +34,10 @@ Classify as implementation defect, design defect, evidence gap, scope change, re
 
 Record finding ID, severity, affected AC/SC/VO, evidence, owner, disposition, repair round, and fresh recheck. Use fix-now, design change, explicit defer/acceptance, or rejected-with-proof. Stop after three failed repairs.
 
+For cross-language changes, trace every consumer and generated-artifact causal path. A post-change review names the approved diff, generated artifacts, complete changed-file list, raw verification evidence, each applicable consumer path, ABI, lifecycle, packaging/loading, version coexistence, and rollback; missing prerequisites remain `NOT RUN`.
+
 ## Evaluation
 
 Test positive violations, safe counterexamples, and unrelated changes. Measure coverage, restraint/false positives, retention of ordinary defects, actionability, rework, context cost, and unsafe actions—not finding count.
+
+For concurrency findings, require controlled scheduling or bounded repeated evidence, retain protected ordinary behavior tests, and omit unrelated specialist checklists.

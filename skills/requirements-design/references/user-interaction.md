@@ -4,6 +4,10 @@
 
 Dev Flow always remains in Default mode. Never switch to Plan mode to make a question tool available.
 
+Requirements Design owns product meaning and semantic answer records. The Dev Flow control plane owns operational approval and secret-surface selection. Dependency Decisions and Delivery Readiness own their named decisions. Verification owns executable response and lifecycle checks. Referencing this interaction contract does not transfer those responsibilities to Requirements Design.
+
+Default-mode control, waiver state, and post-interaction continuation are owned by Dev Flow. After an unresolved outcome, Requirements Design preserves the semantic state while Dev Flow decides whether any already-authorized independent reversible work may continue.
+
 For a material, user-owned, bounded, non-secret choice, invoke the host-exposed `request_user_input` tool when it is available. Codex App Server and its client own the resulting `item/tool/requestUserInput` request, `threadId`/`turnId`/`itemId`, `isBlocking`, `isOther`, `isSecret`, response correlation, `serverRequest/resolved`, rendering, and lifecycle cleanup. A Skill never constructs raw protocol frames, calls App Server directly, or guesses lifecycle identifiers.
 
 Detect capability from the effective tool surface for the current turn. Do not infer availability from an installed version, feature flag name, remembered session, or plugin inventory. Do not enable an experimental feature or modify global Codex configuration on the user's behalf.

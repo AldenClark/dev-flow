@@ -2,12 +2,316 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Dev Flow paired evaluation configuration",
   "type": "object",
-  "required": ["schema_version", "evaluation_contract", "default_trials", "metrics", "pairs"],
-  "properties": {
-    "schema_version": {"enum": ["1.0", "1.1"]},
-    "evaluation_contract": {"type": "string", "minLength": 1},
-    "default_trials": {"type": "integer", "minimum": 3},
-    "release_plan": {
+  "$defs": {
+    "caseContractV14": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["source_kind", "schema_version", "obligations", "owner_registry"],
+          "properties": {
+            "source_kind": {"const": "contract"},
+            "schema_version": {"const": "2.0"},
+            "obligations": {"const": "owner-bound-v1"},
+            "owner_registry": {"const": "governance/capability-contracts.json"}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["source_kind", "schema_version", "obligations", "owner_registry"],
+          "properties": {
+            "source_kind": {"const": "catalog"},
+            "schema_version": {"const": "1.1"},
+            "obligations": {"const": "owner-bound-v1"},
+            "owner_registry": {"const": "governance/capability-contracts.json"}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "caseContractV15": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["source_kind", "schema_version", "obligations", "owner_registry", "kind_registry"],
+          "properties": {
+            "source_kind": {"const": "contract"},
+            "schema_version": {"const": "2.1"},
+            "obligations": {"const": "owner-kind-v2"},
+            "owner_registry": {"const": "governance/capability-contracts.json"},
+            "kind_registry": {"const": "governance/claim-kinds.json"}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["source_kind", "schema_version", "obligations", "owner_registry", "kind_registry"],
+          "properties": {
+            "source_kind": {"const": "catalog"},
+            "schema_version": {"const": "1.2"},
+            "obligations": {"const": "owner-kind-v2"},
+            "owner_registry": {"const": "governance/capability-contracts.json"},
+            "kind_registry": {"const": "governance/claim-kinds.json"}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "caseContractV16": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["source_kind", "schema_version", "obligations", "owner_registry", "kind_registry"],
+          "properties": {
+            "source_kind": {"const": "contract"},
+            "schema_version": {"const": "2.2"},
+            "obligations": {"const": "work-unit-facets-v3"},
+            "owner_registry": {"const": "governance/capability-contracts.json"},
+            "kind_registry": {"const": "governance/claim-kinds.json"}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["source_kind", "schema_version", "obligations", "owner_registry", "kind_registry"],
+          "properties": {
+            "source_kind": {"const": "catalog"},
+            "schema_version": {"const": "1.3"},
+            "obligations": {"const": "work-unit-facets-v3"},
+            "owner_registry": {"const": "governance/capability-contracts.json"},
+            "kind_registry": {"const": "governance/claim-kinds.json"}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "releaseEvaluatorsV14": {
+      "type": "object",
+      "required": ["adapter", "backend", "result_schema_version", "receipt_schema_version", "executor", "grader"],
+      "properties": {
+        "adapter": {"const": "evals/codex_model_adapter.py"},
+        "backend": {
+          "type": "object",
+          "required": ["command", "version", "artifacts"],
+          "properties": {
+            "command": {"const": "codex"},
+            "version": {"type": "string", "minLength": 1},
+            "artifacts": {
+              "type": "object",
+              "minProperties": 1,
+              "propertyNames": {"pattern": "^(darwin|linux|windows)-(arm64|amd64)$"},
+              "additionalProperties": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+            }
+          },
+          "additionalProperties": false
+        },
+        "result_schema_version": {"const": "1.1"},
+        "receipt_schema_version": {"const": "1.0"},
+        "executor": {
+          "type": "object",
+          "required": ["model", "reasoning_effort"],
+          "properties": {
+            "model": {"type": "string", "minLength": 1},
+            "reasoning_effort": {"enum": ["low", "medium", "high", "xhigh"]}
+          },
+          "additionalProperties": false
+        },
+        "grader": {
+          "type": "object",
+          "required": ["model", "reasoning_effort"],
+          "properties": {
+            "model": {"type": "string", "minLength": 1},
+            "reasoning_effort": {"enum": ["low", "medium", "high", "xhigh"]}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "releaseEvaluatorsV15": {
+      "type": "object",
+      "required": ["adapter", "backend", "result_schema_version", "receipt_schema_version", "executor", "grader"],
+      "properties": {
+        "adapter": {"const": "evals/codex_model_adapter.py"},
+        "backend": {
+          "type": "object",
+          "required": ["command", "version", "artifacts"],
+          "properties": {
+            "command": {"const": "codex"},
+            "version": {"type": "string", "minLength": 1},
+            "artifacts": {
+              "type": "object",
+              "minProperties": 1,
+              "propertyNames": {"pattern": "^(darwin|linux|windows)-(arm64|amd64)$"},
+              "additionalProperties": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+            }
+          },
+          "additionalProperties": false
+        },
+        "result_schema_version": {"const": "1.2"},
+        "receipt_schema_version": {"const": "1.0"},
+        "executor": {
+          "type": "object",
+          "required": ["model", "reasoning_effort"],
+          "properties": {
+            "model": {"type": "string", "minLength": 1},
+            "reasoning_effort": {"enum": ["low", "medium", "high", "xhigh"]}
+          },
+          "additionalProperties": false
+        },
+        "grader": {
+          "type": "object",
+          "required": ["model", "reasoning_effort"],
+          "properties": {
+            "model": {"type": "string", "minLength": 1},
+            "reasoning_effort": {"enum": ["low", "medium", "high", "xhigh"]}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "releaseEvaluatorsV16": {
+      "type": "object",
+      "required": ["adapter", "backend", "result_schema_version", "receipt_schema_version", "executor", "grader"],
+      "properties": {
+        "adapter": {"const": "evals/codex_model_adapter.py"},
+        "backend": {
+          "type": "object",
+          "required": ["command", "version", "artifacts"],
+          "properties": {
+            "command": {"const": "codex"},
+            "version": {"type": "string", "minLength": 1},
+            "artifacts": {
+              "type": "object",
+              "minProperties": 1,
+              "propertyNames": {"pattern": "^(darwin|linux|windows)-(arm64|amd64)$"},
+              "additionalProperties": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+            }
+          },
+          "additionalProperties": false
+        },
+        "result_schema_version": {"const": "1.3"},
+        "receipt_schema_version": {"const": "1.0"},
+        "executor": {
+          "type": "object",
+          "required": ["model", "reasoning_effort"],
+          "properties": {
+            "model": {"type": "string", "minLength": 1},
+            "reasoning_effort": {"enum": ["low", "medium", "high", "xhigh"]}
+          },
+          "additionalProperties": false
+        },
+        "grader": {
+          "type": "object",
+          "required": ["model", "reasoning_effort"],
+          "properties": {
+            "model": {"type": "string", "minLength": 1},
+            "reasoning_effort": {"enum": ["low", "medium", "high", "xhigh"]}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "evaluatorIdentityV17": {
+      "type": "object",
+      "required": ["adapter", "backend", "result_schema_version", "receipt_schema_version", "draft", "assembler", "grader"],
+      "properties": {
+        "adapter": {"const": "evals/codex_model_adapter.py"},
+        "backend": {
+          "type": "object",
+          "required": ["command", "version", "artifacts"],
+          "properties": {
+            "command": {"const": "codex"},
+            "version": {"type": "string", "minLength": 1},
+            "artifacts": {
+              "type": "object",
+              "minProperties": 1,
+              "propertyNames": {"pattern": "^(darwin|linux|windows)-(arm64|amd64)$"},
+              "additionalProperties": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+            }
+          },
+          "additionalProperties": false
+        },
+        "result_schema_version": {"const": "1.3"},
+        "receipt_schema_version": {"const": "1.1"},
+        "draft": {"$ref": "#/$defs/evaluatorSpec"},
+        "assembler": {"$ref": "#/$defs/evaluatorSpec"},
+        "grader": {"$ref": "#/$defs/evaluatorSpec"}
+      },
+      "additionalProperties": false
+    },
+    "evaluatorIdentityV18": {
+      "type": "object",
+      "required": ["adapter", "backend", "result_schema_version", "receipt_schema_version", "inventory", "assembler", "grader"],
+      "properties": {
+        "adapter": {"const": "evals/codex_model_adapter.py"},
+        "backend": {
+          "type": "object",
+          "required": ["command", "version", "artifacts"],
+          "properties": {
+            "command": {"const": "codex"},
+            "version": {"type": "string", "minLength": 1},
+            "artifacts": {
+              "type": "object",
+              "minProperties": 1,
+              "propertyNames": {"pattern": "^(darwin|linux|windows)-(arm64|amd64)$"},
+              "additionalProperties": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+            }
+          },
+          "additionalProperties": false
+        },
+        "result_schema_version": {"const": "1.3"},
+        "receipt_schema_version": {"const": "1.2"},
+        "inventory": {"$ref": "#/$defs/evaluatorSpec"},
+        "assembler": {"$ref": "#/$defs/evaluatorSpec"},
+        "grader": {"$ref": "#/$defs/evaluatorSpec"}
+      },
+      "additionalProperties": false
+    },
+    "evaluatorSpec": {
+      "type": "object",
+      "required": ["model", "reasoning_effort"],
+      "properties": {
+        "model": {"type": "string", "minLength": 1},
+        "reasoning_effort": {"enum": ["low", "medium", "high", "xhigh"]}
+      },
+      "additionalProperties": false
+    },
+    "executorPipelineV17": {
+      "type": "object",
+      "required": ["protocol", "stage_order", "draft_request_schema_version", "assembler_request_schema_version", "draft_dto", "first_attempt_semantics", "capability_projection"],
+      "properties": {
+        "protocol": {"const": "blind-draft-assembler-v1"},
+        "stage_order": {"const": ["draft", "assembler"]},
+        "draft_request_schema_version": {"const": "1.0"},
+        "assembler_request_schema_version": {"const": "1.0"},
+        "draft_dto": {"const": "content-only-v1"},
+        "first_attempt_semantics": {"const": "single-draft-no-regeneration-v1"},
+        "capability_projection": {"const": "task-neutral-content-only-v1"}
+      },
+      "additionalProperties": false
+    },
+    "executorPipelineV18": {
+      "type": "object",
+      "required": ["protocol", "stage_order", "inventory_request_schema_version", "inventory_result_schema_version", "assembler_request_schema_version", "assembler_result_schema_version", "final_result_schema_version", "assembly_manifest", "materialization", "first_attempt_semantics", "capability_projection"],
+      "properties": {
+        "protocol": {"const": "blind-inventory-assembler-v2"},
+        "stage_order": {"const": ["inventory", "assembler"]},
+        "inventory_request_schema_version": {"const": "1.0"},
+        "inventory_result_schema_version": {"const": "1.0"},
+        "assembler_request_schema_version": {"const": "2.0"},
+        "assembler_result_schema_version": {"const": "1.0"},
+        "final_result_schema_version": {"const": "1.3"},
+        "assembly_manifest": {"const": "complete-source-partition-v1"},
+        "materialization": {"const": "deterministic-claim-v1"},
+        "first_attempt_semantics": {"const": "single-inventory-no-regeneration-v2"},
+        "capability_projection": {"const": "task-neutral-content-only-v1"}
+      },
+      "additionalProperties": false
+    },
+    "releasePlanLegacy": {
       "type": "object",
       "required": ["pair_ids", "trials_per_pair"],
       "properties": {
@@ -16,6 +320,120 @@
       },
       "additionalProperties": false
     },
+    "releasePlanV12": {
+      "type": "object",
+      "required": ["pair_ids", "trials_per_pair", "category_ids", "minimum_cases_per_category"],
+      "properties": {
+        "pair_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "trials_per_pair": {"type": "integer", "minimum": 3},
+        "category_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "minimum_cases_per_category": {"type": "integer", "minimum": 3}
+      },
+      "additionalProperties": false
+    },
+    "pairLegacy": {
+      "type": "object",
+      "required": ["id", "fixture", "capabilities", "deterministic_oracle"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
+        "fixture": {"type": "string", "minLength": 1},
+        "capabilities": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "deterministic_oracle": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "pairV12": {
+      "type": "object",
+      "required": ["id", "category", "fixture", "contract", "capabilities", "deterministic_oracle"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
+        "category": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
+        "fixture": {"type": "string", "minLength": 1},
+        "contract": {"type": "string", "minLength": 1},
+        "capabilities": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "deterministic_oracle": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "pairV13": {
+      "type": "object",
+      "required": ["id", "category", "fixture", "contract", "capabilities", "capability_context", "deterministic_oracle"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
+        "category": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
+        "fixture": {"type": "string", "minLength": 1},
+        "contract": {"type": "string", "minLength": 1},
+        "capabilities": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "capability_context": {
+          "type": "object",
+          "propertyNames": {"pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
+          "additionalProperties": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^references/[A-Za-z0-9._/-]+$"}
+          }
+        },
+        "deterministic_oracle": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "pairV13Catalog": {
+      "type": "object",
+      "required": ["id", "category", "case_source", "case_id", "capabilities", "capability_context", "deterministic_oracle"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
+        "category": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
+        "case_source": {"type": "string", "pattern": "^cases/[A-Za-z0-9._/-]+\\.json$"},
+        "case_id": {"type": "string", "minLength": 1},
+        "capabilities": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "capability_context": {
+          "type": "object",
+          "propertyNames": {"pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
+          "additionalProperties": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^references/[A-Za-z0-9._/-]+$"}
+          }
+        },
+        "deterministic_oracle": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["schema_version", "evaluation_contract", "default_trials", "metrics", "pairs"],
+  "properties": {
+    "schema_version": {"enum": ["1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8"]},
+    "dataset_role": {"enum": ["development", "acceptance"]},
+    "case_contract": {
+      "oneOf": [
+        {"$ref": "#/$defs/caseContractV14"},
+        {"$ref": "#/$defs/caseContractV15"},
+        {"$ref": "#/$defs/caseContractV16"}
+      ]
+    },
+    "release_evaluators": {
+      "oneOf": [
+        {"$ref": "#/$defs/releaseEvaluatorsV14"},
+        {"$ref": "#/$defs/releaseEvaluatorsV15"},
+        {"$ref": "#/$defs/releaseEvaluatorsV16"}
+      ]
+    },
+    "evaluator_identity": {
+      "oneOf": [
+        {"$ref": "#/$defs/releaseEvaluatorsV16"},
+        {"$ref": "#/$defs/evaluatorIdentityV17"},
+        {"$ref": "#/$defs/evaluatorIdentityV18"}
+      ]
+    },
+    "executor_pipeline": {
+      "oneOf": [
+        {"$ref": "#/$defs/executorPipelineV17"},
+        {"$ref": "#/$defs/executorPipelineV18"}
+      ]
+    },
+    "evaluation_contract": {"type": "string", "minLength": 1},
+    "default_trials": {"type": "integer", "minimum": 3},
+    "release_plan": {},
     "metrics": {
       "const": ["requirement_fidelity", "coverage", "restraint", "ordinary_defect_retention", "actionability", "rework", "context_cost", "unsafe_actions", "reminder_rate", "false_block_rate"]
     },
@@ -37,25 +455,323 @@
     },
     "pairs": {
       "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": ["id", "fixture", "capabilities", "deterministic_oracle"],
-        "properties": {
-          "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$"},
-          "fixture": {"type": "string", "minLength": 1},
-          "capabilities": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-          "deterministic_oracle": {"type": "string", "minLength": 1}
-        },
-        "additionalProperties": false
-      }
+      "minItems": 1
     }
   },
   "additionalProperties": false,
   "allOf": [
     {
+      "if": {
+        "properties": {"schema_version": {"enum": ["1.0", "1.1", "1.2", "1.3"]}},
+        "required": ["schema_version"]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {"required": ["case_contract"]},
+            {"required": ["release_evaluators"]},
+            {"required": ["evaluator_identity"]},
+            {"required": ["executor_pipeline"]}
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"schema_version": {"enum": ["1.4", "1.5", "1.6"]}},
+        "required": ["schema_version"]
+      },
+      "then": {"not": {"required": ["executor_pipeline"]}}
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "1.0"}}, "required": ["schema_version"]},
+      "then": {
+        "properties": {
+          "release_plan": {"$ref": "#/$defs/releasePlanLegacy"},
+          "pairs": {"type": "array", "items": {"$ref": "#/$defs/pairLegacy"}}
+        }
+      }
+    },
+    {
       "if": {"properties": {"schema_version": {"const": "1.1"}}, "required": ["schema_version"]},
-      "then": {"required": ["release_plan"]}
+      "then": {
+        "required": ["release_plan"],
+        "properties": {
+          "release_plan": {"$ref": "#/$defs/releasePlanLegacy"},
+          "pairs": {"type": "array", "items": {"$ref": "#/$defs/pairLegacy"}}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "1.2"}}, "required": ["schema_version"]},
+      "then": {
+        "required": ["release_plan"],
+        "properties": {
+          "release_plan": {"$ref": "#/$defs/releasePlanV12"},
+          "pairs": {
+            "type": "array",
+            "items": {"$ref": "#/$defs/pairV12"}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "1.3"}}, "required": ["schema_version"]},
+      "then": {
+        "required": ["dataset_role", "release_plan"],
+        "properties": {
+          "release_plan": {"$ref": "#/$defs/releasePlanV12"},
+          "pairs": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {"$ref": "#/$defs/pairV13"},
+                {"$ref": "#/$defs/pairV13Catalog"}
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "1.4"}}, "required": ["schema_version"]},
+      "then": {
+        "not": {"required": ["evaluator_identity"]},
+        "required": ["dataset_role", "case_contract", "release_plan"],
+        "properties": {
+          "case_contract": {"$ref": "#/$defs/caseContractV14"},
+          "release_evaluators": {"$ref": "#/$defs/releaseEvaluatorsV14"},
+          "release_plan": {"$ref": "#/$defs/releasePlanV12"},
+          "pairs": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {"$ref": "#/$defs/pairV13"},
+                {"$ref": "#/$defs/pairV13Catalog"}
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "1.5"}}, "required": ["schema_version"]},
+      "then": {
+        "not": {"required": ["evaluator_identity"]},
+        "required": ["dataset_role", "case_contract", "release_plan"],
+        "properties": {
+          "case_contract": {"$ref": "#/$defs/caseContractV15"},
+          "release_evaluators": {"$ref": "#/$defs/releaseEvaluatorsV15"},
+          "release_plan": {"$ref": "#/$defs/releasePlanV12"},
+          "pairs": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {"$ref": "#/$defs/pairV13"},
+                {"$ref": "#/$defs/pairV13Catalog"}
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "1.6"}}, "required": ["schema_version"]},
+      "then": {
+        "required": ["dataset_role", "case_contract", "release_plan"],
+        "properties": {
+          "case_contract": {"$ref": "#/$defs/caseContractV16"},
+          "release_evaluators": {"$ref": "#/$defs/releaseEvaluatorsV16"},
+          "evaluator_identity": {"$ref": "#/$defs/releaseEvaluatorsV16"},
+          "release_plan": {"$ref": "#/$defs/releasePlanV12"},
+          "pairs": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {"$ref": "#/$defs/pairV13"},
+                {"$ref": "#/$defs/pairV13Catalog"}
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "1.7"}}, "required": ["schema_version"]},
+      "then": {
+        "required": ["dataset_role", "case_contract", "release_plan", "evaluator_identity", "executor_pipeline"],
+        "not": {"required": ["release_evaluators"]},
+        "properties": {
+          "dataset_role": {"const": "development"},
+          "case_contract": {
+            "allOf": [
+              {"$ref": "#/$defs/caseContractV16"},
+              {
+                "type": "object",
+                "properties": {"source_kind": {"const": "contract"}},
+                "required": ["source_kind"]
+              }
+            ]
+          },
+          "evaluator_identity": {"$ref": "#/$defs/evaluatorIdentityV17"},
+          "executor_pipeline": {"$ref": "#/$defs/executorPipelineV17"},
+          "release_plan": {"$ref": "#/$defs/releasePlanV12"},
+          "pairs": {
+            "type": "array",
+            "items": {"$ref": "#/$defs/pairV13"}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "1.8"}}, "required": ["schema_version"]},
+      "then": {
+        "required": ["dataset_role", "case_contract", "release_plan", "evaluator_identity", "executor_pipeline"],
+        "not": {"required": ["release_evaluators"]},
+        "properties": {
+          "dataset_role": {"const": "development"},
+          "case_contract": {
+            "allOf": [
+              {"$ref": "#/$defs/caseContractV16"},
+              {
+                "type": "object",
+                "properties": {"source_kind": {"const": "contract"}},
+                "required": ["source_kind"]
+              }
+            ]
+          },
+          "evaluator_identity": {"$ref": "#/$defs/evaluatorIdentityV18"},
+          "executor_pipeline": {"$ref": "#/$defs/executorPipelineV18"},
+          "release_plan": {"$ref": "#/$defs/releasePlanV12"},
+          "pairs": {
+            "type": "array",
+            "items": {"$ref": "#/$defs/pairV13"}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.4"},
+          "case_contract": {
+            "type": "object",
+            "properties": {"source_kind": {"const": "contract"}},
+            "required": ["source_kind"]
+          }
+        },
+        "required": ["schema_version", "case_contract"]
+      },
+      "then": {
+        "not": {"required": ["release_evaluators"]},
+        "properties": {
+          "dataset_role": {"const": "development"},
+          "pairs": {"type": "array", "items": {"$ref": "#/$defs/pairV13"}}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.4"},
+          "case_contract": {
+            "type": "object",
+            "properties": {"source_kind": {"const": "catalog"}},
+            "required": ["source_kind"]
+          }
+        },
+        "required": ["schema_version", "case_contract"]
+      },
+      "then": {
+        "required": ["release_evaluators"],
+        "not": {"required": ["evaluator_identity"]},
+        "properties": {
+          "dataset_role": {"const": "acceptance"},
+          "pairs": {"type": "array", "items": {"$ref": "#/$defs/pairV13Catalog"}}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.5"},
+          "case_contract": {
+            "type": "object",
+            "properties": {"source_kind": {"const": "contract"}},
+            "required": ["source_kind"]
+          }
+        },
+        "required": ["schema_version", "case_contract"]
+      },
+      "then": {
+        "not": {"required": ["release_evaluators"]},
+        "properties": {
+          "dataset_role": {"const": "development"},
+          "pairs": {"type": "array", "items": {"$ref": "#/$defs/pairV13"}}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.5"},
+          "case_contract": {
+            "type": "object",
+            "properties": {"source_kind": {"const": "catalog"}},
+            "required": ["source_kind"]
+          }
+        },
+        "required": ["schema_version", "case_contract"]
+      },
+      "then": {
+        "required": ["release_evaluators"],
+        "not": {"required": ["evaluator_identity"]},
+        "properties": {
+          "dataset_role": {"const": "acceptance"},
+          "pairs": {"type": "array", "items": {"$ref": "#/$defs/pairV13Catalog"}}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.6"},
+          "case_contract": {
+            "type": "object",
+            "properties": {"source_kind": {"const": "contract"}},
+            "required": ["source_kind"]
+          }
+        },
+        "required": ["schema_version", "case_contract"]
+      },
+      "then": {
+        "not": {"required": ["release_evaluators"]},
+        "properties": {
+          "dataset_role": {"const": "development"},
+          "pairs": {"type": "array", "items": {"$ref": "#/$defs/pairV13"}}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.6"},
+          "case_contract": {
+            "type": "object",
+            "properties": {"source_kind": {"const": "catalog"}},
+            "required": ["source_kind"]
+          }
+        },
+        "required": ["schema_version", "case_contract"]
+      },
+      "then": {
+        "required": ["release_evaluators"],
+        "not": {"required": ["evaluator_identity"]},
+        "properties": {
+          "dataset_role": {"const": "acceptance"},
+          "pairs": {"type": "array", "items": {"$ref": "#/$defs/pairV13Catalog"}}
+        }
+      }
     }
   ]
 }

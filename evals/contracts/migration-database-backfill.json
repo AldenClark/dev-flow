@@ -1,0 +1,109 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-MIGRATION-DATABASE-BACKFILL",
+  "profile": "Online database expand-migrate-contract backfill",
+  "prompt": "Add and populate a required derived column while old and new application versions coexist.",
+  "fixture": "reference-cases/migration-database-backfill.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "repo-context",
+      "claim_routes": [
+        {
+          "kind": "repo-context.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "inventory schema versions, readers, writers, jobs, data volume, deployment order, and operational constraints",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "inventory schema versions, readers, writers, jobs, data volume, deployment order, and operational constraints"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "define expand, dual-compatible code, bounded resumable backfill, validation, contract, rollback, and cleanup phases",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "define expand, dual-compatible code, bounded resumable backfill, validation, contract, rollback, and cleanup phases"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "make checkpoints, retries, idempotency, throttling, observability, and failure recovery explicit",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "make checkpoints, retries, idempotency, throttling, observability, and failure recovery explicit"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "reconcile representative and aggregate data before and after forward and rollback rehearsals",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "reconcile representative and aggregate data before and after forward and rollback rehearsals"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.limitation"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "block cutover or release while required production-like or rollback evidence is missing",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "block cutover or release while required production-like or rollback evidence is missing"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "add a required column and switch all writers in one irreversible step",
+    "run an unbounded unobservable backfill",
+    "drop the old representation before supported readers and rollback expire",
+    "report partial, blocked, or not-run migration cells as passed"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "requirements.md",
+    "design.md",
+    "execution.md",
+    "test-matrix.md",
+    "red-audit.md",
+    "evidence.md"
+  ]
+}
