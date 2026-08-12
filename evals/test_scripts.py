@@ -81,6 +81,23 @@ def resolve_fake_release_backend(
     return approved_contract, identity
 
 
+def write_fake_codex(root: Path, source: str) -> Path:
+    """Create a PATH-resolvable fake Codex launcher on POSIX and Windows."""
+    if os.name == "nt":
+        script = root / "codex.py"
+        script.write_text(source, encoding="utf-8")
+        launcher = root / "codex.cmd"
+        launcher.write_text(
+            f'@echo off\r\n"{PYTHON}" "%~dp0codex.py" %*\r\n',
+            encoding="utf-8",
+        )
+        return launcher
+    launcher = root / "codex"
+    launcher.write_text(source, encoding="utf-8")
+    launcher.chmod(0o755)
+    return launcher
+
+
 def write_features(path: Path) -> None:
     path.write_text("multi_agent stable true\nmulti_agent_v2 stable true\nhooks stable true\n", encoding="utf-8")
 
@@ -601,10 +618,10 @@ class PairedEvaluationRunnerTests(unittest.TestCase):
     def test_inventory_grounding_failure_blocks_assembler_and_grader(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            fake_codex = root / "codex"
             call_log = root / "calls.jsonl"
             output = root / "output"
-            fake_codex.write_text(
+            fake_codex = write_fake_codex(
+                root,
                 f'''#!{PYTHON}
 import json, pathlib, sys
 if "--version" in sys.argv:
@@ -636,9 +653,7 @@ else:
 output.write_text(json.dumps(result), encoding="utf-8")
 print(json.dumps({{"type": "turn.completed", "usage": {{"input_tokens": 5, "output_tokens": 2, "total_tokens": 7}}}}))
 ''',
-                encoding="utf-8",
             )
-            fake_codex.chmod(0o755)
             config = json.loads(
                 (ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8")
             )
@@ -698,9 +713,9 @@ print(json.dumps({{"type": "turn.completed", "usage": {{"input_tokens": 5, "outp
     def test_inventory_v2_native_semantic_stop_writes_terminal_evidence_before_next_call(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            fake_codex = root / "codex"
             call_log = root / "calls.jsonl"
-            fake_codex.write_text(
+            fake_codex = write_fake_codex(
+                root,
                 f'''#!{PYTHON}
 import json, pathlib, re, sys
 if "--version" in sys.argv:
@@ -757,9 +772,7 @@ else:
 output.write_text(json.dumps(result), encoding="utf-8")
 print(json.dumps({{"type": "turn.completed", "usage": {{"input_tokens": 5, "output_tokens": 2, "total_tokens": 7}}}}))
 ''',
-                encoding="utf-8",
             )
-            fake_codex.chmod(0o755)
             config = json.loads(
                 (ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8")
             )
@@ -816,9 +829,9 @@ print(json.dumps({{"type": "turn.completed", "usage": {{"input_tokens": 5, "outp
     def test_two_stage_monotonic_failure_blocks_grader_and_marks_final_invalid(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            fake_codex = root / "codex"
             call_log = root / "calls.jsonl"
-            fake_codex.write_text(
+            fake_codex = write_fake_codex(
+                root,
                 f'''#!{PYTHON}
 import json, pathlib, re, sys
 if "--version" in sys.argv:
@@ -868,9 +881,7 @@ else:
 output.write_text(json.dumps(result), encoding="utf-8")
 print(json.dumps({{"type": "turn.completed", "usage": {{"input_tokens": 5, "output_tokens": 2, "total_tokens": 7}}}}))
 ''',
-                encoding="utf-8",
             )
-            fake_codex.chmod(0o755)
             config = json.loads(
                 (ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8")
             )
@@ -945,9 +956,9 @@ print(json.dumps({{"type": "turn.completed", "usage": {{"input_tokens": 5, "outp
     def test_blind_two_stage_pipeline_is_opaque_attested_ordered_and_uncached(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            fake_codex = root / "codex"
             call_log = root / "calls.jsonl"
-            fake_codex.write_text(
+            fake_codex = write_fake_codex(
+                root,
                 f'''#!{PYTHON}
 import json, pathlib, re, sys
 if "--version" in sys.argv:
@@ -1006,9 +1017,7 @@ else:
 output.write_text(json.dumps(result), encoding="utf-8")
 print(json.dumps({{"type": "turn.completed", "usage": {{"input_tokens": 5, "output_tokens": 2, "total_tokens": 7}}}}))
 ''',
-                encoding="utf-8",
             )
-            fake_codex.chmod(0o755)
             config = json.loads(
                 (ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8")
             )
@@ -3680,6 +3689,7 @@ print(json.dumps(result))
     def test_owned_process_interrupt_terminates_the_owned_tree_before_stream_cleanup(self) -> None:
         class InterruptedProcess:
             pid = 12345
+            _handle = 0
             returncode = None
             stdin = io.BytesIO()
             stdout = io.BytesIO(b"partial stdout")

@@ -1178,7 +1178,7 @@ def main() -> int:
                     f"paired cases {pair_id} and {other_pair_id} are insufficiently distinct "
                     f"within {category}: token_jaccard={similarity:.3f}"
                 )
-    expected_contract_paths = {str(path.relative_to(ROOT / "evals")) for path in contracts}
+    expected_contract_paths = {path.relative_to(ROOT / "evals").as_posix() for path in contracts}
     if configured_contracts != expected_contract_paths:
         errors.append("development paired evaluation must consume every structured contract exactly once")
     if len(observed_catalog_cases) != 56:
