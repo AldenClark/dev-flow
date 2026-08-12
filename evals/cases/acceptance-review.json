@@ -1,0 +1,269 @@
+{
+  "schema_version": "1.3",
+  "cases": [
+    {
+      "id": "CASE-ACC-REVIEW-API",
+      "profile": "Public API compatibility diff review",
+      "prompt": "Review a change that simplifies a public response type.",
+      "fixture": "The diff removes an optional field, narrows an enum, changes error codes, and updates only new-client tests. Old clients remain supported.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "change-review",
+          "claim_routes": [
+            {
+              "kind": "change-review.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "trace the exact diff through serializers, clients, retry behavior, and compatibility contract",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "trace the exact diff through serializers, clients, retry behavior, and compatibility contract"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "verify removed, unknown, and old-client cases with current source",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "verify removed, unknown, and old-client cases with current source"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "change-review",
+          "claim_routes": [
+            {
+              "kind": "change-review.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "distinguish implementation defect from material contract change",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "distinguish implementation defect from material contract change"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "change-review",
+          "claim_routes": [
+            {
+              "kind": "change-review.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "require migration or explicit compatibility decision before acceptance",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "require migration or explicit compatibility decision before acceptance"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "approve from new-client tests only",
+        "treat optional-field removal as internal refactoring",
+        "report style preferences as blockers"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "requirements.md",
+        "test-matrix.md",
+        "blue-audit.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-REVIEW-BACKFILL",
+      "profile": "Online data backfill diff review",
+      "prompt": "Review a resumable backfill and schema enforcement change.",
+      "fixture": "Workers claim ranges concurrently, retry after crash, and deploy beside old writers. The diff enables a NOT NULL constraint in the same release.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "change-review",
+          "claim_routes": [
+            {
+              "kind": "change-review.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "inspect claim ownership, idempotency, retry, progress, and reconciliation paths",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "inspect claim ownership, idempotency, retry, progress, and reconciliation paths"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test mixed writers, crash restart, duplicate ranges, and rollback",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "test mixed writers, crash restart, duplicate ranges, and rollback"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "change-review",
+          "claim_routes": [
+            {
+              "kind": "change-review.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "identify premature enforcement as a data-compatibility risk",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "identify premature enforcement as a data-compatibility risk"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "verify observation and cleanup gates before contract",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "verify observation and cleanup gates before contract"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "approve because the happy-path migration test passes",
+        "assume exactly-once worker execution",
+        "ignore rollback data readability"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "test-matrix.md",
+        "blue-audit.md",
+        "red-audit.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-REVIEW-PRIVACY",
+      "profile": "Logging and privacy diff review",
+      "prompt": "Review observability changes around authentication failures.",
+      "fixture": "The diff adds request bodies, user identifiers, tokens, and stack traces to structured logs to improve debugging. Logs cross tenant and retention boundaries.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "change-review",
+          "claim_routes": [
+            {
+              "kind": "change-review.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "trace each new field through log, metric, error, and retention sinks",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "trace each new field through log, metric, error, and retention sinks"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "verify redaction, tenant scope, access, sampling, and failure behavior",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "verify redaction, tenant scope, access, sampling, and failure behavior"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "add negative tests for secrets and identifiers across error paths",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "add negative tests for secrets and identifiers across error paths"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "change-review",
+          "claim_routes": [
+            {
+              "kind": "change-review.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "separate necessary diagnostics from prohibited data exposure",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "separate necessary diagnostics from prohibited data exposure"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "accept secrets because logs are internal",
+        "review only success-path logging",
+        "quote or persist real credentials in evidence"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "test-matrix.md",
+        "blue-audit.md",
+        "red-audit.md",
+        "evidence.md"
+      ]
+    }
+  ]
+}

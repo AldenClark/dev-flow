@@ -31,11 +31,14 @@ Assess provenance/integrity, active-host metadata and runtime compatibility, sco
 
 ## Evaluation
 
-For every Skill test direct and orchestrated positive triggers, negative triggers, collisions, schema/output ownership, fixed repository contracts, cross-language boundaries, safe counterexamples, unrelated changes, and with/without-Skill utility.
+Prove the core workflow before expanding an evaluation harness:
 
-Run `evals/run_paired_evaluations.py` with at least three independent first-attempt trials per pair. Counterbalance baseline/candidate order, isolate every run directory, preserve requests/stdout/stderr/results, and reject artifact paths that escape the run. Executor artifacts must be a strict descendant, symlink-free, and bounded. The grader runs from an opaque temporary root outside the labeled executor output tree and receives only the fixture, oracle, and sanitized executor result; it receives no variant label, capability list, condition, or paired output. This is structural blinding, not an OS sandbox: evaluator commands retain ambient user authority. Record outcome, quality, interaction, usage, safety, false-block, variance, release-threshold, and candidate-minus-baseline values. Legacy Schema 1.0 configs without `release_thresholds` remain readable and are normalized to the runner's conservative defaults; new configs should declare the thresholds explicitly. Live model results are release evidence, not deterministic CI gates.
+1. Deterministically test direct/orchestrated positive triggers, negative triggers, exact route order, work mode, collisions, output ownership, stop/handoff behavior, safe counterexamples, and unrelated changes.
+2. Exercise representative repository workflows from task to final evidence. At minimum cover an ordinary bugfix, a structural bugfix, and a public-contract change; verify that upstream owners run before proof/review and that review or verification cannot backfill a missing decision.
+3. Use live paired model evaluation only for a material Skill behavior change, model-dependent claim, or release comparison after the deterministic and repository-workflow gates pass. It is release evidence, not the source of Skill ownership or a deterministic CI gate.
+4. Add a new protocol, schema, or evaluator stage only when a proven core invariant cannot be observed through the existing thin harness. Record that invariant, the smaller rejected alternative, maintenance cost, rollback, and removal condition.
 
-Measure requirement fidelity, coverage, restraint, ordinary-defect retention, actionability, rework, context/tokens when observable, unsafe actions, reminder/false-block rate, compatibility, and total repair depth. Do not optimize finding or question count.
+When paired evaluation is required, keep fixed artifacts, at least three independent first attempts, counterbalanced conditions, isolated run directories, structural grader blinding, bounded artifacts, preserved first failures, and explicit limitations. Measure fidelity, coverage, restraint, ordinary-defect retention, actionability, rework, context/tokens, unsafe actions, false blocks, compatibility, and repair depth. Do not optimize artifact, finding, or question count.
 
 ## Cutover and rollback
 

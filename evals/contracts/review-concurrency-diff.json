@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-REVIEW-CONCURRENCY-DIFF",
+  "profile": "Concurrency, retry, ordering, and shutdown change review",
+  "prompt": "Review a patch that parallelizes retrying delivery and changes shutdown order.",
+  "fixture": "reference-cases/review-concurrency-diff.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "change-review",
+      "claim_routes": [
+        {
+          "kind": "change-review.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "trace job, task, queue, durable state, retry, acknowledgement, cancellation, and shutdown ownership",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "trace job, task, queue, durable state, retry, acknowledgement, cancellation, and shutdown ownership"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "verify bounds, ordering, duplicate delivery, idempotency, backpressure, deadline, join, drain, and leak behavior",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "verify bounds, ordering, duplicate delivery, idempotency, backpressure, deadline, join, drain, and leak behavior"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "change-review",
+      "claim_routes": [
+        {
+          "kind": "change-review.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "inspect lock and suspension boundaries, partial failure, restart, and crash recovery",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "inspect lock and suspension boundaries, partial failure, restart, and crash recovery"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "use deterministic or controlled concurrency evidence for causal findings and retain ordinary behavior tests",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "use deterministic or controlled concurrency evidence for causal findings and retain ordinary behavior tests"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "change-review",
+      "claim_routes": [
+        {
+          "kind": "change-review.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "account for rollback and operational observability without expanding scope",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "account for rollback and operational observability without expanding scope"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "approve detached ownerless tasks",
+    "assume parallelism preserves ordering or idempotency",
+    "report a possible race without a reachable causal path",
+    "fix concurrency by adding unbounded queues or sleeps"
+  ],
+  "required_artifacts": [
+    "design.md",
+    "test-matrix.md",
+    "blue-audit.md",
+    "red-audit.md",
+    "evidence.md"
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-VERIFY-CONCURRENCY-SHUTDOWN",
+  "profile": "Concurrent shutdown verification",
+  "prompt": "Diagnose and verify an intermittent retry/shutdown hang.",
+  "fixture": "reference-cases/verify-concurrency-shutdown.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "preserve the first failure, environment, timeline, and reproduction reliability",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "preserve the first failure, environment, timeline, and reproduction reliability"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "identify task, queue, lock, timer, I/O, cancellation, and join ownership before changing code",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "identify task, queue, lock, timer, I/O, cancellation, and join ownership before changing code"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "create a deterministic interleaving or bounded repeated reproducer with a discriminating oracle",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "create a deterministic interleaving or bounded repeated reproducer with a discriminating oracle"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "verify deadline, cancellation propagation, drain, join, resource release, and restart behavior",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "verify deadline, cancellation propagation, drain, join, resource release, and restart behavior"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "classify product race, test race, environment contamination, timeout, or infrastructure failure before retry",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "classify product race, test race, environment contamination, timeout, or infrastructure failure before retry"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "increase timeout or add retries as the only fix",
+    "detach work to make shutdown return",
+    "treat one passing rerun as proof the race is fixed",
+    "claim no leak without owned descendant or resource evidence"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "execution.md",
+    "test-matrix.md",
+    "red-audit.md",
+    "evidence.md"
+  ]
+}

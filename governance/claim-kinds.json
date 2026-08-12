@@ -1,0 +1,293 @@
+{
+  "schema_version": "1.0",
+  "kinds": [
+    {
+      "id": "architecture-decisions.analysis",
+      "owner": "architecture-decisions"
+    },
+    {
+      "id": "architecture-decisions.artifact",
+      "owner": "architecture-decisions"
+    },
+    {
+      "id": "architecture-decisions.decision",
+      "owner": "architecture-decisions"
+    },
+    {
+      "id": "architecture-decisions.interaction",
+      "owner": "architecture-decisions"
+    },
+    {
+      "id": "architecture-decisions.limitation",
+      "owner": "architecture-decisions"
+    },
+    {
+      "id": "architecture-decisions.test",
+      "owner": "architecture-decisions"
+    },
+    {
+      "id": "change-review.analysis",
+      "owner": "change-review"
+    },
+    {
+      "id": "change-review.artifact",
+      "owner": "change-review"
+    },
+    {
+      "id": "change-review.decision",
+      "owner": "change-review"
+    },
+    {
+      "id": "change-review.interaction",
+      "owner": "change-review"
+    },
+    {
+      "id": "change-review.limitation",
+      "owner": "change-review"
+    },
+    {
+      "id": "change-review.test",
+      "owner": "change-review"
+    },
+    {
+      "id": "delivery-readiness.analysis",
+      "owner": "delivery-readiness"
+    },
+    {
+      "id": "delivery-readiness.artifact",
+      "owner": "delivery-readiness"
+    },
+    {
+      "id": "delivery-readiness.decision",
+      "owner": "delivery-readiness"
+    },
+    {
+      "id": "delivery-readiness.interaction",
+      "owner": "delivery-readiness"
+    },
+    {
+      "id": "delivery-readiness.limitation",
+      "owner": "delivery-readiness"
+    },
+    {
+      "id": "delivery-readiness.test",
+      "owner": "delivery-readiness"
+    },
+    {
+      "id": "dependency-decisions.analysis",
+      "owner": "dependency-decisions"
+    },
+    {
+      "id": "dependency-decisions.artifact",
+      "owner": "dependency-decisions"
+    },
+    {
+      "id": "dependency-decisions.decision",
+      "owner": "dependency-decisions"
+    },
+    {
+      "id": "dependency-decisions.interaction",
+      "owner": "dependency-decisions"
+    },
+    {
+      "id": "dependency-decisions.limitation",
+      "owner": "dependency-decisions"
+    },
+    {
+      "id": "dependency-decisions.test",
+      "owner": "dependency-decisions"
+    },
+    {
+      "id": "dev-flow.analysis",
+      "owner": "dev-flow"
+    },
+    {
+      "id": "dev-flow.artifact",
+      "owner": "dev-flow"
+    },
+    {
+      "id": "dev-flow.decision",
+      "owner": "dev-flow"
+    },
+    {
+      "id": "dev-flow.interaction",
+      "owner": "dev-flow"
+    },
+    {
+      "id": "dev-flow.limitation",
+      "owner": "dev-flow"
+    },
+    {
+      "id": "dev-flow.test",
+      "owner": "dev-flow"
+    },
+    {
+      "id": "dev-flow-maintainer.analysis",
+      "owner": "dev-flow-maintainer"
+    },
+    {
+      "id": "dev-flow-maintainer.artifact",
+      "owner": "dev-flow-maintainer"
+    },
+    {
+      "id": "dev-flow-maintainer.decision",
+      "owner": "dev-flow-maintainer"
+    },
+    {
+      "id": "dev-flow-maintainer.interaction",
+      "owner": "dev-flow-maintainer"
+    },
+    {
+      "id": "dev-flow-maintainer.limitation",
+      "owner": "dev-flow-maintainer"
+    },
+    {
+      "id": "dev-flow-maintainer.test",
+      "owner": "dev-flow-maintainer"
+    },
+    {
+      "id": "manage-engineering-profiles.analysis",
+      "owner": "manage-engineering-profiles"
+    },
+    {
+      "id": "manage-engineering-profiles.artifact",
+      "owner": "manage-engineering-profiles"
+    },
+    {
+      "id": "manage-engineering-profiles.decision",
+      "owner": "manage-engineering-profiles"
+    },
+    {
+      "id": "manage-engineering-profiles.interaction",
+      "owner": "manage-engineering-profiles"
+    },
+    {
+      "id": "manage-engineering-profiles.limitation",
+      "owner": "manage-engineering-profiles"
+    },
+    {
+      "id": "manage-engineering-profiles.test",
+      "owner": "manage-engineering-profiles"
+    },
+    {
+      "id": "product-ux-discovery.analysis",
+      "owner": "product-ux-discovery"
+    },
+    {
+      "id": "product-ux-discovery.artifact",
+      "owner": "product-ux-discovery"
+    },
+    {
+      "id": "product-ux-discovery.decision",
+      "owner": "product-ux-discovery"
+    },
+    {
+      "id": "product-ux-discovery.interaction",
+      "owner": "product-ux-discovery"
+    },
+    {
+      "id": "product-ux-discovery.limitation",
+      "owner": "product-ux-discovery"
+    },
+    {
+      "id": "product-ux-discovery.test",
+      "owner": "product-ux-discovery"
+    },
+    {
+      "id": "repo-context.analysis",
+      "owner": "repo-context"
+    },
+    {
+      "id": "repo-context.artifact",
+      "owner": "repo-context"
+    },
+    {
+      "id": "repo-context.decision",
+      "owner": "repo-context"
+    },
+    {
+      "id": "repo-context.interaction",
+      "owner": "repo-context"
+    },
+    {
+      "id": "repo-context.limitation",
+      "owner": "repo-context"
+    },
+    {
+      "id": "repo-context.test",
+      "owner": "repo-context"
+    },
+    {
+      "id": "requirements-design.analysis",
+      "owner": "requirements-design"
+    },
+    {
+      "id": "requirements-design.artifact",
+      "owner": "requirements-design"
+    },
+    {
+      "id": "requirements-design.decision",
+      "owner": "requirements-design"
+    },
+    {
+      "id": "requirements-design.interaction",
+      "owner": "requirements-design"
+    },
+    {
+      "id": "requirements-design.limitation",
+      "owner": "requirements-design"
+    },
+    {
+      "id": "requirements-design.test",
+      "owner": "requirements-design"
+    },
+    {
+      "id": "systematic-debugging.analysis",
+      "owner": "systematic-debugging"
+    },
+    {
+      "id": "systematic-debugging.artifact",
+      "owner": "systematic-debugging"
+    },
+    {
+      "id": "systematic-debugging.decision",
+      "owner": "systematic-debugging"
+    },
+    {
+      "id": "systematic-debugging.interaction",
+      "owner": "systematic-debugging"
+    },
+    {
+      "id": "systematic-debugging.limitation",
+      "owner": "systematic-debugging"
+    },
+    {
+      "id": "systematic-debugging.test",
+      "owner": "systematic-debugging"
+    },
+    {
+      "id": "verification.analysis",
+      "owner": "verification"
+    },
+    {
+      "id": "verification.artifact",
+      "owner": "verification"
+    },
+    {
+      "id": "verification.decision",
+      "owner": "verification"
+    },
+    {
+      "id": "verification.interaction",
+      "owner": "verification"
+    },
+    {
+      "id": "verification.limitation",
+      "owner": "verification"
+    },
+    {
+      "id": "verification.test",
+      "owner": "verification"
+    }
+  ]
+}

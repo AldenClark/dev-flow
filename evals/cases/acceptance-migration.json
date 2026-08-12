@@ -1,0 +1,269 @@
+{
+  "schema_version": "1.3",
+  "cases": [
+    {
+      "id": "CASE-ACC-MIGRATION-EVENT",
+      "profile": "Queue event version migration with replay",
+      "prompt": "Migrate a durable queue event without breaking old producers, new consumers, or replay.",
+      "fixture": "Events remain in the queue for seven days. Producers and consumers deploy independently. Dead-letter replay may deliver either schema after rollback.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "delivery-readiness",
+          "claim_routes": [
+            {
+              "kind": "delivery-readiness.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "define old/new read-write compatibility and unknown-field behavior",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "define old/new read-write compatibility and unknown-field behavior"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "delivery-readiness",
+          "claim_routes": [
+            {
+              "kind": "delivery-readiness.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "stage dual-read or versioned handling before producer cutover",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "stage dual-read or versioned handling before producer cutover"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test replay, duplicate delivery, rollback, and mixed deployment order",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "test replay, duplicate delivery, rollback, and mixed deployment order"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "delivery-readiness",
+          "claim_routes": [
+            {
+              "kind": "delivery-readiness.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "define cleanup only after retention and rollback windows close",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "define cleanup only after retention and rollback windows close"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "switch every producer and consumer atomically",
+        "delete old decoding before queue retention expires",
+        "assume replay preserves deployment order"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-MIGRATION-KEY",
+      "profile": "Persisted encryption-key rotation and rollback",
+      "prompt": "Rotate encrypted local records to a new key format without data loss.",
+      "fixture": "Records are updated lazily, clients may be offline for weeks, and rollback must still read records already rewritten. Key material must not appear in logs or fixtures.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "delivery-readiness",
+          "claim_routes": [
+            {
+              "kind": "delivery-readiness.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "separate format version, key identifier, and secret storage ownership",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "separate format version, key identifier, and secret storage ownership"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "delivery-readiness",
+          "claim_routes": [
+            {
+              "kind": "delivery-readiness.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "support bounded dual-read and resumable idempotent rewrite",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "support bounded dual-read and resumable idempotent rewrite"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "verify crash recovery, partial migration, offline return, and rollback reads",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "verify crash recovery, partial migration, offline return, and rollback reads"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "delivery-readiness",
+          "claim_routes": [
+            {
+              "kind": "delivery-readiness.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "measure completion and retire old keys only after explicit lifecycle evidence",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "measure completion and retire old keys only after explicit lifecycle evidence"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "log or embed key material",
+        "make rewritten records unreadable by the rollback build",
+        "treat migration completion as process exit success"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-MIGRATION-OFFLINE",
+      "profile": "Offline client database schema coexistence",
+      "prompt": "Ship a database schema change to clients that may skip releases and remain offline.",
+      "fixture": "A mobile client can upgrade across three versions, restore an older backup, or be downgraded by enterprise management. The new field changes validation semantics.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "repo-context",
+          "claim_routes": [
+            {
+              "kind": "repo-context.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "map supported upgrade, skip-upgrade, backup-restore, and downgrade directions",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "map supported upgrade, skip-upgrade, backup-restore, and downgrade directions"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "delivery-readiness",
+          "claim_routes": [
+            {
+              "kind": "delivery-readiness.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "use an expand/compatible-read phase before enforcing new semantics",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "use an expand/compatible-read phase before enforcing new semantics"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test representative old/new database and application combinations",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "test representative old/new database and application combinations"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "delivery-readiness",
+          "claim_routes": [
+            {
+              "kind": "delivery-readiness.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "define rollback, telemetry, cleanup, and unsupported-state failure behavior",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "define rollback, telemetry, cleanup, and unsupported-state failure behavior"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "assume every client upgrades one version at a time",
+        "enforce the new field before old writers are retired",
+        "claim downgrade support without a data-format proof"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    }
+  ]
+}

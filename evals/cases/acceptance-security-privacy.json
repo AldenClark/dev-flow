@@ -1,0 +1,445 @@
+{
+  "schema_version": "1.3",
+  "cases": [
+    {
+      "id": "CASE-ACC-SEC-TENANT",
+      "profile": "Tenant authorization and object lookup",
+      "prompt": "Fix an endpoint that can return another tenant's object when given its identifier.",
+      "fixture": "Authentication succeeds before lookup, but tenant scope is checked only in one caller. Cache keys omit tenant identity and errors differ for missing versus forbidden.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "change-review",
+          "claim_routes": [
+            {
+              "kind": "change-review.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "trace identity, tenant scope, lookup, cache, and response boundaries",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "trace identity, tenant scope, lookup, cache, and response boundaries"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "enforce tenant ownership in the authoritative query and cache key",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "enforce tenant ownership in the authoritative query and cache key"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "use non-leaking external failure behavior with safe internal diagnostics",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "use non-leaking external failure behavior with safe internal diagnostics"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "add cross-tenant positive and negative regression tests",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "add cross-tenant positive and negative regression tests"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "filter only after loading the foreign object",
+        "trust a tenant id from request input",
+        "expose object existence through error differences"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-SEC-REDACTION",
+      "profile": "Secret redaction across errors and traces",
+      "prompt": "Add diagnostic tracing without exposing credentials or personal data.",
+      "fixture": "Secrets may appear in headers, nested JSON, exception messages, and subprocess stderr. Traces are exported and retained longer than application logs.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "change-review",
+          "claim_routes": [
+            {
+              "kind": "change-review.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "inventory all diagnostic sinks and sensitive field sources",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "inventory all diagnostic sinks and sensitive field sources"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "redact or omit at the earliest owned boundary with structured allowlists",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "redact or omit at the earliest owned boundary with structured allowlists"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "define truncation, nested, malformed, and fallback behavior",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "define truncation, nested, malformed, and fallback behavior"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test success, error, exception, child-process, and exporter paths with synthetic markers",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "test success, error, exception, child-process, and exporter paths with synthetic markers"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "log then redact only at the exporter",
+        "use real secrets in tests",
+        "assume field-name matching catches exception text"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-SEC-CREDENTIAL",
+      "profile": "Credential storage and lifecycle ownership",
+      "prompt": "Persist a service credential for a desktop application.",
+      "fixture": "Plain configuration files are synchronized and backed up. The platform provides a secure credential store. Sign-out, uninstall, and account switching have distinct semantics.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "separate secret value, non-secret reference, account, and lifecycle ownership",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "separate secret value, non-secret reference, account, and lifecycle ownership"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "use the platform secure store with least access and explicit failure behavior",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "use the platform secure store with least access and explicit failure behavior"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "define sign-out, switch, uninstall, backup, and recovery semantics",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "define sign-out, switch, uninstall, backup, and recovery semantics"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test missing, revoked, wrong-account, migration, and cleanup cases",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "test missing, revoked, wrong-account, migration, and cleanup cases"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "store the credential in synchronized config",
+        "print the credential during migration",
+        "delete another account's credential on sign-out"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-SEC-PATH",
+      "profile": "Untrusted archive path and output containment",
+      "prompt": "Import a user-supplied archive into a bounded project directory.",
+      "fixture": "Entries may be absolute, contain parent traversal, use symlinks, collide by case, or expand beyond size limits. Existing files must not be overwritten silently.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "normalize and validate every entry before writing",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "normalize and validate every entry before writing"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "reject traversal, absolute, symlink, collision, and special-file cases",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "reject traversal, absolute, symlink, collision, and special-file cases"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "bound count, per-file size, total expansion, cancellation, and cleanup",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "bound count, per-file size, total expansion, cancellation, and cleanup"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "write through an isolated staging root and commit only a validated result",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "write through an isolated staging root and commit only a validated result"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "extract first and inspect later",
+        "follow archive symlinks",
+        "trust declared compressed size alone"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-SEC-AUDIT",
+      "profile": "Tamper-evident audit event integrity",
+      "prompt": "Design audit records for privileged configuration changes.",
+      "fixture": "Events cross process and storage boundaries, clocks may skew, retries duplicate events, and operators need correlation without logging secret values.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "define actor, authority, operation, target, result, correlation, and redacted field ownership",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "define actor, authority, operation, target, result, correlation, and redacted field ownership"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.artifact"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "bind ordering and integrity to durable storage rather than wall clock alone",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "bind ordering and integrity to durable storage rather than wall clock alone"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "handle retry, duplicate, partial failure, retention, and access controls",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "handle retry, duplicate, partial failure, retention, and access controls"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test tamper, missing link, replay, clock skew, and redaction negatives",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "test tamper, missing link, replay, clock skew, and redaction negatives"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "include secret values for completeness",
+        "treat timestamps as integrity proof",
+        "drop failed operations from the audit trail"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-MIGRATION-SDK-PROTOCOL",
+  "profile": "Public SDK and protocol rolling migration",
+  "prompt": "Roll out a protocol change across old and new mobile SDKs and servers.",
+  "fixture": "reference-cases/migration-sdk-protocol.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "repo-context",
+      "claim_routes": [
+        {
+          "kind": "repo-context.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "inventory supported SDK/server versions, generated clients, wire schema, unknown-field behavior, and deployment control",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "inventory supported SDK/server versions, generated clients, wire schema, unknown-field behavior, and deployment control"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "define old-reader/new-writer and new-reader/old-writer compatibility directions",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "define old-reader/new-writer and new-reader/old-writer compatibility directions"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "design version negotiation, staged coexistence, telemetry, cutover, rollback, deprecation, and cleanup",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "design version negotiation, staged coexistence, telemetry, cutover, rollback, deprecation, and cleanup"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "test golden payloads, limits, malformed inputs, canonicalization, and every critical mixed-version cell",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "test golden payloads, limits, malformed inputs, canonicalization, and every critical mixed-version cell"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "preserve release blocking for unsupported required clients, platforms, or rollback paths",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "preserve release blocking for unsupported required clients, platforms, or rollback paths"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "assume synchronized client and server deployment",
+    "reuse a field with incompatible meaning without a versioned migration",
+    "remove old decoding from servers before the supported-client window closes",
+    "claim public compatibility from one current-version integration test"
+  ],
+  "required_artifacts": [
+    "requirements.md",
+    "design.md",
+    "execution.md",
+    "test-matrix.md",
+    "blue-audit.md",
+    "red-audit.md",
+    "evidence.md"
+  ]
+}

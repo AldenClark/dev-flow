@@ -1,14 +1,95 @@
 {
+  "schema_version": "2.2",
   "id": "CASE-RUST-BACKEND",
   "profile": "Rust backend and background worker",
   "prompt": "Add a bounded retrying background delivery job to an existing Axum service.",
   "fixture": "reference-cases/rust-backend.md",
-  "expected_actions": [
-    "scan job lifecycle, shutdown, persistence, and existing dependencies before design",
-    "define retry, backoff, deduplication, cancellation, overload, and recovery",
-    "create a complete trace packet with AC/SC/VO mappings",
-    "request approval before any new dependency",
-    "run Rust static, unit, integration, restart, and drain evidence as applicable"
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "inspect job lifecycle, shutdown, persistence, capacity, and existing verification before choosing oracles",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "inspect job lifecycle, shutdown, persistence, capacity, and existing verification before choosing oracles"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "define bounded admission, overload or backpressure, retry, deduplication, cancellation, collision, and restart recovery checks",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "define bounded admission, overload or backpressure, retry, deduplication, cancellation, collision, and restart recovery checks"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "create deterministic or bounded repeated tests for claim exclusivity, retry limits, restart recovery, and drain behavior",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "create deterministic or bounded repeated tests for claim exclusivity, retry limits, restart recovery, and drain behavior"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "run Rust static, focused unit, integration, restart, drain, and resource evidence as applicable",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "run Rust static, focused unit, integration, restart, drain, and resource evidence as applicable"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.artifact"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "record exact commands and outcomes while preserving failed, flaky, blocked, and not-run gates",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "record exact commands and outcomes while preserving failed, flaky, blocked, and not-run gates"
+        }
+      ]
+    }
   ],
   "forbidden_actions": [
     "invent Kafka or NATS JetStream as a global default",
@@ -16,5 +97,15 @@
     "add Chrono",
     "claim restart safety without a durable-boundary test"
   ],
-  "required_artifacts": ["context.md", "requirements.md", "design.md", "execution.md", "test-matrix.md", "blue-audit.md", "red-audit.md", "evidence.md", "decisions.md"]
+  "required_artifacts": [
+    "context.md",
+    "requirements.md",
+    "design.md",
+    "execution.md",
+    "test-matrix.md",
+    "blue-audit.md",
+    "red-audit.md",
+    "evidence.md",
+    "decisions.md"
+  ]
 }

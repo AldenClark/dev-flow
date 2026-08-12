@@ -15,6 +15,14 @@ Resolve low to high: public neutral baseline, personal, team, project, component
 
 Personal values are defaults only. Team/project/component layers own shared requirements. A task exception requires an authorized decision and scope.
 
+## Resolution modes
+
+Resolve three modes explicitly: `personal-interactive` may read the known personal directory plus declared repository/task sources; `team-reproducible` and `ci` must exclude personal directories, environment-derived personal values, and credentials, and use only the public baseline plus declared repository/task sources.
+
+For `team-reproducible` and `ci`, run the resolver from clean isolated profile homes with deliberately different personal profiles; require identical effective bytes and fingerprints, and prove shared artifacts contain no personal paths, hashes, values, or credentials.
+
+Record source hashes, winners, shadowed entries, conflicts, unresolved material choices, fingerprints, exact commands/environments/outcomes, and every `NOT RUN` cell; an explicit work mode may raise but never lower evidence-derived risk or shared controls.
+
 ## Locations
 
 ```text

@@ -41,3 +41,5 @@ Evidence must be after the final relevant change and include root, environment/c
 ## Regression proof
 
 For bug fixes, prove the oracle fails before the correction when practical. For migrations/refactors, compare old/new outputs and consumers. For performance, record workload, dataset/distribution, hardware, build profile, warmup/sample method, variance, baseline, target, and correctness guard.
+
+For FFI, keep language-native, package/binding, lifecycle, virtual/physical, invalid/failure/leak, and each applicable directional consumer/core mixed-version cell visible. For overload, cover bounded admission, capacity, rejection/backpressure, retry amplification, and recovery.

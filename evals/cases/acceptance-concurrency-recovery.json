@@ -1,0 +1,445 @@
+{
+  "schema_version": "1.3",
+  "cases": [
+    {
+      "id": "CASE-ACC-CONC-IDEMPOTENT",
+      "profile": "Idempotent duplicate delivery and retry",
+      "prompt": "Make a message handler safe under duplicate and out-of-order delivery.",
+      "fixture": "The broker is at-least-once, handlers can crash after side effects, and ordering is per key only. Dedup state has finite retention.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "define message identity, per-key order, effect, and dedup ownership",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "define message identity, per-key order, effect, and dedup ownership"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "make durable claim or effect transition idempotent",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "make durable claim or effect transition idempotent"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "handle crash points, retry, retention expiry, and reconciliation",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "handle crash points, retry, retention expiry, and reconciliation"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test duplicates, reordering, concurrent claims, restart, and poison messages",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "test duplicates, reordering, concurrent claims, restart, and poison messages"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "assume exactly-once broker delivery",
+        "deduplicate only in process memory",
+        "acknowledge before durable ownership"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-CONC-CANCEL",
+      "profile": "Cancellation cleanup across task tree",
+      "prompt": "Fix cancellation that returns while child tasks still mutate shared state.",
+      "fixture": "A parent spawns workers and callbacks. Cancellation closes one channel but does not join tasks. Late results can commit after a new generation starts.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "map parent, child, callback, channel, state, and generation ownership",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "map parent, child, callback, channel, state, and generation ownership"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "propagate cancellation and close admission before join",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "propagate cancellation and close admission before join"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "quiesce callbacks and reject stale-generation commits",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "quiesce callbacks and reject stale-generation commits"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test cancel at each boundary, join timeout, restart, and leak oracles",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "test cancel at each boundary, join timeout, restart, and leak oracles"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "drop task handles without joining",
+        "reuse shared state before quiescence",
+        "treat cancellation request as cleanup completion"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-CONC-CRASH",
+      "profile": "Crash recovery for multi-step local state",
+      "prompt": "Recover a multi-step import after a crash without duplicating or losing records.",
+      "fixture": "The import writes files, database rows, and a progress marker. Crash can occur between any two writes, and retry may start with partial state.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "define transaction, file, progress, staging, and cleanup ownership",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "define transaction, file, progress, staging, and cleanup ownership"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "make phases durable, idempotent, and distinguishable after restart",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "make phases durable, idempotent, and distinguishable after restart"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "reconcile partial state before accepting new work",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "reconcile partial state before accepting new work"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test every crash point, duplicate retry, rollback limit, and cleanup",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "test every crash point, duplicate retry, rollback limit, and cleanup"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "trust the progress marker alone",
+        "delete partial user data without reconciliation",
+        "restart from zero with non-idempotent effects"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-CONC-GENERATION",
+      "profile": "Stale generation and rapid restart",
+      "prompt": "Prevent an old worker generation from overwriting results after rapid restart.",
+      "fixture": "Stop and start overlap, storage writes complete asynchronously, and callbacks do not carry generation identity. The new run may finish first.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "reproduce the stop/start/write/callback timeline",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "reproduce the stop/start/write/callback timeline"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "assign monotonic generation identity at admission and commit boundaries",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "assign monotonic generation identity at admission and commit boundaries"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "cancel and join old work while rejecting stale commits",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "cancel and join old work while rejecting stale commits"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test deterministic old-last and new-first interleavings plus repeated restart",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "test deterministic old-last and new-first interleavings plus repeated restart"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "compare wall-clock timestamps for ownership",
+        "sleep between stop and start",
+        "let callback arrival order select the winner"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-CONC-DRAIN",
+      "profile": "Graceful drain with bounded shutdown",
+      "prompt": "Implement graceful shutdown that neither loses accepted work nor hangs forever.",
+      "fixture": "New requests arrive during shutdown, workers may block on external calls, and process termination has a hard deadline. Some work is safe to retry after restart.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "define admission close, accepted work, in-flight ownership, and retry durability",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "define admission close, accepted work, in-flight ownership, and retry durability"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "order stop admission, signal cancellation, drain or checkpoint, join, and force boundary",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "order stop admission, signal cancellation, drain or checkpoint, join, and force boundary"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "make deadline, partial completion, observability, and restart behavior explicit",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "make deadline, partial completion, observability, and restart behavior explicit"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test concurrent admission, blocked worker, deadline, restart, and leak cases",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "test concurrent admission, blocked worker, deadline, restart, and leak cases"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "accept new work after declaring drain complete",
+        "wait without a deadline",
+        "mark uncheckpointed accepted work successful"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    }
+  ]
+}

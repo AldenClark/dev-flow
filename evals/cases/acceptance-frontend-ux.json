@@ -1,0 +1,269 @@
+{
+  "schema_version": "1.3",
+  "cases": [
+    {
+      "id": "CASE-ACC-UX-RTL",
+      "profile": "Localization, RTL, and dynamic-type product states",
+      "prompt": "Extend an existing billing page to Arabic and large text without changing its information architecture.",
+      "fixture": "The page has dense tables, status badges, currency values, and a destructive action. Existing navigation and brand tokens are protected.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "product-ux-discovery",
+          "claim_routes": [
+            {
+              "kind": "product-ux-discovery.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "inventory current IA, components, states, localization, and design truth",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "inventory current IA, components, states, localization, and design truth"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "product-ux-discovery",
+          "claim_routes": [
+            {
+              "kind": "product-ux-discovery.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "define RTL, long-string, numeric, large-text, keyboard, and focus behavior",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "define RTL, long-string, numeric, large-text, keyboard, and focus behavior"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "product-ux-discovery",
+          "claim_routes": [
+            {
+              "kind": "product-ux-discovery.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "preserve navigation and destructive confirmation or recovery",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "preserve navigation and destructive confirmation or recovery"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "verify representative rendered states rather than code structure alone",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "verify representative rendered states rather than code structure alone"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "redesign navigation without approval",
+        "mirror currency or status semantics incorrectly",
+        "claim accessibility from static type checks"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "requirements.md",
+        "design.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-UX-BULK",
+      "profile": "Bulk destructive action and partial recovery",
+      "prompt": "Add bulk deletion to a management table.",
+      "fixture": "Rows may fail independently, selection spans pages, and some records are protected. The product has no agreed undo duration or partial-failure copy.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "product-ux-discovery",
+          "claim_routes": [
+            {
+              "kind": "product-ux-discovery.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "map selection, protected, confirmation, progress, partial failure, and recovery states",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "map selection, protected, confirmation, progress, partial failure, and recovery states"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "requirements-design",
+          "claim_routes": [
+            {
+              "kind": "requirements-design.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "identify undo or irreversibility as a material product choice",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "identify undo or irreversibility as a material product choice"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "product-ux-discovery",
+          "claim_routes": [
+            {
+              "kind": "product-ux-discovery.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "preserve focus, keyboard, responsive, and screen-reader behavior",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "preserve focus, keyboard, responsive, and screen-reader behavior"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "verify mixed-success rendered flows and durable outcome receipts",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "verify mixed-success rendered flows and durable outcome receipts"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "treat partial success as all-or-nothing success",
+        "remove confirmation or recovery silently",
+        "lose selection context after an error"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "requirements.md",
+        "design.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-UX-OFFLINE",
+      "profile": "Offline edit conflict and user recovery",
+      "prompt": "Add offline editing to an existing mobile settings flow.",
+      "fixture": "Two devices can edit the same record. Sync may reject stale writes. The user must understand local, pending, conflicted, and resolved states.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "product-ux-discovery",
+          "claim_routes": [
+            {
+              "kind": "product-ux-discovery.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "preserve existing IA and identify source-of-truth ownership",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "preserve existing IA and identify source-of-truth ownership"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "product-ux-discovery",
+          "claim_routes": [
+            {
+              "kind": "product-ux-discovery.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "design offline, queued, syncing, conflict, error, and recovery states",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "design offline, queued, syncing, conflict, error, and recovery states"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "requirements-design",
+          "claim_routes": [
+            {
+              "kind": "requirements-design.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "surface material conflict-resolution semantics for confirmation",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "surface material conflict-resolution semantics for confirmation"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "verify accessibility, interruption, stale response, and cross-device flows",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "verify accessibility, interruption, stale response, and cross-device flows"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "silently overwrite the remote value",
+        "show pending edits as durable success",
+        "invent a merge policy without product approval"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "requirements.md",
+        "design.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    }
+  ]
+}

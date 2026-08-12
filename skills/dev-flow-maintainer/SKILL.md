@@ -9,6 +9,13 @@ For public-contract or breaking-migration decisions, remain in Default mode and 
 
 Maintain the suite as a versioned product with measurable trigger, context, safety, and compatibility behavior.
 
+## Responsibility contract
+
+- Consumes: explicit suite scope, a persistent packet, public-surface inventory, and compatibility evidence.
+- Owns: Dev Flow Skills, schemas, routing, hooks, migrations, governance, and evaluation policy.
+- Stops: without explicit suite scope, before an unapproved breaking contract, or when quality admission has not been proved.
+- Hands off: suite semantics/architecture/dependencies to their decision owners, then verification, independent review, and explicit delivery.
+
 ## Procedure
 
 1. Require explicit Dev Flow maintenance scope and a persistent packet. Inventory public Skills, commands, schemas, hooks, roles, docs, evals, and installed-runtime compatibility.
@@ -17,8 +24,8 @@ Maintain the suite as a versioned product with measurable trigger, context, safe
 4. Maintain neutral policies separately from user/team/project values and current ecosystem snapshots.
 5. Read `references/maintenance-contract.md` before changing public names, schemas, routing, or cutover behavior.
 6. Read `references/capability-registry.json` before changing EQAC capability IDs or candidate routes. Installation is inventory; local host admission owns activation.
-7. Add deterministic structure/schema/compatibility tests plus positive, negative, collision, safe-counterexample, unrelated-change, and cross-language cases.
-8. Run paired with/without-Skill evaluations on fixed artifacts. Measure coverage, restraint, retention, actionability, rework, context cost, unsafe actions, reminders, and false blocks.
+7. First prove exact routing, work mode, owner outputs, stop/handoff behavior, collisions, compatibility, safe counterexamples, and representative repository workflows with deterministic tests.
+8. Run paired model evaluation only for a material model-dependent behavior or release comparison after those gates pass; never let the evaluator define ownership or drive case-specific Skill text.
 9. Preserve first failures, migration provenance, rollback, and exact content disposition. Publish only the integrated suite.
 
 Use `scripts/validate-suite.py` for the maintainer-specific inventory and dangling-route gate before the repository-wide checks.

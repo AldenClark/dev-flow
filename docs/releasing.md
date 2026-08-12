@@ -72,21 +72,27 @@ The SBOM must report SPDX 2.3, document name `dev-flow`, a non-empty file invent
 
 ## Bounded model evaluation
 
+The task taxonomy, contract flow, category gates, sampling tiers, and interpretation order are documented in [`evaluation-suite.md`](evaluation-suite.md).
+
 The provider-neutral runner receives separate executor and blind-grader commands. The Codex adapter disables plugins, hooks, multi-agent execution, both shell surfaces, browser use, computer use, and apps; it uses ephemeral read-only sessions, an allowlisted subprocess environment, a private temporary directory, and ignored user configuration/rules. It parses Codex JSONL and fails the call on any tool event while retaining only redacted category counts. Fixed fixtures are ordinary engineering cases; do not introduce hostile prompts or live security targets.
 
 The runner binds the exact documented first-party path `evals/codex_model_adapter.py` to the current repository snapshot before launching it with the per-run evidence directory as its working directory. Supported relative forms are the adapter path as the executable, or a Python executable immediately followed by that path, as shown below. Other executor/grader command arguments are not rewritten. External adapters, and Python invocations that need interpreter flags before the script, must use an absolute executable or script path.
 
 ```bash
 python3 evals/run_paired_evaluations.py \
-  --executor 'python3 evals/codex_model_adapter.py executor --model gpt-5.6-terra --reasoning-effort medium' \
+  --attested-pilot \
+  --executor-draft 'python3 evals/codex_model_adapter.py executor --model gpt-5.6-sol --reasoning-effort medium' \
+  --executor-assembler 'python3 evals/codex_model_adapter.py assembler --model gpt-5.6-sol --reasoning-effort high' \
   --grader 'python3 evals/codex_model_adapter.py grader --model gpt-5.6-sol --reasoning-effort medium' \
   --output /absolute/private/eval-output \
   --pair PAIR-PROFILE-PRECEDENCE --trials 3 --seed 20260810
 ```
 
-One pair with three trials produces six executor and six grader calls. Every call writes a minimal `model-usage.json` receipt, including the fail-on-tool-event category count. Token counts may be available; monetary cost remains `null` when the authenticated Codex session does not expose per-call pricing. Do not infer a price. Keep raw outputs private and retain only redacted aggregates/digests for public release evidence.
+One schema-1.7 development pair with three trials produces six draft, six assembler, and six grader calls. The 39-case, 12-category development broad pilot therefore produces 702 calls. Draft and assembler form one predeclared composite first attempt without gold or grader feedback; their opaque roots, exact requests, nonces, results, backend identities, and receipt-1.1 records are independently bound. The context-cost metric sums both executor stages. `--attested-pilot` is mutually exclusive with `--release`, requires a filtered development config and all three exact evaluator identities, and remains descriptive. A typed timeout may retry only when the first attempt produced neither a model output nor a receipt; any observed output/receipt, ordinary exit, invalid schema, tool event, facet miss, verdict, or other content/quality outcome receives zero retry and opens the terminal circuit. The frozen 56-case acceptance configuration remains schema 1.6 and single-stage until the composite development protocol passes focused, broad, and independent review gates; do not run or refreeze held-out acceptance early.
 
-The pilot is descriptive, not statistically significant. It always reports `release_ready: false`, even if all descriptive thresholds pass. A full five-pair, five-trial run means 50 executor and 50 grader calls and requires a separate budget approval after a passing pilot. Release mode must use the complete configured pair list, the frozen five-trial plan, a clean worktree, and the exact full commit SHA:
+For long runs, inspect the atomically replaced `progress.json`; it records bounded counts and the last completed case without exposing model output. It is not a completion oracle. Only a complete `report.json` with reconciled records and gates can close the model step.
+
+The pilot is descriptive, not statistically significant. It always reports `model_gate_ready: false` even if its descriptive thresholds pass. A full 56-case, five-trial acceptance run means 560 executor and 560 grader calls and requires a separate budget approval after a passing broad development pilot. Release mode must use the complete frozen acceptance pair and category lists, at least three cases per category, the five-trial plan, a clean worktree, and the exact full commit SHA:
 
 ```bash
 python3 evals/run_paired_evaluations.py \
@@ -96,9 +102,11 @@ python3 evals/run_paired_evaluations.py \
   --trials 5 --seed 20260810 --release --expected-commit FULL_COMMIT_SHA
 ```
 
-Release mode accepts only the canonical repository config at `evals/paired-evaluations.json` (schema 1.1), verifies those exact bytes against the expected commit, and snapshots every consumed fixture and Skill from immutable Git blobs before any call. The report binds that input manifest and repeats clean-source/config checks after the final grader. External schema 1.0 configs remain valid for pilots only.
+Without `--release`, the runner defaults to the development config. Release mode switches to the frozen canonical config at `evals/paired-evaluations-acceptance.json` (schema 1.6, `dataset_role: acceptance`, catalog 1.3, work-unit-facets-v3), verifies those exact bytes against the expected commit, and snapshots every consumed catalog, selected case, Skill, explicitly selected owned reference, and the complete task-neutral owner/evidence-kind registry from immutable Git blobs before any call. It rejects external evaluator commands: executor and grader must use the runner's Python interpreter, the bundled adapter, and the exact role/model/reasoning identities declared by `release_evaluators`. The runner also resolves `codex` once, verifies its reported version and platform-specific SHA-256 against that commit-bound contract, and injects the approved absolute executable into the adapter so ambient `PATH` cannot replace the backend. Every successful call must leave a matching no-tool `model-usage.json` receipt, whose evaluator/backend identity, digest, and observable usage fields are retained with the record. Executor requests contain only the selected fixture text and never expose the contract/catalog path, work units, facets, or criticality. The blind grader receives a content-only DTO without usage, elapsed-time, artifact-path, condition, or source-bundle fields, and its result 1.3 maps atomic facets to exact support spans. The report binds those identities, protocol/registry hashes, and the input manifest and repeats clean-source/config checks after the final grader. Legacy schema 1.0–1.5 configs remain pilot/config/assessment compatibility inputs only; the current bundled adapter does not promise historical release-evaluator ABI replay.
 
-The report binds the exact config digest, required/evaluated pair IDs, trial count, expected/observed commit, and clean-tree status. Missing runs, unsafe actions, false blocks, quality regression, or excessive context ratio still fail closed after the release-plan gate passes.
+The report binds the exact config digest, required/evaluated pair and category IDs, category size, trial count, expected/observed commit, and clean-tree status. It aggregates globally, per case, and per category; every category independently applies the unchanged fidelity, defect-retention, safety, false-block, and context-cost gates. Missing/partial critical facets or runs, unsafe actions, false blocks, local category regression, or excessive context ratio fail closed after the release-plan gate passes. A passing full run sets `model_gate_ready`; it does not set total `release_ready`. Repository tests/contracts, independent change review, and attestation/install/rollback/signing remain separately required evidence layers.
+
+Each normalized grader record preserves the model's opaque holistic output as `model_verdict`. The pass/fail value used by aggregates is derived from the documented rubric floors, rework ceiling, work-unit/facet completeness, and zero unsafe/forbidden/false-block policy. Do not edit this policy or a held-out contract after seeing acceptance results; any policy change invalidates the run and requires a newly frozen acceptance set.
 
 ## Marketplace install and rollback
 

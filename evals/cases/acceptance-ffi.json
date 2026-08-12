@@ -1,0 +1,878 @@
+{
+  "schema_version": "1.3",
+  "cases": [
+    {
+      "id": "CASE-ACC-FFI-ENUM",
+      "profile": "Versioned C ABI enum and unknown-value evolution",
+      "prompt": "Add a new native status while keeping older Swift and Kotlin consumers safe.",
+      "fixture": "The Rust core exposes a C ABI integer status. Older generated consumers know three values and may receive the new value from a newer core. Mixed-version packaging is supported.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "Required cross-language specialist routes are selected before boundary design.",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "select and record the Rust-Swift FFI specialist route before boundary design"
+            },
+            {
+              "id": "OB-2",
+              "action": "select and record the Rust-Kotlin FFI specialist route before boundary design"
+            },
+            {
+              "id": "OB-3",
+              "action": "select and record the independent FFI review route as an admission decision, not as an executed review"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "repo-context",
+          "claim_routes": [
+            {
+              "kind": "repo-context.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "Status evolution is grounded in a complete cross-language inventory or an explicit context gap.",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "inventory the current Rust status export before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-5",
+              "action": "inventory the generated Swift status binding before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-6",
+              "action": "inventory the generated Kotlin status binding before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-7",
+              "action": "inventory handwritten Swift status consumers before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-8",
+              "action": "inventory handwritten Kotlin status consumers before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-9",
+              "action": "inventory mixed-version package artifacts before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-10",
+              "action": "inventory supported consumer and core versions before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-11",
+              "action": "inventory deployed consumer and core versions before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-12",
+              "action": "inventory native loading paths before boundary design or record the repository context gap"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.artifact"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "The C ABI integer representation remains stable.",
+          "facets": [
+            {
+              "id": "OB-13",
+              "action": "freeze the C ABI integer representation"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "Unknown status values remain safe across both consumers and rollback.",
+          "facets": [
+            {
+              "id": "OB-14",
+              "action": "define the C ABI unknown-value behavior"
+            },
+            {
+              "id": "OB-15",
+              "action": "define Swift unknown-value mapping without assuming an exhaustive enum"
+            },
+            {
+              "id": "OB-16",
+              "action": "define Kotlin unknown-value mapping without assuming an exhaustive enum"
+            },
+            {
+              "id": "OB-27",
+              "action": "define rollback for an incompatible status rollout"
+            }
+          ]
+        },
+        {
+          "id": "WU-5",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "The required old/new consumer and core compatibility matrix has explicit evidence.",
+          "facets": [
+            {
+              "id": "OB-17",
+              "action": "test an old Swift consumer with the new core"
+            },
+            {
+              "id": "OB-18",
+              "action": "test an old Kotlin consumer with the new core"
+            },
+            {
+              "id": "OB-19",
+              "action": "test a new Swift consumer with the old core"
+            },
+            {
+              "id": "OB-20",
+              "action": "test a new Kotlin consumer with the old core"
+            }
+          ]
+        },
+        {
+          "id": "WU-6",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "Panics and consumer exceptions remain contained at every FFI boundary.",
+          "facets": [
+            {
+              "id": "OB-21",
+              "action": "contain Rust panics at the C ABI boundary"
+            },
+            {
+              "id": "OB-22",
+              "action": "contain Swift exceptions at the consumer boundary"
+            },
+            {
+              "id": "OB-23",
+              "action": "contain Kotlin and JNI exceptions at the consumer boundary"
+            }
+          ]
+        },
+        {
+          "id": "WU-7",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.artifact"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "Packaged cores and generated consumers are bound to exact version identities.",
+          "facets": [
+            {
+              "id": "OB-24",
+              "action": "bind packaged native artifacts to exact core version identity"
+            },
+            {
+              "id": "OB-25",
+              "action": "bind generated Swift consumers to exact binding version identity"
+            },
+            {
+              "id": "OB-26",
+              "action": "bind generated Kotlin consumers to exact binding version identity"
+            }
+          ]
+        },
+        {
+          "id": "WU-8",
+          "owner": "change-review",
+          "claim_routes": [
+            {
+              "kind": "change-review.limitation"
+            },
+            {
+              "kind": "change-review.analysis"
+            }
+          ],
+          "criticality": "supporting",
+          "protected_behavior": "Post-change FFI review remains evidence-gated and covers every material consumer and risk axis.",
+          "facets": [
+            {
+              "id": "OB-28",
+              "action": "require an approved diff before post-change FFI review; otherwise record NOT RUN and the missing diff"
+            },
+            {
+              "id": "OB-29",
+              "action": "require generated artifacts before post-change FFI review; otherwise record NOT RUN and the missing artifacts"
+            },
+            {
+              "id": "OB-30",
+              "action": "require a changed-file list before post-change FFI review; otherwise record NOT RUN and the missing list"
+            },
+            {
+              "id": "OB-31",
+              "action": "require raw verification evidence before post-change FFI review; otherwise record NOT RUN and the missing evidence"
+            },
+            {
+              "id": "OB-32",
+              "action": "when review evidence is admitted, independently review the Swift consumer path; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-33",
+              "action": "when review evidence is admitted, independently review the Kotlin consumer path; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-34",
+              "action": "when review evidence is admitted, independently review ABI representation risks; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-35",
+              "action": "when review evidence is admitted, independently review unknown-value risks; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-36",
+              "action": "when review evidence is admitted, independently review package identity risks; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-37",
+              "action": "when review evidence is admitted, independently review mixed-version risks; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-38",
+              "action": "when review evidence is admitted, independently review rollback risks; otherwise keep this review NOT RUN"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "export a Rust enum layout directly",
+        "make older consumers crash on an unknown value",
+        "claim compatibility from same-version tests only"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-FFI-REENTRANT",
+      "profile": "Reentrant callback and shutdown quiescence",
+      "prompt": "Fix an FFI callback that can reenter the core while shutdown is in progress.",
+      "fixture": "A native callback may synchronously call back into Rust. Shutdown can race with late delivery. Apple requires main-thread UI delivery; Android enters through JNI worker threads.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "Required cross-language specialist routes are selected before boundary design.",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "select and record the Rust-Swift FFI specialist route before boundary design"
+            },
+            {
+              "id": "OB-2",
+              "action": "select and record the Rust-Kotlin FFI specialist route before boundary design"
+            },
+            {
+              "id": "OB-3",
+              "action": "select and record the independent FFI review route as an admission decision, not as an executed review"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "repo-context",
+          "claim_routes": [
+            {
+              "kind": "repo-context.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "Callback repair is grounded in a complete cross-language inventory or an explicit context gap.",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "inventory the current Rust callback exports before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-5",
+              "action": "inventory the generated Swift callback bindings before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-6",
+              "action": "inventory the generated Kotlin callback bindings before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-7",
+              "action": "inventory handwritten Swift callback consumers before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-8",
+              "action": "inventory handwritten Kotlin callback consumers before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-9",
+              "action": "inventory callback package artifacts before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-10",
+              "action": "inventory supported consumer and core versions before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-11",
+              "action": "inventory deployed consumer and core versions before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-12",
+              "action": "inventory native callback loading paths before boundary design or record the repository context gap"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "Reentrant callback ownership reaches observable quiescence without holding core locks across foreign code.",
+          "facets": [
+            {
+              "id": "OB-13",
+              "action": "define callback state ownership"
+            },
+            {
+              "id": "OB-14",
+              "action": "define Swift main-thread callback affinity"
+            },
+            {
+              "id": "OB-15",
+              "action": "define Kotlin callback delivery affinity"
+            },
+            {
+              "id": "OB-16",
+              "action": "define JNI entry-thread rules"
+            },
+            {
+              "id": "OB-17",
+              "action": "define safe callback reentrancy without holding a core lock across foreign code"
+            },
+            {
+              "id": "OB-18",
+              "action": "define generation ownership for callback delivery"
+            },
+            {
+              "id": "OB-19",
+              "action": "define cancellation ordering"
+            },
+            {
+              "id": "OB-20",
+              "action": "define callback join ordering"
+            },
+            {
+              "id": "OB-21",
+              "action": "define callback unregister ordering"
+            },
+            {
+              "id": "OB-22",
+              "action": "define the observable callback-quiescence condition"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "Panics and foreign exceptions remain contained at every callback boundary.",
+          "facets": [
+            {
+              "id": "OB-23",
+              "action": "contain Rust panics at the callback boundary"
+            },
+            {
+              "id": "OB-24",
+              "action": "contain Swift exceptions at the callback boundary"
+            },
+            {
+              "id": "OB-25",
+              "action": "contain Kotlin exceptions at the callback boundary"
+            },
+            {
+              "id": "OB-26",
+              "action": "contain JNI exceptions at the callback boundary"
+            }
+          ]
+        },
+        {
+          "id": "WU-5",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "Swift and Kotlin callback reentry has deterministic evidence.",
+          "facets": [
+            {
+              "id": "OB-27",
+              "action": "test deterministic Swift callback reentry"
+            },
+            {
+              "id": "OB-28",
+              "action": "test deterministic Kotlin callback reentry"
+            }
+          ]
+        },
+        {
+          "id": "WU-6",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "Both consumers reject late callback delivery during shutdown.",
+          "facets": [
+            {
+              "id": "OB-29",
+              "action": "test Swift late-delivery rejection during shutdown"
+            },
+            {
+              "id": "OB-30",
+              "action": "test Kotlin late-delivery rejection during shutdown"
+            }
+          ]
+        },
+        {
+          "id": "WU-7",
+          "owner": "change-review",
+          "claim_routes": [
+            {
+              "kind": "change-review.limitation"
+            },
+            {
+              "kind": "change-review.analysis"
+            }
+          ],
+          "criticality": "supporting",
+          "protected_behavior": "Post-change FFI review remains evidence-gated and covers every material consumer and risk axis.",
+          "facets": [
+            {
+              "id": "OB-31",
+              "action": "require an approved diff before post-change FFI review; otherwise record NOT RUN and the missing diff"
+            },
+            {
+              "id": "OB-32",
+              "action": "require generated artifacts before post-change FFI review; otherwise record NOT RUN and the missing artifacts"
+            },
+            {
+              "id": "OB-33",
+              "action": "require a changed-file list before post-change FFI review; otherwise record NOT RUN and the missing list"
+            },
+            {
+              "id": "OB-34",
+              "action": "require raw verification evidence before post-change FFI review; otherwise record NOT RUN and the missing evidence"
+            },
+            {
+              "id": "OB-35",
+              "action": "when review evidence is admitted, independently review the Swift consumer path; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-36",
+              "action": "when review evidence is admitted, independently review the Kotlin consumer path; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-37",
+              "action": "when review evidence is admitted, independently review callback ABI risks; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-38",
+              "action": "when review evidence is admitted, independently review callback reentrancy risks; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-39",
+              "action": "when review evidence is admitted, independently review shutdown lifecycle risks; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-40",
+              "action": "when review evidence is admitted, independently review packaging risks; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-41",
+              "action": "when review evidence is admitted, independently review mixed-version risks; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-42",
+              "action": "when review evidence is admitted, independently review rollback risks; otherwise keep this review NOT RUN"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "hold a core lock across foreign callback execution",
+        "free callback state before quiescence",
+        "use one platform's thread rule for both consumers"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-FFI-STRING",
+      "profile": "Cross-allocator nullable string and encoding contract",
+      "prompt": "Repair corrupted error messages crossing Rust, Swift, and Kotlin boundaries.",
+      "fixture": "The API sometimes returns null, sometimes an allocated UTF-8 message, and callers disagree about who frees it. Embedded NUL and invalid UTF-8 are observed in failure paths.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "Required cross-language specialist routes are selected before boundary design.",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "select and record the Rust-Swift FFI specialist route before boundary design"
+            },
+            {
+              "id": "OB-2",
+              "action": "select and record the Rust-Kotlin FFI specialist route before boundary design"
+            },
+            {
+              "id": "OB-3",
+              "action": "select and record the independent FFI review route as an admission decision, not as an executed review"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "repo-context",
+          "claim_routes": [
+            {
+              "kind": "repo-context.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "String repair is grounded in a complete cross-language inventory or an explicit context gap.",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "inventory the current Rust string exports before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-5",
+              "action": "inventory the generated Swift string bindings before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-6",
+              "action": "inventory the generated Kotlin string bindings before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-7",
+              "action": "inventory handwritten Swift string consumers before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-8",
+              "action": "inventory handwritten Kotlin string consumers before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-9",
+              "action": "inventory string API package artifacts before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-10",
+              "action": "inventory supported consumer and core versions before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-11",
+              "action": "inventory deployed consumer and core versions before boundary design or record the repository context gap"
+            },
+            {
+              "id": "OB-12",
+              "action": "inventory native string API loading paths before boundary design or record the repository context gap"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "The string ABI defines nullability, length, encoding, and embedded-NUL behavior.",
+          "facets": [
+            {
+              "id": "OB-13",
+              "action": "specify null string behavior"
+            },
+            {
+              "id": "OB-14",
+              "action": "specify explicit string length behavior"
+            },
+            {
+              "id": "OB-15",
+              "action": "specify valid encoding behavior"
+            },
+            {
+              "id": "OB-16",
+              "action": "specify embedded-NUL behavior"
+            },
+            {
+              "id": "OB-17",
+              "action": "specify invalid-encoding input behavior"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "Returned messages have one ownership-transfer point and symmetric release behavior.",
+          "facets": [
+            {
+              "id": "OB-18",
+              "action": "define the allocator that owns returned messages"
+            },
+            {
+              "id": "OB-19",
+              "action": "define the matching release API"
+            },
+            {
+              "id": "OB-20",
+              "action": "define a single ownership-transfer point"
+            }
+          ]
+        },
+        {
+          "id": "WU-5",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "Typed failures, panics, and foreign exceptions remain contained at every string boundary.",
+          "facets": [
+            {
+              "id": "OB-21",
+              "action": "map typed errors without replacing them with unchecked text"
+            },
+            {
+              "id": "OB-22",
+              "action": "contain Swift exceptions at the string boundary"
+            },
+            {
+              "id": "OB-23",
+              "action": "contain Kotlin exceptions at the string boundary"
+            },
+            {
+              "id": "OB-24",
+              "action": "contain JNI exceptions at the string boundary"
+            },
+            {
+              "id": "OB-25",
+              "action": "contain Rust panics at the string boundary"
+            }
+          ]
+        },
+        {
+          "id": "WU-6",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "Empty, null, invalid-encoding, and embedded-NUL inputs have explicit boundary evidence.",
+          "facets": [
+            {
+              "id": "OB-26",
+              "action": "test empty strings"
+            },
+            {
+              "id": "OB-27",
+              "action": "test null strings"
+            },
+            {
+              "id": "OB-28",
+              "action": "test invalid encoding"
+            },
+            {
+              "id": "OB-29",
+              "action": "test embedded NUL"
+            }
+          ]
+        },
+        {
+          "id": "WU-7",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "Message release prevents or rejects double free.",
+          "facets": [
+            {
+              "id": "OB-30",
+              "action": "test double-free rejection or prevention"
+            }
+          ]
+        },
+        {
+          "id": "WU-8",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "Swift and Kotlin mixed-version string behavior has explicit evidence.",
+          "facets": [
+            {
+              "id": "OB-31",
+              "action": "test Swift mixed-version string behavior"
+            },
+            {
+              "id": "OB-32",
+              "action": "test Kotlin mixed-version string behavior"
+            }
+          ]
+        },
+        {
+          "id": "WU-9",
+          "owner": "change-review",
+          "claim_routes": [
+            {
+              "kind": "change-review.limitation"
+            },
+            {
+              "kind": "change-review.analysis"
+            }
+          ],
+          "criticality": "supporting",
+          "protected_behavior": "Post-change FFI review remains evidence-gated and covers every material consumer and risk axis.",
+          "facets": [
+            {
+              "id": "OB-33",
+              "action": "require an approved diff before post-change FFI review; otherwise record NOT RUN and the missing diff"
+            },
+            {
+              "id": "OB-34",
+              "action": "require generated artifacts before post-change FFI review; otherwise record NOT RUN and the missing artifacts"
+            },
+            {
+              "id": "OB-35",
+              "action": "require a changed-file list before post-change FFI review; otherwise record NOT RUN and the missing list"
+            },
+            {
+              "id": "OB-36",
+              "action": "require raw verification evidence before post-change FFI review; otherwise record NOT RUN and the missing evidence"
+            },
+            {
+              "id": "OB-37",
+              "action": "when review evidence is admitted, independently review the Swift consumer path; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-38",
+              "action": "when review evidence is admitted, independently review the Kotlin consumer path; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-39",
+              "action": "when review evidence is admitted, independently review string ABI risks; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-40",
+              "action": "when review evidence is admitted, independently review allocation lifecycle risks; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-41",
+              "action": "when review evidence is admitted, independently review packaging risks; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-42",
+              "action": "when review evidence is admitted, independently review mixed-version risks; otherwise keep this review NOT RUN"
+            },
+            {
+              "id": "OB-43",
+              "action": "when review evidence is admitted, independently review rollback risks; otherwise keep this review NOT RUN"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "rely on sentinel-terminated strings without a length contract",
+        "free memory with the consumer allocator",
+        "replace typed errors with unchecked text"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    }
+  ]
+}

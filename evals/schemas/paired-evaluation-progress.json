@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dev Flow paired evaluation progress",
+  "type": "object",
+  "required": ["schema_version", "status", "mode", "seed", "trials_per_pair", "dataset_role", "config_sha256", "input_snapshot_sha256", "semantic_protocol_sha256", "completed_records", "expected_records", "failed_records", "active_stage", "last_record"],
+  "properties": {
+    "schema_version": {"const": "1.3"},
+    "status": {"enum": ["running", "complete", "incomplete", "stopped"]},
+    "mode": {"enum": ["pilot", "attested-pilot", "release"]},
+    "seed": {"type": "integer"},
+    "trials_per_pair": {"type": "integer", "minimum": 3},
+    "dataset_role": {"type": "string", "minLength": 1},
+    "config_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "input_snapshot_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "semantic_protocol_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "completed_records": {"type": "integer", "minimum": 0},
+    "expected_records": {"type": "integer", "minimum": 1},
+    "failed_records": {"type": "integer", "minimum": 0},
+    "active_stage": {"type": ["string", "null"], "enum": ["inventory", "draft", "assembler", "grader", null]},
+    "last_record": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "required": ["pair_id", "category", "trial", "variant", "draft_valid", "assembler_valid", "executor_valid", "grader_valid"],
+          "properties": {
+            "pair_id": {"type": "string", "minLength": 1},
+            "category": {"type": "string", "minLength": 1},
+            "trial": {"type": "integer", "minimum": 1},
+            "variant": {"enum": ["baseline", "candidate"]},
+            "draft_valid": {"type": ["boolean", "null"]},
+            "assembler_valid": {"type": ["boolean", "null"]},
+            "executor_valid": {"type": "boolean"},
+            "grader_valid": {"type": "boolean"}
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

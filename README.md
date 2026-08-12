@@ -91,6 +91,23 @@ python3 skills/dev-flow/scripts/dev-flow.py uninstall-runtime
 
 只有在创建、调整、解释、推广、退役或审计 Profile/质量策略时才调用 `$manage-engineering-profiles`；普通代码任务只消费解析结果。`$dev-flow-maintainer` 仅用于显式维护本插件。
 
+核心顺序是：控制面绑定权限和路由 → `repo-context` 建立事实 → 按需进入 UX/需求/诊断/架构/依赖 owner → 实施 → `verification` 证明 → 仅在治理风险下独立 `change-review` → 仅在明确交付意图下进入 `delivery-readiness`。验证和审查可以暴露上游缺口，但不能在自己的输出中替代需求、诊断或架构决策。
+
+## Source 与运行时边界
+
+仓库内检查只证明当前 source bytes；Codex 任务实际使用的是任务启动时已安装的插件快照。除非 exact source 已经通过受控安装/升级进入目标 `CODEX_HOME`，并在新任务中按 installed bytes 复验，否则不得把 source 结果表述为当前运行插件已经生效。安装、升级、卸载和覆盖现有运行时都是独立外部变更，必须有明确授权。
+
+schema 2.0 工作包用 `record-iteration` 记录同一原因的 hypothesis/repair 结果。原因必须绑定到包内 `artifacts/` 下的稳定证据文件；同一代中重命名原因、替换证据或删除熔断状态都会失败关闭。第三次连续失败会自动进入 `blocked` 并拒绝第四次；只有记录重新评估和重新打开的上游 owner 后才能恢复：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py record-iteration <packet> \
+  --kind repair --cause-id <stable-cause> --cause-file <evidence-file-below-artifacts> \
+  --outcome failed --note <evidence>
+python3 skills/dev-flow/scripts/dev-flow.py record-iteration <packet> \
+  --kind repair --cause-id <stable-cause> --cause-file <same-evidence-file> --outcome reassessed \
+  --reopened-owner architecture-decisions --note <new-causal-model>
+```
+
 Profile 与上下文命令均使用 Python 标准库：
 
 ```bash
@@ -261,11 +278,14 @@ CI 在 Linux、macOS 和 Windows 上覆盖 Python 3.11 与当前 Python 3.14。�
 
 ```bash
 python3 evals/run_paired_evaluations.py \
-  --executor '<executor command>' --grader '<grader command>' \
+  --attested-pilot --pair PAIR-CROSS-LANGUAGE \
+  --executor-draft 'python3 evals/codex_model_adapter.py executor --model gpt-5.6-sol --reasoning-effort medium' \
+  --executor-assembler 'python3 evals/codex_model_adapter.py assembler --model gpt-5.6-sol --reasoning-effort high' \
+  --grader 'python3 evals/codex_model_adapter.py grader --model gpt-5.6-sol --reasoning-effort medium' \
   --output /absolute/path/to/eval-output --trials 3
 ```
 
-配对评测要求 executor 只暴露独立的有界 artifacts 子目录；grader 在不带 treatment 标签的临时根中运行，只接收 fixture、oracle 与清理后的 executor result。报告同时给出均值、标准差、有效 run 分母、candidate-minus-baseline、全量 trial 完整性和质量优先的发布阈值判定；缺失 trial 永远不能得到 release-ready。该隔离用于防止评测条件经正常输入或目录布局泄漏，不把同一 OS 用户下的命令执行伪装成安全沙箱。Schema 1.0 旧配置可省略 `release_thresholds`，此时 runner 使用保守默认值；新配置应显式记录阈值。
+开发评测把一次 first attempt 固定为 `draft → blind assembler → grader`：draft 与 assembler 使用独立 opaque 根，只接收同一任务、fixture、任务中立的能力正文与 content-only draft；它们看不到 trial/variant、真实路径、receipt、usage、金标、work unit/facet 或 grader 反馈。每阶段的 request/result/backend/nonce/receipt 都进入哈希链，assembler 不能把 planned/not-run 升为 verified、删除 limitation、改写 evidence 或伪造执行事实。grader 只接收最终 content DTO，并把隐藏 work unit 的每个原子 facet 映射到 owner/kind 一致且互不冲突的 support spans。关键 work unit 的任一 facet 为 `partial` 都会失败。`--attested-pilot` 只允许经过筛选的 schema-1.7 development 任务；它仍是 pilot，绝不产生 release 声明。三轮单 pair 需要 6 次 draft、6 次 assembler、6 次 grader；39 个开发案例的三轮广测共 702 次调用。冻结验收仍保持独立 schema-1.6 release 路径，待两阶段开发门与独立复审稳定通过后才迁移并重新冻结；任何旧验收结果都不能替代新 freeze 的一次性 held-out 证据。
 
 ## 发布候选与供应链证据
 

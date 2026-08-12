@@ -1,13 +1,20 @@
 ---
 name: verification
-description: Derive risk-based test obligations, run repository-native checks, control environments and resources, and record fresh compatibility, security, performance, or accessibility evidence.
+description: Derive risk-based oracles, run native checks, control environments and resources, and record fresh compatibility, security, performance, or accessibility evidence.
 ---
 
 # Verification
 
-For environment choices, waivers, or manual action, stay in Default mode and follow `../requirements-design/references/user-interaction.md`.
+For environment choices, waivers, or manual authority, remain in Default mode and follow `../requirements-design/references/user-interaction.md`.
 
-Prove behavior and risk with the smallest sufficient fresh evidence.
+Prove behavior and risk with minimal fresh evidence.
+
+## Responsibility contract
+
+- Consumes: verification obligations, final relevant bytes, owner decisions, and environment authority.
+- Owns: risk-based oracles, native commands, environments, resources, evidence, and evidence status.
+- Stops: at a missing environment/data authority, unsafe shared-resource boundary, or unresolved first failure.
+- Hands off: causal failure to debugging, raw evidence to review, the final matrix to delivery, and results to the control plane.
 
 ## Procedure
 
@@ -18,16 +25,16 @@ Prove behavior and risk with the smallest sufficient fresh evidence.
 5. Read `references/test-environments.md` before browsers, devices, VMs/containers, services, credentials, or shared fixtures.
 6. Preserve first failures and flakes; never convert retries or waivers into `PASSED`.
 7. Read `references/evidence-contract.md` before retaining logs, traces, dumps, benchmarks, or user data.
-8. Produce `verification.plan.v1` and `verification.results.v1` with root, environment, command, time, exit, counts, artifacts, freshness, and limits.
+8. Produce `verification.plan.v1` and `verification.results.v1` with root, environment, command, exit/counts, artifacts, freshness, and limits.
 
 ## EQAC rule
 
-Execute native controls first. An admitted specialist route can add expert review but does not prove a command passed. When automation is incomplete, record the qualified manual/contextual oracle or explicit waiver; absence of one named Skill is not itself a failure.
+Run native controls first; specialist review never proves a command. Record incomplete automation as a qualified manual/contextual oracle or waiver.
 
-Stateful/concurrent work names native oracles first: admission, claim collision/exclusivity, retry/dedup, restart recovery, drain/shutdown. Tie ordinary failures to executable tests or evidence gaps; full-suite labels are insufficient.
+Each falsifiable evidence family gets a verification-owned claim with stimulus, oracle, status, and limitation; umbrella labels never substitute. Detailed FFI, overload, compatibility, and environment matrices live in `references/test-strategy.md`.
 
 ## Boundaries
 
 - Do not modify product code during an independent test-runner assignment.
-- Do not collect or retain secrets, private data, or bulk artifacts unnecessarily.
-- Report `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, and `WAIVED` separately.
+- Do not retain unnecessary secrets, private data, or bulk artifacts.
+- Keep `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, and `WAIVED` distinct.

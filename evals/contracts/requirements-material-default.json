@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-REQUIREMENTS-MATERIAL-DEFAULT",
+  "profile": "Material product default clarification",
+  "prompt": "Resolve whether a new default applies only to new installations or to every existing account.",
+  "fixture": "reference-cases/requirements-material-default.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "repo-context",
+      "claim_routes": [
+        {
+          "kind": "repo-context.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "inspect current defaults, persisted state, migration behavior, compatibility, tests, and analogous rollouts",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "inspect current defaults, persisted state, migration behavior, compatibility, tests, and analogous rollouts"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.artifact"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "record the competing meanings, evidence, materiality, owner, and affected acceptance/scope/verification IDs",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "record the competing meanings, evidence, materiality, owner, and affected acceptance/scope/verification IDs"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "state data, compatibility, rollout, rollback, and user-visible impact for each meaning",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "state data, compatibility, rollout, rollback, and user-visible impact for each meaning"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "recommend one option with a safe fallback and ask one focused user-answerable question",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "recommend one option with a safe fallback and ask one focused user-answerable question"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.limitation"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "block only the affected implementation and bind the answer to a new requirement revision and digest",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "block only the affected implementation and bind the answer to a new requirement revision and digest"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "silently choose a meaning because it seems conventional",
+    "ask broad style or architecture questions unrelated to the decision",
+    "let a reviewer or worker finalize user-owned product semantics",
+    "reuse an approval bound to earlier requirement content"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "requirements.md",
+    "design.md",
+    "decisions.md",
+    "evidence.md"
+  ]
+}

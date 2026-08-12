@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-REACT-ACCESSIBILITY",
+  "profile": "React semantic interaction and accessibility repair",
+  "prompt": "Repair keyboard, focus, semantic, motion, and responsive defects in a data panel.",
+  "fixture": "reference-cases/react-accessibility.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "product-ux-discovery",
+      "claim_routes": [
+        {
+          "kind": "product-ux-discovery.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "inspect rendered behavior, semantic structure, event ownership, design system, and existing browser projects",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "inspect rendered behavior, semantic structure, event ownership, design system, and existing browser projects"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "product-ux-discovery",
+      "claim_routes": [
+        {
+          "kind": "product-ux-discovery.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "replace clickable generic containers with native semantic controls or justified accessible patterns",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "replace clickable generic containers with native semantic controls or justified accessible patterns"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "product-ux-discovery",
+      "claim_routes": [
+        {
+          "kind": "product-ux-discovery.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "define keyboard activation, focus entry/return, accessible names, live errors, and destructive confirmation",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "define keyboard activation, focus entry/return, accessible names, live errors, and destructive confirmation"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "respect reduced motion and verify narrow and wide layouts without hiding required content",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "respect reduced motion and verify narrow and wide layouts without hiding required content"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.artifact"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "record representative browser project, retry, trace, and automated plus manual accessibility evidence",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "record representative browser project, retry, trace, and automated plus manual accessibility evidence"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "add ARIA where native semantics solve the contract",
+    "remove visible focus styling",
+    "claim accessibility from static markup inspection alone",
+    "claim cross-browser or responsive support from one desktop run"
+  ],
+  "required_artifacts": [
+    "design.md",
+    "test-matrix.md",
+    "blue-audit.md",
+    "red-audit.md",
+    "evidence.md"
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-DEPENDENCY-UPDATE",
+  "profile": "Security backport versus major dependency update",
+  "prompt": "Choose between a security backport and a major dependency migration with new native defaults.",
+  "fixture": "reference-cases/dependency-update.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "dependency-decisions",
+      "claim_routes": [
+        {
+          "kind": "dependency-decisions.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "trace actual API usage, enabled features, lockfile graph, build scripts, native components, and supported toolchains",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "trace actual API usage, enabled features, lockfile graph, build scripts, native components, and supported toolchains"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "dependency-decisions",
+      "claim_routes": [
+        {
+          "kind": "dependency-decisions.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "verify advisory, maintenance, release, license, and compatibility facts for the current major, backport, and new major",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "verify advisory, maintenance, release, license, and compatibility facts for the current major, backport, and new major"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "dependency-decisions",
+      "claim_routes": [
+        {
+          "kind": "dependency-decisions.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "compare behavior, default, feature, transitive, binary, build, runtime, migration, and rollback effects",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "compare behavior, default, feature, transitive, binary, build, runtime, migration, and rollback effects"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "dependency-decisions",
+      "claim_routes": [
+        {
+          "kind": "dependency-decisions.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "recommend the smallest option that meets security and product requirements with exact verification",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "recommend the smallest option that meets security and product requirements with exact verification"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "dependency-decisions",
+      "claim_routes": [
+        {
+          "kind": "dependency-decisions.interaction"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "obtain approval for the material update path before manifest, feature, lockfile, or CI edits",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "obtain approval for the material update path before manifest, feature, lockfile, or CI edits"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "assume newest major is automatically safest",
+    "enable default or native features without impact review",
+    "treat a lockfile-only diff as sufficient behavior evidence",
+    "combine unrelated dependency upgrades"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "design.md",
+    "decisions.md",
+    "test-matrix.md",
+    "evidence.md"
+  ]
+}

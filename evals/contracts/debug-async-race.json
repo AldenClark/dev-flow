@@ -1,0 +1,108 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-DEBUG-ASYNC-RACE",
+  "profile": "Async callback generation and cancellation race",
+  "prompt": "Prevent an old runtime callback from publishing into a replacement generation.",
+  "fixture": "reference-cases/debug-async-race.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "systematic-debugging",
+      "claim_routes": [
+        {
+          "kind": "systematic-debugging.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "reconstruct the event timeline, generation identity, callback owner, cancellation, publication, and replacement boundaries",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "reconstruct the event timeline, generation identity, callback owner, cancellation, publication, and replacement boundaries"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "systematic-debugging",
+      "claim_routes": [
+        {
+          "kind": "systematic-debugging.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "create a deterministic interleaving or controlled barrier reproducer that fails before the fix",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "create a deterministic interleaving or controlled barrier reproducer that fails before the fix"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "systematic-debugging",
+      "claim_routes": [
+        {
+          "kind": "systematic-debugging.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "move the invariant to the ownership or publication boundary rather than add timing delays",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "move the invariant to the ownership or publication boundary rather than add timing delays"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "verify quiescence, late callback rejection, shutdown, replacement, cleanup, and resource joins",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "verify quiescence, late callback rejection, shutdown, replacement, cleanup, and resource joins"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "rerun normal current-generation callbacks and nearby retry or cancellation behavior",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "rerun normal current-generation callbacks and nearby retry or cancellation behavior"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "add sleep or polling as the correctness mechanism",
+    "accept stale generation work based only on current global state",
+    "detach the callback to avoid joining it",
+    "claim a race fixed from one passing stress run"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "design.md",
+    "execution.md",
+    "test-matrix.md",
+    "red-audit.md",
+    "evidence.md"
+  ]
+}

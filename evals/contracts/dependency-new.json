@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-DEPENDENCY-NEW",
+  "profile": "Named approval for a proposed new dependency",
+  "prompt": "Decide whether to add a package for a small stable configuration parser.",
+  "fixture": "reference-cases/dependency-new.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "dependency-decisions",
+      "claim_routes": [
+        {
+          "kind": "dependency-decisions.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "inventory current code, standard library, approved dependencies, and exact required parsing surface",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "inventory current code, standard library, approved dependencies, and exact required parsing surface"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "dependency-decisions",
+      "claim_routes": [
+        {
+          "kind": "dependency-decisions.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "compare standard library, existing dependency, bounded local implementation, and viable maintained packages",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "compare standard library, existing dependency, bounded local implementation, and viable maintained packages"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "dependency-decisions",
+      "claim_routes": [
+        {
+          "kind": "dependency-decisions.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "evaluate maintenance, security, license, compatibility, transitive/native graph, build/runtime cost, lock-in, and rollback",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "evaluate maintenance, security, license, compatibility, transitive/native graph, build/runtime cost, lock-in, and rollback"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "dependency-decisions",
+      "claim_routes": [
+        {
+          "kind": "dependency-decisions.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "recommend one exact option with manifest, feature, lockfile, generated, CI, test, and removal impact",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "recommend one exact option with manifest, feature, lockfile, generated, CI, test, and removal impact"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "dependency-decisions",
+      "claim_routes": [
+        {
+          "kind": "dependency-decisions.interaction"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "obtain explicit named approval before manifest, lockfile, tool, service, or vendored edits",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "obtain explicit named approval before manifest, lockfile, tool, service, or vendored edits"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "add a dependency before approval",
+    "recommend a package because a Skill example mentions it",
+    "hide independently optional packages behind one blanket approval",
+    "edit a lockfile by hand"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "design.md",
+    "decisions.md",
+    "test-matrix.md",
+    "evidence.md"
+  ]
+}

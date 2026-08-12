@@ -1,0 +1,445 @@
+{
+  "schema_version": "1.3",
+  "cases": [
+    {
+      "id": "CASE-ACC-ARCH-STATE",
+      "profile": "Single-writer state ownership across UI and worker",
+      "prompt": "Choose an architecture for shared state updated by UI actions and a background worker.",
+      "fixture": "Both paths currently mutate a map and emit events. Duplicate writes, stale UI, and shutdown races occur. Existing channel primitives are available.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "map state owner, writers, readers, events, and lifecycle",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "map state owner, writers, readers, events, and lifecycle"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "select one native single-writer boundary with explicit commands and snapshots",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "select one native single-writer boundary with explicit commands and snapshots"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "define ordering, backpressure, cancellation, and shutdown failure behavior",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "define ordering, backpressure, cancellation, and shutdown failure behavior"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test duplicate, stale, restart, and drain scenarios",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "test duplicate, stale, restart, and drain scenarios"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "add a second mutable cache as synchronization",
+        "hide races behind a global sleep",
+        "leave shutdown ownership implicit"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-ARCH-PLUGIN",
+      "profile": "Plugin lifecycle and capability isolation",
+      "prompt": "Design runtime plugin loading without letting plugins own host lifecycle.",
+      "fixture": "Plugins register callbacks, create tasks, and expose optional capabilities. Unload, upgrade, and one crashing plugin must not corrupt the host.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "define plugin identity, capability, resource, and callback ownership",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "define plugin identity, capability, resource, and callback ownership"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "bound load, ready, cancel, quiesce, unload, and upgrade states",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "bound load, ready, cancel, quiesce, unload, and upgrade states"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "isolate errors and deny undeclared host capability access",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "isolate errors and deny undeclared host capability access"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test crash, late callback, partial load, version mismatch, and cleanup",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "test crash, late callback, partial load, version mismatch, and cleanup"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "let plugins retain raw host globals indefinitely",
+        "unload before callback quiescence",
+        "treat plugin panic as host process policy"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-ARCH-ERROR",
+      "profile": "Error boundary across domain, transport, and storage",
+      "prompt": "Refactor generic exceptions into stable error ownership layers.",
+      "fixture": "Storage codes leak into HTTP and SDK responses. Callers need retry meaning, while internal diagnostics must remain available and private.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "separate domain, storage, transport, and public error ownership",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "separate domain, storage, transport, and public error ownership"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "define stable typed mapping with unknown fallback and preserved cause",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "define stable typed mapping with unknown fallback and preserved cause"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "make retry, logging, redaction, and compatibility semantics explicit",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "make retry, logging, redaction, and compatibility semantics explicit"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test each mapping direction and unmapped failures",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "test each mapping direction and unmapped failures"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "publish database error strings",
+        "erase causes before observability captures safe context",
+        "make retry depend on message text"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-ARCH-STORAGE",
+      "profile": "Atomic storage transaction and external side effect",
+      "prompt": "Design creation of a record plus an external notification without split-brain state.",
+      "fixture": "Database commit can succeed while notification fails, retries can duplicate delivery, and consumers require an audit trail. No distributed transaction exists.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "define database, outbox, delivery, idempotency, and audit ownership",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "define database, outbox, delivery, idempotency, and audit ownership"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "select an atomic local commit plus retryable external effect",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "select an atomic local commit plus retryable external effect"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "specify ordering, deduplication, poison handling, and reconciliation",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "specify ordering, deduplication, poison handling, and reconciliation"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test crash points, duplicate delivery, restart, and rollback limitations",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "test crash points, duplicate delivery, restart, and rollback limitations"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "call the external service inside an open transaction as atomicity proof",
+        "assume exactly-once delivery",
+        "delete failed effects without reconciliation"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-ARCH-MODULE",
+      "profile": "Module cycle and dependency direction",
+      "prompt": "Break a cycle between domain, persistence, and presentation modules.",
+      "fixture": "The quick proposal moves shared types to a generic utilities package that would own domain decisions. Tests currently mock persistence details in presentation code.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "map responsibilities, dependency direction, types, and change reasons",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "map responsibilities, dependency direction, types, and change reasons"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "place domain contracts with the domain and adapters at boundaries",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "place domain contracts with the domain and adapters at boundaries"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "remove concrete persistence knowledge from presentation callers",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "remove concrete persistence knowledge from presentation callers"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "verify compile boundaries, contract tests, and migration path",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "verify compile boundaries, contract tests, and migration path"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "create a miscellaneous utility owner for domain semantics",
+        "solve the cycle with global service lookup",
+        "rewrite unrelated modules"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    }
+  ]
+}

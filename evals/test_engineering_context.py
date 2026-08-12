@@ -764,7 +764,11 @@ class RoutingTests(unittest.TestCase):
             with self.subTest(case=case["id"]):
                 result = run(sys.executable, str(FLOW), "route-task", *case["args"])
                 self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
-                routes = {item["skill"] for item in json.loads(result.stdout)["routes"]}
+                payload = json.loads(result.stdout)
+                ordered_routes = [item["skill"] for item in payload["routes"]]
+                routes = set(ordered_routes)
+                self.assertEqual(ordered_routes, case["expected"])
+                self.assertEqual(payload["work_mode"], case["work_mode"])
                 self.assertTrue(set(case["required"]) <= routes)
                 self.assertFalse(set(case["forbidden"]) & routes)
 

@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-REVIEW-WORKFLOW-SUPPLY-CHAIN",
+  "profile": "GitHub workflow and artifact supply-chain review",
+  "prompt": "Review a workflow that adds a third-party Action, write permissions, user inputs, and artifact upload.",
+  "fixture": "reference-cases/review-workflow-supply-chain.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "change-review",
+      "claim_routes": [
+        {
+          "kind": "change-review.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "parse every workflow representation and identify third-party Actions, refs, operation, path, permissions, triggers, and untrusted inputs",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "parse every workflow representation and identify third-party Actions, refs, operation, path, permissions, triggers, and untrusted inputs"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "change-review",
+      "claim_routes": [
+        {
+          "kind": "change-review.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "require immutable full-SHA Action pinning and exact dependency approval bound to workflow path and operation",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "require immutable full-SHA Action pinning and exact dependency approval bound to workflow path and operation"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "change-review",
+      "claim_routes": [
+        {
+          "kind": "change-review.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "reduce token permissions and separate untrusted PR or dispatch input from privileged execution",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "reduce token permissions and separate untrusted PR or dispatch input from privileged execution"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "change-review",
+      "claim_routes": [
+        {
+          "kind": "change-review.artifact"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "bind source, config, build, artifact, SBOM, provenance, signature, and upload identity",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "bind source, config, build, artifact, SBOM, provenance, signature, and upload identity"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "verify hook and terminal audit coverage plus negative syntax, path, operation, and tamper cases",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "verify hook and terminal audit coverage plus negative syntax, path, operation, and tamper cases"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "approve an Action name globally across workflows and operations",
+    "use mutable tags or branches for release Actions",
+    "allow untrusted input to control privileged commands or artifact identity",
+    "upload before final identity and provenance verification"
+  ],
+  "required_artifacts": [
+    "design.md",
+    "test-matrix.md",
+    "blue-audit.md",
+    "red-audit.md",
+    "evidence.md"
+  ]
+}

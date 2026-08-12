@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-DEBUG-CROSS-PLATFORM-PATH",
+  "profile": "Cross-platform Python argv and isolated-cwd diagnosis",
+  "prompt": "Fix a bundled adapter path that fails on Windows without rewriting arbitrary external arguments.",
+  "fixture": "reference-cases/debug-cross-platform-path.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "systematic-debugging",
+      "claim_routes": [
+        {
+          "kind": "systematic-debugging.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "capture exact argv, launcher form, cwd, path separators, platform, Python version, and failure",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "capture exact argv, launcher form, cwd, path separators, platform, Python version, and failure"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "systematic-debugging",
+      "claim_routes": [
+        {
+          "kind": "systematic-debugging.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "distinguish the documented first-party script position from arbitrary external executable arguments",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "distinguish the documented first-party script position from arbitrary external executable arguments"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "systematic-debugging",
+      "claim_routes": [
+        {
+          "kind": "systematic-debugging.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "avoid shell reinterpretation and bind only an exact recognized direct or Python-script form",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "avoid shell reinterpretation and bind only an exact recognized direct or Python-script form"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "add positive and negative POSIX and Windows parsing, option, external-argument, and isolated-cwd tests",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "add positive and negative POSIX and Windows parsing, option, external-argument, and isolated-cwd tests"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "systematic-debugging",
+      "claim_routes": [
+        {
+          "kind": "systematic-debugging.limitation"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "report native Windows execution separately from local static or simulated parsing evidence",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "report native Windows execution separately from local static or simulated parsing evidence"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "rewrite an arbitrary external program argument that resembles the adapter path",
+    "scan every argv position heuristically",
+    "invoke through a shell to fix quoting",
+    "claim Windows runtime proof from macOS string tests"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "design.md",
+    "test-matrix.md",
+    "red-audit.md",
+    "evidence.md"
+  ]
+}

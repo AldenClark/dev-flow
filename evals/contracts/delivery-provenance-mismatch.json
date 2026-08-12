@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-DELIVERY-PROVENANCE-MISMATCH",
+  "profile": "Artifact, SBOM, and provenance identity mismatch",
+  "prompt": "Diagnose and contain a release artifact whose digest does not match its attestations.",
+  "fixture": "reference-cases/delivery-provenance-mismatch.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.limitation"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "block publication and preserve the first mismatch, artifacts, hashes, commit, config, builder, and environment",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "block publication and preserve the first mismatch, artifacts, hashes, commit, config, builder, and environment"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "trace immutable source, build input, archive manifest, SBOM subject, provenance subject, and uploaded asset identity",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "trace immutable source, build input, archive manifest, SBOM subject, provenance subject, and uploaded asset identity"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "systematic-debugging",
+      "claim_routes": [
+        {
+          "kind": "systematic-debugging.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "distinguish stale artifact, nondeterministic build, wrong subject, post-build mutation, and upload substitution",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "distinguish stale artifact, nondeterministic build, wrong subject, post-build mutation, and upload substitution"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "systematic-debugging",
+      "claim_routes": [
+        {
+          "kind": "systematic-debugging.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "fix the causal builder or binding and create a distinct controlled attempt rather than editing metadata",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "fix the causal builder or binding and create a distinct controlled attempt rather than editing metadata"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "verify reproducibility and tamper rejection before any new signing or Draft Release action",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "verify reproducibility and tamper rejection before any new signing or Draft Release action"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "edit SBOM or provenance to match an untrusted archive",
+    "overwrite first-failure evidence",
+    "publish because tests passed",
+    "reuse a signature across different bytes"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "execution.md",
+    "test-matrix.md",
+    "red-audit.md",
+    "evidence.md"
+  ]
+}

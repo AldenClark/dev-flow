@@ -1,0 +1,107 @@
+{
+  "schema_version": "2.2",
+  "id": "CASE-DEBUG-PROCESS-TIMEOUT",
+  "profile": "Owned process timeout and descendant leak diagnosis",
+  "prompt": "Find and fix a runner timeout that sometimes leaves a child process alive.",
+  "fixture": "reference-cases/debug-process-timeout.md",
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "systematic-debugging",
+      "claim_routes": [
+        {
+          "kind": "systematic-debugging.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "capture the first timeout, environment, process tree, blocked I/O, output size, and reproduction reliability",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "capture the first timeout, environment, process tree, blocked I/O, output size, and reproduction reliability"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "systematic-debugging",
+      "claim_routes": [
+        {
+          "kind": "systematic-debugging.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "trace process ownership, stdin/stdout handling, timeout ordering, termination, join, and cleanup",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "trace process ownership, stdin/stdout handling, timeout ordering, termination, join, and cleanup"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "systematic-debugging",
+      "claim_routes": [
+        {
+          "kind": "systematic-debugging.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "state one causal hypothesis and run the smallest safe discriminating experiment",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "state one causal hypothesis and run the smallest safe discriminating experiment"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "add a regression that proves bounded timeout, output, descendant teardown, and no marker leak",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "add a regression that proves bounded timeout, output, descendant teardown, and no marker leak"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "rerun nearby success, failure, and interruption paths after the root-cause fix",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "rerun nearby success, failure, and interruption paths after the root-cause fix"
+        }
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "only increase the timeout",
+    "add blind retries that erase the first failure",
+    "kill an unresolved broad process set",
+    "claim cleanup from parent exit alone"
+  ],
+  "required_artifacts": [
+    "context.md",
+    "execution.md",
+    "test-matrix.md",
+    "red-audit.md",
+    "evidence.md"
+  ]
+}

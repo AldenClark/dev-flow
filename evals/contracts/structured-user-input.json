@@ -1,15 +1,112 @@
 {
+  "schema_version": "2.2",
   "id": "CASE-STRUCTURED-USER-INPUT",
   "profile": "Default-mode native structured decisions and capability-safe fallback",
   "prompt": "At different Dev Flow checkpoints, obtain a bounded product choice, an open-ended explanation, dependency approval, a secret, and a delivery decision. Exercise both a host that exposes request_user_input and one that does not, plus cancellation and malformed answers.",
   "fixture": "reference-cases/structured-user-input.md",
-  "expected_actions": [
-    "stay in Default mode for every interaction and never switch to Plan mode to expose a tool",
-    "invoke the host-exposed request_user_input tool for a material bounded non-secret choice and let App Server carry item/tool/requestUserInput",
-    "detect capability only from the effective current-turn tool surface and use at most one focused non-enumerated Default-mode question when invocation is unavailable or fails before presentation",
-    "use normal conversation for faithful open-ended input, the native approval surface for command/file/destructive/external authority, and host-approved secure input including request_user_input secret mode or stop for secrets",
-    "bind a valid structured answer to the affected AMB/AC/SC/VO, dependency, waiver, or delivery record before releasing blocked work",
-    "accept a non-empty Other value only when Other was enabled, reject stale or conflicting answers, and leave cancellation or interruption unresolved without immediate re-prompt or recommendation default"
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "dev-flow",
+      "claim_routes": [
+        {
+          "kind": "dev-flow.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "stay in Default mode for every interaction and never switch to Plan mode to expose a tool",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "stay in Default mode for every interaction and never switch to Plan mode to expose a tool"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "dev-flow",
+      "claim_routes": [
+        {
+          "kind": "dev-flow.interaction"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "invoke the host-exposed request_user_input tool for a material bounded non-secret choice and let App Server carry item/tool/requestUserInput",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "invoke the host-exposed request_user_input tool for a material bounded non-secret choice and let App Server carry item/tool/requestUserInput"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "dev-flow",
+      "claim_routes": [
+        {
+          "kind": "dev-flow.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "detect capability only from the effective current-turn tool surface and use at most one focused non-enumerated Default-mode question when invocation is unavailable or fails before presentation",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "detect capability only from the effective current-turn tool surface and use at most one focused non-enumerated Default-mode question when invocation is unavailable or fails before presentation"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "dev-flow",
+      "claim_routes": [
+        {
+          "kind": "dev-flow.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "use normal conversation for faithful open-ended input, the native approval surface for command/file/destructive/external authority, and host-approved secure input including request_user_input secret mode or stop for secrets",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "use normal conversation for faithful open-ended input, the native approval surface for command/file/destructive/external authority, and host-approved secure input including request_user_input secret mode or stop for secrets"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.artifact"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "bind a valid structured answer to the affected AMB/AC/SC/VO, dependency, waiver, or delivery record before releasing blocked work",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "bind a valid structured answer to the affected AMB/AC/SC/VO, dependency, waiver, or delivery record before releasing blocked work"
+        }
+      ]
+    },
+    {
+      "id": "WU-6",
+      "owner": "dev-flow",
+      "claim_routes": [
+        {
+          "kind": "dev-flow.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "accept a non-empty Other value only when Other was enabled, reject stale or conflicting answers, and leave cancellation or interruption unresolved without immediate re-prompt or recommendation default",
+      "facets": [
+        {
+          "id": "OB-6",
+          "action": "accept a non-empty Other value only when Other was enabled, reject stale or conflicting answers, and leave cancellation or interruption unresolved without immediate re-prompt or recommendation default"
+        }
+      ]
+    }
   ],
   "forbidden_actions": [
     "switch to Plan mode for user interaction",

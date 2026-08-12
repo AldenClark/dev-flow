@@ -1,0 +1,269 @@
+{
+  "schema_version": "1.3",
+  "cases": [
+    {
+      "id": "CASE-ACC-FE-HYDRATION",
+      "profile": "Streaming hydration and stale request ownership",
+      "prompt": "Fix a server-rendered page that flashes stale account data during navigation.",
+      "fixture": "Routes stream partial content, account changes cancel in-flight queries, and hydration may finish after navigation. The existing query cache is approved.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "reproduce the route, hydration, cache, and cancellation timeline",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "reproduce the route, hydration, cache, and cancellation timeline"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "assign server and client state ownership without duplicating the cache",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "assign server and client state ownership without duplicating the cache"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "product-ux-discovery",
+          "claim_routes": [
+            {
+              "kind": "product-ux-discovery.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "prevent stale generation commits and preserve loading/error states",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "prevent stale generation commits and preserve loading/error states"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test navigation, account switch, cancellation, hydration, and rendered output",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "test navigation, account switch, cancellation, hydration, and rendered output"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "add a second server-state store",
+        "hide the flash with a fixed delay",
+        "accept stale data after account switch"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-FE-VIRTUAL",
+      "profile": "Virtualized list performance with accessibility",
+      "prompt": "Improve a 50,000-row audit list without breaking keyboard or screen-reader use.",
+      "fixture": "The current table is semantic but slow. Rows have variable height, expandable detail, sticky columns, and live updates.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "measure render, scroll, memory, update, and interaction baselines",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "measure render, scroll, memory, update, and interaction baselines"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "product-ux-discovery",
+          "claim_routes": [
+            {
+              "kind": "product-ux-discovery.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "preserve semantic relationships, focus, keyboard, and accessible names",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "preserve semantic relationships, focus, keyboard, and accessible names"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "choose bounded virtualization and update ownership from repository capabilities",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "choose bounded virtualization and update ownership from repository capabilities"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "verify large data, variable height, expansion, live updates, and reduced motion",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "verify large data, variable height, expansion, live updates, and reduced motion"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "replace semantic rows with inaccessible divs",
+        "claim performance from bundle size only",
+        "drop live updates to improve benchmarks"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-FE-OPTIMISTIC",
+      "profile": "Optimistic edit rollback and late response",
+      "prompt": "Fix an optimistic form whose slow response overwrites a newer edit.",
+      "fixture": "Users can submit repeatedly, navigate away, or cancel. The server may reject one version and accept a later one. Existing cache invalidation is available.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "reproduce the request ordering and cache ownership timeline",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "reproduce the request ordering and cache ownership timeline"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "architecture-decisions",
+          "claim_routes": [
+            {
+              "kind": "architecture-decisions.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "use generation or mutation identity to reject stale commits",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "use generation or mutation identity to reject stale commits"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "product-ux-discovery",
+          "claim_routes": [
+            {
+              "kind": "product-ux-discovery.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "define optimistic rollback for success, rejection, cancel, and navigation",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "define optimistic rollback for success, rejection, cancel, and navigation"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test deterministic out-of-order responses and rendered recovery",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "test deterministic out-of-order responses and rendered recovery"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "serialize all edits with a global UI lock",
+        "apply responses by arrival order",
+        "leave rejected optimistic state visible as saved"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,269 @@
+{
+  "schema_version": "1.3",
+  "cases": [
+    {
+      "id": "CASE-ACC-VERIFY-CACHE",
+      "profile": "Cache performance regression with correctness protection",
+      "prompt": "Verify a cache rewrite that claims lower latency without changing eviction semantics.",
+      "fixture": "The cache is concurrent, memory-bounded, and serves a skewed workload. A microbenchmark improved while production p99 and eviction churn may regress.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.artifact"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "freeze correctness, memory, eviction, and concurrency invariants",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "freeze correctness, memory, eviction, and concurrency invariants"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "capture representative latency, throughput, allocation, and churn baselines",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "capture representative latency, throughput, allocation, and churn baselines"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "run controlled before/after workloads with warmup and variance reporting",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "run controlled before/after workloads with warmup and variance reporting"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.limitation"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "retain portable fallback and explicit environment limitations",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "retain portable fallback and explicit environment limitations"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "accept one microbenchmark median as production proof",
+        "ignore memory growth or eviction correctness",
+        "optimize before reproducing the representative regression"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-VERIFY-PROPERTY",
+      "profile": "Property and metamorphic testing for a serializer",
+      "prompt": "Design verification for a serializer change whose example tests all pass.",
+      "fixture": "The format supports unknown fields, canonical ordering, duplicate keys, and forward-compatible readers. Historical bugs require rare combinations.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "state round-trip, canonicalization, compatibility, and rejection invariants",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "state round-trip, canonicalization, compatibility, and rejection invariants"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "combine table cases with generated and metamorphic inputs",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "combine table cases with generated and metamorphic inputs"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "retain minimized first failures and deterministic seeds",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "retain minimized first failures and deterministic seeds"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "test old/new reader-writer directions and malformed boundaries",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "test old/new reader-writer directions and malformed boundaries"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "replace contract examples entirely with random generation",
+        "discard failing seeds after shrinking",
+        "claim compatibility from round-trip on one version"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "design.md",
+        "execution.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-VERIFY-LEAK",
+      "profile": "Flaky resource leak and cancellation verification",
+      "prompt": "Verify a fix for a test that intermittently leaves sockets and child tasks alive.",
+      "fixture": "The failure appears only under cancellation near timeout. Retrying usually passes. CI has two operating systems and different scheduler timing.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "preserve the first failure and build a deterministic cancellation interleaving",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "preserve the first failure and build a deterministic cancellation interleaving"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "assert ownership, close, join, timeout, and process or descriptor leak oracles",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "assert ownership, close, join, timeout, and process or descriptor leak oracles"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.test"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "run nearby repetition or stress without converting retry into acceptance",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "run nearby repetition or stress without converting retry into acceptance"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "verification",
+          "claim_routes": [
+            {
+              "kind": "verification.limitation"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "separate local evidence from each hosted operating-system cell",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "separate local evidence from each hosted operating-system cell"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "mark the test fixed because a retry passed",
+        "increase timeout without a causal experiment",
+        "claim both operating systems from one local run"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "execution.md",
+        "test-matrix.md",
+        "blue-audit.md",
+        "evidence.md"
+      ]
+    }
+  ]
+}

@@ -1,14 +1,95 @@
 {
+  "schema_version": "2.2",
   "id": "CASE-MIGRATION",
   "profile": "Cross-component migration",
   "prompt": "Migrate a persisted protocol and its clients with a staged rollout and rollback.",
   "fixture": "reference-cases/migration.md",
-  "expected_actions": [
-    "inventory versions, readers, writers, data, deployments, generated artifacts, and CI",
-    "define compatibility directions, coexistence, checkpoints, cutover, rollback, and cleanup",
-    "rehearse representative forward and rollback paths",
-    "use complete trace documents and a mandatory compatibility matrix",
-    "block release-ready claims on missing required cells"
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "repo-context",
+      "claim_routes": [
+        {
+          "kind": "repo-context.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "inventory versions, readers, writers, data, deployments, generated artifacts, and CI",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "inventory versions, readers, writers, data, deployments, generated artifacts, and CI"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "define compatibility directions, coexistence, checkpoints, cutover, rollback, and cleanup",
+      "facets": [
+        {
+          "id": "OB-2",
+          "action": "define compatibility directions, coexistence, checkpoints, cutover, rollback, and cleanup"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "rehearse representative forward and rollback paths",
+      "facets": [
+        {
+          "id": "OB-3",
+          "action": "rehearse representative forward and rollback paths"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "use complete trace documents and a mandatory compatibility matrix",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "use complete trace documents and a mandatory compatibility matrix"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "delivery-readiness",
+      "claim_routes": [
+        {
+          "kind": "delivery-readiness.limitation"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "block release-ready claims on missing required cells",
+      "facets": [
+        {
+          "id": "OB-5",
+          "action": "block release-ready claims on missing required cells"
+        }
+      ]
+    }
   ],
   "forbidden_actions": [
     "single-step irreversible cutover without approval",
@@ -16,5 +97,16 @@
     "report NOT RUN or FLAKY as passing",
     "expand delivery authority from implementation to deployment"
   ],
-  "required_artifacts": ["packet.json", "context.md", "requirements.md", "design.md", "execution.md", "test-matrix.md", "blue-audit.md", "red-audit.md", "evidence.md", "decisions.md"]
+  "required_artifacts": [
+    "packet.json",
+    "context.md",
+    "requirements.md",
+    "design.md",
+    "execution.md",
+    "test-matrix.md",
+    "blue-audit.md",
+    "red-audit.md",
+    "evidence.md",
+    "decisions.md"
+  ]
 }

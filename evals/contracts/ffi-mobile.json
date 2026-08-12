@@ -1,20 +1,357 @@
 {
+  "schema_version": "2.2",
   "id": "CASE-FFI-MOBILE",
   "profile": "Rust FFI for Apple and Android",
   "prompt": "Evolve a Rust callback API consumed by Swift and Kotlin while preserving compatibility.",
   "fixture": "reference-cases/ffi-mobile.md",
-  "expected_actions": [
-    "load rust-swift-ffi, rust-kotlin-ffi, and ffi review guidance",
-    "scan both language boundaries, packaging, generated code, and consumers",
-    "define ABI, ownership, error, panic, threading, cancellation, and callback quiescence",
-    "separate simulator/emulator evidence from physical-device evidence",
-    "record Xcode Test Plan/xcresult and Android API/ABI/CheckJNI evidence when applicable"
+  "work_units": [
+    {
+      "id": "WU-1",
+      "owner": "architecture-decisions",
+      "claim_routes": [
+        {
+          "kind": "architecture-decisions.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "Required cross-language specialist routes are selected before boundary design.",
+      "facets": [
+        {
+          "id": "OB-1",
+          "action": "select and record the Rust-Swift FFI specialist route before boundary design"
+        },
+        {
+          "id": "OB-2",
+          "action": "select and record the Rust-Kotlin FFI specialist route before boundary design"
+        },
+        {
+          "id": "OB-3",
+          "action": "select and record the independent FFI review route as an admission decision, not as an executed review"
+        }
+      ]
+    },
+    {
+      "id": "WU-2",
+      "owner": "repo-context",
+      "claim_routes": [
+        {
+          "kind": "repo-context.analysis"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "Boundary design is grounded in a complete cross-language inventory or an explicit context gap.",
+      "facets": [
+        {
+          "id": "OB-4",
+          "action": "inventory the current Rust exports before boundary design or record the repository context gap"
+        },
+        {
+          "id": "OB-5",
+          "action": "inventory the generated Swift bindings before boundary design or record the repository context gap"
+        },
+        {
+          "id": "OB-6",
+          "action": "inventory the generated Kotlin bindings before boundary design or record the repository context gap"
+        },
+        {
+          "id": "OB-7",
+          "action": "inventory the handwritten Swift consumers before boundary design or record the repository context gap"
+        },
+        {
+          "id": "OB-8",
+          "action": "inventory the handwritten Kotlin consumers before boundary design or record the repository context gap"
+        },
+        {
+          "id": "OB-9",
+          "action": "inventory the native package artifacts before boundary design or record the repository context gap"
+        },
+        {
+          "id": "OB-10",
+          "action": "inventory the supported consumer and core versions before boundary design or record the repository context gap"
+        },
+        {
+          "id": "OB-11",
+          "action": "inventory the deployed consumer and core versions before boundary design or record the repository context gap"
+        },
+        {
+          "id": "OB-12",
+          "action": "inventory the native loading paths before boundary design or record the repository context gap"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
+      "owner": "architecture-decisions",
+      "claim_routes": [
+        {
+          "kind": "architecture-decisions.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "The versioned ABI representation remains stable and unambiguous across consumers. Every transferred value has symmetric allocator ownership and release behavior. Typed failures and language exceptions remain contained at every FFI boundary.",
+      "facets": [
+        {
+          "id": "OB-13",
+          "action": "define the ABI versioning contract"
+        },
+        {
+          "id": "OB-14",
+          "action": "define the ABI layout contract"
+        },
+        {
+          "id": "OB-15",
+          "action": "define the allocator that owns every transferred value"
+        },
+        {
+          "id": "OB-16",
+          "action": "define the matching release API for every transferred value"
+        },
+        {
+          "id": "OB-17",
+          "action": "define nullability behavior at every boundary"
+        },
+        {
+          "id": "OB-18",
+          "action": "define the cross-language encoding contract"
+        },
+        {
+          "id": "OB-19",
+          "action": "define the typed error representation at the C ABI"
+        },
+        {
+          "id": "OB-20",
+          "action": "define Swift typed-error mapping"
+        },
+        {
+          "id": "OB-21",
+          "action": "define Kotlin typed-error mapping"
+        },
+        {
+          "id": "OB-22",
+          "action": "contain Rust panics and foreign exceptions at every FFI boundary"
+        }
+      ]
+    },
+    {
+      "id": "WU-4",
+      "owner": "architecture-decisions",
+      "claim_routes": [
+        {
+          "kind": "architecture-decisions.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "Callback ownership reaches observable quiescence before foreign state is released.",
+      "facets": [
+        {
+          "id": "OB-23",
+          "action": "define callback state ownership"
+        },
+        {
+          "id": "OB-24",
+          "action": "define thread or actor affinity for callback delivery"
+        },
+        {
+          "id": "OB-25",
+          "action": "define callback reentrancy behavior"
+        },
+        {
+          "id": "OB-26",
+          "action": "define cancellation ownership"
+        },
+        {
+          "id": "OB-27",
+          "action": "define rejection of callbacks delivered after cancellation"
+        },
+        {
+          "id": "OB-28",
+          "action": "define rejection of callbacks owned by a stale runtime generation"
+        },
+        {
+          "id": "OB-29",
+          "action": "define callback drain and join ordering"
+        },
+        {
+          "id": "OB-30",
+          "action": "define the observable callback-quiescence condition"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "architecture-decisions",
+      "claim_routes": [
+        {
+          "kind": "architecture-decisions.decision"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "Supported old and new consumers can coexist, migrate, and roll back safely.",
+      "facets": [
+        {
+          "id": "OB-31",
+          "action": "define old and new consumer coexistence"
+        },
+        {
+          "id": "OB-32",
+          "action": "define the consumer and core migration sequence"
+        },
+        {
+          "id": "OB-33",
+          "action": "define the rollback path"
+        },
+        {
+          "id": "OB-34",
+          "action": "define symbol compatibility across supported versions"
+        },
+        {
+          "id": "OB-35",
+          "action": "define evidence-based removal conditions for old ABI surfaces"
+        }
+      ]
+    },
+    {
+      "id": "WU-6",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "Rust, Swift, and Kotlin language-level boundary behavior has explicit evidence. Generated Swift and Kotlin bindings have explicit compatibility evidence. The required old/new consumer and core compatibility matrix has explicit evidence.",
+      "facets": [
+        {
+          "id": "OB-36",
+          "action": "plan Rust boundary evidence"
+        },
+        {
+          "id": "OB-37",
+          "action": "plan Swift boundary evidence"
+        },
+        {
+          "id": "OB-38",
+          "action": "plan Kotlin boundary evidence"
+        },
+        {
+          "id": "OB-39",
+          "action": "plan generated Swift binding evidence"
+        },
+        {
+          "id": "OB-40",
+          "action": "plan generated Kotlin binding evidence"
+        },
+        {
+          "id": "OB-43",
+          "action": "plan old Swift consumer with new core evidence"
+        },
+        {
+          "id": "OB-44",
+          "action": "plan old Kotlin consumer with new core evidence"
+        },
+        {
+          "id": "OB-45",
+          "action": "plan new Swift consumer with old core evidence"
+        },
+        {
+          "id": "OB-46",
+          "action": "plan new Kotlin consumer with old core evidence"
+        }
+      ]
+    },
+    {
+      "id": "WU-7",
+      "owner": "verification",
+      "claim_routes": [
+        {
+          "kind": "verification.test"
+        }
+      ],
+      "criticality": "critical",
+      "protected_behavior": "Cancellation and callback quiescence have deterministic lifecycle evidence.",
+      "facets": [
+        {
+          "id": "OB-41",
+          "action": "plan deterministic cancellation evidence"
+        },
+        {
+          "id": "OB-42",
+          "action": "plan deterministic callback-quiescence evidence"
+        }
+      ]
+    },
+    {
+      "id": "WU-8",
+      "owner": "change-review",
+      "claim_routes": [
+        {
+          "kind": "change-review.limitation"
+        },
+        {
+          "kind": "change-review.analysis"
+        }
+      ],
+      "criticality": "supporting",
+      "protected_behavior": "Post-change FFI review remains evidence-gated and covers every material consumer and risk axis.",
+      "facets": [
+        {
+          "id": "OB-47",
+          "action": "require an approved diff before post-change FFI review; otherwise record NOT RUN and the missing diff"
+        },
+        {
+          "id": "OB-48",
+          "action": "require generated artifacts before post-change FFI review; otherwise record NOT RUN and the missing artifacts"
+        },
+        {
+          "id": "OB-49",
+          "action": "require a changed-file list before post-change FFI review; otherwise record NOT RUN and the missing list"
+        },
+        {
+          "id": "OB-50",
+          "action": "require raw verification evidence before post-change FFI review; otherwise record NOT RUN and the missing evidence"
+        },
+        {
+          "id": "OB-51",
+          "action": "when review evidence is admitted, independently review the Swift consumer path; otherwise keep this review NOT RUN"
+        },
+        {
+          "id": "OB-52",
+          "action": "when review evidence is admitted, independently review the Kotlin consumer path; otherwise keep this review NOT RUN"
+        },
+        {
+          "id": "OB-53",
+          "action": "when review evidence is admitted, independently review ABI risks; otherwise keep this review NOT RUN"
+        },
+        {
+          "id": "OB-54",
+          "action": "when review evidence is admitted, independently review callback lifecycle risks; otherwise keep this review NOT RUN"
+        },
+        {
+          "id": "OB-55",
+          "action": "when review evidence is admitted, independently review packaging risks; otherwise keep this review NOT RUN"
+        },
+        {
+          "id": "OB-56",
+          "action": "when review evidence is admitted, independently review mixed-version risks; otherwise keep this review NOT RUN"
+        },
+        {
+          "id": "OB-57",
+          "action": "when review evidence is admitted, independently review rollback risks; otherwise keep this review NOT RUN"
+        }
+      ]
+    }
   ],
   "forbidden_actions": [
     "review only the Rust side",
     "treat generated bindings as inherently correct",
-    "claim device or architecture compatibility from simulator-only evidence",
     "change the ABI without migration and rollback design"
   ],
-  "required_artifacts": ["requirements.md", "design.md", "test-matrix.md", "blue-audit.md", "red-audit.md", "evidence.md"]
+  "required_artifacts": [
+    "requirements.md",
+    "design.md",
+    "test-matrix.md",
+    "blue-audit.md",
+    "red-audit.md",
+    "evidence.md"
+  ]
 }

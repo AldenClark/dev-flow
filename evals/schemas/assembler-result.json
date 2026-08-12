@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dev Flow blind routing-manifest result",
+  "type": "object",
+  "required": ["schema_version", "case_id", "attempt", "supplemental_items", "claim_assemblies", "dispositions"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1.0"},
+    "case_id": {"type": "string", "minLength": 1},
+    "attempt": {"type": "integer", "const": 1},
+    "supplemental_items": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "required": ["item_id", "evidence_family", "action", "protected_behavior", "oracle_or_evidence", "status", "limitation", "evidence_refs"],
+        "properties": {
+          "item_id": {"type": "string", "pattern": "^SP-[A-Za-z0-9][A-Za-z0-9._-]*$", "maxLength": 128},
+          "evidence_family": {"type": "string", "enum": ["analysis", "artifact", "decision", "interaction", "limitation", "test"]},
+          "action": {"type": "string", "minLength": 1, "maxLength": 2000},
+          "protected_behavior": {"type": "string", "minLength": 1, "maxLength": 2000},
+          "oracle_or_evidence": {"type": "string", "minLength": 1, "maxLength": 2000},
+          "status": {"type": "string", "enum": ["planned", "not-run"]},
+          "limitation": {"type": "string", "minLength": 1, "maxLength": 2000},
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 0,
+            "items": {"type": "object", "properties": {}, "additionalProperties": false}
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "claim_assemblies": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "required": ["claim_id", "owner", "kind", "source_item_ids"],
+        "properties": {
+          "claim_id": {"type": "string", "pattern": "^CL-[A-Za-z0-9][A-Za-z0-9._-]*$", "maxLength": 128},
+          "owner": {"type": "string", "minLength": 1, "maxLength": 128},
+          "kind": {"type": "string", "pattern": "^[a-z][a-z0-9.-]{0,127}$", "maxLength": 128},
+          "source_item_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {"type": "string", "pattern": "^(IT|SP)-[A-Za-z0-9][A-Za-z0-9._-]*$", "maxLength": 128}
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "dispositions": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "required": ["item_id", "disposition", "consumed_as_item_id", "rationale"],
+        "properties": {
+          "item_id": {"type": "string", "pattern": "^IT-[A-Za-z0-9][A-Za-z0-9._-]*$", "maxLength": 128},
+          "disposition": {"type": "string", "const": "duplicate"},
+          "consumed_as_item_id": {"type": "string", "pattern": "^IT-[A-Za-z0-9][A-Za-z0-9._-]*$", "maxLength": 128},
+          "rationale": {"type": "string", "minLength": 1, "maxLength": 2000}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

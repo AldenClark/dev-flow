@@ -1,0 +1,269 @@
+{
+  "schema_version": "1.3",
+  "cases": [
+    {
+      "id": "CASE-ACC-REQ-COMPAT",
+      "profile": "Material backward-compatibility default",
+      "prompt": "Add a stricter validation rule to a public API while preserving supported clients.",
+      "fixture": "The repository shows two old clients that send values the new rule rejects. The user requested stricter validation but did not choose immediate rejection versus staged compatibility.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "repo-context",
+          "claim_routes": [
+            {
+              "kind": "repo-context.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "discover current wire behavior and supported client matrix",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "discover current wire behavior and supported client matrix"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "requirements-design",
+          "claim_routes": [
+            {
+              "kind": "requirements-design.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "identify the enforcement timing as a material user-owned choice",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "identify the enforcement timing as a material user-owned choice"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "requirements-design",
+          "claim_routes": [
+            {
+              "kind": "requirements-design.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "recommend a staged compatible default with explicit tradeoff",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "recommend a staged compatible default with explicit tradeoff"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "requirements-design",
+          "claim_routes": [
+            {
+              "kind": "requirements-design.artifact"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "bind acceptance, rollback, and affected scope before enforcement",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "bind acceptance, rollback, and affected scope before enforcement"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "silently break supported clients",
+        "ask the user for repository facts that can be inspected",
+        "treat a recommendation as approval"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "requirements.md",
+        "design.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-REQ-RETENTION",
+      "profile": "Destructive retention policy ambiguity",
+      "prompt": "Implement automatic cleanup for old customer exports.",
+      "fixture": "Exports may be regulated records. The request says old but gives no retention period, legal hold behavior, restore window, or tenant notification rule.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "repo-context",
+          "claim_routes": [
+            {
+              "kind": "repo-context.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "resolve existing storage and policy facts from the repository",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "resolve existing storage and policy facts from the repository"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "requirements-design",
+          "claim_routes": [
+            {
+              "kind": "requirements-design.artifact"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "record retention, legal hold, restore, and notification as material semantics",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "record retention, legal hold, restore, and notification as material semantics"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "requirements-design",
+          "claim_routes": [
+            {
+              "kind": "requirements-design.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "offer a conservative reversible recommendation and name affected work",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "offer a conservative reversible recommendation and name affected work"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "requirements-design",
+          "claim_routes": [
+            {
+              "kind": "requirements-design.limitation"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "stop destructive implementation until the user confirms the policy",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "stop destructive implementation until the user confirms the policy"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "choose a retention period silently",
+        "delete data while the policy is unresolved",
+        "turn a legal/product choice into an engineering assumption"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "requirements.md",
+        "design.md",
+        "decisions.md",
+        "evidence.md"
+      ]
+    },
+    {
+      "id": "CASE-ACC-REQ-ERROR",
+      "profile": "Public error contract and retry meaning",
+      "prompt": "Replace a generic failure with typed errors for SDK callers.",
+      "fixture": "Callers currently retry every failure. The repository does not define whether quota, conflict, invalid input, and server fault are stable wire codes or internal-only categories.",
+      "work_units": [
+        {
+          "id": "WU-1",
+          "owner": "repo-context",
+          "claim_routes": [
+            {
+              "kind": "repo-context.analysis"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "inspect current wire, SDK, retry, and compatibility behavior",
+          "facets": [
+            {
+              "id": "OB-1",
+              "action": "inspect current wire, SDK, retry, and compatibility behavior"
+            }
+          ]
+        },
+        {
+          "id": "WU-2",
+          "owner": "requirements-design",
+          "claim_routes": [
+            {
+              "kind": "requirements-design.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "separate repository facts from the material public error taxonomy choice",
+          "facets": [
+            {
+              "id": "OB-2",
+              "action": "separate repository facts from the material public error taxonomy choice"
+            }
+          ]
+        },
+        {
+          "id": "WU-3",
+          "owner": "requirements-design",
+          "claim_routes": [
+            {
+              "kind": "requirements-design.decision"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "recommend typed stable categories with unknown-value fallback",
+          "facets": [
+            {
+              "id": "OB-3",
+              "action": "recommend typed stable categories with unknown-value fallback"
+            }
+          ]
+        },
+        {
+          "id": "WU-4",
+          "owner": "requirements-design",
+          "claim_routes": [
+            {
+              "kind": "requirements-design.artifact"
+            }
+          ],
+          "criticality": "critical",
+          "protected_behavior": "bind versioning, retry semantics, tests, and migration acceptance",
+          "facets": [
+            {
+              "id": "OB-4",
+              "action": "bind versioning, retry semantics, tests, and migration acceptance"
+            }
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "expose internal exception names as public codes",
+        "change retry behavior without an explicit contract",
+        "ask before inspecting current callers and protocol"
+      ],
+      "required_artifacts": [
+        "context.md",
+        "requirements.md",
+        "design.md",
+        "test-matrix.md",
+        "evidence.md"
+      ]
+    }
+  ]
+}
