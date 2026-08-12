@@ -50,6 +50,37 @@ def legacy_development_config() -> dict[str, object]:
     return config
 
 
+def resolve_fake_release_backend(
+    test_case: unittest.TestCase,
+    contract: dict[str, object],
+    *,
+    evaluator_label: str = "release evaluator",
+) -> tuple[dict[str, object], dict[str, object]]:
+    """Resolve an approved backend without depending on a host Codex install."""
+    temp = tempfile.TemporaryDirectory()
+    test_case.addCleanup(temp.cleanup)
+    fake_backend = Path(temp.name) / ("codex.exe" if sys.platform == "win32" else "codex")
+    fake_backend.write_bytes(b"deterministic fake Codex backend")
+    approved_contract = json.loads(json.dumps(contract))
+    platform_key = paired_eval.release_platform_key(evaluator_label=evaluator_label)
+    approved_contract["backend"]["artifacts"][platform_key] = paired_eval.file_sha256(fake_backend)
+    version_result = subprocess.CompletedProcess(
+        [str(fake_backend), "--version"],
+        0,
+        stdout=f"{approved_contract['backend']['version']}\n",
+        stderr="",
+    )
+    with (
+        mock.patch.object(paired_eval.shutil, "which", return_value=str(fake_backend)),
+        mock.patch.object(paired_eval.subprocess, "run", return_value=version_result),
+    ):
+        identity = paired_eval.resolve_release_backend_identity(
+            approved_contract,
+            evaluator_label=evaluator_label,
+        )
+    return approved_contract, identity
+
+
 def write_features(path: Path) -> None:
     path.write_text("multi_agent stable true\nmulti_agent_v2 stable true\nhooks stable true\n", encoding="utf-8")
 
@@ -2136,7 +2167,10 @@ print(json.dumps(result))
         self.assertEqual(identity["role"], "executor")
         self.assertEqual(identity["model"], "gpt-5.6-terra")
         self.assertEqual(identity["result_schema_version"], "1.3")
-        backend = paired_eval.resolve_release_backend_identity(contract)
+        with mock.patch.object(paired_eval.shutil, "which", return_value=None):
+            with self.assertRaisesRegex(paired_eval.EvaluationError, "executable is unavailable"):
+                paired_eval.resolve_release_backend_identity(contract)
+        _, backend = resolve_fake_release_backend(self, contract)
         identity["backend"] = backend
         self.assertEqual(backend["version"], "codex-cli 0.147.0")
         self.assertRegex(backend["sha256"], r"^sha256:[0-9a-f]{64}$")
@@ -2386,19 +2420,21 @@ print(json.dumps(result))
                     contract,
                     evaluator_label="attested pilot evaluator",
                 )
-        wrong_backend_contract = json.loads(json.dumps(contract))
-        wrong_backend_contract["backend"]["artifacts"][paired_eval.release_platform_key()] = (
-            "sha256:" + "0" * 64
-        )
-        with self.assertRaisesRegex(paired_eval.EvaluationError, "backend digest is not approved"):
-            paired_eval.resolve_release_backend_identity(
-                wrong_backend_contract,
-                evaluator_label="attested pilot evaluator",
-            )
-        backend = paired_eval.resolve_release_backend_identity(
+        approved_backend_contract, backend = resolve_fake_release_backend(
+            self,
             contract,
             evaluator_label="attested pilot evaluator",
         )
+        wrong_backend_contract = json.loads(json.dumps(approved_backend_contract))
+        wrong_backend_contract["backend"]["artifacts"][paired_eval.release_platform_key()] = (
+            "sha256:" + "0" * 64
+        )
+        with mock.patch.object(paired_eval.shutil, "which", return_value=backend["path"]):
+            with self.assertRaisesRegex(paired_eval.EvaluationError, "backend digest is not approved"):
+                paired_eval.resolve_release_backend_identity(
+                    wrong_backend_contract,
+                    evaluator_label="attested pilot evaluator",
+                )
         evaluator["backend"] = backend
 
         with tempfile.TemporaryDirectory() as temp:
