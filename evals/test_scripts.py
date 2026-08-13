@@ -1554,6 +1554,7 @@ print(json.dumps({{"type": "turn.completed", "usage": {{"input_tokens": 5, "outp
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             request = {"stage": "assembly", "draft_result": {"fixed": True}}
+            timeout_seconds = 0.5
             writes_then_hangs = (
                 "import pathlib,time; "
                 "pathlib.Path('model-result.json').write_text('{}'); time.sleep(1)"
@@ -1562,7 +1563,7 @@ print(json.dumps({{"type": "turn.completed", "usage": {{"input_tokens": 5, "outp
                 [PYTHON, "-c", writes_then_hangs],
                 request,
                 root / "unsafe-output",
-                0.05,
+                timeout_seconds,
                 1,
                 attempt_receipt_validator=lambda outcome: {"status": "completed"},
             )
@@ -1580,7 +1581,7 @@ print(json.dumps({{"type": "turn.completed", "usage": {{"input_tokens": 5, "outp
                 [PYTHON, "-c", no_output_then_succeeds, "--call-nonce", "fixed-nonce"],
                 request,
                 root / "clean-timeout",
-                0.05,
+                timeout_seconds,
                 1,
                 attempt_receipt_validator=lambda outcome: {"status": "completed"},
             )

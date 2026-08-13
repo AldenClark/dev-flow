@@ -8,7 +8,6 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -2340,21 +2339,13 @@ class QualityKernelTests(unittest.TestCase):
             packet = initialize_quality_packet(root, "hook-fast-path")
             approve_and_implement(packet)
             log = Path(tools_temp) / "git.log"
-            wrapper = Path(tools_temp) / "git"
-            real_git = shutil.which("git")
-            self.assertIsNotNone(real_git)
-            wrapper.write_text(
-                "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$DEV_FLOW_GIT_LOG\"\nexec \"$DEV_FLOW_REAL_GIT\" \"$@\"\n",
-                encoding="utf-8",
-            )
-            wrapper.chmod(0o755)
             env = os.environ.copy()
             env.update(
                 {
                     "PLUGIN_ROOT": str(ROOT),
-                    "DEV_FLOW_GIT_LOG": str(log),
-                    "DEV_FLOW_REAL_GIT": str(real_git),
-                    "PATH": f"{tools_temp}{os.pathsep}{env.get('PATH', '')}",
+                    # Git's native tracing works on POSIX and Windows without a
+                    # shell-specific launcher in PATH.
+                    "GIT_TRACE": str(log),
                 }
             )
             event = {
@@ -2378,7 +2369,7 @@ class QualityKernelTests(unittest.TestCase):
             commands = log.read_text(encoding="utf-8")
             self.assertIn("rev-parse --show-toplevel", commands)
             self.assertIn("rev-parse --verify HEAD", commands)
-            self.assertNotRegex(commands, r"(?m)^(?:status|diff|ls-files)\b")
+            self.assertNotRegex(commands, r"\bgit(?:\.exe)? (?:status|diff|ls-files)\b")
 
         source = ast.parse(FLOW.read_text(encoding="utf-8"))
         fields: tuple[str, ...] | None = None

@@ -215,7 +215,12 @@ class KnowledgeSystemTests(unittest.TestCase):
             report = ks.validate_knowledge_system(root, project_root="../outside")
             self.assert_invalid(report, "traversal")
             report = ks.validate_knowledge_system(root, project_root=str(root / "docs" / "project"))
-            self.assert_invalid(report, "must be relative")
+            self.assertEqual(report["status"], "invalid", report)
+            errors = "\n".join(report["errors"])
+            self.assertTrue(
+                "must be relative" in errors or "absolute or Windows-style path" in errors,
+                errors,
+            )
 
             report = ks.validate_knowledge_system(root, project_root="")
             self.assert_invalid(report, "non-empty POSIX relative path")
