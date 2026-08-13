@@ -36,6 +36,15 @@
 
 - VO-1: <TM cells>; PASSED; <limitations or none>
 
+## Engineering-practice and knowledge evidence
+
+- Black-box and white-box: <separate applicability, executed evidence, N/A rationale, and test-code oracle review>
+- Slice discipline: <narrow checks, module/smoke checks, final broad checks, and diff/scope audit after final bytes>
+- Comments: <non-obvious why/invariants maintained and protected by tests; stale/obvious comments removed>
+- Engineering context: <final binding fingerprint, native controls, admitted specialist Skills, and drift re-resolution>
+- Knowledge: <validated dossier manifest, current-truth promotions or explicit no-impact rationale, privacy check, and structural validator result>
+- Commit readiness: <ready/not ready and remaining gates; no delivery action inferred>
+
 ## Changed-file accounting
 
 - SC-D1: <path>; <why changed>

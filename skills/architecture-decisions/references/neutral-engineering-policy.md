@@ -9,6 +9,14 @@ These are portable preferences among correct options. They do not override expli
 - Make the smallest coherent change and avoid opportunistic refactors.
 - Remove dead code created by the in-scope change; add compatibility layers only for an identified consumer and removal condition.
 
+## Coherent slices and commit readiness
+
+- Freeze the approved requirement/design baseline, affected surface, acceptance/scope/verification IDs, and current worktree before each implementation slice.
+- Keep related production code, black-box and white-box tests, documentation, and comments in the same coherent slice when they express one behavior.
+- Add or adjust focused tests with the implementation; run the narrow oracle early, then the affected module suite and a representative smoke path at integration points.
+- Before calling a slice commit-ready, inspect the complete diff, user-owned changes, generated/dependency metadata, secrets, tests and oracle validity, comments and documentation, formatter/typecheck/lint results, and relevant smoke evidence.
+- A commit-ready result is a checkpoint and a prompt to the user. It never authorizes staging, committing, pushing, opening a PR, or any later delivery action.
+
 ## Native idiom and abstraction
 
 - Select by language, framework/version, artifact role, boundary, ownership, and call path.
@@ -42,9 +50,13 @@ These are portable preferences among correct options. They do not override expli
 
 ## Testing, documentation, and observability
 
-- Test behavior, contracts, risks, state transitions, failures, limits, cancellation, and compatibility rather than implementation trivia or one coverage percentage.
+- For every non-trivial behavior change, separately derive black-box tests from approved external behavior and white-box tests from the changed implementation; implement and run each applicable perspective, and give a concrete change-specific reason for any `N/A`.
+- Treat experience-based, exploratory, adversarial, and red-team tests as a third perspective that supplements but never replaces black-box or white-box accountability.
+- Test behavior, contracts, risks, state transitions, failures, limits, cancellation, and compatibility rather than implementation trivia or a coverage percentage target.
+- Review test oracles and failure sensitivity; passing tests that would remain green when protected behavior is broken are evidence gaps.
 - Use property/model/fuzz/sanitizer/concurrency methods when the invariant/state space warrants them.
-- Comments explain why, invariants, safety, compatibility, or non-obvious tradeoffs.
+- Add comments in an appropriate amount where they preserve why, invariants, safety/privacy, compatibility/protocol constraints, concurrency/lifecycle/resource ownership, non-obvious performance tradeoffs, workaround/removal conditions, or public API contracts, limits, and errors.
+- Avoid comments that narrate obvious code, preserve commented-out code, speculate about unsupported defensive cases, hide a poor abstraction, or leave a `TODO` without an owner plus a tracking reference or removal trigger. Update or remove stale comments with the code.
 - Document public contracts, operational limits, migration/rollback, and unsafe/FFI safety contracts.
 - Emit structured actionable telemetry without secrets or unbounded-cardinality labels.
 

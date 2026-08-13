@@ -56,22 +56,15 @@ PACKET_ARTIFACTS = {
     "evidence.md",
     "decisions.md",
 }
-EXPECTED_SKILLS = {
-    "architecture-decisions",
-    "change-review",
-    "delivery-readiness",
-    "dependency-decisions",
-    "dev-flow",
-    "dev-flow-maintainer",
-    "manage-engineering-profiles",
-    "product-ux-discovery",
-    "repo-context",
-    "requirements-design",
-    "systematic-debugging",
-    "verification",
-}
+REGISTERED_SKILLS = frozenset(
+    item.get("skill")
+    for item in json.loads(
+        (ROOT / "governance" / "capability-contracts.json").read_text(encoding="utf-8")
+    ).get("capabilities", [])
+    if isinstance(item, dict) and isinstance(item.get("skill"), str) and item["skill"]
+)
 DESCRIPTION_BUDGET = 2500
-ORDINARY_STATIC_BUDGET = 15000
+ORDINARY_STATIC_BUDGET = 18000
 ORDINARY_STATIC_FILES = (
     "skills/dev-flow/SKILL.md",
     "skills/dev-flow/references/artifact-schemas.md",
@@ -106,7 +99,7 @@ def work_unit_shape(value: object) -> tuple[int, int]:
 def capability_alignment_errors(
     obligations: object,
     capabilities: object,
-    registered_skills: set[str] | frozenset[str] = frozenset(EXPECTED_SKILLS),
+    registered_skills: set[str] | frozenset[str] = REGISTERED_SKILLS,
     registered_kinds: dict[str, str] | None = None,
 ) -> list[str]:
     """Validate owner-bound obligations or work units against pair assembly."""
@@ -149,7 +142,7 @@ def validate_contract(
     data: object,
     *,
     root: Path = ROOT,
-    registered_skills: set[str] | frozenset[str] = frozenset(EXPECTED_SKILLS),
+    registered_skills: set[str] | frozenset[str] = REGISTERED_SKILLS,
     registered_kinds: dict[str, str] | None = None,
     schema_version: str | None = "2.2",
     fixture_is_path: bool = True,
@@ -451,7 +444,7 @@ def evaluate_user_interaction_case(case: dict[str, object]) -> str:
 def main() -> int:
     errors: list[str] = []
     description_total = 0
-    for skill_name in EXPECTED_SKILLS:
+    for skill_name in REGISTERED_SKILLS:
         text = (ROOT / "skills" / skill_name / "SKILL.md").read_text(encoding="utf-8")
         description = next(
             (line.split(":", 1)[1].strip() for line in text.splitlines() if line.startswith("description:")),
@@ -511,8 +504,6 @@ def main() -> int:
             "claim kind registry must be the complete task-neutral owner/evidence-kind matrix"
         )
     contracts = sorted((ROOT / "evals" / "contracts").glob("*.json"))
-    if len(contracts) < 39:
-        errors.append(f"at least 39 representative contracts are required: observed {len(contracts)}")
     required_contract_ids = {
         "CASE-FRONTEND-NEW-PRODUCT",
         "CASE-FRONTEND-PRESERVE-IA",
@@ -573,6 +564,15 @@ def main() -> int:
         errors.append("structural coverage role set is incomplete")
     if ["child", "child"] not in coverage.get("forbidden_edges", []):
         errors.append("child-to-child delegation must be forbidden by default")
+    child_result_invariant = (
+        "every child has one written brief and one native result; "
+        "a durable report is optional and brief-bound"
+    )
+    invariants = coverage.get("global_invariants", [])
+    if child_result_invariant not in invariants:
+        errors.append("structural coverage must require a brief-bound native child result")
+    if "every child has one written brief and one report" in invariants:
+        errors.append("structural coverage must not require a durable report from every child")
 
     practices = json.loads((ROOT / "governance" / "industry-practices.json").read_text(encoding="utf-8"))
     practice_by_id: dict[str, dict[str, object]] = {}
@@ -583,15 +583,21 @@ def main() -> int:
             if not practice.get(field):
                 errors.append(f"industry practice {practice.get('id')}: missing {field}")
     eval_practice = practice_by_id.get("IND-ANTHROPIC-AGENT-EVALS", {})
-    if eval_practice.get("adaptation") != (
-        "Use 39 development and 56 frozen acceptance cases across 16 categories, zero content retries, "
-        "one-shot held-out evaluation, and explicit report evidence layers."
+    evaluation_adaptation = str(eval_practice.get("adaptation", ""))
+    for principle in (
+        "affected-category",
+        "three independent first attempts",
+        "explicitly budgeted release comparison",
     ):
-        errors.append("industry-practice evaluation counts must match the governed 39/56/95 suite")
+        if principle not in evaluation_adaptation:
+            errors.append(
+                f"industry-practice evaluation adaptation must retain {principle!r}"
+            )
 
     observed_skills = {item.get("skill") for item in capabilities if isinstance(item, dict)}
-    if observed_skills != EXPECTED_SKILLS or len(capabilities) != len(EXPECTED_SKILLS):
-        errors.append("capability contract must define each of the 12 Skills exactly once")
+    filesystem_skills = {path.name for path in (ROOT / "skills").iterdir() if path.is_dir()}
+    if observed_skills != filesystem_skills or len(capabilities) != len(observed_skills):
+        errors.append("capability contract must define every repository Skill exactly once")
     output_owners: dict[str, str] = {}
     for item in capabilities:
         if not isinstance(item, dict):
@@ -606,7 +612,7 @@ def main() -> int:
                 errors.append(f"capability {item.get('skill')}: invalid {field}")
         handoff = item.get("handoff_to")
         if not isinstance(handoff, list) or any(
-            not isinstance(entry, str) or entry not in EXPECTED_SKILLS for entry in handoff
+            not isinstance(entry, str) or entry not in registered_skills for entry in handoff
         ):
             errors.append(f"capability {item.get('skill')}: invalid handoff_to")
         for output in item.get("primary_outputs", []):
@@ -696,7 +702,7 @@ def main() -> int:
     for token in ("Default mode", "request_user_input", "item/tool/requestUserInput", "isBlocking", "isSecret", "None of these outcomes select the recommendation"):
         if token not in reference_text:
             errors.append(f"user interaction reference is missing {token}")
-    for skill_name in EXPECTED_SKILLS:
+    for skill_name in registered_skills:
         skill_text = (ROOT / "skills" / skill_name / "SKILL.md").read_text(encoding="utf-8")
         if "user-interaction.md" not in skill_text or "Default mode" not in skill_text:
             errors.append(f"{skill_name}: missing suite interaction invariant")
@@ -758,7 +764,11 @@ def main() -> int:
 
     routing = json.loads((ROOT / "evals" / "skill-routing-cases.json").read_text(encoding="utf-8"))
     routing_ids: set[str] = set()
-    for case in routing.get("cases", []):
+    routing_cases = routing.get("cases", [])
+    if not isinstance(routing_cases, list):
+        errors.append("routing fixture cases must be a list")
+        routing_cases = []
+    for case in routing_cases:
         case_id = case.get("id") if isinstance(case, dict) else None
         if not isinstance(case_id, str) or not case_id:
             errors.append("routing case is missing an id")
@@ -775,9 +785,28 @@ def main() -> int:
             set(case.get("expected", []))
             | set(case.get("required", []))
             | set(case.get("forbidden", []))
-        ) - EXPECTED_SKILLS
+        ) - registered_skills
         if unknown:
             errors.append(f"routing case {case_id}: unknown Skills {sorted(unknown)}")
+        args = case.get("args", [])
+        declared_unresolved = case.get("unresolved_dimensions", [])
+        if not isinstance(declared_unresolved, list) or any(
+            not isinstance(dimension, str) or not dimension
+            for dimension in declared_unresolved
+        ):
+            errors.append(
+                f"routing case {case_id}: unresolved_dimensions must be a string list"
+            )
+        elif isinstance(args, list):
+            argument_unresolved = sorted(
+                str(args[index + 1])
+                for index, argument in enumerate(args[:-1])
+                if argument == "--unknown"
+            )
+            if sorted(declared_unresolved) != argument_unresolved:
+                errors.append(
+                    f"routing case {case_id}: unresolved_dimensions must exactly mirror --unknown arguments"
+                )
         workflow = case.get("workflow")
         if workflow is not None:
             if not isinstance(workflow, dict) or set(workflow) != {
@@ -805,10 +834,25 @@ def main() -> int:
                     )
                 flow_skills.append(str(skill))
                 flow_outputs.append(str(output))
-            if flow_skills != case.get("expected"):
+            routed_flow_skills = [skill for skill in flow_skills if skill != "dev-flow"]
+            if routed_flow_skills != case.get("expected"):
                 errors.append(
                     f"routing case {case_id}: workflow artifact order must match routed owners"
                 )
+            if "verification" in flow_skills:
+                change_indexes = [
+                    index
+                    for index, output in enumerate(flow_outputs)
+                    if output == "change-set.v1"
+                ]
+                if len(change_indexes) != 1:
+                    errors.append(
+                        f"routing case {case_id}: mutating workflow must contain one change-set.v1"
+                    )
+                elif change_indexes[0] != flow_skills.index("verification") - 1:
+                    errors.append(
+                        f"routing case {case_id}: change-set.v1 must immediately precede verification"
+                    )
             if flow_outputs and workflow.get("final_evidence") != flow_outputs[-1]:
                 errors.append(f"routing case {case_id}: final evidence must close artifact_flow")
             boundaries = workflow.get("forbidden_backfill")
@@ -830,6 +874,52 @@ def main() -> int:
         overlap = set(case.get("required", [])) & set(case.get("forbidden", []))
         if overlap:
             errors.append(f"routing case {case_id}: required/forbidden overlap {sorted(overlap)}")
+
+    # capability-contracts.json is the ownership/condition inventory. The route
+    # fixture plus route-task implementation remain the executable routing policy;
+    # this check prevents a registry owner from becoming unreachable without
+    # pretending every natural-language condition can be compiled mechanically.
+    explicit_only_owners = {
+        item.get("skill")
+        for item in capabilities
+        if isinstance(item, dict)
+        and isinstance(item.get("orchestrated_conditions"), list)
+        and item["orchestrated_conditions"]
+        and all(
+            isinstance(condition, str) and condition.startswith("explicit-")
+            for condition in item["orchestrated_conditions"]
+        )
+    }
+    fixture_routed_owners = registered_skills - {
+        "dev-flow",
+        "repo-context",
+    } - explicit_only_owners
+    positive_owners = {
+        skill
+        for case in routing_cases
+        if isinstance(case, dict)
+        for skill in case.get("expected", [])
+        if isinstance(skill, str)
+    }
+    negative_owners = {
+        skill
+        for case in routing_cases
+        if isinstance(case, dict)
+        for skill in case.get("forbidden", [])
+        if isinstance(skill, str)
+    }
+    missing_positive = sorted(fixture_routed_owners - positive_owners)
+    if missing_positive:
+        errors.append(
+            "capability ownership inventory has no positive routing fixture for "
+            f"{missing_positive}"
+        )
+    missing_negative = sorted(fixture_routed_owners - negative_owners)
+    if missing_negative:
+        errors.append(
+            "capability ownership inventory has no negative routing fixture for "
+            f"{missing_negative}"
+        )
 
     development_path = EVALS_ROOT / "paired-evaluations.json"
     acceptance_path = EVALS_ROOT / "paired-evaluations-acceptance.json"
@@ -954,7 +1044,7 @@ def main() -> int:
                     category_ids.append(category)
                     category_counts[category] = 0
                 category_counts[category] += 1
-            unknown = set(pair.get("capabilities", [])) - EXPECTED_SKILLS
+            unknown = set(pair.get("capabilities", [])) - registered_skills
             if unknown:
                 errors.append(f"paired evaluation {pair_id}: unknown Skills {sorted(unknown)}")
             pair_capabilities = pair.get("capabilities")
@@ -1110,32 +1200,33 @@ def main() -> int:
 
     development_counts = category_counts_by_role.get("development", {})
     acceptance_counts = category_counts_by_role.get("acceptance", {})
-    if (
-        len(paired.get("pairs", [])) != 39
-        or len(development_counts) != 12
-        or development_counts.get("CAT-REQUIREMENTS") != 6
-        or {value for category, value in development_counts.items() if category != "CAT-REQUIREMENTS"} != {3}
+    for role, counts, config in (
+        ("development", development_counts, paired),
+        ("acceptance", acceptance_counts, acceptance),
     ):
-        errors.append(f"development suite must define 39 cases in 12 categories with six requirements cases: {development_counts}")
-    if len(acceptance.get("pairs", [])) != 56 or len(acceptance_counts) != 16 or set(acceptance_counts.values()) != {3, 5}:
-        errors.append(f"acceptance suite must define 56 cases in 16 categories: {acceptance_counts}")
+        minimum_cases = config.get("release_plan", {}).get("minimum_cases_per_category", 3)
+        if not counts or not isinstance(minimum_cases, int) or any(
+            count < minimum_cases for count in counts.values()
+        ):
+            errors.append(
+                f"{role} evaluation bank must cover every declared category with its bounded minimum: {counts}"
+            )
+    if not set(development_counts).issubset(acceptance_counts):
+        errors.append("acceptance categories must cover every development category")
     acceptance_pass_floor = acceptance.get("release_thresholds", {}).get("minimum_candidate_pass_rate")
     if not isinstance(acceptance_pass_floor, (int, float)) or acceptance_pass_floor < 0.9:
         errors.append("acceptance minimum candidate pass rate must be at least 0.9")
-    combined_counts = {
-        category: development_counts.get(category, 0) + acceptance_counts.get(category, 0)
-        for category in development_counts.keys() | acceptance_counts.keys()
-    }
     required_new_categories = {
         "CAT-ARCHITECTURE",
         "CAT-SECURITY-PRIVACY",
         "CAT-PERFORMANCE-RESOURCES",
         "CAT-CONCURRENCY-RECOVERY",
     }
-    if len(combined_counts) != 16 or not combined_counts or min(combined_counts.values()) < 5:
-        errors.append(f"combined evaluation suite must provide at least five cases in all 16 categories: {combined_counts}")
-    if not required_new_categories.issubset(combined_counts):
-        errors.append(f"combined evaluation suite is missing categories {sorted(required_new_categories - combined_counts.keys())}")
+    if not required_new_categories.issubset(acceptance_counts):
+        errors.append(
+            "acceptance evaluation bank is missing high-risk categories "
+            f"{sorted(required_new_categories - acceptance_counts.keys())}"
+        )
     total_work_units = sum(criticality_counts.values())
     if (
         total_work_units == 0
@@ -1165,8 +1256,6 @@ def main() -> int:
         )
     if not pair_ids_by_role.get("development", set()).isdisjoint(pair_ids_by_role.get("acceptance", set())):
         errors.append("development and acceptance pair IDs must be disjoint")
-    if len(case_prompts) != 95 or len(case_fixtures) != 95:
-        errors.append("the 95 development and acceptance cases must have unique prompts and fixtures")
     for index, (category, pair_id, tokens) in enumerate(case_semantics):
         for other_category, other_pair_id, other_tokens in case_semantics[index + 1 :]:
             if category != other_category:
@@ -1180,13 +1269,9 @@ def main() -> int:
                 )
     expected_contract_paths = {path.relative_to(ROOT / "evals").as_posix() for path in contracts}
     if configured_contracts != expected_contract_paths:
-        errors.append("development paired evaluation must consume every structured contract exactly once")
-    if len(observed_catalog_cases) != 56:
-        errors.append(
-            f"acceptance catalogs must define exactly 56 cases: observed {len(observed_catalog_cases)}"
-        )
+        errors.append("development paired evaluation must consume every active structured contract exactly once")
     if configured_catalog_cases != observed_catalog_cases:
-        errors.append("acceptance paired evaluation must consume every catalog case exactly once")
+        errors.append("acceptance paired evaluation must consume every active frozen catalog case exactly once")
 
     for schema in (ROOT / "evals" / "schemas").glob("*.json"):
         data = json.loads(schema.read_text(encoding="utf-8"))

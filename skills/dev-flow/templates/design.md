@@ -56,6 +56,14 @@
 
 - VO-1: <risk or acceptance criterion and exact evidence obligation>
 
+## Testing and implementation strategy
+
+- Implementation slices: <bounded coherent order; related code, black/white tests, documentation, and explanatory comments move together>
+- Black-box design: <AC/protected behavior at public boundaries; normal, error, authorization, recovery, equivalence, boundary, state, and smoke as applicable>
+- White-box design: <branches, states, errors, retry/timeout/cancel, lifecycle, resources, concurrency, idempotency, rollback, property/model/fuzz/fault tests as applicable>
+- Oracle and test-code review: <how each required test detects its target defect and how false positives/negatives are challenged>
+- Specialist controls: <repository-native tools and minimum admitted technical Skills used during design, implementation, review, and verification>
+
 ## Approval record
 
 - <user approval, timestamp or ordered event, approved scope, exclusions, and dependency decisions>

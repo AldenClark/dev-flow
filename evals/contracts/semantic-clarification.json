@@ -31,11 +31,55 @@
         }
       ],
       "criticality": "required",
-      "protected_behavior": "record a stable AMB ID with competing interpretations, repository evidence, materiality, owner, affected AC/SC/VO IDs, recommendation, and open status",
+      "protected_behavior": "record every independently reviewable field of the open AMB record without collapsing the alternatives, evidence, ownership, impact links, recommendation, or status",
       "facets": [
         {
           "id": "OB-2",
-          "action": "record a stable AMB ID with competing interpretations, repository evidence, materiality, owner, affected AC/SC/VO IDs, recommendation, and open status"
+          "action": "assign one stable AMB-* identifier to the late ambiguity"
+        },
+        {
+          "id": "OB-3",
+          "action": "record interpretation A for the mixed-version product behavior"
+        },
+        {
+          "id": "OB-4",
+          "action": "record interpretation B for the mixed-version product behavior"
+        },
+        {
+          "id": "OB-5",
+          "action": "record repository evidence supporting interpretation A"
+        },
+        {
+          "id": "OB-6",
+          "action": "record repository evidence supporting interpretation B"
+        },
+        {
+          "id": "OB-7",
+          "action": "record why the ambiguity is materially outcome-changing"
+        },
+        {
+          "id": "OB-8",
+          "action": "record the user as owner of the product-semantics disposition"
+        },
+        {
+          "id": "OB-9",
+          "action": "list the affected acceptance-criterion IDs"
+        },
+        {
+          "id": "OB-10",
+          "action": "list the affected scope IDs"
+        },
+        {
+          "id": "OB-11",
+          "action": "list the affected verification-obligation IDs"
+        },
+        {
+          "id": "OB-12",
+          "action": "link the evidence-backed recommendation to the ambiguity record"
+        },
+        {
+          "id": "OB-13",
+          "action": "keep the ambiguity status open until the user disposition is bound"
         }
       ]
     },
@@ -48,11 +92,19 @@
         }
       ],
       "criticality": "required",
-      "protected_behavior": "stop only affected work, return the content-bound packet to awaiting approval, increment the requirement revision, and preserve approval history",
+      "protected_behavior": "reopen the content-bound packet while retaining a monotonic requirement and approval history",
       "facets": [
         {
-          "id": "OB-3",
-          "action": "stop only affected work, return the content-bound packet to awaiting approval, increment the requirement revision, and preserve approval history"
+          "id": "OB-14",
+          "action": "return the content-bound packet to awaiting-approval"
+        },
+        {
+          "id": "OB-15",
+          "action": "increment the requirement revision by exactly one"
+        },
+        {
+          "id": "OB-16",
+          "action": "preserve superseded requirement and design approvals as historical records"
         }
       ]
     },
@@ -65,16 +117,58 @@
         }
       ],
       "criticality": "required",
-      "protected_behavior": "obtain the user disposition and create fresh requirement-digest-bound Requirement Ready and design approvals before affected work resumes",
+      "protected_behavior": "leave the product-semantics choice with the user",
       "facets": [
         {
-          "id": "OB-4",
-          "action": "obtain the user disposition and create fresh requirement-digest-bound Requirement Ready and design approvals before affected work resumes"
+          "id": "OB-17",
+          "action": "obtain the user's explicit disposition between the recorded interpretations"
         }
       ]
     },
     {
       "id": "WU-5",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.artifact"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "bind the answer and replacement approvals to the fresh requirement content before affected work resumes",
+      "facets": [
+        {
+          "id": "OB-18",
+          "action": "bind the user's answer to the new requirement revision and requirements digest"
+        },
+        {
+          "id": "OB-19",
+          "action": "record a fresh Requirement Ready approval bound to the new revision and digest"
+        },
+        {
+          "id": "OB-20",
+          "action": "record a fresh design approval bound to the new revision and digest"
+        }
+      ]
+    },
+    {
+      "id": "WU-6",
+      "owner": "dev-flow",
+      "claim_routes": [
+        {
+          "kind": "dev-flow.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "preserve progress whose approved inputs and evidence were not invalidated by the ambiguity",
+      "facets": [
+        {
+          "id": "OB-21",
+          "action": "continue only work whose approved inputs and evidence remain demonstrably unaffected"
+        }
+      ]
+    },
+    {
+      "id": "WU-7",
       "owner": "dev-flow",
       "claim_routes": [
         {
@@ -82,11 +176,36 @@
         }
       ],
       "criticality": "required",
-      "protected_behavior": "allow only demonstrably unaffected work to continue and prevent reviewers or workers from resolving user-owned product semantics",
+      "protected_behavior": "contain the stop to affected work and keep it blocked until semantics and approvals are current",
       "facets": [
         {
-          "id": "OB-5",
-          "action": "allow only demonstrably unaffected work to continue and prevent reviewers or workers from resolving user-owned product semantics"
+          "id": "OB-22",
+          "action": "block only work whose outcome depends on the unresolved ambiguity"
+        },
+        {
+          "id": "OB-23",
+          "action": "do not resume affected work before the user disposition and fresh approvals are bound"
+        }
+      ]
+    },
+    {
+      "id": "WU-8",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.limitation"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "prevent implementation and review roles from substituting for the user-owned semantic decision",
+      "facets": [
+        {
+          "id": "OB-24",
+          "action": "prevent a reviewer from choosing the user-owned product semantics"
+        },
+        {
+          "id": "OB-25",
+          "action": "prevent a worker from choosing the user-owned product semantics"
         }
       ]
     }

@@ -2,19 +2,25 @@
 
 - Deliverable: <one bounded output>
 - Repository root: <repository-roots>
+- Base commit and worktree binding: <immutable base commit, worktree identity/path, initial dirty-state accounting, and recheck method>
 - Dependencies: <upstream and downstream task IDs>
 - Required instructions and Skills: <exact paths or names>
+- Effective engineering context: <instruction-chain digest, profile mode/revision/digest, admitted specialist capabilities and combined fingerprint>
 - Applicable instruction IDs and product/UX constraints: <INS IDs, UI impact, protected flows, and approved design evidence>
-- Requirement baseline and ambiguity dispositions: <approved revision, digest, applicable AMB IDs, resolutions, affected IDs, and user-owned semantics the child must not reinterpret>
+- Requirement and design baseline: <approved requirement revision/digest, approved design revision/digest, applicable AMB IDs, resolutions, affected IDs, and user-owned semantics the child must not reinterpret>
 - Collaboration boundary: <decisions already approved, questions the root owns, and drift trigger>
-- Owned paths, symbols, and environments: <exclusive boundary>
-- Acceptance and scope IDs: <AC and SC IDs>
+- Owned paths, symbols, and environments: <exclusive boundary; no writes outside it>
+- Acceptance, scope, and verification IDs: <AC, SC, and VO IDs>
 - Approved decisions: <decision IDs and non-goals>
 - Allowed actions: <read, edit, test, or external boundaries>
 - Forbidden actions: new dependencies, scope expansion, destructive or external action without explicit authority
-- Verification: <exact command, environment, oracle, and instruction or UX evidence produced>
+- Black-box obligations: <externally derived obligations, mapped VO/TM IDs, or concrete N/A reason>
+- White-box obligations: <structure-derived obligations, mapped VO/TM IDs, or concrete N/A reason>
+- Test-oracle challenge: <how new/changed tests will be shown to fail when protected behavior breaks>
+- Verification: <exact narrow, module/smoke, and broader commands; environment, oracle, and instruction or UX evidence produced>
+- Slice closeout: <complete diff, generated/dependency metadata, secrets, comments/docs, test-oracle, format/typecheck/lint, smoke, and commit-ready audit; report only, no delivery authority>
 - Spawned at and deadlines: <timestamp, soft observation deadline, and hard stop deadline>
 - Resource lease and teardown: <owned resource, isolation, release or transfer rule>
 - Native result: required bounded final result returned to root with outcome, evidence, limitations, and recommended disposition
 - Durable report: <not required, or why required and exact packet/reports/task-id.md path>; absence must not block native stop
-- Stop conditions: competing requirement interpretations or a stale revision/digest, dependency need, ownership overlap, scope drift, missing environment, unsafe action, or three failed attempts
+- Stop conditions: competing requirement interpretations; changed base/worktree, requirement/design revision or digest, engineering-context fingerprint, AC/SC/VO mapping, ownership, or resource lease; dependency need, scope drift, missing environment, unsafe action, or three failed attempts

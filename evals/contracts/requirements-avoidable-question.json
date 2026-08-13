@@ -14,11 +14,51 @@
         }
       ],
       "criticality": "required",
-      "protected_behavior": "verify the request, applicable instructions, current contract, deterministic tests, affected component, and absence of surviving material alternatives",
+      "protected_behavior": "resolve every repository-owned fact and material-alternative category before deciding whether clarification has decision value",
       "facets": [
         {
           "id": "OB-1",
-          "action": "verify the request, applicable instructions, current contract, deterministic tests, affected component, and absence of surviving material alternatives"
+          "action": "verify the requested local behavior change"
+        },
+        {
+          "id": "OB-2",
+          "action": "inspect the applicable repository instructions"
+        },
+        {
+          "id": "OB-3",
+          "action": "confirm the current component contract"
+        },
+        {
+          "id": "OB-4",
+          "action": "inspect the deterministic tests that pin the current behavior"
+        },
+        {
+          "id": "OB-5",
+          "action": "identify the directly affected component"
+        },
+        {
+          "id": "OB-6",
+          "action": "confirm that no material security alternative survives repository investigation"
+        },
+        {
+          "id": "OB-7",
+          "action": "confirm that no material compatibility alternative survives repository investigation"
+        },
+        {
+          "id": "OB-8",
+          "action": "confirm that no material product-semantics alternative survives repository investigation"
+        },
+        {
+          "id": "OB-9",
+          "action": "confirm that no material scope alternative survives repository investigation"
+        },
+        {
+          "id": "OB-10",
+          "action": "confirm that no material dependency alternative survives repository investigation"
+        },
+        {
+          "id": "OB-11",
+          "action": "confirm that no material delivery alternative survives repository investigation"
         }
       ]
     },
@@ -27,15 +67,23 @@
       "owner": "requirements-design",
       "claim_routes": [
         {
-          "kind": "requirements-design.artifact"
+          "kind": "requirements-design.decision"
         }
       ],
       "criticality": "required",
-      "protected_behavior": "record a bounded execute-mode baseline with acceptance, direct scope, protected behavior, exclusions, and honest assumptions",
+      "protected_behavior": "select the bounded execution route without manufacturing a user-owned decision",
       "facets": [
         {
-          "id": "OB-2",
-          "action": "record a bounded execute-mode baseline with acceptance, direct scope, protected behavior, exclusions, and honest assumptions"
+          "id": "OB-12",
+          "action": "select execute mode for the clear reversible change"
+        },
+        {
+          "id": "OB-13",
+          "action": "proceed without asking a user question when no material decision survives"
+        },
+        {
+          "id": "OB-14",
+          "action": "do not invent a requirement ambiguity after repository evidence resolves the behavior"
         }
       ]
     },
@@ -44,15 +92,35 @@
       "owner": "requirements-design",
       "claim_routes": [
         {
-          "kind": "requirements-design.interaction"
+          "kind": "requirements-design.artifact"
         }
       ],
       "criticality": "required",
-      "protected_behavior": "proceed without asking a user question when no material ambiguity or user-owned decision survives repository investigation",
+      "protected_behavior": "record the bounded execute-mode requirement baseline and its evidence link",
       "facets": [
         {
-          "id": "OB-3",
-          "action": "proceed without asking a user question when no material ambiguity or user-owned decision survives repository investigation"
+          "id": "OB-15",
+          "action": "link the execute-mode decision to the evidence that resolved clarification"
+        },
+        {
+          "id": "OB-16",
+          "action": "record the acceptance outcome"
+        },
+        {
+          "id": "OB-17",
+          "action": "record the direct implementation scope"
+        },
+        {
+          "id": "OB-18",
+          "action": "record the behavior that the change must protect"
+        },
+        {
+          "id": "OB-19",
+          "action": "record explicit exclusions"
+        },
+        {
+          "id": "OB-20",
+          "action": "record honest bounded assumptions"
         }
       ]
     },
@@ -61,15 +129,40 @@
       "owner": "dev-flow",
       "claim_routes": [
         {
+          "kind": "dev-flow.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "admit downstream verification and review from their evidence-driven routing conditions without manufacturing user approval",
+      "facets": [
+        {
+          "id": "OB-21",
+          "action": "preserve required verification and evidence without upgrading either into a user-approval question"
+        },
+        {
+          "id": "OB-22",
+          "action": "run independent review only when its routing conditions apply"
+        }
+      ]
+    },
+    {
+      "id": "WU-5",
+      "owner": "dev-flow",
+      "claim_routes": [
+        {
           "kind": "dev-flow.limitation"
         }
       ],
       "criticality": "required",
-      "protected_behavior": "preserve required verification, evidence, review, and delivery-authority boundaries without turning them into ceremonial approval questions",
+      "protected_behavior": "retain delivery-authority and unavailable-evidence boundaries without turning them into ceremonial clarification",
       "facets": [
         {
-          "id": "OB-4",
-          "action": "preserve required verification, evidence, review, and delivery-authority boundaries without turning them into ceremonial approval questions"
+          "id": "OB-23",
+          "action": "do not infer commit, push, release, or deployment authority"
+        },
+        {
+          "id": "OB-24",
+          "action": "state execution limits honestly when a required check or environment is unavailable"
         }
       ]
     }

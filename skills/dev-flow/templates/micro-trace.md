@@ -11,8 +11,11 @@
 
 ## Requirement and design
 
+- Original request: <sanitized verbatim source or durable pointer>
+- Understanding revisions: <ordered AI interpretation, user corrections, decisions, and current truth>
 - AC-1: <observable result>
 - Decision: <smallest coherent solution and rationale>
+- Alternatives and failure behavior: <credible alternatives, errors, compatibility, rollback, and why selected>
 - Engineering preference: <applicable preference or none>
 - Requirement baseline: <revision and digest recorded by the CLI>
 - Ambiguity ledger: <no material ambiguity, or each structured AMB-n with owner, affected IDs, recommendation, and resolution>
@@ -27,6 +30,47 @@
 
 - E1: <ordered implementation event and result>
 - D1: <material decision or none with rationale>
+
+## Requirement source and understanding revisions
+
+- Source: <sanitized original request and authoritative references>
+- Revision chain: <AI understanding, user corrections, disposition, and current requirement revision>
+- Semantic closure: <no open material/high-risk AMB, or exact blocked slices>
+
+## Engineering context and quality routes
+
+- Binding: <instruction, profile, native-control, artifact-fact, and specialist Skill fingerprint>
+- Always-on kernel: <requirements, repository facts, continuity, black/white testing, root blue/red challenge, knowledge disposition>
+- Specialist routes: <minimum applicable technical Skills and neutral outcomes; or none with evidence>
+
+## Continuity checkpoint
+
+<record-checkpoint owns exactly these ten labeled fields: Trigger; Requirement baseline; Design baseline; Engineering context; Repository baseline; Repository reconciliation; Active objective and slice; Last completed and evidence; Next action and stop condition; Drift review.>
+
+<OPEN triggers permit the active slice to evolve after a low-cost repository identity/HEAD check. SEALED triggers bind the full declared-root worktree; resume, delegation, pre-verification, and final claims must reconcile any later delta explicitly.>
+
+## Test technique accountability
+
+- Black-box: <applicable design/tests/evidence, or concrete not-applicable reason>
+- White-box: <applicable design/tests/evidence, or concrete not-applicable reason>
+- Oracle: <how the test would fail for the target defect and test-code review result>
+
+## Knowledge and commit readiness
+
+- Knowledge impact: <none, add, update, or deprecate; rationale and manifest if material>
+- Slice: <coherent bounded change with production/tests/docs/comments together>
+- Commit-ready: <yes/no; narrow, smoke/module, diff/scope, secret, dependency, generated, comment, documentation, and remaining broad gates>
+- Delivery authority: <commit/stage/push remain separately authorized>
+
+## Change set
+
+- Artifact: change-set.v1
+- Intent and protected behavior: <frozen intent and behavior that must remain stable>
+- Final bytes or read-only target: <exact final diff scope or frozen inspection target>
+- Changed files: <paths, or none for read-only work>
+- Decisions and drift: <owner decisions, reopened premises, and disposition>
+- Narrow checks: <fresh check run against these bytes or target>
+- Limits: <known limits and invalidated downstream evidence, or none>
 
 ## Verification
 

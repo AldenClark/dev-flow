@@ -3,7 +3,7 @@
 [![CI](https://github.com/AldenClark/dev-flow/actions/workflows/ci.yml/badge.svg)](https://github.com/AldenClark/dev-flow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Dev Flow 是一套面向 Codex 的中立、可组合、证据驱动工程工作台。它把仓库上下文、分层工程 Profile、需求与设计、实施、验证、审查和交付就绪度连接为可追溯流程，同时避免把某个人的 Rust、前端或库偏好写进公共内核。
+Dev Flow 是一套面向 Codex 的中立、可组合、证据驱动工程工作台。它把需求澄清、仓库上下文、分层工程 Profile、设计、实施、验证、知识沉淀、审查和交付就绪度连接为可恢复、可追溯流程，同时避免把某个人的 Rust、前端或库偏好写进公共内核。
 
 > English: a lightweight, repository-first and evidence-driven Codex workflow for high-quality software changes.
 
@@ -11,19 +11,21 @@ Dev Flow 是一套面向 Codex 的中立、可组合、证据驱动工程工作�
 
 - 在需求和方案前扫描真实代码、运行时事实与 Git 边界；
 - 按真实 Git 根和有效工作目录解析 Codex 指令链，按任务路径选择证据、Profiles、原生控制与 CI；
-- 以 `execute`、`checkpointed`、`co-design` 三种协作模式控制需求、设计、漂移与验收检查点；
-- 把输入中的多义性记录为结构化 `AMB-n`，区分“Codex 应从仓库查明的事实”和“必须由用户定稿的需求语义”；
-- 用需求修订号与 SHA-256 摘要绑定 Requirement Ready/设计批准，后续语义变化或审计疑义会使旧批准失效；
+- 所有持久改动都执行一个不可被条件路由删除的质量内核：仓库事实、需求真相、设计、语义连续性、黑白盒测试、根级质疑和知识处置；
+- 以 `execute`、`checkpointed`、`co-design` 三种协作强度控制需求、设计与用户检查点；持久工作默认 `checkpointed`，只有已明确且无实质歧义的范围才显式使用 `execute`；
+- 保存原始或脱敏需求来源、AI 理解修订、用户纠正和结构化 `AMB-n`，区分“Codex 应从仓库查明的事实”和“必须由用户定稿的需求语义”；
+- 用需求修订号、需求摘要和设计摘要绑定批准；后续语义、设计或上下文变化会使相关批准与证据失效；
+- 在恢复、用户修正、前提/阶段变化、切片和委派边界、重复失败、验证前与最终声明前重载精简检查点，解决上下文压缩后的遗忘，而不是按时间填表；
 - 将 UI 工作分为 `none`、`preserve`、`material`，只对重大产品/UI 变化强制 UX Ready，避免无差别设计仪式；
-- 明确记录需求、验收标准、设计、改动范围、进度、决策、测试和审计；
+- 明确记录需求、验收标准、设计、改动范围、进度、决策、测试和审计，并把“当前项目真相”“单次变更历史”“本地运行恢复证据”分开管理；
 - 按微小修改、日常需求、Bug 修复、大型功能、重构、迁移、安全与性能任务调整流程重量；
 - 使用 `direct`（无工作包）、`traced`（三个核心状态文件）和 `governed`（完整治理记录）三级工作模式；
 - 按 Rust 后端、Web、Apple/Android/Windows 客户端、FFI、CLI/TUI 等项目形态组织验证；
 - 新依赖必须先比较候选方案、影响与维护成本，并取得明确批准；
 - 只把边界清晰的独立工作交给子代理，通常同时运行 1–2 个；根代理按 deadline、resource lease 和 disposition 完成综合、复核与最终验收；
 - 管控浏览器、模拟器、设备、虚拟机、容器和服务等测试资源；
-- 用蓝队审计、红队审计和新鲜验证证据阻止未经证实的完成声明。
-- 以 12 个职责单一的 Skills 支持直接调用和端到端组合，避免加载无关工程手册；
+- 在需求、设计、实施、验证和最终 diff 上执行基本蓝/红质疑；对治理风险再路由独立深度审查；
+- 保留当前职责分离的 Skill 拓扑作为兼容接口，但数量不是质量目标；只加载适用 owner 与专业技术 Skill，质量内核始终生效；
 - 解析 public baseline、个人、团队、项目、组件与任务六层 Profile，并输出带来源哈希、冲突和例外的有效快照；
 - 以 T0-T3 Engineering Context Readiness 检查当前任务真正需要的上下文，而不是按文件存在性评分；
 - 以 EQAC 优先使用编译器、类型检查、lint、测试、CI 等原生控制，再按当前宿主准入最小化路由专业 Skills；
@@ -91,7 +93,7 @@ python3 skills/dev-flow/scripts/dev-flow.py uninstall-runtime
 
 只有在创建、调整、解释、推广、退役或审计 Profile/质量策略时才调用 `$manage-engineering-profiles`；普通代码任务只消费解析结果。`$dev-flow-maintainer` 仅用于显式维护本插件。
 
-核心顺序是：控制面绑定权限和路由 → `repo-context` 建立事实 → 按需进入 UX/需求/诊断/架构/依赖 owner → 实施 → `verification` 证明 → 仅在治理风险下独立 `change-review` → 仅在明确交付意图下进入 `delivery-readiness`。验证和审查可以暴露上游缺口，但不能在自己的输出中替代需求、诊断或架构决策。
+核心顺序是：控制面绑定权限和不可省略的质量内核 → `repo-context` 建立事实与专业能力上下文 → `requirements-design` 保存并澄清持久改动的需求真相 → 按需进入 UX/诊断/架构/依赖 owner → 按可验证切片实施并维护恢复检查点 → `verification` 用独立推导的黑盒/白盒证据证明 → 仅在治理风险下独立 `change-review` → 仅在明确交付意图下进入 `delivery-readiness`。验证和审查可以暴露上游缺口，但不能在自己的输出中替代需求、诊断或架构决策。
 
 ## Source 与运行时边界
 
@@ -143,10 +145,10 @@ CLI 初始化也支持显式分类：
 python3 skills/dev-flow/scripts/dev-flow.py init-packet \
   --root "$PWD" --change-id console-redesign --task-type large-feature \
   --objective "Redesign the primary console workflow" \
-  --collaboration-profile co-design --ui-impact material
+  --collaboration-profile co-design --ui-impact material --mutation persistent
 ```
 
-CLI 会自动选择工作模式，也可用 `--work-mode` 显式指定。新工作包使用 schema 2.0 和 append-only `events.jsonl`，并继续读取旧 schema 1.0、1.1、1.2。`checkpointed`/`co-design` 在批准前记录 Requirement Ready；内容绑定会把批准关联到当前需求修订与摘要，`material` UI 还记录 UX Ready：
+CLI 会自动选择工作模式，也可用 `--work-mode` 显式指定。`--mutation persistent` 的微小任务也会创建 traced 工作包；`direct` 只用于不修改持久状态的单回合调查或 spike。新工作包使用 schema 2.0 和 append-only `events.jsonl`，并继续读取旧 schema 1.0、1.1、1.2。`checkpointed`/`co-design` 在批准前记录 Requirement Ready；内容绑定会把批准关联到当前需求修订与摘要，`material` UI 还记录 UX Ready：
 
 ```bash
 python3 skills/dev-flow/scripts/dev-flow.py record-approval \
@@ -227,7 +229,40 @@ python3 skills/dev-flow/scripts/dev-flow.py transition \
 └── artifacts/
 ```
 
-清晰的微小变更使用 `direct`，不创建工作包；若不确定性、契约或风险上升则升级为 traced/governed。
+无持久修改的清晰微型调查可使用 `direct`，不创建工作包；任何持久修改至少使用 traced，高风险或显式治理升级为 governed。
+
+### 连续性恢复与项目知识
+
+新质量内核工作包在语义边界保存短恢复入口；它绑定当前需求、设计、工程上下文、活动 `AC/SC/VO`、最近证据、下一动作和停止条件。恢复时先读取它，验证前再冻结一次，避免上下文压缩或委派交接把旧目标带入新字节：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py record-checkpoint \
+  .codex/dev-flow/console-redesign --trigger slice-end \
+  --objective "Finish the validated console navigation slice" \
+  --active-id AC-1 --active-id SC-D1 \
+  --last-evidence "focused navigation tests passed" \
+  --next-action "run module smoke checks" \
+  --stop-condition "stop on requirement, design, or context drift" \
+  --repository-reconciliation "reviewed the exact slice diff against AC-1 and SC-D1"
+
+python3 skills/dev-flow/scripts/dev-flow.py resume-packet \
+  .codex/dev-flow/console-redesign
+```
+
+检查点同时绑定每个声明仓库根的身份、Git `HEAD` 与完整工作树摘要。实现中的开放切片允许正常编辑；`resume-packet` 会把这类变化报告为需复核，而不是伪装成已对齐。切片结束、委派、阶段切换和验证前属于封闭边界，之后出现的字节变化会阻断。`HEAD` 改变不能由普通 resume 静默接受：复核精确提交范围后，必须用 `--trigger reconciliation --repository-reconciliation <evidence> --accept-head <root>=<exact-oid>` 明确建立新基线。当前保守观察范围是整个声明根；非 Git 根会标记为不可机械观察，而不会虚报连续性。
+
+项目知识按语义分为三层：`docs/project/` 保存当前真相，`docs/changes/<change-id>/` 保存可追溯变更档案，忽略的 `.codex/dev-flow/` 只保存本地恢复状态和原始证据。只有已经实现、重新验证、可跨任务复用且适合公开保留的结论才晋升到当前真相；日志、临时计划、凭据和敏感原文不晋升。
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py validate-knowledge --root "$PWD"
+python3 skills/dev-flow/scripts/dev-flow.py bind-knowledge \
+  .codex/dev-flow/console-redesign --impact update \
+  --root "$PWD" \
+  --manifest docs/changes/console-redesign/manifest.json \
+  --rationale "implemented and verified console behavior updates current project truth"
+```
+
+结构、模板、晋升与隐私边界见 [docs/knowledge-system.md](docs/knowledge-system.md)。结构校验只检查可机械事实，不给文档质量打分。
 
 多代理完成以“没有仍在运行/待启动的委派任务，且每个任务都已有 reconciled disposition”为准，不要求可复用的终态 thread 从界面中消失。子代理原生 final 是主结果，`reports/` 文件仅在 brief 明确要求时作为持久证据；缺少报告不会阻止退出，也不会单独触发重复派工。`wait_agent` 超时只表示本次观察窗口没有更新。超过 hard deadline 后先检查状态，最多请求一次 interrupt，再记录 terminal 或 `orphan-suspected` 处置。
 
@@ -272,20 +307,20 @@ python3 skills/dev-flow-maintainer/scripts/validate-suite.py
 python3 -m compileall -q hooks skills evals tools
 ```
 
-CI 在 Linux、macOS 和 Windows 上覆盖 Python 3.11 与当前 Python 3.14。实时模型行为评测与确定性仓库检查分离，避免把不可复现的模型结果伪装成静态门禁。
+CI 在 Linux、macOS 和 Windows 上覆盖 Python 3.11 与当前 Python 3.14。确定性契约、代表性仓库工作流和原生测试是默认质量门禁；实时模型评测只是模型可见行为发生实质变化后的辅助证据，不能替代代码、平台、安全、审查或发布证据。
 
-发布候选版本可用独立 executor/grader 命令运行至少三轮成对首轮评测；每轮请求、stdout、stderr、结果和汇总会写入隔离目录：
+确定性门禁通过后，实质性的模型行为变化按受影响开发类别运行至少三轮独立 first attempt。单个 pair 只用于定位案例、grader 或局部行为缺陷，不能单独为实质性变更提供准入证据：
 
 ```bash
 python3 evals/run_paired_evaluations.py \
-  --attested-pilot --pair PAIR-CROSS-LANGUAGE \
+  --attested-pilot --category CAT-FFI \
   --executor-draft 'python3 evals/codex_model_adapter.py inventory --model gpt-5.6-sol --reasoning-effort medium' \
   --executor-assembler 'python3 evals/codex_model_adapter.py assembler --model gpt-5.6-sol --reasoning-effort high' \
   --grader 'python3 evals/codex_model_adapter.py grader --model gpt-5.6-sol --reasoning-effort medium' \
   --output /absolute/path/to/eval-output --trials 3
 ```
 
-开发评测把一次 first attempt 固定为 `blind inventory → routing assembler → grader`：inventory 只形成无 owner/kind 的原子事实，assembler 只返回完整 routing manifest，runner 再确定性物化最终 claim ledger。三个阶段使用独立 opaque 根，看不到 trial/variant、真实路径、usage、金标或 grader 反馈；每阶段的 request/result/backend/nonce/receipt-1.2 都进入哈希链。grader 把隐藏 work unit 的每个原子 facet 映射到 owner/kind 一致且互不冲突的 support spans。critical 与 required work unit 的任一 facet 为 `partial` 都会失败。`--attested-pilot` 只允许经过筛选的 schema-1.8 development 任务；它仍是 pilot，绝不产生 release 声明。三轮单 pair 需要 6 次 inventory、6 次 assembler、6 次 grader；39 个开发案例的三轮广测共 702 次调用。冻结验收保持独立 schema-1.6 release 路径；任何旧验收结果都不能替代新 freeze 的一次性 held-out 证据。
+`--attested-pilot` 必须用 pair/category 筛选 schema-1.8 development 配置；不存在可执行的无筛选开发广测命令。结果分别报告安全/权限硬门禁、按案例与类别的 outcome、跨轮波动、fidelity/retention/rework 和成本，不能合成一个“总体质量分”。固定案例只支持受控对比；Wilson 区间是运维性描述，即使冻结发布配置继续把下界作为保守门禁，也不代表对所有开发任务的总体置信度。完整冻结验收只用于另行授权和预算的发布对比；详见 [docs/evaluation-suite.md](docs/evaluation-suite.md) 与 [docs/releasing.md](docs/releasing.md)。
 
 ## 发布候选与供应链证据
 

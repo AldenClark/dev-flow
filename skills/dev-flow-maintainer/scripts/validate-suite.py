@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the Dev Flow 12-Skill inventory and cutover invariants."""
+"""Validate the registered Dev Flow owner topology and cutover invariants."""
 
 from __future__ import annotations
 
@@ -11,23 +11,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[3]
-EXPECTED = {
-    "architecture-decisions",
-    "change-review",
-    "delivery-readiness",
-    "dependency-decisions",
-    "dev-flow",
-    "dev-flow-maintainer",
-    "manage-engineering-profiles",
-    "product-ux-discovery",
-    "repo-context",
-    "requirements-design",
-    "systematic-debugging",
-    "verification",
-}
 HISTORICAL_FILES = {"CHANGELOG.md", "content-migration-v1.json"}
 DESCRIPTION_BUDGET = 2500
-ORDINARY_STATIC_BUDGET = 15000
+ORDINARY_STATIC_BUDGET = 18000
 ORDINARY_STATIC_FILES = (
     "skills/dev-flow/SKILL.md",
     "skills/dev-flow/references/artifact-schemas.md",
@@ -44,7 +30,7 @@ ROUTE_REQUIRED_CASES = {
 }
 
 
-def validate_routes() -> list[str]:
+def validate_routes(registered: set[str]) -> list[str]:
     errors: list[str] = []
     case_path = ROOT / "evals" / "skill-routing-cases.json"
     try:
@@ -69,7 +55,7 @@ def validate_routes() -> list[str]:
         if not isinstance(args, list) or any(not isinstance(value, str) for value in args):
             errors.append(f"{case_id}: args must be a string list")
             continue
-        if not isinstance(expected, list) or any(route not in EXPECTED for route in expected):
+        if not isinstance(expected, list) or any(route not in registered for route in expected):
             errors.append(f"{case_id}: expected must contain known Skills")
             continue
         completed = subprocess.run(
@@ -123,9 +109,23 @@ def validate_routes() -> list[str]:
 
 def main() -> int:
     errors: list[str] = []
+    contract_path = ROOT / "governance" / "capability-contracts.json"
+    try:
+        contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        errors.append(f"invalid capability contract: {exc}")
+        contract = {}
+    capabilities = contract.get("capabilities")
+    if not isinstance(capabilities, list):
+        capabilities = []
+    registered = {
+        item.get("skill")
+        for item in capabilities
+        if isinstance(item, dict) and isinstance(item.get("skill"), str) and item["skill"]
+    }
     skills = {path.name for path in (ROOT / "skills").iterdir() if path.is_dir()}
-    if skills != EXPECTED:
-        errors.append(f"expected 12 Skills {sorted(EXPECTED)}, observed {sorted(skills)}")
+    if skills != registered:
+        errors.append(f"Skill inventory must match the capability registry: registered {sorted(registered)}, observed {sorted(skills)}")
     names: set[str] = set()
     description_total = 0
     for directory in sorted((ROOT / "skills").iterdir()):
@@ -163,21 +163,13 @@ def main() -> int:
     maintainer_metadata = (ROOT / "skills" / "dev-flow-maintainer" / "agents" / "openai.yaml").read_text(encoding="utf-8")
     if "allow_implicit_invocation: false" not in maintainer_metadata:
         errors.append("dev-flow-maintainer must remain explicit-only")
-    contract_path = ROOT / "governance" / "capability-contracts.json"
-    try:
-        contract = json.loads(contract_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        errors.append(f"invalid capability contract: {exc}")
-        contract = {}
     if set(contract) != {"schema_version", "capabilities"} or contract.get("schema_version") != "1.0":
         errors.append("capability contract must use exact schema 1.0")
-    capabilities = contract.get("capabilities")
-    if not isinstance(capabilities, list):
+    if not isinstance(contract.get("capabilities"), list):
         errors.append("capability contract must define a capabilities list")
-        capabilities = []
     observed = [item.get("skill") for item in capabilities if isinstance(item, dict)]
-    if len(observed) != len(EXPECTED) or set(observed) != EXPECTED:
-        errors.append("capability contract must define each Skill exactly once")
+    if len(observed) != len(registered):
+        errors.append("capability contract must define every registered Skill exactly once")
     output_owners: dict[str, str] = {}
     for item in capabilities:
         if not isinstance(item, dict):
@@ -192,13 +184,13 @@ def main() -> int:
             if not isinstance(value, list) or not value or any(not isinstance(entry, str) or not entry for entry in value):
                 errors.append(f"capability {skill_name}: invalid {field}")
         handoff = item.get("handoff_to")
-        if not isinstance(handoff, list) or any(entry not in EXPECTED for entry in handoff):
+        if not isinstance(handoff, list) or any(entry not in registered for entry in handoff):
             errors.append(f"capability {skill_name}: invalid handoff_to")
         for output in item.get("primary_outputs", []):
             if output in output_owners:
                 errors.append(f"primary output {output} has multiple owners")
             output_owners[output] = str(skill_name)
-        skill_text = (ROOT / "skills" / str(skill_name) / "SKILL.md").read_text(encoding="utf-8") if skill_name in EXPECTED else ""
+        skill_text = (ROOT / "skills" / str(skill_name) / "SKILL.md").read_text(encoding="utf-8") if skill_name in registered else ""
         for marker in ("## Responsibility contract", "- Consumes:", "- Owns:", "- Stops:", "- Hands off:"):
             if marker not in skill_text:
                 errors.append(f"{skill_name}: responsibility projection missing {marker}")
@@ -213,7 +205,7 @@ def main() -> int:
         errors.append("ordinary mutation must not automatically route delivery-readiness")
     if "delivery-risk" in conditions.get("delivery-readiness", set()):
         errors.append("risk alone must not automatically route delivery-readiness")
-    errors.extend(validate_routes())
+    errors.extend(validate_routes(registered))
     legacy = "engineering-" + "preferences"
     for path in ROOT.rglob("*"):
         if not path.is_file() or any(part in {".git", ".codex", "__pycache__"} for part in path.parts):

@@ -53,7 +53,7 @@
     "schema 1.2 and 2.0 approval is bound to the current requirement revision and digest",
     "material or high-risk late ambiguity reopens affected requirements before implementation continues",
     "material UI cannot enter production implementation without recorded UX Ready approval",
-    "every child has one written brief and one report",
+    "every child has one written brief and one native result; a durable report is optional and brief-bound",
     "parallel writes never overlap",
     "shared mutable environments are serialized unless isolation is proven",
     "new dependencies require named explicit user approval",

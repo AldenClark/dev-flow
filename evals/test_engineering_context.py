@@ -456,6 +456,324 @@ class ReadinessTests(unittest.TestCase):
             self.assertIn(str((Path.home() / ".agents" / "skills").resolve()), rendered)
             self.assertIn(str(Path("/etc/codex/skills").resolve()), rendered)
 
+    def test_codex_plugin_skill_root_is_discovered_only_from_bounded_cache_layout(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "repo"
+            root.mkdir()
+            codex_home = Path(temp) / "codex"
+            plugin_skills = codex_home / "plugins" / "cache" / "sample-plugin" / "sample-package" / "2.4.1" / "skills"
+            skill = plugin_skills / "sample-review"
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text(
+                "---\nname: sample-review\ndescription: bounded plugin candidate\n---\n# Review\n",
+                encoding="utf-8",
+            )
+            adapter = ec.CodexHostAdapter(root, codex_home=codex_home)
+            records = adapter.skill_root_records()
+            plugin = next(item for item in records if item["provenance"] == "codex-plugin-cache")
+            self.assertEqual(plugin["path"], plugin_skills.resolve())
+            self.assertEqual((plugin["namespace"], plugin["package"], plugin["version"]), ("sample-plugin", "sample-package", "2.4.1"))
+            candidate = next(item for item in ec.discover_skills(records) if item["name"] == "sample-review")
+            self.assertEqual((candidate["root_provenance"], candidate["version"]), ("codex-plugin-cache", "2.4.1"))
+
+    def test_same_name_skill_collision_requires_unique_admission_binding(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "repo"
+            root.mkdir()
+            codex_home = Path(temp) / "codex"
+            first = codex_home / "skills" / "review-a"
+            second = codex_home / "plugins" / "cache" / "plugin-a" / "package-a" / "1.0.0" / "skills" / "review-a"
+            for path, marker in ((first, "first"), (second, "second")):
+                path.mkdir(parents=True)
+                (path / "SKILL.md").write_text(
+                    f"---\nname: review-a\ndescription: {marker}\n---\n# {marker}\n",
+                    encoding="utf-8",
+                )
+            registry = root / "registry.json"
+            registry.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.0",
+                        "capabilities": [
+                            {
+                                "id": "quality.test",
+                                "outcome": "test outcome",
+                                "selectors": [],
+                                "native_evidence": [],
+                                "route_names": ["review-a"],
+                                "manual_fallback": "manual-review",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            admission_dir = codex_home / "dev-flow"
+            admission_dir.mkdir(parents=True)
+            admission = {
+                "skill": "review-a",
+                "capability_ids": ["quality.test"],
+                "status": "approved",
+                "owner": "user",
+                "reviewed_at": "2026-08-13T00:00:00Z",
+                "recheck_trigger": "digest-change",
+            }
+            admission_file = admission_dir / "capabilities.json"
+            admission_file.write_text(
+                json.dumps({"schema_version": "1.0", "host": "codex", "admissions": [admission]}),
+                encoding="utf-8",
+            )
+            ambiguous = ec.assess_context(
+                root,
+                task_type="routine",
+                codex_home=codex_home,
+                capability_registry=registry,
+                detail="full",
+            )
+            route = ambiguous["quality_coverage"]["routes"][0]
+            self.assertEqual((route["status"], route["candidate_count"], route["candidate_bound"]), ("conflicting", 2, False))
+            self.assertIsNone(ambiguous["quality_coverage"]["obligations"][0]["selected_route"])
+            self.assertIn("review-a", {item["name"] for item in ambiguous["skill_catalog"]["collisions"]})
+
+            admission["digest"] = ec.sha256_file(first / "SKILL.md")
+            admission_file.write_text(
+                json.dumps({"schema_version": "1.0", "host": "codex", "admissions": [admission]}),
+                encoding="utf-8",
+            )
+            bound = ec.assess_context(
+                root,
+                task_type="routine",
+                codex_home=codex_home,
+                capability_registry=registry,
+                detail="full",
+            )
+            selected = bound["quality_coverage"]["obligations"][0]["selected_route"]
+            self.assertEqual(selected["path"], str(first.resolve()))
+            self.assertTrue(bound["quality_coverage"]["skill_name_collisions"][0]["resolved_by_admission_binding"])
+
+    def test_unobserved_plugin_route_is_not_reported_as_uninstalled(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            registry = root / "registry.json"
+            registry.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.0",
+                        "capabilities": [
+                            {
+                                "id": "quality.plugin",
+                                "outcome": "plugin-neutral outcome",
+                                "selectors": [],
+                                "native_evidence": [],
+                                "route_names": ["plugin-review"],
+                                "manual_fallback": "qualified-manual-review",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = ec.assess_context(
+                root,
+                task_type="routine",
+                codex_home=root / "codex",
+                capability_registry=registry,
+                detail="full",
+            )
+            route = result["quality_coverage"]["routes"][0]
+            self.assertEqual(route["status"], "not-observed")
+            self.assertFalse(route["observed"])
+            self.assertIsNone(route["installed"])
+            self.assertNotIn("missing", route["status"])
+
+    def test_artifact_facts_and_skill_digest_are_bound_into_context_fingerprint(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "repo"
+            source = root / "backend" / "api.py"
+            source.parent.mkdir(parents=True)
+            source.write_text("VALUE = 1\n", encoding="utf-8")
+            (root / "pyproject.toml").write_text(
+                "[project]\nname='sample'\nversion='0.1.0'\nrequires-python='>=3.12'\n",
+                encoding="utf-8",
+            )
+            codex_home = Path(temp) / "codex"
+            skill = codex_home / "skills" / "local-review"
+            skill.mkdir(parents=True)
+            skill_file = skill / "SKILL.md"
+            skill_file.write_text(
+                "---\nname: local-review\ndescription: first\n---\n# Review\n",
+                encoding="utf-8",
+            )
+            first = ec.assess_context(
+                root,
+                task_type="routine",
+                task_paths=["backend/api.py"],
+                facts=["phase=implementation", "boundary=public-interface"],
+                risks=["concurrency"],
+                codex_home=codex_home,
+                capability_registry=CAPABILITIES,
+            )
+            artifact = first["scope"]["artifacts"][0]
+            self.assertTrue(
+                {"phase", "role", "boundary", "language", "framework", "version", "path", "component", "risk"}
+                <= set(artifact)
+            )
+            self.assertEqual(artifact["language"], ["python"])
+            self.assertEqual(artifact["component"], ["backend"])
+            self.assertIn("python@>=3.12", artifact["version"])
+
+            phase_changed = ec.assess_context(
+                root,
+                task_type="routine",
+                task_paths=["backend/api.py"],
+                facts=["phase=verification", "boundary=public-interface"],
+                risks=["concurrency"],
+                codex_home=codex_home,
+                capability_registry=CAPABILITIES,
+            )
+            self.assertNotEqual(first["fingerprint"], phase_changed["fingerprint"])
+            skill_file.write_text(
+                "---\nname: local-review\ndescription: second\n---\n# Review\n",
+                encoding="utf-8",
+            )
+            skill_changed = ec.assess_context(
+                root,
+                task_type="routine",
+                task_paths=["backend/api.py"],
+                facts=["phase=verification", "boundary=public-interface"],
+                risks=["concurrency"],
+                codex_home=codex_home,
+                capability_registry=CAPABILITIES,
+            )
+            self.assertNotEqual(
+                phase_changed["engineering_context_binding"]["skill_catalog_fingerprint"],
+                skill_changed["engineering_context_binding"]["skill_catalog_fingerprint"],
+            )
+
+    def test_personal_skill_admission_does_not_satisfy_project_quality_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "repo"
+            root.mkdir()
+            codex_home = Path(temp) / "codex"
+            skill = codex_home / "skills" / "review-a"
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text(
+                "---\nname: review-a\ndescription: personal route\n---\n# Review\n",
+                encoding="utf-8",
+            )
+            admission_dir = codex_home / "dev-flow"
+            admission_dir.mkdir(parents=True)
+            (admission_dir / "capabilities.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.0",
+                        "host": "codex",
+                        "admissions": [
+                            {
+                                "skill": "review-a",
+                                "capability_ids": ["quality.test"],
+                                "status": "approved",
+                                "owner": "user",
+                                "reviewed_at": "2026-08-13T00:00:00Z",
+                                "recheck_trigger": "digest-change",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            registry = root / "registry.json"
+            registry.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.0",
+                        "capabilities": [
+                            {
+                                "id": "quality.test",
+                                "outcome": "shared quality outcome",
+                                "selectors": [],
+                                "native_evidence": [],
+                                "route_names": ["review-a"],
+                                "manual_fallback": "qualified-review",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            profiles = root / ".dev-flow" / "profiles"
+            profiles.mkdir(parents=True)
+            (profiles / "project.toml").write_text(
+                '''schema_version = "1.0"
+id = "project.quality"
+layer = "project"
+owner = "team"
+version = "1.0"
+status = "active"
+
+[[preferences]]
+key = "quality.shared"
+kind = "quality-policy"
+strength = "must"
+outcome = "Shared work receives the required review outcome."
+required_capabilities = ["quality.test"]
+rationale = "A personal route is not team policy."
+exception_policy = "team-owner-waiver"
+review_trigger = "capability-or-authority-change"
+''',
+                encoding="utf-8",
+            )
+            result = ec.assess_context(
+                root,
+                task_type="routine",
+                codex_home=codex_home,
+                capability_registry=registry,
+                detail="full",
+            )
+            obligation = result["quality_coverage"]["obligations"][0]
+            policy = next(item for item in result["quality_coverage"]["policy_assessments"] if item["key"] == "quality.shared")
+            self.assertEqual(obligation["coverage"], "approved-specialist")
+            self.assertEqual(obligation["shared_policy_coverage"], "uncovered")
+            self.assertEqual(policy["coverage"], "uncovered")
+            self.assertIn("quality.test", policy["missing_capabilities"])
+
+    def test_named_skill_absence_is_not_a_gap_when_native_outcome_is_covered(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "pyproject.toml").write_text("[project]\nname='sample'\nversion='0.1.0'\n", encoding="utf-8")
+            registry = root / "registry.json"
+            registry.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.0",
+                        "capabilities": [
+                            {
+                                "id": "quality.native",
+                                "outcome": "native outcome",
+                                "selectors": [],
+                                "native_evidence": ["pyproject.toml"],
+                                "route_names": ["optional-review"],
+                                "manual_fallback": "qualified-review",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = ec.assess_context(
+                root,
+                task_type="routine",
+                codex_home=root / "codex",
+                capability_registry=registry,
+                detail="full",
+            )
+            obligation = result["quality_coverage"]["obligations"][0]
+            route = result["quality_coverage"]["routes"][0]
+            self.assertEqual(obligation["coverage"], "native-control")
+            self.assertEqual(route["status"], "not-observed")
+            self.assertFalse(result["quality_coverage"]["uncovered"])
+            self.assertNotIn("governed-quality-outcome-uncovered", result["blockers"])
+
     def test_repository_tests_cover_obligation_outside_selected_task_path(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -683,6 +1001,56 @@ class ReadinessTests(unittest.TestCase):
             self.assertIn("quality.react.performance", ids)
             self.assertIn("react", result["scope"]["frameworks"])
 
+    def test_rust_and_java_framework_versions_are_scoped_to_canonical_manifests(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            rust = root / "rust-service"
+            java = root / "java-service"
+            rust.mkdir()
+            java.mkdir()
+            (rust / "Cargo.toml").write_text(
+                '''[package]
+name = "rust-service"
+version = "0.1.0"
+
+[dependencies]
+axum = "0.8"
+serde = { version = "1", features = ["derive"] }
+''',
+                encoding="utf-8",
+            )
+            (java / "pom.xml").write_text(
+                '''<project><parent>
+<artifactId>spring-boot-starter-parent</artifactId><version>4.0.1</version>
+</parent></project>
+''',
+                encoding="utf-8",
+            )
+            rust_result = ec.assess_context(
+                root,
+                task_type="routine",
+                task_paths=["rust-service"],
+                codex_home=root / "codex",
+                capability_registry=CAPABILITIES,
+            )
+            self.assertEqual(rust_result["scope"]["languages"], ["rust"])
+            self.assertEqual(rust_result["scope"]["frameworks"], ["axum", "serde"])
+            self.assertTrue(
+                {"axum@0.8", "serde@1"}
+                <= set(rust_result["scope"]["artifacts"][0]["version"])
+            )
+
+            java_result = ec.assess_context(
+                root,
+                task_type="routine",
+                task_paths=["java-service"],
+                codex_home=root / "codex",
+                capability_registry=CAPABILITIES,
+            )
+            self.assertEqual(java_result["scope"]["languages"], ["java"])
+            self.assertEqual(java_result["scope"]["frameworks"], ["spring-boot"])
+            self.assertIn("spring-boot@4.0.1", java_result["scope"]["artifacts"][0]["version"])
+
     def test_monorepo_task_scope_does_not_import_unrelated_language_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -772,6 +1140,37 @@ class RoutingTests(unittest.TestCase):
                 self.assertTrue(set(case["required"]) <= routes)
                 self.assertFalse(set(case["forbidden"]) & routes)
 
+    def test_evidence_driven_reroute_escalates_before_mutation(self) -> None:
+        initial = run(sys.executable, str(FLOW), "route-task", "--task-type", "routine")
+        discovered = run(
+            sys.executable,
+            str(FLOW),
+            "route-task",
+            "--task-type",
+            "routine",
+            "--risk",
+            "public-api",
+        )
+        self.assertEqual(initial.returncode, 0, initial.stderr or initial.stdout)
+        self.assertEqual(discovered.returncode, 0, discovered.stderr or discovered.stdout)
+        initial_payload = json.loads(initial.stdout)
+        discovered_payload = json.loads(discovered.stdout)
+        initial_routes = {item["skill"] for item in initial_payload["routes"]}
+        discovered_routes = {item["skill"] for item in discovered_payload["routes"]}
+        self.assertEqual(initial_payload["work_mode"], "traced")
+        self.assertEqual(discovered_payload["work_mode"], "governed")
+        self.assertIn("requirements-design", initial_routes)
+        self.assertTrue({"architecture-decisions", "change-review"} <= discovered_routes - initial_routes)
+        control_plane = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("Treat routing as provisional", control_plane)
+        self.assertIn("record the delta before mutation", control_plane)
+        lifecycle = (
+            ROOT / "skills" / "dev-flow" / "references" / "core-lifecycle.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("never downgrade a user-declared risk", lifecycle)
+
     def test_core_workflows_bind_owner_artifacts_before_proof_or_review(self) -> None:
         routing = json.loads(
             (ROOT / "evals" / "skill-routing-cases.json").read_text(encoding="utf-8")
@@ -801,11 +1200,18 @@ class RoutingTests(unittest.TestCase):
                 flow = case["workflow"]["artifact_flow"]
                 flow_skills = [item["skill"] for item in flow]
                 flow_outputs = [item["output"] for item in flow]
-                self.assertEqual(flow_skills, case["expected"])
+                self.assertEqual(
+                    [skill for skill in flow_skills if skill != "dev-flow"],
+                    case["expected"],
+                )
                 self.assertEqual(case["workflow"]["final_evidence"], flow_outputs[-1])
                 for item in flow:
                     self.assertEqual(output_owners[item["output"]], item["skill"])
                     self.assertIn(item["output"], capabilities[item["skill"]]["primary_outputs"])
+                verification_index = flow_skills.index("verification")
+                self.assertEqual(flow_outputs.count("change-set.v1"), 1)
+                self.assertEqual(flow_skills[verification_index - 1], "dev-flow")
+                self.assertEqual(flow_outputs[verification_index - 1], "change-set.v1")
                 for boundary in case["workflow"]["forbidden_backfill"]:
                     owner = output_owners[boundary["output"]]
                     consumer = boundary["consumer"]

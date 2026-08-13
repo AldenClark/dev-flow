@@ -12,7 +12,7 @@ Interaction surface and collaboration profile are also independent. Keep every p
 
 ## Requirement model
 
-Capture actor/caller, trigger/preconditions, input and trust boundary, validation, output/state transition, errors, cancellation, retry, timeout, recovery, authorization/privacy, compatibility/migration, performance/resources, observability/support, observable acceptance, and non-goals.
+Maintain an ordered truth chain: sanitized original source; each AI-understood revision; repository evidence; user corrections/decisions; and the current requirement truth that supersedes earlier interpretations. Capture actor/caller, trigger/preconditions, input/trust boundary, validation, output/state, errors, cancellation, retry, timeout, recovery, authorization/privacy, compatibility/migration, performance/resources, observability/support, acceptance, non-goals, and bounded assumptions.
 
 Use stable IDs:
 
@@ -31,11 +31,15 @@ Record summary, source, interpretations, evidence, materiality, owner, affected 
 - Codex for repository-resolvable facts;
 - user for final material requirement/product/authority semantics.
 
-Low-risk assumptions must be explicit, reversible, and outside protected boundaries. A worker or reviewer cannot resolve user-owned semantics.
+Low-risk assumptions must be evidence-backed, visible, reversible, and outside protected boundaries. A worker or reviewer cannot resolve user-owned semantics. Requirement Ready means semantic closure: no unhandled material/high-risk ambiguity and every remaining assumption explicitly disposed. It does not mean unknowable future facts have disappeared.
+
+After each material answer or correction, update the durable baseline before downstream work continues. Questions are batched only for cognitive clarity (normally one-to-three); repeat rounds when needed and never optimize interaction count.
 
 ## Design record
 
-Include current evidence, requirement delta, applicable preferences, alternatives/tradeoffs, selected architecture/control and data flow, ownership/failures, dependencies, security/performance/operations/docs/testing, compatibility, migration, rollout, rollback, cleanup, unresolved risks, and approval.
+Include current evidence, requirement delta, applicable preferences, product/scope alternatives and tradeoffs, selected observable behavior, acceptance, constraints, compatibility intent, migration/rollout/rollback outcomes, operations/docs/testing obligations, unresolved risks, approval, and links to separately owned architecture or dependency artifacts when routed.
+
+The record may constrain architecture through approved behavior, compatibility, safety, performance, or operational requirements, but it does not select technical control/data flow, state ownership, concurrency/lifecycle mechanics, or an external capability. Those remain owned by `architecture-decisions` and `dependency-decisions`.
 
 Do not hide high-impact choices in tasks. A dependency approval names the exact option and impact; design approval does not imply delivery.
 

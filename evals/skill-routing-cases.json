@@ -3,23 +3,33 @@
   "cases": [
     {
       "id": "ROUTE-MICRO",
-      "args": ["--task-type", "micro"],
+      "args": ["--task-type", "micro", "--mutation", "none"],
       "work_mode": "direct",
-      "expected": ["repo-context", "verification"],
-      "required": ["repo-context", "verification"],
-      "forbidden": ["requirements-design", "architecture-decisions", "change-review", "delivery-readiness", "manage-engineering-profiles", "dev-flow-maintainer"]
+      "expected": ["repo-context"],
+      "required": ["repo-context"],
+      "forbidden": ["requirements-design", "architecture-decisions", "verification", "change-review", "delivery-readiness", "manage-engineering-profiles", "dev-flow-maintainer"]
+    },
+    {
+      "id": "ROUTE-MICRO-PERSISTENT",
+      "args": ["--task-type", "micro"],
+      "work_mode": "traced",
+      "expected": ["repo-context", "requirements-design", "verification"],
+      "required": ["repo-context", "requirements-design", "verification"],
+      "forbidden": ["architecture-decisions", "change-review", "delivery-readiness", "manage-engineering-profiles", "dev-flow-maintainer"]
     },
     {
       "id": "ROUTE-BUGFIX",
       "args": ["--task-type", "bugfix"],
       "work_mode": "traced",
-      "expected": ["repo-context", "systematic-debugging", "verification"],
-      "required": ["repo-context", "systematic-debugging", "verification"],
-      "forbidden": ["requirements-design", "architecture-decisions", "change-review", "delivery-readiness"],
+      "expected": ["repo-context", "requirements-design", "systematic-debugging", "verification"],
+      "required": ["repo-context", "requirements-design", "systematic-debugging", "verification"],
+      "forbidden": ["architecture-decisions", "change-review", "delivery-readiness"],
       "workflow": {
         "artifact_flow": [
           {"skill": "repo-context", "output": "context.snapshot.v1"},
+          {"skill": "requirements-design", "output": "requirements.baseline.v1"},
           {"skill": "systematic-debugging", "output": "diagnosis.ledger.v1"},
+          {"skill": "dev-flow", "output": "change-set.v1"},
           {"skill": "verification", "output": "verification.results.v1"}
         ],
         "final_evidence": "verification.results.v1",
@@ -32,14 +42,16 @@
       "id": "ROUTE-FFI-BUGFIX",
       "args": ["--task-type", "bugfix", "--risk", "ffi"],
       "work_mode": "governed",
-      "expected": ["repo-context", "systematic-debugging", "architecture-decisions", "verification", "change-review"],
-      "required": ["systematic-debugging", "architecture-decisions", "verification", "change-review"],
-      "forbidden": ["requirements-design", "dependency-decisions", "delivery-readiness"],
+      "expected": ["repo-context", "requirements-design", "systematic-debugging", "architecture-decisions", "verification", "change-review"],
+      "required": ["requirements-design", "systematic-debugging", "architecture-decisions", "verification", "change-review"],
+      "forbidden": ["dependency-decisions", "delivery-readiness"],
       "workflow": {
         "artifact_flow": [
           {"skill": "repo-context", "output": "context.snapshot.v1"},
+          {"skill": "requirements-design", "output": "requirements.baseline.v1"},
           {"skill": "systematic-debugging", "output": "diagnosis.ledger.v1"},
           {"skill": "architecture-decisions", "output": "architecture.decision.v1"},
+          {"skill": "dev-flow", "output": "change-set.v1"},
           {"skill": "verification", "output": "verification.results.v1"},
           {"skill": "change-review", "output": "review.findings.v1"}
         ],
@@ -54,25 +66,25 @@
       "id": "ROUTE-ABI-BUGFIX",
       "args": ["--task-type", "bugfix", "--risk", "abi"],
       "work_mode": "governed",
-      "expected": ["repo-context", "systematic-debugging", "architecture-decisions", "verification", "change-review"],
-      "required": ["systematic-debugging", "architecture-decisions", "verification", "change-review"],
-      "forbidden": ["requirements-design", "dependency-decisions", "delivery-readiness"]
+      "expected": ["repo-context", "requirements-design", "systematic-debugging", "architecture-decisions", "verification", "change-review"],
+      "required": ["requirements-design", "systematic-debugging", "architecture-decisions", "verification", "change-review"],
+      "forbidden": ["dependency-decisions", "delivery-readiness"]
     },
     {
       "id": "ROUTE-CONCURRENCY",
       "args": ["--task-type", "routine", "--risk", "concurrency"],
       "work_mode": "traced",
-      "expected": ["repo-context", "architecture-decisions", "verification"],
-      "required": ["architecture-decisions", "verification"],
-      "forbidden": ["requirements-design", "change-review", "delivery-readiness"]
+      "expected": ["repo-context", "requirements-design", "architecture-decisions", "verification"],
+      "required": ["requirements-design", "architecture-decisions", "verification"],
+      "forbidden": ["change-review", "delivery-readiness"]
     },
     {
       "id": "ROUTE-ORDERING",
       "args": ["--task-type", "routine", "--risk", "ordering"],
       "work_mode": "traced",
-      "expected": ["repo-context", "architecture-decisions", "verification"],
-      "required": ["architecture-decisions", "verification"],
-      "forbidden": ["requirements-design", "change-review", "delivery-readiness"]
+      "expected": ["repo-context", "requirements-design", "architecture-decisions", "verification"],
+      "required": ["requirements-design", "architecture-decisions", "verification"],
+      "forbidden": ["change-review", "delivery-readiness"]
     },
     {
       "id": "ROUTE-PUBLIC-CONTRACT",
@@ -86,6 +98,7 @@
           {"skill": "repo-context", "output": "context.snapshot.v1"},
           {"skill": "requirements-design", "output": "requirements.baseline.v1"},
           {"skill": "architecture-decisions", "output": "architecture.decision.v1"},
+          {"skill": "dev-flow", "output": "change-set.v1"},
           {"skill": "verification", "output": "verification.results.v1"},
           {"skill": "change-review", "output": "review.findings.v1"}
         ],
@@ -148,9 +161,9 @@
       "id": "ROUTE-DEPENDENCY-RISK",
       "args": ["--task-type", "routine", "--risk", "dependency"],
       "work_mode": "governed",
-      "expected": ["repo-context", "dependency-decisions", "verification", "change-review"],
-      "required": ["dependency-decisions", "verification", "change-review"],
-      "forbidden": ["requirements-design", "architecture-decisions", "delivery-readiness"]
+      "expected": ["repo-context", "requirements-design", "dependency-decisions", "verification", "change-review"],
+      "required": ["requirements-design", "dependency-decisions", "verification", "change-review"],
+      "forbidden": ["architecture-decisions", "delivery-readiness"]
     },
     {
       "id": "ROUTE-MATERIAL-UI-ROUTINE",
@@ -172,8 +185,8 @@
       "id": "ROUTE-NATIVE-PACKAGING-NO-DELIVERY",
       "args": ["--task-type", "routine", "--risk", "native-packaging"],
       "work_mode": "traced",
-      "expected": ["repo-context", "architecture-decisions", "verification"],
-      "required": ["architecture-decisions", "verification"],
+      "expected": ["repo-context", "requirements-design", "architecture-decisions", "verification"],
+      "required": ["requirements-design", "architecture-decisions", "verification"],
       "forbidden": ["change-review", "delivery-readiness"]
     },
     {
@@ -190,23 +203,56 @@
       "work_mode": "traced",
       "expected": ["repo-context"],
       "required": ["repo-context"],
-      "forbidden": ["requirements-design", "architecture-decisions", "systematic-debugging", "verification", "change-review", "delivery-readiness"]
+      "forbidden": ["requirements-design", "product-ux-discovery", "architecture-decisions", "systematic-debugging", "verification", "change-review", "delivery-readiness"]
+    },
+    {
+      "id": "ROUTE-UNKNOWN-DELIVERY",
+      "args": ["--task-type", "read-only-audit", "--unknown", "delivery"],
+      "work_mode": "traced",
+      "expected": ["repo-context"],
+      "required": ["repo-context"],
+      "forbidden": ["requirements-design", "product-ux-discovery", "architecture-decisions", "systematic-debugging", "verification", "change-review", "delivery-readiness"],
+      "unresolved_dimensions": ["delivery"]
+    },
+    {
+      "id": "ROUTE-ROLLBACK-PLANNING",
+      "args": ["--task-type", "rollback", "--mutation", "none"],
+      "work_mode": "governed",
+      "expected": ["repo-context", "change-review"],
+      "required": ["repo-context", "change-review"],
+      "forbidden": ["requirements-design", "product-ux-discovery", "architecture-decisions", "systematic-debugging", "dependency-decisions", "verification", "delivery-readiness"]
+    },
+    {
+      "id": "ROUTE-RELEASE-HOTFIX-PLANNING",
+      "args": ["--task-type", "release-hotfix", "--mutation", "none"],
+      "work_mode": "governed",
+      "expected": ["repo-context", "change-review"],
+      "required": ["repo-context", "change-review"],
+      "forbidden": ["requirements-design", "product-ux-discovery", "architecture-decisions", "systematic-debugging", "dependency-decisions", "verification", "delivery-readiness"]
+    },
+    {
+      "id": "ROUTE-ROLLBACK-EXPLICIT-DELIVERY",
+      "args": ["--task-type", "rollback", "--mutation", "none", "--need", "delivery"],
+      "work_mode": "governed",
+      "expected": ["repo-context", "change-review", "delivery-readiness"],
+      "required": ["repo-context", "change-review", "delivery-readiness"],
+      "forbidden": ["requirements-design", "product-ux-discovery", "architecture-decisions", "systematic-debugging", "dependency-decisions", "verification"]
     },
     {
       "id": "ROUTE-EXPLICIT-DELIVERY",
       "args": ["--task-type", "routine", "--need", "delivery"],
       "work_mode": "traced",
-      "expected": ["repo-context", "verification", "delivery-readiness"],
-      "required": ["repo-context", "verification", "delivery-readiness"],
-      "forbidden": ["requirements-design", "architecture-decisions", "change-review"]
+      "expected": ["repo-context", "requirements-design", "verification", "delivery-readiness"],
+      "required": ["repo-context", "requirements-design", "verification", "delivery-readiness"],
+      "forbidden": ["architecture-decisions", "change-review"]
     },
     {
       "id": "ROUTE-PROFILE",
       "args": ["--task-type", "routine", "--profile-operation"],
       "work_mode": "traced",
-      "expected": ["repo-context", "manage-engineering-profiles", "verification"],
-      "required": ["manage-engineering-profiles", "verification"],
-      "forbidden": ["requirements-design", "architecture-decisions", "change-review", "delivery-readiness", "dev-flow-maintainer"]
+      "expected": ["repo-context", "manage-engineering-profiles", "requirements-design", "verification"],
+      "required": ["manage-engineering-profiles", "requirements-design", "verification"],
+      "forbidden": ["architecture-decisions", "change-review", "delivery-readiness", "dev-flow-maintainer"]
     },
     {
       "id": "ROUTE-MAINTAINER",

@@ -63,6 +63,10 @@ class CodexModelAdapterTests(unittest.TestCase):
         self.assertIn("evidence_family", prompt)
         self.assertIn("evidence_refs", prompt)
         self.assertIn("Preserve both independently failing checks.", prompt)
+        self.assertIn("<task_prompt>", prompt)
+        self.assertIn('<fixture>', prompt)
+        self.assertIn('Use source="task_prompt" only for text copied from <task_prompt>', prompt)
+        self.assertNotIn("<task-request>", prompt)
         self.assertNotIn("claim-owner-vocabulary", prompt)
         self.assertNotIn("claim-kind-vocabulary", prompt)
         self.assertNotIn("evaluation_contract", prompt)
@@ -188,6 +192,7 @@ class CodexModelAdapterTests(unittest.TestCase):
         self.assertIn("exact semantic duplicate", prompt)
         self.assertIn("kind suffix", prompt)
         self.assertIn("supplemental_items", prompt)
+        self.assertIn("<task_prompt>", prompt)
         self.assertNotIn("draft-result", prompt)
         self.assertNotIn("evaluation_contract", prompt)
 
@@ -199,6 +204,35 @@ class CodexModelAdapterTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(adapter.AdapterError, "occur exactly once"):
             adapter.assembler_prompt(absent_quote)
+        ambiguous_quote = json.loads(json.dumps(request))
+        ambiguous_quote["task_prompt"] = (
+            "Analyze both independently failing checks without executing them."
+        )
+        with self.assertRaisesRegex(adapter.AdapterError, "occur exactly once"):
+            adapter.assembler_prompt(ambiguous_quote)
+
+        overlapping_fixture = "a.a.a.a.a.a"
+        overlapping_quote = "a.a.a.a.a"
+        self.assertEqual(
+            adapter.overlapping_substring_starts(
+                overlapping_fixture,
+                overlapping_quote,
+            ),
+            [0, 2],
+        )
+        overlapping = json.loads(json.dumps(request))
+        overlapping["fixture"] = overlapping_fixture
+        overlapping["task_prompt"] = "An unrelated task prompt."
+        overlapping["inventory_result"]["inventory_items"][0]["evidence_refs"][0] = {
+            "source": "fixture",
+            "quote": overlapping_quote,
+        }
+        with self.assertRaisesRegex(adapter.AdapterError, "occur exactly once"):
+            adapter.assembler_prompt(overlapping)
+
+        unique = json.loads(json.dumps(overlapping))
+        unique["fixture"] = "prefix a.a.a.a.a suffix"
+        self.assertIn("routing manifest", adapter.assembler_prompt(unique))
 
         schema = json.loads(
             (adapter.SCHEMAS / "assembler-result.json").read_text(encoding="utf-8")

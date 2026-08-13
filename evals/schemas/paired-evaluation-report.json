@@ -270,6 +270,18 @@
       },
       "additionalProperties": false
     },
+    "inventoryEvidenceNormalization": {
+      "type": "object",
+      "required": ["item_id", "evidence_ref_index", "declared_source", "resolved_source", "quote_sha256"],
+      "properties": {
+        "item_id": {"type": "string", "pattern": "^IT-[A-Za-z0-9][A-Za-z0-9._-]*$", "maxLength": 128},
+        "evidence_ref_index": {"type": "integer", "minimum": 0, "maximum": 99},
+        "declared_source": {"enum": ["fixture", "task_prompt"]},
+        "resolved_source": {"enum": ["fixture", "task_prompt"]},
+        "quote_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      },
+      "additionalProperties": false
+    },
     "supplementalItem": {
       "type": "object",
       "required": ["item_id", "evidence_family", "action", "protected_behavior", "oracle_or_evidence", "status", "limitation", "evidence_refs"],
@@ -635,6 +647,7 @@
         ,"draft_attempts": {"type": "array", "maxItems": 2, "items": {"$ref": "#/$defs/attempt"}}
         ,"assembler_attempts": {"type": "array", "maxItems": 2, "items": {"$ref": "#/$defs/attempt"}}
         ,"inventory_result": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/inventoryResult"}]}
+        ,"inventory_evidence_normalizations": {"type": "array", "maxItems": 10000, "items": {"$ref": "#/$defs/inventoryEvidenceNormalization"}}
         ,"assembly_manifest": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/assemblyManifest"}]}
         ,"lineage_summary": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/lineageSummary"}]}
       },

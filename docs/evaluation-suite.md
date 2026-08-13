@@ -1,75 +1,95 @@
-# Paired evaluation suite
+# Quality-first evaluation suite
 
-The paired suite measures the first bounded workflow response with and without selected Dev Flow capabilities. Pilots are descriptive diagnostics. A frozen acceptance run also reports two-sided 95% Wilson intervals and requires the lower pass-rate bound to clear the configured floor; neither mode substitutes for deterministic repository, platform, security, packaging, or lifecycle tests.
+Dev Flow treats evaluation as supporting evidence for the Skills, not as the product. The primary question is whether the workflow produces a correct, scoped, reviewable repository change. Model scores cannot replace repository tests, platform evidence, security checks, independent review, packaging, or lifecycle proof.
 
-## Why the suite expanded
+## Evidence pyramid
 
-The original release set had five task families with one fixed case each. Historical results showed overall gains in pass rate, requirement fidelity, evidence quality, coverage, and actionability, while the cross-language FFI pair regressed. Global averages and integer scores did not explain the local omission: the candidate covered a dense general FFI checklist but repeatedly failed to load the required Swift, Kotlin, and independent FFI guidance first.
+Use the lowest sufficient layer and keep each claim inside that layer's evidence boundary:
 
-The first schema-1.2 FFI smoke exposed a second evaluator defect before broad expansion: the diagnostic grader treated honest `NOT RUN` planning as weaker than equally unexecuted imperative prose, even though the executor is intentionally denied repository and device access. Prompt clarification reduced but did not remove this behavior. A later development run produced the same core scores and obligation coverage for a stronger candidate response but changed the holistic verdict from pass to fail. The runner therefore retains the grader's holistic value as `model_verdict` and derives the reported `verdict` from explicit rubric floors, a rework ceiling, and fail-closed missing/unsafe/forbidden/false-block checks. Honest unavailable physical evidence must remain visible; it is not an opaque automatic failure.
+1. **Deterministic admission:** validate Skill structure, direct and negative triggers, exact routing, owner outputs, stop/handoff behavior, authority boundaries, compatibility, and safe counterexamples. Exercise an ordinary bugfix, a structural bugfix, and a public-contract change from task input through final repository evidence.
+2. **Affected-category model check:** after layer 1 passes, a material model-dependent Skill change gets a filtered schema-1.8 attested pilot over every affected development category, with at least three independent first attempts. A single pair is useful only to diagnose a specific failure or grader/case defect; it is not admission evidence for a material change.
+3. **Frozen release comparison:** run the complete schema-1.6 acceptance plan only for an explicitly authorized and budgeted release comparison. It remains model-behavior evidence, not total release readiness.
 
-The successor suite therefore makes nine changes:
+Ordinary wording, refactoring, deterministic implementation, and documentation changes stop after proportionate deterministic checks unless they alter model-visible behavior. If no valid case and oracle cover the changed behavior, record model evaluation as `NOT RUN`; do not substitute an unrelated score.
 
-1. It separates a 39-case development set from a 56-case frozen acceptance set. The combined 95 cases cover 16 categories; every category has at least five independent cases across the two sets.
-2. Contract 2.2 and catalog 1.3 group related engineering evidence into owner-bound work units while preserving every independently falsifiable decision, fact, test, and review axis as an atomic facet.
-3. Both variants receive the same complete neutral owner vocabulary and the full Cartesian owner/evidence-family vocabulary (`analysis`, `artifact`, `decision`, `interaction`, `limitation`, `test`). These task-agnostic classes contain no FFI, platform, or other gold-derived domain label. Neither variant receives hidden work-unit/facet IDs, actions, criticality, owner mappings, or a repository path to the gold contract/catalog.
-4. The blind grader maps every hidden facet only to exact, unique support spans in executor claims whose owner and task-agnostic evidence family both match. `critical` means a high-consequence safety, compatibility, authority, or data-integrity gate; `required` means ordinary task completeness; both are hard gates, while `supporting` must remain non-missing. Distinct non-overlapping spans may reuse one cohesive claim inside one hard-gated work unit, but a claim cannot support two hard-gated work units; normalized whole-claim clones remain blocked. `partial` is a failure for either hard-gated tier, not a green warning.
-5. Reports retain raw facet totals only for diagnosis. The quality score first equal-weights facets within a work unit, then work units within a task, tasks within a category, and finally categories. The headline is category-macro strict pass rate, so FFI's denser contract cannot dominate the overall score.
-6. Schema 1.6 sends only explicitly selected capability references and binds owner registry, task-neutral evidence-kind registry and digest, contract/catalog version, pair mapping, and selected source bytes into the input identity. Attested-pilot and release modes additionally bind the first-party adapter, runner interpreter, executor/grader roles, model IDs, reasoning efforts, adapter digest, platform-specific Codex CLI version/SHA-256, result schema 1.3, and per-call no-tool usage receipts; only ordinary unbound pilots may use external evaluator programs.
-7. Multi-scenario prompts are split into independently scored work units; a dedicated late-reopening case retains the real ambiguity-collision behavior.
-8. Every aggregate includes a 95% Wilson interval. Release mode requires both the point pass rate and its lower confidence bound to clear the overall and per-category floor; pilots expose the interval without making it a gate.
-9. The report separates model-plan quality from deterministic repository verification, independent review, and release lifecycle evidence. A model score cannot make the product release-ready.
+## What a model run may claim
 
-The derived strict-pass policy requires fidelity/scope/coverage/restraint/retention/actionability scores of at least 3, fixture-grounded evidence, rework at most 2, structural coverage, every critical and required work unit and all of its facets fully covered, every supporting work unit non-missing, owner-and-kind-aligned support mappings, non-overlapping hard-gated support spans, cross-unit hard-gated claim exclusivity, and zero unsafe, false-blocking, or forbidden actions. Partial-credit semantic coverage remains a diagnostic score and never overrides strict failure. The raw `model_verdict` remains visible beside the policy result; policy overrides are counted rather than hidden.
+An attested pilot is a controlled comparison of baseline and candidate on selected fixed cases under a bound harness, models, prompts, budget, and scoring policy. It can reveal a repeatable local omission or regression. It does not estimate performance over all software tasks, user productivity, or production correctness.
 
-## Canonical task matrix
+The development bank is for diagnosis and regression. The frozen acceptance bank is held out from change-level tuning, but repository-visible fixed cases are not guaranteed free of model-training contamination and are not a random population sample. Report that limitation with every durable result.
 
-| Category | Representative cases | Candidate capabilities |
+## Development categories
+
+The current development config is `evals/paired-evaluations.json`. Select categories because the changed behavior can affect them, not to improve a headline result.
+
+| Category | Representative behavior |
+|---|---|
+| Context and profiles | multi-root precedence; execution-mode isolation; generated ownership |
+| Cross-language FFI | callback, ownership/error, lifecycle, and packaging boundaries |
+| Migration | persisted protocol, database backfill, and public SDK rollout |
+| Verification | retry, shutdown, and compatibility evidence |
+| Requirements | ambiguity, contradictions, states, sparse bugs, and material defaults |
+| Structured interaction | native input, cancellation, authority, and secret handling |
+| Frontend UX and engineering | product intent, protected IA, recovery, state, and accessibility |
+| Debugging | timeout, cross-platform path, and async race diagnosis |
+| Dependencies | add, update, and removal governance |
+| Delivery | signing, rollback lifecycle, and provenance |
+| Change review | authorization, concurrency, and workflow supply-chain diffs |
+
+The acceptance config, `evals/paired-evaluations-acceptance.json`, additionally covers architecture, security/privacy, performance/resources, and concurrency/recovery. Do not use acceptance cases to tune a candidate. A revealed acceptance defect invalidates that case as held-out evidence; repair it in development and establish a new freeze before another release claim.
+
+## Running an affected-category pilot
+
+Schema 1.8 defines one first attempt as baseline and candidate executions through owner/kind-blind inventory, routing-manifest assembly, deterministic claim-ledger materialization, and blind grading. The exact requests, source snapshot, evaluator/backend identities, nonces, results, hashes, and no-tool usage receipts are bound by the existing protocol.
+
+Run all affected categories only after deterministic gates pass. Repeat `--category` when more than one category is affected:
+
+```bash
+python3 evals/run_paired_evaluations.py \
+  --attested-pilot --category CAT-FFI \
+  --executor-draft 'python3 evals/codex_model_adapter.py inventory --model gpt-5.6-sol --reasoning-effort medium' \
+  --executor-assembler 'python3 evals/codex_model_adapter.py assembler --model gpt-5.6-sol --reasoning-effort high' \
+  --grader 'python3 evals/codex_model_adapter.py grader --model gpt-5.6-sol --reasoning-effort medium' \
+  --output /absolute/private/eval-output --trials 3 --seed 20260810
+```
+
+`--attested-pilot` requires a strict pair/category filter and the configured evaluator identities. There is no runnable unfiltered schema-1.8 development pilot. `--pair` remains available for diagnosis, but a material behavior claim requires every affected category to include at least the configured minimum of three distinct cases, with at least three independent first attempts per case. A smaller slice is explicitly diagnostic and cannot pass the model evidence layer.
+
+Before authorization, calculate the call budget from the selected plan. Schema 1.8 uses six model calls per pair per trial: baseline and candidate inventory, assembly, and grading. Record selected pairs/categories, trials, expected calls, deadline, and any exposed token fields. Do not infer monetary cost when the provider does not expose it.
+
+Every content result is a first attempt and receives no retry. A pilot may use at most one predeclared retry only for a typed timeout or adapter-declared transport/service failure that produced no usable content result; preserve the failed attempt and its receipt. Release mode permits no infrastructure retry. When an evidence quote occurs exactly once across `fixture` and `task_prompt` but the model declares the other source, the runner preserves the raw result, resolves that mechanical provenance label, and records the normalization in the report. This is deterministic canonicalization, not a content retry; missing, repeated, overlapping, or cross-source-ambiguous quotes still fail closed. Reports containing the normalization audit field require the current report schema; pre-change strict readers may reject the additional field, while the current schema continues to accept older schema-1.7 reports. `progress.json` is operational progress, not completion; only a reconciled terminal `report.json` can close the run.
+
+## Non-composite scorecard
+
+Do not turn the report into one overall quality number. Read and publish these dimensions separately:
+
+| Dimension | Evidence | Interpretation |
 |---|---|---|
-| Context and profiles | multi-root precedence; personal/team/CI isolation; generated ownership boundary | `repo-context`, `manage-engineering-profiles` |
-| Cross-language FFI | mobile callback; ownership/error evolution; lifecycle/packaging | `architecture-decisions`, `change-review` |
-| Migration | persisted protocol; online database backfill; public SDK rollout | `repo-context`, `delivery-readiness` |
-| Verification | retrying worker; concurrent shutdown; compatibility matrix | `verification`, `change-review` |
-| Requirements | late ambiguity reopening; design contradiction; missing states; avoidable question; sparse bug; material default | `dev-flow`, `requirements-design`, `repo-context`, task-specific product/debug/verification owners |
-| Structured interaction | native input matrix; cancellation/stale response; authority/secret separation | `dev-flow`, `requirements-design` |
-| Frontend UX | new product; preserve information architecture; responsive recovery states | `product-ux-discovery`, `requirements-design` |
-| Frontend engineering | table/chart extension; server-state ownership; accessibility | `architecture-decisions`, `verification` |
-| Systematic debugging | process timeout; cross-platform path; async generation race | `systematic-debugging`, `verification` |
-| Dependency governance | new dependency; major update; safe removal | `dependency-decisions`, `architecture-decisions` |
-| Delivery readiness | signed RC; install/rollback lifecycle; provenance mismatch | `delivery-readiness`, `verification` |
-| Change review | authorization diff; concurrency diff; workflow supply chain | `change-review`, `verification` |
-| Architecture | state ownership; plugin isolation; error boundaries; atomic side effects; dependency direction | `architecture-decisions`, `change-review` |
-| Security and privacy | tenant authorization; redaction; credential lifecycle; path containment; audit integrity | `architecture-decisions`, `change-review`, `verification` |
-| Performance and resources | backpressure; eviction; batching; UI memory; startup budgets | `architecture-decisions`, `verification` |
-| Concurrency and recovery | idempotency; cancellation; crash recovery; generations; graceful drain | `architecture-decisions`, `systematic-debugging`, `verification` |
+| Safety and authority hard gates | unsafe actions, forbidden actions, false blocks, tool events, missing critical/required facets, invalid or incomplete records | Zero tolerance. A failure cannot be averaged away. |
+| Outcome | strict-pass counts by case and affected category; applicable deterministic workflow results | Shows whether the selected obligations were met under the bound setup. |
+| Variability | raw pass pattern across independent first attempts; mixed-outcome cases; paired regressions and recoveries | Distinguishes repeatable behavior from one-off model variation. |
+| Fidelity and repair burden | requirement fidelity, scope, coverage, restraint, ordinary-defect retention, actionability, rework, and repair depth | Diagnoses what improved or regressed; inspect exact support and omissions. |
+| Cost | calls, elapsed time, prompt/capability/output bytes, context or token fields actually exposed | A resource constraint, never a quality substitute. |
 
-The development config is `evals/paired-evaluations.json`. Schema 1.8 fixes one composite first attempt as owner/kind-blind inventory plus a routing-manifest assembler, followed by deterministic ledger materialization and the grader; `--attested-pilot` requires at least one pair/category filter and exact inventory/assembler/grader identities. Each stage has an opaque root, backend recheck, unique control-plane nonce, request/result hashes, and receipt 1.2. The assembler receives the validated atomic inventory and task-neutral routing vocabularies, never gold or grader feedback. The acceptance config is `evals/paired-evaluations-acceptance.json`; it remains a separately frozen schema-1.6 single-stage release path. Changing pipeline, adapter, model, effort, receipt, or freeze identity requires a new canonical digest. If an acceptance case reveals a defect, that case becomes development evidence and may not be reused as held-out proof.
+The runner's existing global and category aggregates remain compatibility fields and diagnostics. Neither an aggregate, a grader's opaque `model_verdict`, nor a weighted score can override a hard gate or stand for end-to-end coding quality.
 
-Each config entry binds a unique prompt, fixture, and structured owner-kind work-unit contract. A work-unit owner must be present in the pair's capability set, and every claim-route kind must exist in the bound registry with that owner. Development inventory sees the task, fixture, and condition-specific capability text with provenance paths removed, but no owner/kind vocabulary. The assembler receives the validated atomic inventory plus the task-neutral routing vocabularies. Neither stage sees hidden work units, facets, criticality, trial/variant labels, real artifact paths, usage, receipts, or grader data. The blind grader sees the task, fixture, oracle, hidden work-unit contract, and materialized content DTO. The combined fixture, contract, entrypoints, and selected references retain the hard 256 KiB per-pair ceiling.
+Wilson intervals in existing reports are operational/descriptive summaries of observed binary outcomes. The frozen release configuration continues to use its lower-bound threshold as a conservative configured gate, but fixed curated cases and repeated trials do not justify a population-confidence claim. Report raw numerator/denominator, case/category scope, trial count, instability, and limitations beside any interval.
 
-## Sampling and cost control
+## Case and grader health
 
-- A focused schema-1.8 development case uses three trials: six inventory, six assembler, and six grader calls (18 total).
-- The 39-case development broad pilot uses three trials: 702 calls.
-- The 56-case acceptance pilot uses three trials: 336 executor and 336 grader calls.
-- The frozen acceptance release plan uses twelve trials: 672 executor and 672 grader calls. With the minimum three cases per category, a perfect 36/36 category has a 95% Wilson lower bound above 0.9; 35/36 does not.
+Scores are credible only while cases and graders are credible:
 
-Development uses a 0.8 candidate pass-rate floor for diagnosis; frozen acceptance raises it to 0.9 for the overall and every category gate, while unsafe-action and false-block tolerances remain zero. Frozen acceptance must clear both the observed rate and the 95% Wilson lower bound. With the current minimum category size this is intentionally stricter than the point estimate and prevents a small sample from being described as high-confidence evidence.
+1. Bind each case to a real workflow risk or observed failure, a reviewable fixture, an explicit oracle/reference solution, and both positive and negative behavior where applicable.
+2. Audit every new failure transcript and a rotating sample of passes. Classify the cause as candidate behavior, grader error, broken/ambiguous fixture or oracle, harness/infrastructure failure, or possible contamination.
+3. Do not count a broken or underspecified case. Quarantine it from development comparisons until repaired and re-baselined; never edit frozen acceptance policy or cases after observing release results.
+4. Promote fresh shadow cases from real failures only after manual review establishes that prompt, fixture, and oracle agree. Keep the bank bounded; retire redundant cases with recorded disposition.
 
-Order is counterbalanced within trials and case order is seeded. Every run is a first attempt. Raw results remain local/private; durable or public evidence should retain only hashes, receipts, aggregates, bounded work-unit/facet summaries, and limitations. Monetary cost remains unknown when the authenticated Codex session does not expose it, and must not be inferred from tokens.
+Active `contracts/` and frozen acceptance catalogs are no-orphan banks: every active case is consumed exactly once. Retirement removes both the active case and its configuration entry with a recorded disposition. Unpromoted shadow cases stay outside those active and frozen banks.
 
-The runner atomically updates `progress.json` after every baseline or candidate record with the config digest, expected/completed/failed counts, and the last bounded case position. Usage receipts separate prompt, selected-capability, and output bytes and retain only token fields actually exposed by the adapter; unavailable monetary cost or token splits remain `null`. Progress is operational evidence only; `report.json` remains the sole aggregate result, and an interrupted `running` state is never completion.
+Add no evaluator protocol, schema, stage, or case family unless a core invariant cannot be observed through the existing deterministic checks and thin harness. Record the invariant, smaller rejected alternative, added maintenance and run cost, rollback, owner, and removal condition.
 
-Run the broad pilot only after deterministic config, contract, schema, adapter, isolation, category-gate, and focused-category model checks pass; evidence used to expand scope must come from `--attested-pilot`, not an unbound command. A pilot may predeclare a 600-second child deadline and at most one infrastructure retry. The retry applies only to a typed runner timeout or an adapter-declared transport/service failure, uses a separate attempt directory, and preserves the original request, output, error, duration, and path in the report. Any terminal evaluator failure opens a circuit so later model calls are not scheduled against a broken program or service. Ordinary exits, no-diagnostic environment failures, invalid output, tool events, unsafe behavior, missing/partial facets, grader verdicts, and every content or quality failure receive zero retries. Adapter failure receipts retain only bounded byte counts and SHA-256 fingerprints plus the typed class, never raw service diagnostics. A recovered failure remains visible even though its terminal valid sample can complete the descriptive pilot. Release mode requires zero infrastructure retries. On catchable SIGTERM/SIGINT, the runner records an incomplete terminal report after cleaning its trusted evaluator process group and live descendants observed to have changed groups/sessions. Arbitrary evaluator commands retain ambient user authority and are not a sandbox; SIGKILL, forced OS termination, and an untrusted instant double-fork remain outside the guarantee. A failed unchanged candidate is not retried; create a source-changing successor or investigate the model, architecture, environment, or oracle.
+## Reading and releasing
 
-## Reading a result
+Inspect results in this order: run validity and hard gates; affected-category and per-case outcomes; cross-trial variability; fidelity/retention/rework evidence; then cost. Read bounded transcripts when aggregates cannot explain a failure. A failed unchanged candidate is not retried; change the source or repair the case, grader, harness, or environment first.
 
-The overall aggregate is useful for direction, but it is not the release decision. Inspect in order:
-
-1. structural completeness, tool events, process exits, and invalid records;
-2. each category's pass rate, fidelity, defect retention, safety, false blocks, and context ratio;
-3. per-case scores, work-unit summaries, and facet assessments;
-4. repeated omissions across distinct fixtures versus one-off model variation;
-5. raw private evidence only when the bounded diagnostic summary cannot establish cause.
-
-`model_gate_ready` requires the exact frozen acceptance config, all cases and trials, immutable input snapshot, clean source/config identity before and after the run, and every global and category gate passing. A pilot can pass descriptive thresholds but never becomes model-gate-ready. `release_ready` remains false in this report because deterministic repository outcomes, independent change review, and attestation/install/rollback/signing evidence are separate mandatory layers.
+An attested pilot always has `model_gate_ready: false`. `model_gate_ready` can become true only through the exact complete frozen acceptance plan with immutable inputs, clean source/config identity, and every configured gate passing. `release_ready` remains false in the model report because repository verification, independent review, artifact provenance, installation, rollback, signing, and publication authority are separate layers.

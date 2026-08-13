@@ -34,6 +34,15 @@ Prefer an existing working analogue over invented architecture. Distinguish:
 
 For each source, check canonical owner, scope, applicability, conflicts, duplicates, version/digest, reviewed time, expiry/recheck trigger, and context/security suitability. Reject placeholder instructions, stale commands, personal preferences committed as team mandates, unscoped language rules in mixed repositories, and prose that claims to enforce security or permissions without a real control.
 
+## Engineering context and specialist catalog
+
+- Emit one artifact-fact record per affected path or explicit scope. Bind phase, role, boundary, language, framework, version, path, component, and risk instead of applying a repository-wide language label to every artifact.
+- Scan only effective repository `.agents/skills`, user Codex/Agents roots, admin/system roots, explicit task roots, and plugin roots proven by the bounded Codex cache layout. Never recursively search the machine for Skills.
+- Preserve every observed same-name Skill candidate with provenance, authority, path, digest, and version. Do not collapse the group into a name-keyed dictionary. An admission must bind a unique digest, version, or path before that name can route.
+- Treat `not-observed` as an epistemic result, not a claim that a plugin or Skill is uninstalled elsewhere. Discovery never installs, enables, promotes, or turns a personal Skill into team policy.
+- Derive the required neutral capability outcomes first; select no more than one admitted specialist per outcome after native controls and owned policies are considered.
+- Fingerprint the effective instruction chain, profile resolution, native controls, artifact/version facts, capability registry, Skill catalog, and admissions. Re-resolve at a relevant digest or task-fact change rather than on a timer.
+
 ## Output
 
-`context.snapshot.v1` contains roots, Git state, instruction chain, scoped paths, languages/artifact roles, project archetypes, current behavior, commands/controls, architecture and runtime boundaries, facts/inferences/unknowns, source-quality findings, and authority. It references canonical sources instead of copying them.
+`context.snapshot.v1` contains roots, Git state, instruction chain, scoped artifact facts, project archetypes, current behavior, commands/controls, architecture and runtime boundaries, bounded Skill catalog/collisions, neutral capability outcomes and selected routes, facts/inferences/unknowns, source-quality findings, authority, recheck triggers, and the aggregate engineering-context fingerprint. It references canonical sources instead of copying them.

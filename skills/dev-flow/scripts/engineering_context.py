@@ -18,7 +18,7 @@ from path_contracts import PathContractError, contained_path
 
 PROFILE_SCHEMA_VERSION = "1.0"
 READINESS_SCHEMA_VERSION = "1.0"
-HOST_ADAPTER_VERSION = "1.0"
+HOST_ADAPTER_VERSION = "1.1"
 PROFILE_MODES = {"personal-interactive", "team-reproducible", "ci"}
 READINESS_DETAILS = {"compact", "full"}
 DEFAULT_PROJECT_DOC_MAX_BYTES = 32 * 1024
@@ -37,6 +37,7 @@ ROUTE_STATUSES = {
     "conflicting",
     "untrusted",
     "missing",
+    "not-observed",
     "not-applicable",
 }
 TIERS = {"T0", "T1", "T2", "T3"}
@@ -121,7 +122,7 @@ GOVERNED_RISKS = {
 }
 GOVERNING_POLICY_LAYERS = {"baseline", "team", "project", "component", "task"}
 IGNORED_DIRECTORIES = {".git", ".codex", "node_modules", "target", "dist", "build", ".venv", "__pycache__"}
-CONDITION_RE = re.compile(r"^([a-z][a-z0-9_.-]*)(!?=)([^=]+)$")
+CONDITION_RE = re.compile(r"^([a-z][a-z0-9_.-]*)(!?=)(.+)$")
 SAFE_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,127}$")
 
 
@@ -246,22 +247,118 @@ class CodexHostAdapter:
             )
         return result
 
-    def skill_roots(self, explicit_roots: Iterable[Path] = ()) -> list[Path]:
-        candidates = [
-            self.codex_home / "skills",  # legacy Codex location
-            *(directory / ".agents" / "skills" for directory in self._project_directories()),
-            Path.home() / ".agents" / "skills",
-            Path("/etc/codex/skills"),
-            *explicit_roots,
-        ]
-        result: list[Path] = []
-        seen: set[str] = set()
-        for candidate in candidates:
+    def _plugin_skill_root_records(self) -> list[dict[str, Any]]:
+        """Return only the documented, bounded Codex plugin-cache layout.
+
+        A missing cache is an absence of evidence, not proof that a plugin is
+        uninstalled on every host.  Do not recursively inventory arbitrary host
+        directories to try to close that epistemic gap.
+        """
+
+        cache = self.codex_home / "plugins" / "cache"
+        if not cache.is_dir() or cache.is_symlink():
+            return []
+        cache_resolved = cache.resolve()
+        records: list[dict[str, Any]] = []
+        for candidate in sorted(cache.glob("*/*/*/skills")):
+            if not candidate.is_dir() or candidate.is_symlink():
+                continue
             resolved = candidate.resolve()
-            if str(resolved) not in seen:
-                seen.add(str(resolved))
-                result.append(resolved)
+            if not resolved.is_relative_to(cache_resolved):
+                self.errors.append(f"Codex plugin Skill root escapes the plugin cache: {candidate}")
+                continue
+            relative = resolved.relative_to(cache_resolved)
+            if len(relative.parts) != 4 or relative.parts[-1] != "skills":
+                continue
+            plugin, package, version, _ = relative.parts
+            records.append(
+                {
+                    "path": resolved,
+                    "provenance": "codex-plugin-cache",
+                    "authority": "personal",
+                    "policy_authority": "personal",
+                    "scope": "host",
+                    "namespace": plugin,
+                    "package": package,
+                    "version": version,
+                    "available": True,
+                }
+            )
+        return records
+
+    def skill_root_records(self, explicit_roots: Iterable[Path] = ()) -> list[dict[str, Any]]:
+        candidates: list[dict[str, Any]] = [
+            {
+                "path": self.codex_home / "skills",
+                "provenance": "legacy-codex-user",
+                "authority": "personal",
+                "policy_authority": "personal",
+                "scope": "host",
+            },
+            {
+                "path": self.codex_home / "skills" / ".system",
+                "provenance": "codex-system-builtin",
+                "authority": "host",
+                "policy_authority": "host",
+                "scope": "host",
+            },
+            *(
+                {
+                    "path": directory / ".agents" / "skills",
+                    "provenance": "repository-agents",
+                    "authority": "project",
+                    "policy_authority": "project",
+                    "scope": directory.relative_to(self.root).as_posix() or ".",
+                }
+                for directory in self._project_directories()
+            ),
+            {
+                "path": Path.home() / ".agents" / "skills",
+                "provenance": "user-agents",
+                "authority": "personal",
+                "policy_authority": "personal",
+                "scope": "host",
+            },
+            {
+                "path": Path("/etc/codex/skills"),
+                "provenance": "codex-admin",
+                "authority": "admin",
+                "policy_authority": "admin",
+                "scope": "host",
+            },
+            *self._plugin_skill_root_records(),
+            *(
+                {
+                    "path": path,
+                    "provenance": "explicit-task-root",
+                    "authority": "task",
+                    "policy_authority": "task",
+                    "scope": "task",
+                }
+                for path in explicit_roots
+            ),
+        ]
+        result: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for raw in candidates:
+            candidate = Path(raw["path"])
+            resolved = candidate.resolve()
+            if str(resolved) in seen:
+                continue
+            seen.add(str(resolved))
+            result.append(
+                {
+                    **raw,
+                    "path": resolved,
+                    "available": candidate.is_dir() and not candidate.is_symlink(),
+                }
+            )
         return result
+
+    def skill_roots(self, explicit_roots: Iterable[Path] = ()) -> list[Path]:
+        """Compatibility wrapper returning the bounded known Skill root paths."""
+
+        return [record["path"] for record in self.skill_root_records(explicit_roots)]
 
     def summary(self) -> dict[str, Any]:
         return {
@@ -302,7 +399,8 @@ def require_text_list(value: Any, label: str, errors: list[str], *, allow_empty:
 
 
 def validate_condition(condition: str, label: str, errors: list[str]) -> None:
-    if not CONDITION_RE.fullmatch(condition):
+    match = CONDITION_RE.fullmatch(condition)
+    if not match or match.group(3).startswith("="):
         errors.append(f"{label} must use key=value or key!=value syntax: {condition!r}")
 
 
@@ -547,7 +645,7 @@ def normalize_facts(values: Iterable[str], paths: Iterable[str]) -> dict[str, se
     facts: dict[str, set[str]] = {"path": {Path(path).as_posix().lstrip("./") for path in paths}}
     for raw in values:
         match = CONDITION_RE.fullmatch(raw)
-        if not match or match.group(2) != "=":
+        if not match or match.group(2) != "=" or match.group(3).startswith("="):
             raise ContractError(f"fact must use key=value syntax: {raw!r}")
         key, _, value = match.groups()
         facts.setdefault(key, set()).add(value)
@@ -785,7 +883,9 @@ def detect_languages(root: Path, task_paths: Iterable[str] = (), inventory: Iter
         "Package.swift": "swift",
         "build.gradle": "kotlin",
         "build.gradle.kts": "kotlin",
+        "pom.xml": "java",
         "pyproject.toml": "python",
+        "requirements.txt": "python",
         "go.mod": "go",
     }
     for filename, language in manifest_languages.items():
@@ -799,28 +899,360 @@ def detect_frameworks(root: Path, task_paths: Iterable[str] = (), inventory: Ite
     selected = [Path(path).as_posix().lstrip("./") for path in task_paths]
     frameworks: set[str] = set()
     repository_files = list(inventory) if inventory is not None else list(iter_repository_files(root))
-    for path in sorted(item for item in repository_files if item.name == "package.json"):
+    manifest_names = {
+        "package.json",
+        "Cargo.toml",
+        "pyproject.toml",
+        "pom.xml",
+        "build.gradle",
+        "build.gradle.kts",
+    }
+    for path in sorted(item for item in repository_files if item.name in manifest_names):
         relative = path.relative_to(root)
         if any(part in IGNORED_DIRECTORIES for part in relative.parts):
             continue
         if not path_relevant(relative, selected):
             continue
         try:
-            package = read_json(path)
-        except (OSError, json.JSONDecodeError, ContractError):
+            if path.name == "package.json":
+                package = read_json(path)
+                dependencies: set[str] = set()
+                for field in ("dependencies", "devDependencies", "peerDependencies"):
+                    table = package.get(field, {})
+                    if isinstance(table, dict):
+                        dependencies.update(str(name) for name in table)
+                if "react" in dependencies or "next" in dependencies:
+                    frameworks.add("react")
+                if "next" in dependencies:
+                    frameworks.add("next")
+                if "vue" in dependencies or "nuxt" in dependencies:
+                    frameworks.add("vue")
+                if "nuxt" in dependencies:
+                    frameworks.add("nuxt")
+                if "svelte" in dependencies or "@sveltejs/kit" in dependencies:
+                    frameworks.add("svelte")
+                if "@sveltejs/kit" in dependencies:
+                    frameworks.add("sveltekit")
+            elif path.name == "Cargo.toml":
+                manifest = read_toml(path)
+                dependencies: set[str] = set()
+                for field in ("dependencies", "dev-dependencies", "build-dependencies"):
+                    table = manifest.get(field, {})
+                    if isinstance(table, dict):
+                        dependencies.update(str(name) for name in table)
+                workspace = manifest.get("workspace", {})
+                if isinstance(workspace, dict) and isinstance(workspace.get("dependencies"), dict):
+                    dependencies.update(str(name) for name in workspace["dependencies"])
+                for name in ("axum", "tokio", "serde", "sqlx", "tauri", "leptos"):
+                    if name in dependencies:
+                        frameworks.add(name)
+            elif path.name == "pyproject.toml":
+                manifest = read_toml(path)
+                dependencies: list[str] = []
+                project = manifest.get("project", {})
+                if isinstance(project, dict):
+                    dependencies.extend(item for item in project.get("dependencies", []) if isinstance(item, str))
+                    optional = project.get("optional-dependencies", {})
+                    if isinstance(optional, dict):
+                        dependencies.extend(
+                            item
+                            for values in optional.values()
+                            if isinstance(values, list)
+                            for item in values
+                            if isinstance(item, str)
+                        )
+                tool = manifest.get("tool", {})
+                poetry = tool.get("poetry", {}) if isinstance(tool, dict) else {}
+                if isinstance(poetry, dict) and isinstance(poetry.get("dependencies"), dict):
+                    dependencies.extend(str(name) for name in poetry["dependencies"])
+                normalized = {
+                    re.split(r"[\s<>=!~\[]", dependency.strip().lower(), maxsplit=1)[0]
+                    for dependency in dependencies
+                }
+                frameworks.update(normalized & {"django", "fastapi", "flask"})
+            else:
+                text = path.read_text(encoding="utf-8").lower()
+                if "spring-boot" in text or "org.springframework.boot" in text:
+                    frameworks.add("spring-boot")
+                if path.name.startswith("build.gradle") and "com.android." in text:
+                    frameworks.add("android")
+                if path.name.startswith("build.gradle") and "compose" in text:
+                    frameworks.add("jetpack-compose")
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, tomllib.TOMLDecodeError, ContractError):
             continue
-        dependencies: set[str] = set()
-        for field in ("dependencies", "devDependencies", "peerDependencies"):
-            table = package.get(field, {})
-            if isinstance(table, dict):
-                dependencies.update(str(name) for name in table)
-        if "react" in dependencies or "next" in dependencies:
-            frameworks.add("react")
-        if "vue" in dependencies or "nuxt" in dependencies:
-            frameworks.add("vue")
-        if "svelte" in dependencies or "@sveltejs/kit" in dependencies:
-            frameworks.add("svelte")
     return sorted(frameworks)
+
+
+def _bounded_path_digest(path: Path, *, file_limit: int = 512) -> str:
+    """Bind a native-control file or small control directory without copying it."""
+
+    if path.is_file() and not path.is_symlink():
+        return sha256_file(path)
+    records: list[dict[str, str]] = []
+    if path.is_dir() and not path.is_symlink():
+        for index, child in enumerate(sorted(item for item in path.rglob("*") if item.is_file() and not item.is_symlink())):
+            if index >= file_limit:
+                records.append({"path": "<truncated>", "hash": f"files>{file_limit}"})
+                break
+            records.append({"path": child.relative_to(path).as_posix(), "hash": sha256_file(child)})
+    return sha256_bytes(canonical_json(records).encode("utf-8"))
+
+
+def detect_version_bindings(
+    root: Path,
+    task_paths: Iterable[str] = (),
+    inventory: Iterable[Path] | None = None,
+) -> list[dict[str, str]]:
+    """Read only canonical manifests and toolchain files relevant to the task."""
+
+    repository_files = list(inventory) if inventory is not None else list(iter_repository_files(root))
+    selected = [Path(path).as_posix().lstrip("./") for path in task_paths]
+    bindings: list[dict[str, str]] = []
+    for path in sorted(repository_files):
+        relative = path.relative_to(root)
+        if not path_relevant(relative, selected):
+            continue
+        try:
+            if path.name == "package.json":
+                package = read_json(path)
+                for field in ("dependencies", "devDependencies", "peerDependencies"):
+                    table = package.get(field, {})
+                    if not isinstance(table, dict):
+                        continue
+                    for framework in ("react", "next", "vue", "nuxt", "svelte", "@sveltejs/kit"):
+                        version = table.get(framework)
+                        if isinstance(version, str) and version.strip():
+                            bindings.append(
+                                {
+                                    "kind": "framework",
+                                    "name": framework,
+                                    "version": version.strip(),
+                                    "path": relative.as_posix(),
+                                    "digest": sha256_file(path),
+                                }
+                            )
+            elif path.name == "Cargo.toml":
+                manifest = read_toml(path)
+                for field in ("dependencies", "dev-dependencies", "build-dependencies"):
+                    table = manifest.get(field, {})
+                    if not isinstance(table, dict):
+                        continue
+                    for framework in ("axum", "tokio", "serde", "sqlx", "tauri", "leptos"):
+                        declaration = table.get(framework)
+                        if isinstance(declaration, str) and declaration.strip():
+                            version = declaration.strip()
+                        elif isinstance(declaration, dict) and isinstance(declaration.get("version"), str):
+                            version = declaration["version"].strip()
+                        else:
+                            continue
+                        if version:
+                            bindings.append(
+                                {
+                                    "kind": "framework",
+                                    "name": framework,
+                                    "version": version,
+                                    "path": relative.as_posix(),
+                                    "digest": sha256_file(path),
+                                }
+                            )
+            elif path.name in {"rust-toolchain", "rust-toolchain.toml"}:
+                if path.suffix == ".toml":
+                    toolchain = read_toml(path)
+                    channel = toolchain.get("toolchain", {}).get("channel")
+                else:
+                    channel = path.read_text(encoding="utf-8").strip()
+                if isinstance(channel, str) and channel:
+                    bindings.append(
+                        {
+                            "kind": "toolchain",
+                            "name": "rust",
+                            "version": channel,
+                            "path": relative.as_posix(),
+                            "digest": sha256_file(path),
+                        }
+                    )
+            elif path.name == "Package.swift":
+                match = re.search(r"swift-tools-version:\s*([^\s]+)", path.read_text(encoding="utf-8")[:512])
+                if match:
+                    bindings.append(
+                        {
+                            "kind": "toolchain",
+                            "name": "swift",
+                            "version": match.group(1),
+                            "path": relative.as_posix(),
+                            "digest": sha256_file(path),
+                        }
+                    )
+            elif path.name == "pyproject.toml":
+                manifest = read_toml(path)
+                project = manifest.get("project", {})
+                requirement = project.get("requires-python") if isinstance(project, dict) else None
+                if isinstance(requirement, str) and requirement.strip():
+                    bindings.append(
+                        {
+                            "kind": "toolchain",
+                            "name": "python",
+                            "version": requirement.strip(),
+                            "path": relative.as_posix(),
+                            "digest": sha256_file(path),
+                        }
+                    )
+                dependencies = project.get("dependencies", []) if isinstance(project, dict) else []
+                for declaration in dependencies if isinstance(dependencies, list) else []:
+                    if not isinstance(declaration, str):
+                        continue
+                    match = re.match(r"\s*(django|fastapi|flask)\s*([^;\s]*)", declaration, re.IGNORECASE)
+                    if match and match.group(2):
+                        bindings.append(
+                            {
+                                "kind": "framework",
+                                "name": match.group(1).lower(),
+                                "version": match.group(2),
+                                "path": relative.as_posix(),
+                                "digest": sha256_file(path),
+                            }
+                        )
+            elif path.name in {"pom.xml", "build.gradle", "build.gradle.kts"}:
+                text = path.read_text(encoding="utf-8")
+                if path.name == "pom.xml":
+                    match = re.search(
+                        r"<artifactId>spring-boot[^<]*</artifactId>.*?<version>([^<]+)</version>",
+                        text,
+                        re.DOTALL | re.IGNORECASE,
+                    )
+                else:
+                    match = re.search(
+                        r"org\.springframework\.boot[^\n]*?version\s*[\"']([^\"']+)",
+                        text,
+                        re.IGNORECASE,
+                    )
+                if match:
+                    bindings.append(
+                        {
+                            "kind": "framework",
+                            "name": "spring-boot",
+                            "version": match.group(1).strip(),
+                            "path": relative.as_posix(),
+                            "digest": sha256_file(path),
+                        }
+                    )
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, tomllib.TOMLDecodeError, ContractError):
+            continue
+    unique = {
+        (item["kind"], item["name"], item["version"], item["path"]): item
+        for item in bindings
+    }
+    return [unique[key] for key in sorted(unique)]
+
+
+def _artifact_role(path: Path) -> str:
+    parts = {part.lower() for part in path.parts}
+    name = path.name.lower()
+    if "test" in parts or "tests" in parts or name.startswith("test_") or ".test." in name or ".spec." in name:
+        return "test"
+    if "docs" in parts or path.suffix.lower() in {".md", ".mdx", ".rst"}:
+        return "documentation"
+    if "migration" in parts or "migrations" in parts:
+        return "migration"
+    if name in {
+        "cargo.toml",
+        "package.json",
+        "package.swift",
+        "pyproject.toml",
+        "pom.xml",
+        "go.mod",
+        "build.gradle",
+        "build.gradle.kts",
+    }:
+        return "manifest"
+    if path.suffix.lower() in {".toml", ".json", ".yaml", ".yml"}:
+        return "configuration"
+    if path.suffix.lower() in {".sql", ".proto", ".graphql"}:
+        return "contract"
+    return "source"
+
+
+def _artifact_boundary(path: Path, role: str) -> str:
+    parts = {part.lower() for part in path.parts}
+    if role == "test":
+        return "verification"
+    if role == "documentation":
+        return "knowledge"
+    if role == "manifest":
+        return "dependency-toolchain"
+    if role in {"migration", "contract"}:
+        return "data-or-protocol"
+    if parts & {"api", "public", "include", "routes", "controllers"}:
+        return "public-interface"
+    return "internal"
+
+
+def derive_artifact_facts(
+    root: Path,
+    *,
+    task_type: str,
+    task_paths: Iterable[str],
+    facts: Iterable[str],
+    risks: set[str],
+    repository_languages: set[str],
+    repository_frameworks: set[str],
+    version_bindings: list[dict[str, str]],
+) -> list[dict[str, Any]]:
+    """Produce path-specific facts used by profiles and neutral capabilities."""
+
+    paths = [Path(item).as_posix().lstrip("./") for item in task_paths if item]
+    explicit = normalize_facts(facts, paths)
+    language_by_suffix = {
+        ".rs": "rust",
+        ".ts": "typescript",
+        ".tsx": "typescript",
+        ".js": "javascript",
+        ".jsx": "javascript",
+        ".swift": "swift",
+        ".kt": "kotlin",
+        ".kts": "kotlin",
+        ".py": "python",
+        ".go": "go",
+        ".java": "java",
+        ".sql": "sql",
+    }
+    records: list[dict[str, Any]] = []
+    for raw_path in paths or ["."]:
+        path = Path(raw_path)
+        role = sorted(explicit.get("role", set())) or [_artifact_role(path)]
+        boundary = sorted(explicit.get("boundary", set())) or sorted({_artifact_boundary(path, item) for item in role})
+        artifact_language = language_by_suffix.get(path.suffix.lower())
+        languages = sorted(explicit.get("language", set()) or ({artifact_language} if artifact_language else repository_languages))
+        frameworks = sorted(explicit.get("framework", set()) or repository_frameworks)
+        versions = sorted(
+            {
+                *explicit.get("version", set()),
+                *(f"{item['name']}@{item['version']}" for item in version_bindings),
+            }
+        )
+        scoped_path = root / path
+        default_component = (
+            path.parts[0]
+            if path.parts
+            and path.parts[0] not in {".", ""}
+            and (len(path.parts) > 1 or scoped_path.is_dir())
+            else "root"
+        )
+        records.append(
+            {
+                "phase": sorted(explicit.get("phase", set())) or ["context-discovery"],
+                "role": role,
+                "boundary": boundary,
+                "language": languages,
+                "framework": frameworks,
+                "version": versions,
+                "path": raw_path,
+                "component": sorted(explicit.get("component", set())) or [default_component],
+                "risk": sorted(risks | explicit.get("risk", set())),
+                "task_type": task_type,
+            }
+        )
+    return records
 
 
 def discover_native_controls(
@@ -829,13 +1261,58 @@ def discover_native_controls(
     inventory: Iterable[Path] | None = None,
 ) -> list[dict[str, str]]:
     patterns = {
-        "compiler": ("Cargo.toml", "pyproject.toml", "go.mod", "Package.swift", "tsconfig.json"),
-        "formatter": ("rustfmt.toml", ".rustfmt.toml", ".prettierrc", ".prettierrc.json", "biome.json", "ruff.toml"),
-        "linter": ("clippy.toml", ".clippy.toml", "eslint.config.js", "eslint.config.mjs", ".eslintrc", "biome.json", "ruff.toml"),
-        "tests": ("pytest.ini", "vitest.config.ts", "jest.config.js", "Package.swift", "Cargo.toml"),
+        "compiler": (
+            "Cargo.toml",
+            "pyproject.toml",
+            "go.mod",
+            "Package.swift",
+            "tsconfig.json",
+            "pom.xml",
+            "build.gradle",
+            "build.gradle.kts",
+        ),
+        "formatter": (
+            "rustfmt.toml",
+            ".rustfmt.toml",
+            ".prettierrc",
+            ".prettierrc.json",
+            "biome.json",
+            "ruff.toml",
+            "checkstyle.xml",
+        ),
+        "linter": (
+            "clippy.toml",
+            ".clippy.toml",
+            "eslint.config.js",
+            "eslint.config.mjs",
+            ".eslintrc",
+            "biome.json",
+            "ruff.toml",
+            "checkstyle.xml",
+            "pmd.xml",
+        ),
+        "tests": (
+            "pytest.ini",
+            "vitest.config.ts",
+            "jest.config.js",
+            "Package.swift",
+            "Cargo.toml",
+            "pom.xml",
+            "build.gradle",
+            "build.gradle.kts",
+        ),
         "ci": (".github/workflows", ".gitlab-ci.yml", "Jenkinsfile", "azure-pipelines.yml"),
         "security": ("deny.toml", ".semgrep.yml", ".github/dependabot.yml", ".github/codeql"),
-        "commands": ("Makefile", "justfile", "Taskfile.yml", "package.json", "pyproject.toml"),
+        "commands": (
+            "Makefile",
+            "justfile",
+            "Taskfile.yml",
+            "package.json",
+            "pyproject.toml",
+            "pom.xml",
+            "build.gradle",
+            "build.gradle.kts",
+        ),
     }
     repository_files = list(inventory) if inventory is not None else list(iter_repository_files(root))
     controls: list[dict[str, str]] = []
@@ -848,7 +1325,13 @@ def discover_native_controls(
                 relative = path.relative_to(root)
                 if any(part in IGNORED_DIRECTORIES for part in relative.parts) or not path_relevant(relative, task_paths):
                     continue
-                controls.append({"kind": kind, "path": relative.as_posix()})
+                controls.append(
+                    {
+                        "kind": kind,
+                        "path": relative.as_posix(),
+                        "digest": _bounded_path_digest(path),
+                    }
+                )
                 break
     unique = {(item["kind"], item["path"]): item for item in controls}
     return [unique[key] for key in sorted(unique)]
@@ -882,14 +1365,30 @@ def parse_skill_frontmatter(path: Path) -> dict[str, str]:
     return result
 
 
-def discover_skills(skill_roots: Iterable[Path]) -> list[dict[str, Any]]:
+def discover_skills(skill_roots: Iterable[Path | dict[str, Any]]) -> list[dict[str, Any]]:
     result: list[dict[str, Any]] = []
     seen: set[tuple[str, str]] = set()
-    for root in skill_roots:
-        root = root.resolve()
+    for raw_root in skill_roots:
+        if isinstance(raw_root, dict):
+            root_record = dict(raw_root)
+            root = Path(root_record["path"]).resolve()
+            if not root_record.get("available", root.is_dir()):
+                continue
+        else:
+            root = Path(raw_root).resolve()
+            root_record = {
+                "path": root,
+                "provenance": "unspecified",
+                "authority": "unknown",
+                "policy_authority": "unknown",
+                "scope": "unknown",
+                "available": root.is_dir(),
+            }
         if not root.is_dir():
             continue
         for directory in sorted(root.glob("*/")):
+            if directory.is_symlink():
+                continue
             metadata = parse_skill_frontmatter(directory)
             name = metadata.get("name")
             if not name or (name, str(directory.resolve())) in seen:
@@ -901,9 +1400,88 @@ def discover_skills(skill_roots: Iterable[Path]) -> list[dict[str, Any]]:
                     "description": metadata.get("description", ""),
                     "path": str(directory.resolve()),
                     "digest": sha256_file(directory / "SKILL.md"),
+                    "version": metadata.get("version") or root_record.get("version"),
+                    "root": str(root),
+                    "root_provenance": root_record.get("provenance", "unspecified"),
+                    "authority": root_record.get("authority", "unknown"),
+                    "policy_authority": root_record.get("policy_authority", "unknown"),
+                    "scope": root_record.get("scope", "unknown"),
+                    "namespace": root_record.get("namespace"),
+                    "package": root_record.get("package"),
                 }
             )
-    return result
+    return sorted(result, key=lambda item: (item["name"], item["path"]))
+
+
+def build_skill_catalog(
+    skills: Iterable[dict[str, Any]],
+    roots: Iterable[dict[str, Any]],
+) -> dict[str, Any]:
+    candidates = sorted((dict(item) for item in skills), key=lambda item: (item["name"], item["path"]))
+    by_name: dict[str, list[dict[str, Any]]] = {}
+    for item in candidates:
+        by_name.setdefault(item["name"], []).append(item)
+    collisions = [
+        {
+            "name": name,
+            "same_digest": len({item["digest"] for item in items}) == 1,
+            "candidates": [
+                {
+                    key: item.get(key)
+                    for key in (
+                        "path",
+                        "digest",
+                        "version",
+                        "root_provenance",
+                        "authority",
+                        "policy_authority",
+                        "namespace",
+                        "package",
+                    )
+                }
+                for item in items
+            ],
+        }
+        for name, items in sorted(by_name.items())
+        if len(items) > 1
+    ]
+    root_records = [
+        {
+            **{key: value for key, value in record.items() if key != "path"},
+            "path": str(record["path"]),
+        }
+        for record in roots
+    ]
+    stable = {"roots": root_records, "candidates": candidates, "collisions": collisions}
+    return {
+        **stable,
+        "by_name": by_name,
+        "fingerprint": sha256_bytes(canonical_json(stable).encode("utf-8")),
+    }
+
+
+def _bound_skill_candidate(
+    candidates: list[dict[str, Any]],
+    admission: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, bool]:
+    """Resolve a name collision only through an explicit admission binding."""
+
+    if not candidates:
+        return None, False
+    if len(candidates) == 1:
+        return candidates[0], False
+    if admission:
+        matches = list(candidates)
+        if admission.get("digest"):
+            matches = [item for item in matches if item.get("digest") == admission["digest"]]
+        if admission.get("bound_path"):
+            admitted_path = admission["bound_path"]
+            matches = [item for item in matches if item.get("path") == admitted_path]
+        if admission.get("version"):
+            matches = [item for item in matches if item.get("version") == admission["version"]]
+        if len(matches) == 1 and any(admission.get(field) for field in ("digest", "bound_path", "version")):
+            return matches[0], True
+    return None, True
 
 
 def load_capability_registry(path: Path) -> dict[str, Any]:
@@ -928,7 +1506,8 @@ def load_capability_registry(path: Path) -> dict[str, Any]:
             if not isinstance(value, list) or any(not isinstance(item, str) or not item for item in value):
                 raise ContractError(f"{label}.{field} must be a list of non-empty strings")
         for selector in capability.get("selectors", []):
-            if not CONDITION_RE.fullmatch(selector):
+            match = CONDITION_RE.fullmatch(selector)
+            if not match or match.group(3).startswith("="):
                 raise ContractError(f"{label}.selectors contains invalid selector {selector!r}")
         preferred = capability.get("preferred_route")
         if preferred is not None and preferred not in capability.get("route_names", []):
@@ -940,10 +1519,16 @@ def load_capability_registry(path: Path) -> dict[str, Any]:
     return data
 
 
-def load_admissions(paths: Iterable[Path]) -> tuple[list[dict[str, Any]], list[str]]:
+def load_admissions(paths: Iterable[Path | dict[str, Any]]) -> tuple[list[dict[str, Any]], list[str]]:
     records: list[dict[str, Any]] = []
     errors: list[str] = []
-    for path in paths:
+    for source in paths:
+        if isinstance(source, dict):
+            path = Path(source["path"])
+            source_authority = str(source.get("authority", "unknown"))
+        else:
+            path = Path(source)
+            source_authority = "unknown"
         if not path.is_file():
             continue
         try:
@@ -985,6 +1570,20 @@ def load_admissions(paths: Iterable[Path]) -> tuple[list[dict[str, Any]], list[s
             if digest is not None and (not isinstance(digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest)):
                 errors.append(f"{path}: admissions[{index}] has invalid digest")
                 continue
+            admitted_path = record.get("path")
+            if admitted_path is not None and (not isinstance(admitted_path, str) or not admitted_path.strip()):
+                errors.append(f"{path}: admissions[{index}] has invalid path")
+                continue
+            bound_path = None
+            if isinstance(admitted_path, str):
+                candidate_path = Path(admitted_path)
+                bound_path = str(
+                    (candidate_path if candidate_path.is_absolute() else path.parent / candidate_path).resolve()
+                )
+            version = record.get("version")
+            if version is not None and (not isinstance(version, str) or not version.strip()):
+                errors.append(f"{path}: admissions[{index}] has invalid version")
+                continue
             try:
                 reviewed_at = dt.datetime.fromisoformat(record["reviewed_at"].replace("Z", "+00:00"))
             except ValueError:
@@ -997,7 +1596,15 @@ def load_admissions(paths: Iterable[Path]) -> tuple[list[dict[str, Any]], list[s
             if not isinstance(scope, list) or any(not isinstance(item, str) or not item for item in scope):
                 errors.append(f"{path}: admissions[{index}].scope must be a list of non-empty strings")
                 continue
-            records.append({**record, "source": str(path), "source_hash": sha256_file(path)})
+            records.append(
+                {
+                    **record,
+                    "source": str(path),
+                    "source_hash": sha256_file(path),
+                    "source_authority": source_authority,
+                    "bound_path": bound_path,
+                }
+            )
     return records, errors
 
 
@@ -1117,6 +1724,28 @@ def evidence_matches(
     return sorted(set(matches))
 
 
+def _coverage_state(
+    *,
+    native: list[str],
+    contextual_review_required: bool,
+    selected_route: dict[str, Any] | None,
+    policy_fallbacks: list[str],
+) -> str:
+    if native and contextual_review_required and selected_route:
+        return "native-plus-approved-specialist"
+    if native and contextual_review_required and policy_fallbacks:
+        return "native-plus-owned-policy-fallback"
+    if native and contextual_review_required:
+        return "uncovered"
+    if native:
+        return "native-control"
+    if selected_route:
+        return "approved-specialist"
+    if policy_fallbacks:
+        return "owned-policy-fallback"
+    return "uncovered"
+
+
 def assess_context(
     root: Path,
     *,
@@ -1147,8 +1776,28 @@ def assess_context(
         inventory = inventory[:20000]
     languages = set(detect_languages(root, paths, inventory))
     frameworks = set(detect_frameworks(root, paths, inventory))
+    version_bindings = detect_version_bindings(root, paths, inventory)
+    artifact_facts = derive_artifact_facts(
+        root,
+        task_type=task_type,
+        task_paths=paths,
+        facts=fact_values,
+        risks=risk_set,
+        repository_languages=languages,
+        repository_frameworks=frameworks,
+        version_bindings=version_bindings,
+    )
+    derived_fact_values = sorted(
+        {
+            f"{key}={value}"
+            for artifact in artifact_facts
+            for key in ("phase", "role", "boundary", "language", "framework", "version", "component", "risk")
+            for value in artifact[key]
+        }
+    )
     combined_facts = [
         *fact_values,
+        *derived_fact_values,
         *(f"language={language}" for language in sorted(languages)),
         *(f"framework={framework}" for framework in sorted(frameworks)),
         *(f"risk={risk}" for risk in sorted(risk_set)),
@@ -1166,13 +1815,34 @@ def assess_context(
     host = CodexHostAdapter(root, codex_home=codex_home, working_directory=working_directory)
     instructions = host.instruction_chain()
     controls = discover_native_controls(root, paths, inventory)
-    default_skill_roots = [Path(__file__).resolve().parents[2]]
-    skills = discover_skills([*default_skill_roots, *host.skill_roots(skill_roots)])
-    installed_by_name = {item["name"]: item for item in skills}
+    suite_root = Path(__file__).resolve().parents[2]
+    skill_root_records = [
+        {
+            "path": suite_root,
+            "provenance": "dev-flow-suite",
+            "authority": "suite",
+            "policy_authority": "suite",
+            "scope": "suite",
+            "available": True,
+        },
+        *host.skill_root_records(skill_roots),
+    ]
+    skills = discover_skills(skill_root_records)
+    skill_catalog = build_skill_catalog(skills, skill_root_records)
+    skills_by_name = skill_catalog["by_name"]
+    effective_codex_home = (
+        codex_home or Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
+    ).resolve()
     admissions, admission_errors = load_admissions(
         [
-            (codex_home or Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))) / "dev-flow" / "capabilities.json",
-            root / ".dev-flow" / "capabilities.json",
+            {
+                "path": effective_codex_home / "dev-flow" / "capabilities.json",
+                "authority": "personal",
+            },
+            {
+                "path": root / ".dev-flow" / "capabilities.json",
+                "authority": "project",
+            },
         ]
     )
     registry = load_capability_registry(capability_registry)
@@ -1182,14 +1852,25 @@ def assess_context(
         "hash": sha256_file(capability_registry),
     }
     quality_policies = [winner for winner in preferences["winners"] if winner.get("kind") == "quality-policy"]
-    capability_facts = {"language": languages, "framework": frameworks, "risk": risk_set}
+    capability_facts = normalize_facts(combined_facts, paths)
     routes: list[dict[str, Any]] = []
     obligations: list[dict[str, Any]] = []
+    required_outcomes: list[dict[str, Any]] = []
     uncovered: list[dict[str, Any]] = []
     route_conflicts: list[dict[str, Any]] = []
+    relevant_skill_collisions: list[dict[str, Any]] = []
     for capability in registry["capabilities"]:
         if not capability_applies(capability, capability_facts):
             continue
+        required_outcomes.append(
+            {
+                "id": capability["id"],
+                "outcome": capability["outcome"],
+                "required_for": capability.get("required_for", "applicable-task"),
+                "selectors": capability.get("selectors", []),
+                "contextual_review_required": capability.get("contextual_review_required", False),
+            }
+        )
         native = evidence_matches(root, capability.get("native_evidence", []), paths, inventory, relevant_only=False)
         task_native = evidence_matches(root, capability.get("native_evidence", []), paths, inventory, relevant_only=True)
         matching_routes: list[dict[str, Any]] = []
@@ -1203,28 +1884,68 @@ def assess_context(
                 ),
                 None,
             )
-            installed = installed_by_name.get(route_name)
-            status = admission.get("status") if admission else "available-unassessed" if installed else "missing"
+            candidates = skills_by_name.get(route_name, [])
+            bound_skill, name_collision = _bound_skill_candidate(candidates, admission)
+            status = (
+                admission.get("status")
+                if admission
+                else "conflicting"
+                if name_collision
+                else "available-unassessed"
+                if bound_skill
+                else "not-observed"
+            )
             if admission and status in {"approved", "trial"}:
-                if not installed:
-                    status = "missing"
-                elif admission.get("digest") and admission["digest"] != installed.get("digest"):
+                if not candidates:
+                    status = "not-observed"
+                elif name_collision and not bound_skill:
+                    status = "conflicting"
+                elif admission.get("digest") and admission["digest"] != bound_skill.get("digest"):
                     status = "stale"
+                elif admission.get("bound_path") and admission["bound_path"] != bound_skill.get("path"):
+                    status = "stale"
+                elif admission.get("version") and admission["version"] != bound_skill.get("version"):
+                    status = "stale"
+            if name_collision:
+                relevant_skill_collisions.append(
+                    {
+                        "capability_id": capability["id"],
+                        "skill": route_name,
+                        "resolved_by_admission_binding": bool(bound_skill and admission),
+                        "candidate_paths": [item["path"] for item in candidates],
+                        "candidate_digests": sorted({item["digest"] for item in candidates}),
+                    }
+                )
             matching_routes.append(
                 {
                     "capability_id": capability["id"],
                     "skill": route_name,
                     "status": status,
-                    "installed": bool(installed),
-                    "path": installed.get("path") if installed else None,
-                    "digest": installed.get("digest") if installed else None,
+                    # Compatibility field is tri-state: False would overclaim
+                    # that a bounded host scan proved global non-installation.
+                    "installed": True if candidates else None,
+                    "observed": bool(candidates),
+                    "candidate_bound": bool(bound_skill),
+                    "candidate_count": len(candidates),
+                    "path": bound_skill.get("path") if bound_skill else None,
+                    "digest": bound_skill.get("digest") if bound_skill else None,
+                    "version": bound_skill.get("version") if bound_skill else None,
+                    "skill_authority": bound_skill.get("authority") if bound_skill else None,
+                    "skill_policy_authority": bound_skill.get("policy_authority") if bound_skill else None,
+                    "skill_root_provenance": bound_skill.get("root_provenance") if bound_skill else None,
+                    "candidate_paths": [item["path"] for item in candidates],
                     "admission_source": admission.get("source") if admission else None,
                     "admission_source_hash": admission.get("source_hash") if admission else None,
+                    "admission_authority": admission.get("source_authority") if admission else None,
                     "admission_reviewed_at": admission.get("reviewed_at") if admission else None,
                     "admission_recheck_trigger": admission.get("recheck_trigger") if admission else None,
                 }
             )
-        approved = [route for route in matching_routes if route["status"] == "approved" and route["installed"]]
+        approved = [
+            route
+            for route in matching_routes
+            if route["status"] == "approved" and route["candidate_bound"]
+        ]
         if len(approved) > 1:
             preferred = capability.get("preferred_route")
             preferred_routes = [route for route in approved if route["skill"] == preferred] if preferred else []
@@ -1232,7 +1953,7 @@ def assess_context(
                 approved = preferred_routes
             else:
                 route_conflicts.append({"capability_id": capability["id"], "routes": [route["skill"] for route in approved]})
-                approved = approved[:1]
+                approved = []
         selected_route = approved[0] if approved else None
         routes.extend(matching_routes)
         policy_fallbacks = sorted(
@@ -1245,25 +1966,29 @@ def assess_context(
             }
         )
         contextual_review_required = capability.get("contextual_review_required", False)
-        if native and contextual_review_required and selected_route:
-            coverage = "native-plus-approved-specialist"
-        elif native and contextual_review_required and policy_fallbacks:
-            coverage = "native-plus-owned-policy-fallback"
-        elif native and contextual_review_required:
-            coverage = "uncovered"
-        elif native:
-            coverage = "native-control"
-        elif selected_route:
-            coverage = "approved-specialist"
-        elif policy_fallbacks:
-            coverage = "owned-policy-fallback"
-        else:
-            coverage = "uncovered"
+        coverage = _coverage_state(
+            native=native,
+            contextual_review_required=contextual_review_required,
+            selected_route=selected_route,
+            policy_fallbacks=policy_fallbacks,
+        )
+        shared_route = (
+            selected_route
+            if selected_route and selected_route.get("admission_authority") != "personal"
+            else None
+        )
+        shared_policy_coverage = _coverage_state(
+            native=native,
+            contextual_review_required=contextual_review_required,
+            selected_route=shared_route,
+            policy_fallbacks=policy_fallbacks,
+        )
         obligation = {
             "id": capability["id"],
             "outcome": capability["outcome"],
             "required_for": capability.get("required_for", "applicable-task"),
             "coverage": coverage,
+            "shared_policy_coverage": shared_policy_coverage,
             "native_evidence": native,
             "task_native_evidence": task_native,
             "task_mapping": "mapped" if task_native else "verification-required" if native else "absent",
@@ -1298,7 +2023,8 @@ def assess_context(
         missing_capabilities = [
             capability_id
             for capability_id in required_capabilities
-            if capability_id not in obligation_by_id or obligation_by_id[capability_id]["coverage"] == "uncovered"
+            if capability_id not in obligation_by_id
+            or obligation_by_id[capability_id]["shared_policy_coverage"] == "uncovered"
         ]
         fallbacks = policy.get("fallbacks", [])
         if not missing_evidence and not missing_capabilities:
@@ -1393,6 +2119,12 @@ def assess_context(
         outcome = "checkpoint" if selected_tier in {"T2", "T3"} else "partial_advisory"
     else:
         outcome = "not_applicable" if selected_tier == "T0" else "ready"
+    admission_errors.extend(host.errors)
+    instruction_fingerprint = sha256_bytes(canonical_json(instructions).encode("utf-8"))
+    native_control_fingerprint = sha256_bytes(canonical_json(controls).encode("utf-8"))
+    artifact_fact_fingerprint = sha256_bytes(
+        canonical_json({"artifacts": artifact_facts, "versions": version_bindings}).encode("utf-8")
+    )
     stable_input = {
         "tier": selected_tier,
         "tier_reasons": tier_reasons,
@@ -1401,13 +2133,17 @@ def assess_context(
             "paths": paths,
             "languages": sorted(languages),
             "frameworks": sorted(frameworks),
+            "versions": version_bindings,
+            "artifacts": artifact_facts,
             "risks": sorted(risk_set),
         },
         "instructions": instructions,
         "controls": controls,
         "inventory_truncated": inventory_truncated,
         "preference_fingerprint": preferences["fingerprint"],
+        "skill_catalog_fingerprint": skill_catalog["fingerprint"],
         "capability_registry": registry_source,
+        "required_outcomes": required_outcomes,
         "obligations": obligations,
         "routes": routes,
         "blockers": blockers,
@@ -1416,9 +2152,19 @@ def assess_context(
     }
     fingerprint = sha256_bytes(canonical_json(stable_input).encode("utf-8"))
     suppression, suppression_errors = load_suppression(root, fingerprint, selected_tier)
-    admission_errors.extend(host.errors)
     admission_errors.extend(suppression_errors)
+    binding = {
+        "fingerprint": fingerprint,
+        "instruction_fingerprint": instruction_fingerprint,
+        "profile_fingerprint": preferences["fingerprint"],
+        "native_control_fingerprint": native_control_fingerprint,
+        "skill_catalog_fingerprint": skill_catalog["fingerprint"],
+        "artifact_fact_fingerprint": artifact_fact_fingerprint,
+        "capability_registry_digest": registry_source["hash"],
+    }
     full_quality_coverage = {
+        "selection_order": "derive-neutral-outcomes-before-minimal-specialist-selection",
+        "required_outcomes": required_outcomes,
         "obligations": obligations,
         "policies": quality_policies,
         "policy_assessments": policy_assessments,
@@ -1426,12 +2172,16 @@ def assess_context(
         "uncovered": uncovered,
         "uncovered_policies": uncovered_policies,
         "conflicts": route_conflicts,
+        "skill_name_collisions": relevant_skill_collisions,
     }
     compact_quality_coverage = {
+        "selection_order": "derive-neutral-outcomes-before-minimal-specialist-selection",
+        "required_outcomes": [item["id"] for item in required_outcomes],
         "obligations": [
             {
                 "id": item["id"],
                 "coverage": item["coverage"],
+                "shared_policy_coverage": item["shared_policy_coverage"],
                 "task_mapping": item["task_mapping"],
                 "selected_skill": item["selected_route"]["skill"] if item["selected_route"] else None,
             }
@@ -1441,7 +2191,42 @@ def assess_context(
         "uncovered": [item["id"] for item in uncovered],
         "uncovered_policies": [item["key"] for item in uncovered_policies],
         "conflicts": route_conflicts,
+        "skill_name_collisions": [
+            {
+                "capability_id": item["capability_id"],
+                "skill": item["skill"],
+                "resolved_by_admission_binding": item["resolved_by_admission_binding"],
+            }
+            for item in relevant_skill_collisions
+        ],
     }
+    public_skill_catalog = {
+        "fingerprint": skill_catalog["fingerprint"],
+        "observation_semantics": "bounded-known-roots; not-observed is not proof of non-installation",
+        "root_count": len(skill_catalog["roots"]),
+        "candidate_count": len(skill_catalog["candidates"]),
+        "candidate_names": sorted({item["name"] for item in skill_catalog["candidates"]}),
+        "collisions": [
+            {
+                "name": item["name"],
+                "candidate_count": len(item["candidates"]),
+                "same_digest": item["same_digest"],
+            }
+            for item in skill_catalog["collisions"]
+        ],
+    }
+    if detail == "full":
+        public_skill_catalog.update(
+            {
+                "roots": skill_catalog["roots"],
+                "candidates": skill_catalog["candidates"],
+                "collisions": skill_catalog["collisions"],
+            }
+        )
+    artifact_roles = sorted({value for item in artifact_facts for value in item["role"]})
+    components = sorted({value for item in artifact_facts for value in item["component"]})
+    boundaries = sorted({value for item in artifact_facts for value in item["boundary"]})
+    phases = sorted({value for item in artifact_facts for value in item["phase"]})
     result = {
         "schema_version": READINESS_SCHEMA_VERSION,
         "detail": detail,
@@ -1454,18 +2239,54 @@ def assess_context(
             "paths": paths,
             "languages": sorted(languages),
             "frameworks": sorted(frameworks),
-            "artifact_roles": [],
+            "versions": version_bindings,
+            "artifact_roles": artifact_roles,
+            "components": components,
+            "boundaries": boundaries,
+            "phases": phases,
+            "artifacts": artifact_facts,
             "risks": sorted(risk_set),
         },
-        "sources": [registry_source, *instructions, *({"kind": "profile", **item} for item in preferences["sources"])],
+        "sources": [
+            registry_source,
+            *instructions,
+            *({"kind": "profile", **item} for item in preferences["sources"]),
+            *(
+                {
+                    "kind": "native-control",
+                    "path": item["path"],
+                    "hash": item["digest"],
+                    "control_kind": item["kind"],
+                }
+                for item in controls
+            ),
+            {
+                "kind": "skill-catalog",
+                "path": "bounded-codex-skill-roots",
+                "hash": skill_catalog["fingerprint"],
+            },
+        ],
         "checks": checks,
         "recommendations": recommendations,
         "conflicts": [*preferences["conflicts"], *route_conflicts],
         "quality_coverage": full_quality_coverage if detail == "full" else compact_quality_coverage,
+        "skill_catalog": public_skill_catalog,
+        "engineering_context_binding": binding,
         "waiver": waiver,
         "suppression": suppression,
         "fingerprint": fingerprint,
-        "recheck_triggers": ["task-tier-change", "scope-change", "profile-or-instruction-hash-change", "admission-change", "waiver-expiry"],
+        "recheck_triggers": [
+            "task-tier-or-phase-change",
+            "path-component-role-or-boundary-change",
+            "language-framework-or-version-change",
+            "risk-change",
+            "instruction-digest-change",
+            "profile-digest-or-resolution-change",
+            "native-control-digest-change",
+            "skill-root-version-or-skill-digest-change",
+            "admission-change",
+            "waiver-expiry",
+        ],
         "profile": {
             "mode": profile_mode,
             "fingerprint": preferences["fingerprint"],

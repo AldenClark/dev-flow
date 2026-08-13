@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "change_id": "{{change-id}}",
+  "status": "draft",
+  "format": "governed",
+  "documents": {
+    "requirements": "requirements.md",
+    "design": "design.md",
+    "execution": "execution.md",
+    "verification": "verification.md"
+  },
+  "authority_binding": {
+    "schema_version": "1.0",
+    "change_id": "{{change-id}}",
+    "requirements": {
+      "path": "requirements.md",
+      "sha256": "{{sha256 of exact requirements.md bytes}}"
+    },
+    "design": {
+      "path": "design.md",
+      "sha256": "{{sha256 of exact design.md bytes}}"
+    },
+    "identifier_sets": {
+      "acceptance_criteria": ["AC-1"],
+      "scope": ["SC-D1", "SC-P1", "SC-L1"],
+      "verification_obligations": ["VO-1"]
+    }
+  },
+  "traceability": {
+    "acceptance_criteria": ["AC-1"],
+    "scope": ["SC-D1", "SC-P1", "SC-L1"],
+    "verification_obligations": ["VO-1"]
+  },
+  "tests": {
+    "black_box": {
+      "status": "planned",
+      "rationale": "{{observable boundary and oracle, or concrete not-applicable reason}}",
+      "evidence": []
+    },
+    "white_box": {
+      "status": "planned",
+      "rationale": "{{internal branch, state, failure, or concrete not-applicable reason}}",
+      "evidence": []
+    }
+  },
+  "knowledge": {
+    "impact": "{{none|add|update|deprecate}}",
+    "disposition": "{{not-applicable|pending|promoted|deferred}}",
+    "rationale": "{{why current truth changes or remains unchanged}}",
+    "promotion_links": []
+  },
+  "related_changes": []
+}

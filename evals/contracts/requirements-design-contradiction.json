@@ -14,16 +14,53 @@
         }
       ],
       "criticality": "required",
-      "protected_behavior": "normalize the two conflicting statements into affected actors, flows, compatibility directions, acceptance criteria, and exclusions without treating document length as readiness",
+      "protected_behavior": "normalize every independently variable dimension of the contradictory compatibility statements before readiness is assessed",
       "facets": [
         {
           "id": "OB-1",
-          "action": "normalize the two conflicting statements into affected actors, flows, compatibility directions, acceptance criteria, and exclusions without treating document length as readiness"
+          "action": "identify every actor affected by the contradictory compatibility statements"
+        },
+        {
+          "id": "OB-2",
+          "action": "identify every flow affected by the contradictory compatibility statements"
+        },
+        {
+          "id": "OB-3",
+          "action": "separate the promised compatibility directions"
+        },
+        {
+          "id": "OB-4",
+          "action": "normalize the conflicting statements into acceptance criteria"
+        },
+        {
+          "id": "OB-5",
+          "action": "normalize the conflicting statements into explicit exclusions"
         }
       ]
     },
     {
       "id": "WU-2",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "treat the unresolved compatibility choice as user-owned and keep document volume separate from readiness",
+      "facets": [
+        {
+          "id": "OB-6",
+          "action": "classify the surviving contradiction as a material user-owned ambiguity"
+        },
+        {
+          "id": "OB-7",
+          "action": "reject document length or detail as evidence of requirement readiness"
+        }
+      ]
+    },
+    {
+      "id": "WU-3",
       "owner": "repo-context",
       "claim_routes": [
         {
@@ -31,28 +68,27 @@
         }
       ],
       "criticality": "required",
-      "protected_behavior": "inspect repository instructions, protocol history, tests, runtime evidence, and nearby compatibility behavior before asking the user",
+      "protected_behavior": "resolve repository-owned compatibility facts before escalating the remaining product-intent decision",
       "facets": [
         {
-          "id": "OB-2",
-          "action": "inspect repository instructions, protocol history, tests, runtime evidence, and nearby compatibility behavior before asking the user"
-        }
-      ]
-    },
-    {
-      "id": "WU-3",
-      "owner": "requirements-design",
-      "claim_routes": [
+          "id": "OB-8",
+          "action": "inspect the applicable repository instructions"
+        },
         {
-          "kind": "requirements-design.artifact"
-        }
-      ],
-      "criticality": "required",
-      "protected_behavior": "record one stable ambiguity with competing interpretations, evidence, materiality, owner, affected AC/SC/VO IDs, recommendation, and blocked scope",
-      "facets": [
+          "id": "OB-9",
+          "action": "inspect the protocol compatibility history"
+        },
         {
-          "id": "OB-3",
-          "action": "record one stable ambiguity with competing interpretations, evidence, materiality, owner, affected AC/SC/VO IDs, recommendation, and blocked scope"
+          "id": "OB-10",
+          "action": "inspect deterministic compatibility tests"
+        },
+        {
+          "id": "OB-11",
+          "action": "inspect current runtime compatibility evidence"
+        },
+        {
+          "id": "OB-12",
+          "action": "inspect nearby implemented compatibility behavior"
         }
       ]
     },
@@ -61,20 +97,140 @@
       "owner": "requirements-design",
       "claim_routes": [
         {
-          "kind": "requirements-design.interaction"
+          "kind": "requirements-design.artifact"
         }
       ],
       "criticality": "required",
-      "protected_behavior": "state alternatives, compatibility impact, recommended safe default, and ask one consolidated user-answerable product-intent question",
+      "protected_behavior": "record the complete open AMB record and its blocked scope without collapsing independently reviewable fields",
       "facets": [
         {
-          "id": "OB-4",
-          "action": "state alternatives, compatibility impact, recommended safe default, and ask one consolidated user-answerable product-intent question"
+          "id": "OB-13",
+          "action": "assign one stable AMB-* identifier to the compatibility ambiguity"
+        },
+        {
+          "id": "OB-14",
+          "action": "record interpretation A that accepts legacy payloads"
+        },
+        {
+          "id": "OB-15",
+          "action": "record interpretation B that rejects legacy payloads"
+        },
+        {
+          "id": "OB-16",
+          "action": "record repository evidence supporting interpretation A"
+        },
+        {
+          "id": "OB-17",
+          "action": "record repository evidence supporting interpretation B"
+        },
+        {
+          "id": "OB-18",
+          "action": "record why the ambiguity is materially outcome-changing"
+        },
+        {
+          "id": "OB-19",
+          "action": "record the user as owner of the compatibility disposition"
+        },
+        {
+          "id": "OB-20",
+          "action": "list the affected acceptance-criterion IDs"
+        },
+        {
+          "id": "OB-21",
+          "action": "list the affected scope IDs"
+        },
+        {
+          "id": "OB-22",
+          "action": "list the affected verification-obligation IDs"
+        },
+        {
+          "id": "OB-23",
+          "action": "link the evidence-backed recommendation to the ambiguity record"
+        },
+        {
+          "id": "OB-24",
+          "action": "keep the ambiguity status open until the user disposition is bound"
+        },
+        {
+          "id": "OB-25",
+          "action": "record the implementation scope blocked by the unresolved contradiction"
         }
       ]
     },
     {
       "id": "WU-5",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.analysis"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "make both compatibility outcomes concrete before the user chooses between them",
+      "facets": [
+        {
+          "id": "OB-26",
+          "action": "analyze the compatibility impact of accepting legacy payloads"
+        },
+        {
+          "id": "OB-27",
+          "action": "analyze the compatibility impact of rejecting legacy payloads"
+        }
+      ]
+    },
+    {
+      "id": "WU-6",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "recommend a safe default from evidence without substituting that recommendation for user authority",
+      "facets": [
+        {
+          "id": "OB-28",
+          "action": "identify an evidence-backed safe default while stating that it is not the user's disposition"
+        }
+      ]
+    },
+    {
+      "id": "WU-7",
+      "owner": "requirements-design",
+      "claim_routes": [
+        {
+          "kind": "requirements-design.interaction"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "present one material compatibility decision instead of multiple low-value questions",
+      "facets": [
+        {
+          "id": "OB-29",
+          "action": "ask one consolidated user-answerable question that references both alternatives, their compatibility impacts, and the recommendation"
+        }
+      ]
+    },
+    {
+      "id": "WU-8",
+      "owner": "dev-flow",
+      "claim_routes": [
+        {
+          "kind": "dev-flow.decision"
+        }
+      ],
+      "criticality": "required",
+      "protected_behavior": "preserve progress that does not depend on the unresolved contradiction",
+      "facets": [
+        {
+          "id": "OB-30",
+          "action": "continue unrelated work that remains supported by valid evidence"
+        }
+      ]
+    },
+    {
+      "id": "WU-9",
       "owner": "dev-flow",
       "claim_routes": [
         {
@@ -82,11 +238,11 @@
         }
       ],
       "criticality": "required",
-      "protected_behavior": "stop only implementation whose outcome depends on the unresolved contradiction and preserve unrelated evidence-backed work",
+      "protected_behavior": "contain the stop to the implementation outcome controlled by the unresolved compatibility choice",
       "facets": [
         {
-          "id": "OB-5",
-          "action": "stop only implementation whose outcome depends on the unresolved contradiction and preserve unrelated evidence-backed work"
+          "id": "OB-31",
+          "action": "stop only implementation whose outcome depends on the unresolved contradiction"
         }
       ]
     }

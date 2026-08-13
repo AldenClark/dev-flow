@@ -6,7 +6,12 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
-- A 12-Skill composable engineering workbench spanning repository context, profile management, requirements/design, product/UX, architecture, dependencies, debugging, verification, review, delivery readiness, and explicit suite maintenance.
+- A composable engineering workbench whose current 12-Skill topology spans repository context, profile management, requirements/design, product/UX, architecture, dependencies, debugging, verification, review, delivery readiness, and explicit suite maintenance; the count is a compatibility fact rather than a quality target.
+- An always-on quality kernel for every persistent mutation, covering durable requirement understanding, repository-grounded design, semantic recovery, black-box and white-box test accountability, root challenge, and knowledge disposition even when specialist routing is incomplete.
+- Content-bound design approval, engineering-context fingerprints, event-triggered continuity checkpoints, and `resume-packet` recovery for context compaction, steering, phase, slice, delegation, repair, verification, and final-claim boundaries.
+- A three-plane knowledge system for tracked current project truth, tracked per-change dossiers, and ignored runtime recovery evidence, with thin structural validation and explicit promotion/privacy rules.
+- Path-aware discovery and admission of repository instructions, profiles, native controls, artifact facts, and installed technical Skills without silently turning personal capabilities into shared policy.
+- Separate black-box and white-box test derivation, oracle failure-sensitivity review, coherent-slice and commit-ready checks, proportional comment guidance, and digest-bound multi-agent briefs.
 - Six-layer TOML engineering profiles, JSON effective snapshots, deterministic precedence/conflict resolution, review-first profile tooling, and concise `AGENTS.md` projections.
 - Task-relative T0-T3 Engineering Context Readiness plus Engineering Quality Assurance Coverage with native-control-first evidence, active-host capability admission, minimal routing, fallback/waiver, and no automatic Skill installation.
 - Versioned capability, profile, manifest, snapshot, readiness, and admission contracts with routing, collision, cross-language, and paired-evaluation fixtures.

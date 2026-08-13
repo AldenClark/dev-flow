@@ -31,14 +31,25 @@ Assess provenance/integrity, active-host metadata and runtime compatibility, sco
 
 ## Evaluation
 
-Prove the core workflow before expanding an evaluation harness:
+Use a quality pyramid and prove the core workflow before expanding an evaluation harness:
 
 1. Deterministically test direct/orchestrated positive triggers, negative triggers, exact route order, work mode, collisions, output ownership, stop/handoff behavior, safe counterexamples, and unrelated changes.
 2. Exercise representative repository workflows from task to final evidence. At minimum cover an ordinary bugfix, a structural bugfix, and a public-contract change; verify that upstream owners run before proof/review and that review or verification cannot backfill a missing decision.
-3. Use live paired model evaluation only for a material Skill behavior change, model-dependent claim, or release comparison after the deterministic and repository-workflow gates pass. It is release evidence, not the source of Skill ownership or a deterministic CI gate.
-4. Add a new protocol, schema, or evaluator stage only when a proven core invariant cannot be observed through the existing thin harness. Record that invariant, the smaller rejected alternative, maintenance cost, rollback, and removal condition.
+3. For a material model-dependent Skill change, run filtered attested pilots for every affected development category after the first two layers pass. Use at least three independent first attempts. One pair is a diagnostic for a specific failure or case/grader defect, not material-change admission evidence.
+4. Run the complete frozen acceptance plan only as an explicitly authorized and budgeted release comparison. It is model-behavior evidence, not the source of Skill ownership, a deterministic CI gate, or total release readiness.
+5. Add a protocol, schema, evaluator stage, or case family only when a proven core invariant cannot be observed through existing deterministic checks and the thin harness. Record that invariant, the smaller rejected alternative, owner, maintenance and run cost, rollback, and removal condition.
 
-When paired evaluation is required, keep fixed artifacts, at least three independent first attempts, counterbalanced conditions, isolated run directories, structural grader blinding, bounded artifacts, preserved first failures, and explicit limitations. Measure fidelity, coverage, restraint, ordinary-defect retention, actionability, rework, context/tokens, unsafe actions, false blocks, compatibility, and repair depth. Do not optimize artifact, finding, or question count.
+When paired evaluation is required, keep fixed artifacts, counterbalanced conditions, isolated run directories, structural grader blinding, bounded evidence, preserved first failures, and explicit limitations. Do not combine the result into one quality number. Report:
+
+- safety and authority hard gates: unsafe/forbidden actions, false blocks, tool events, invalid/incomplete records, and missing critical or required obligations;
+- outcome: strict-pass counts for each case and affected category, beside applicable deterministic workflow results;
+- variability: raw first-attempt patterns, mixed cases, paired regressions, and recoveries;
+- fidelity and repair burden: requirement fidelity, scope, coverage, restraint, ordinary-defect retention, actionability, rework, compatibility, and repair depth;
+- cost: calls, elapsed time, context/bytes, and only token or monetary fields actually exposed.
+
+Fixed curated cases support controlled comparison, not a random-population estimate. Treat Wilson intervals as operational/descriptive; an existing frozen lower-bound release gate remains a conservative configured threshold, not population truth. Audit every new failure transcript and a rotating sample of passes. Classify candidate behavior, grader defect, broken/ambiguous case or oracle, harness/infrastructure failure, and possible contamination before changing a Skill. Quarantine broken development cases; never repair or tune frozen acceptance after seeing its result.
+
+Maintain a bounded regression bank plus fresh shadow cases derived from real failures. Promote a case only after manual review confirms a clear workflow risk, fixture, reference solution/oracle, and applicable positive/negative behavior. Retire redundant cases with recorded disposition. Do not optimize artifact, finding, case, or question count.
 
 ## Cutover and rollback
 

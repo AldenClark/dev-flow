@@ -1,5 +1,17 @@
 # Risk-based test strategy
 
+## Technique accountability
+
+For every non-trivial behavior change, design and account for these perspectives separately before implementation is considered complete:
+
+- **Black-box:** derive tests from approved requirements, `AC-n`, protected behavior, public/API/CLI/UI/component contracts, normal and error outcomes, authorization, recovery, equivalence classes, boundaries, and state transitions without using implementation structure as the source of coverage.
+- **White-box:** inspect the changed implementation and derive tests for branches, states, error paths, cancellation, retries, timeouts, lifecycle/resource ownership, concurrency, idempotency, rollback, and warranted property/model/fuzz/fault-injection cases that external examples may miss.
+- **Experience-based / exploratory / adversarial:** use defect history, threat and misuse models, reviewer intuition, red-team challenges, and surprising sequences to discover additional risks. This is a third perspective and cannot substitute for black-box or white-box work.
+
+For each perspective, record its applicability, derived obligations, and mapped test cells. If black-box or white-box testing is applicable, implement and run it. Use `N/A` only with a concrete reason tied to the actual change; lack of time, a broad suite, coverage percentage, or another perspective is not a reason.
+
+Black-box and white-box describe how obligations are derived, not where tests run. Either perspective may produce unit, component, integration, end-to-end, compatibility, or non-functional cells.
+
 ## Obligation derivation
 
 Derive `VO-n` from acceptance and protected behavior; changed branches/states/errors/limits/cancellation; public API, protocol, schema, persistence, compatibility, migration; security, concurrency, performance, unsafe/FFI, platform, accessibility, and operations; historical regressions; and weakly covered impact areas.
@@ -9,6 +21,12 @@ Each matrix cell declares obligation, scope/environment, setup/fixture, command 
 When a task requires exercise, validation, or checking, create a separate verification-owned test cell for every independently observable outcome. A behavior, interaction, decision, or implementation claim never substitutes for that evidence cell. Keep the cell explicit even when execution is unavailable: record its stimulus, oracle, environment, `NOT RUN` status, and limitation.
 
 When a task contrasts available and unavailable paths, success and failure, virtual and physical environments, or old and new versions, retain each side as its own cell. Evidence for one side never proves the other.
+
+## Oracle challenge
+
+Review test code as production evidence. For every new or materially changed test, state the protected behavior, the observation point, and why the assertion discriminates correct from broken behavior. Demonstrate failure sensitivity with the strongest practical method: a focused pre-fix failure, negative fixture/control, deliberate local perturbation or mutation, assertion-path inspection against the changed branch, or an independent cross-oracle. Restore any perturbation before retaining evidence.
+
+A test that passes when the behavior is broken, asserts only setup/internal trivia, swallows the relevant error, or relies on an uncontrolled mock is not a valid oracle. Record unresolved oracle weakness as an evidence gap; a green suite and a coverage percentage do not close it.
 
 ## Layers
 
@@ -23,11 +41,12 @@ When a task contrasts available and unavailable paths, success and failure, virt
 
 ## Selection order
 
-1. Narrow reproducer or affected test during implementation.
-2. Affected package/module suite.
-3. Repository static gates and relevant integration.
-4. Required compatibility/environment waves.
-5. Broad regression/release gates only when risk/delivery requires them.
+1. Freeze the requirement/design baseline, `AC/SC/VO` mapping, affected surface, and black-box/white-box obligations.
+2. Add or update the focused tests with the implementation, challenge their oracles, and run the narrow reproducer or affected cells.
+3. Run the affected package/module suite and representative smoke path at the integration point.
+4. Inspect the final diff, generated artifacts, comments, test changes, and scope drift before broader evidence.
+5. Run repository static gates and relevant integration, then required compatibility/environment waves.
+6. Run broad regression/release gates only when risk or delivery requires them.
 
 Do not skip cheap required checks because a broad suite will run later. Build a rationale-driven matrix rather than a blind Cartesian product. Require every critical migration/security/public-data/protocol/FFI/release cell.
 

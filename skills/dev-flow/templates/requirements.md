@@ -1,5 +1,12 @@
 # Change requirements: <change-id>
 
+## Requirement source and understanding revisions
+
+- Original input: <sanitized user text, issue, design package, or durable secure pointer>
+- AI understanding revision 1: <complete actors, triggers, inputs, states, normal/failure/retry/cancel/recovery, permissions/privacy, compatibility, operations, acceptance, non-goals, and assumptions>
+- Corrections and decisions: <ordered user interactions with affected AC/SC/VO IDs; persist semantic disposition, not secrets or unnecessary raw personal data>
+- Current requirement truth: <latest complete revision and why it supersedes earlier interpretations>
+
 ## User and product outcome
 
 <Actor or user, context, problem, desired outcome, current pain point, and how success is observed.>

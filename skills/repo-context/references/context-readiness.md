@@ -19,12 +19,12 @@ Assess only what applies:
 
 1. authority and delivery boundaries;
 2. Git roots, worktree state, scope, generated or nested repositories;
-3. active host, tools, configured instruction/Skill roots, and environment limits;
-4. effective instruction chain and conflicts;
+3. active host, tools, bounded repository/user/admin/system/plugin Skill roots, and environment limits;
+4. effective instruction chain, source digests, and conflicts;
 5. personal/team/project/component/task profile evidence and ownership;
 6. product outcome and protected behavior;
-7. languages, toolchains, frameworks, platforms, and artifact roles;
-8. repository-native commands, CI, test and codegen paths;
+7. per-artifact phase, role, boundary, language/framework/version, path, component, and risk facts;
+8. repository-native commands, CI, test and codegen paths with source digests;
 9. architecture, boundaries, state, errors, concurrency, resources, and current behavior;
 10. dependencies, tool/service approvals, snapshots, and rollback;
 11. public API, protocol, schema, persisted data, migration, and compatibility;
@@ -39,14 +39,16 @@ Assess only what applies:
 
 ## EQAC
 
-Derive obligations from language, framework/version, artifact role, boundary, phase, and risk. Resolve coverage in this order:
+Derive neutral outcome obligations from phase, role, boundary, language/framework/version, path, component, and risk before choosing any implementation-specific route. Resolve coverage in this order:
 
 1. repository-native compiler/typecheck, formatter, selected lint/static analysis, tests, codegen validation, security/supply-chain checks, CI and protected-branch controls;
 2. concise scoped owned invariants in instructions, profile `quality-policy`, ADR, or accepted decision;
-3. an active-host-compatible, admitted and evaluated specialist capability;
+3. the minimal active-host-compatible, admitted and evaluated specialist capability that covers the remaining outcome;
 4. qualified independent/manual review, explicit fallback, or authorized waiver.
 
-Installed Skills are candidates, not approval. Record provenance, digest/version, host compatibility, scope, tools/permissions/side effects, context cost, source freshness, collision set, validation, paired utility, fallback, and state. Only `approved` routes are normally recommended; `trial` requires an explicit note. Never auto-install, enable, rewrite, or promote a candidate.
+Observed Skills are candidates, not approval or policy. Discover only the active host's bounded repository, user, admin, system, and verified Codex plugin roots. Record provenance, authority, digest/version, host compatibility, scope, tools/permissions/side effects, context cost, source freshness, collision set, validation, paired utility, fallback, and state. A same-name collision remains explicit until an admission binds a unique digest/version/path. A bounded scan may say `not-observed`; it must not claim a plugin is globally uninstalled. Only `approved` routes are normally recommended; `trial` requires an explicit note. Never auto-install, enable, rewrite, or promote a candidate.
+
+A personal admission may support an interactive local task, but it cannot by itself satisfy a baseline/team/project/component/task quality policy. Shared policy coverage needs repository-native evidence, a non-personal admission, an owned shared fallback, or a scoped authorized waiver.
 
 Absence of a style guide or named Skill is not a gap. An applicable quality outcome without acceptable coverage or fallback is.
 
@@ -62,6 +64,10 @@ A config file proves only that a native control is available, not that it ran or
 - `waived`: the authorized owner accepted recorded residual risk for a scope and duration.
 
 Missing personal profiles never block. Missing team/project profiles remain advisory when equivalent native evidence or accepted decisions exist. Missing `AGENTS.md` never blocks by itself. Missing optional specialist Skills never block by themselves.
+
+## Context binding and re-resolution
+
+Bind separate digests for the effective instruction chain, resolved profile stack, repository-native controls, artifact facts/version sources, capability registry, and bounded Skill catalog. Their aggregate is the engineering-context fingerprint. Re-resolve before relying on an old snapshot when the task path/component/role/boundary, phase, language/framework/version, risk, instruction/profile/native-control/Skill digest, admission, or waiver state changes. This is an event boundary, not a timer.
 
 ## Reminder, suppression, and waiver
 

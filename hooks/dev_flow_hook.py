@@ -55,6 +55,7 @@ AGENT_LIFECYCLE_STATES = {
     "implementing",
     "verifying",
 }
+QUALITY_KERNEL_CAPABILITY = "quality-kernel-v1"
 
 
 def output(payload: dict[str, Any]) -> None:
@@ -97,6 +98,38 @@ def packet_metadata(packet: Path) -> dict[str, Any]:
 def agent_lifecycle_active(metadata: dict[str, Any]) -> bool:
     """Return whether this packet may govern child-agent lifecycle hooks."""
     return metadata.get("state") in AGENT_LIFECYCLE_STATES
+
+
+def has_capability(metadata: dict[str, Any], capability: str) -> bool:
+    version = metadata.get("skill_version")
+    if not isinstance(version, str) or "+" not in version:
+        return False
+    return capability in version.split("+", 1)[1].split(".")
+
+
+def continuity_summary(metadata: dict[str, Any]) -> str | None:
+    checkpoint = metadata.get("continuity_checkpoint")
+    if not isinstance(checkpoint, dict):
+        return None
+    active_ids = checkpoint.get("active_ids")
+    ids = ", ".join(value for value in active_ids if isinstance(value, str)) if isinstance(active_ids, list) else ""
+    repository = checkpoint.get("repository_snapshot")
+    repository_summary = "unbound"
+    if isinstance(repository, list):
+        repository_summary = ",".join(
+            f"{item.get('head')}:{str(item.get('worktree_sha256', ''))[:15]}"
+            for item in repository
+            if isinstance(item, dict)
+        )
+    return (
+        "DEV_FLOW_RECOVERY: "
+        f"objective={checkpoint.get('active_objective')}; IDs={ids}; "
+        f"last={checkpoint.get('last_evidence')}; next={checkpoint.get('next_action')}; "
+        f"STOP={checkpoint.get('stop_condition')}; drift={checkpoint.get('drift')}; "
+        f"requirement={checkpoint.get('requirement_revision')}:{checkpoint.get('requirements_digest')}; "
+        f"design={checkpoint.get('design_digest')}; context={checkpoint.get('engineering_context_fingerprint')}; "
+        f"repository={repository_summary}."
+    )
 
 
 def context_readiness(packet: Path) -> dict[str, Any]:
@@ -336,6 +369,34 @@ def pre_tool(event: dict[str, Any], packet: Path) -> None:
             return
     is_mutation = event_is_mutation(event, text)
     gate_mutation = is_mutation or name == "Bash"
+    packet_only = mutation_is_packet_only(event, packet)
+    validator: Any | None = None
+    creation_capabilities: list[str] = []
+    immutable_contract: dict[str, Any] | None = None
+    contract_governed_action = (is_mutation and not packet_only) or name == "Agent"
+    if contract_governed_action:
+        try:
+            validator = load_validator()
+            immutable_contract = validator.packet_creation_contract(packet)
+            capabilities = immutable_contract.get("capabilities") if isinstance(immutable_contract, dict) else None
+            creation_capabilities = [value for value in capabilities if isinstance(value, str)] if isinstance(capabilities, list) else []
+            projection_errors = validator.validate_event_projection(packet, metadata)
+        except Exception as exc:
+            projection_errors = [f"creation contract validation unavailable: {exc}"]
+        if projection_errors:
+            output(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "deny",
+                        "permissionDecisionReason": (
+                            "The packet's immutable creation authority or interaction projection is invalid: "
+                            + "; ".join(projection_errors[:3])
+                        ),
+                    }
+                }
+            )
+            return
     requests, unbindable_dependency = dependency_requests(event, packet, text)
     if requests or unbindable_dependency:
         approvals_value = metadata.get("approvals", {})
@@ -374,8 +435,121 @@ def pre_tool(event: dict[str, Any], packet: Path) -> None:
             }
         )
         return
+    advisory: list[str] = []
+    quality_tagged = QUALITY_KERNEL_CAPABILITY in creation_capabilities or has_capability(metadata, QUALITY_KERNEL_CAPABILITY)
+    if quality_tagged and ((is_mutation and not packet_only) or name == "Agent"):
+        state = metadata.get("state")
+        if is_mutation and not packet_only and metadata.get("mutation_intent") != "persistent":
+            output(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "deny",
+                        "permissionDecisionReason": (
+                            "This quality-kernel packet is explicitly non-mutating. "
+                            "Reclassify the task and create or approve a persistent-mutation packet before editing product bytes."
+                        ),
+                    }
+                }
+            )
+            return
+        if is_mutation and not packet_only and state != "implementing":
+            output(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "deny",
+                        "permissionDecisionReason": (
+                            "quality-kernel-v1 permits product mutation only in implementing state. "
+                            "Rehydrate the packet, record an aligned checkpoint, and use an explicit lifecycle transition."
+                        ),
+                    }
+                }
+            )
+            return
+        if state in {"implementing", "verifying"}:
+            try:
+                validator = validator or load_validator()
+                checkpoint_errors = validator.continuity_checkpoint_errors(
+                    packet,
+                    metadata,
+                    effective_state=str(state),
+                )
+            except Exception as exc:
+                checkpoint_errors = [f"checkpoint validation unavailable: {exc}"]
+            if checkpoint_errors:
+                output(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": "PreToolUse",
+                            "permissionDecision": "deny",
+                            "permissionDecisionReason": (
+                                "Quality-kernel recovery state is missing or stale: "
+                                + "; ".join(checkpoint_errors[:3])
+                            ),
+                        }
+                    }
+                )
+                return
+            summary = continuity_summary(metadata)
+            if summary:
+                advisory.append(summary)
+            checkpoint = metadata.get("continuity_checkpoint", {})
+            trigger = checkpoint.get("trigger") if isinstance(checkpoint, dict) else None
+            if is_mutation and not packet_only and trigger in validator.SEALED_CONTINUITY_TRIGGERS:
+                output(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": "PreToolUse",
+                            "permissionDecision": "deny",
+                            "permissionDecisionReason": (
+                                "The last continuity checkpoint sealed a coherent boundary. "
+                                "Record an aligned slice-start checkpoint before further product mutation."
+                            ),
+                        }
+                    }
+                )
+                return
+            if name == "Agent":
+                if state == "implementing" and trigger != "delegation":
+                    output(
+                        {
+                            "hookSpecificOutput": {
+                                "hookEventName": "PreToolUse",
+                                "permissionDecision": "deny",
+                                "permissionDecisionReason": (
+                                    "Implementation delegation requires a fresh delegation checkpoint "
+                                    "that binds the reviewed repository bytes."
+                                ),
+                            }
+                        }
+                    )
+                    return
+                try:
+                    repository_errors = validator.repository_snapshot_drift_errors(
+                        metadata,
+                        checkpoint.get("repository_snapshot") if isinstance(checkpoint, dict) else None,
+                        check_worktree=True,
+                    )
+                except Exception as exc:
+                    repository_errors = [f"repository snapshot validation unavailable: {exc}"]
+                if repository_errors:
+                    output(
+                        {
+                            "hookSpecificOutput": {
+                                "hookEventName": "PreToolUse",
+                                "permissionDecision": "deny",
+                                "permissionDecisionReason": "Repository baseline is stale: " + "; ".join(repository_errors[:3]),
+                            }
+                        }
+                    )
+                    return
+            elif is_mutation and not packet_only:
+                advisory.append(
+                    "Normal byte changes are expected inside this open slice. Inspect and reconcile them at "
+                    "resume, delegation, phase change, pre-verification, or the next coherent slice boundary."
+                )
     readiness = context_readiness(packet)
-    packet_only = mutation_is_packet_only(event, packet)
     if gate_mutation and not packet_only and readiness.get("outcome") in {"blocked", "invalid"}:
         output(
             {
@@ -390,7 +564,6 @@ def pre_tool(event: dict[str, Any], packet: Path) -> None:
             }
         )
         return
-    advisory: list[str] = []
     if (
         is_mutation
         and not packet_only
@@ -426,8 +599,9 @@ def post_tool(event: dict[str, Any], packet: Path) -> None:
                 "hookSpecificOutput": {
                     "hookEventName": "PostToolUse",
                     "additionalContext": (
-                        f"Active Dev Flow packet: {packet}. Update execution progress, decisions/drift, "
-                        "scope mapping, and evidence for this material mutation before closing the slice."
+                        f"Active Dev Flow packet: {packet}. When this mutation completes a coherent slice, update "
+                        "progress, checkpoint, decisions/drift, scope, knowledge disposition, and evidence before "
+                        "changing objectives, delegating, entering verification, or claiming completion."
                     ),
                 }
             }
@@ -484,8 +658,10 @@ def subagent_start(event: dict[str, Any], packet: Path) -> None:
             "hookSpecificOutput": {
                 "hookEventName": "SubagentStart",
                 "additionalContext": (
-                    f"Use the written brief under {packet / 'briefs'}. Respect exclusive ownership, do not add "
-                    "dependencies or expand scope, and return a bounded native final result. Write under "
+                    f"Use the written brief under {packet / 'briefs'}. Recheck its base/worktree, requirement/design "
+                    "digests, engineering-context fingerprint, AC/SC/VO, exclusive ownership, resources, and both "
+                    "test views. Stop on drift; do not add dependencies or expand scope; return a bounded native "
+                    "final result. Write under "
                     f"{packet / 'reports'} only when the brief explicitly assigns a durable report.{marker_advisory}"
                 ),
             }

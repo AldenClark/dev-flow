@@ -25,6 +25,6 @@ exception_policy = "security-owner-waiver"
 review_trigger = "auth-boundary-or-policy-change"
 ```
 
-Team/project/component layers may require outcomes. Personal layers may prefer a route but cannot weaken required native evidence or shared policy. Exact Skill paths, versions, digests, host compatibility, permissions, context footprint, collision, and admission state remain in local capability admission/effective snapshots.
+Team/project/component layers may require outcomes. Personal layers may prefer a route but cannot weaken required native evidence or shared policy. A personal Skill or personal admission may support an interactive local task; it does not satisfy a shared quality policy unless a team/project authority explicitly binds the capability or supplies a qualified shared fallback. Exact Skill paths, versions, digests, host compatibility, permissions, context footprint, collision, and admission state remain in local capability admission/effective snapshots.
 
-Coverage is satisfied by an appropriate native control, owned rule, admitted capability, qualified fallback, or explicit waiver. Missing one named Skill is never sufficient reason to block or install it.
+Resolve selectors against path-specific phase, role, boundary, language/framework/version, path, component, and risk facts. Derive the neutral capability outcome before selecting the minimal admitted route. Coverage is satisfied by an appropriate native control, owned rule, authority-compatible admitted capability, qualified fallback, or explicit waiver. Missing one named Skill is never sufficient reason to block or install it; `not-observed` is not proof that a plugin is globally uninstalled.

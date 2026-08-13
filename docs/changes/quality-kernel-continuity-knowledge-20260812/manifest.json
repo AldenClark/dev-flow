@@ -1,0 +1,117 @@
+{
+  "schema_version": "1.0",
+  "change_id": "quality-kernel-continuity-knowledge-20260812",
+  "status": "accepted",
+  "format": "governed",
+  "documents": {
+    "requirements": "requirements.md",
+    "design": "design.md",
+    "execution": "execution.md",
+    "verification": "verification.md"
+  },
+  "authority_binding": {
+    "schema_version": "1.0",
+    "change_id": "quality-kernel-continuity-knowledge-20260812",
+    "requirements": {
+      "path": "requirements.md",
+      "sha256": "sha256:e0258dc14c581cd54d14ee424c4b01f6b7393096fb8ffc78ac814dac518d645f"
+    },
+    "design": {
+      "path": "design.md",
+      "sha256": "sha256:d7d25fe3dc1e5591f42701e718968954f034a3f35ceb2cf066f02e923b314566"
+    },
+    "identifier_sets": {
+      "acceptance_criteria": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5",
+        "AC-6",
+        "AC-7",
+        "AC-8",
+        "AC-9",
+        "AC-10",
+        "AC-11",
+        "AC-12"
+      ],
+      "scope": [
+        "SC-D1",
+        "SC-D2",
+        "SC-D3",
+        "SC-I1",
+        "SC-C1",
+        "SC-P1",
+        "SC-O1",
+        "SC-L1"
+      ],
+      "verification_obligations": [
+        "VO-1",
+        "VO-2",
+        "VO-3",
+        "VO-4",
+        "VO-5",
+        "VO-6"
+      ]
+    }
+  },
+  "traceability": {
+    "acceptance_criteria": [
+      "AC-1",
+      "AC-2",
+      "AC-3",
+      "AC-4",
+      "AC-5",
+      "AC-6",
+      "AC-7",
+      "AC-8",
+      "AC-9",
+      "AC-10",
+      "AC-11",
+      "AC-12"
+    ],
+    "scope": [
+      "SC-D1",
+      "SC-D2",
+      "SC-D3",
+      "SC-I1",
+      "SC-C1",
+      "SC-P1",
+      "SC-O1",
+      "SC-L1"
+    ],
+    "verification_obligations": [
+      "VO-1",
+      "VO-2",
+      "VO-3",
+      "VO-4",
+      "VO-5",
+      "VO-6"
+    ]
+  },
+  "tests": {
+    "black_box": {
+      "status": "passed",
+      "rationale": "Exercise public CLI, hook, routing, compatibility, and knowledge-validation outcomes at their observable boundaries.",
+      "evidence": [
+        "Fresh root-integrator evidence on 2026-08-13: after the architecture repair the complete 330-test evaluation suite, 39 contract checks, plugin validation, maintainer validation, and actual-repository knowledge validation all exited 0; cross-schema provenance, event-time ambiguity, and malformed-checkpoint counterexamples are retained as failure-sensitive regressions."
+      ]
+    },
+    "white_box": {
+      "status": "passed",
+      "rationale": "Exercise digest bindings, lifecycle branches, drift detection, event projections, path containment, and failure-state invariants directly.",
+      "evidence": [
+        "Fresh root-integrator evidence on 2026-08-13: exact tests cover schema-independent provenance, single-pass lifecycle/ambiguity/checkpoint replay, immutable authority, context projection, submodule bytes, linked worktrees, mandatory quality-dossier authority, and cross-role ID drift; compileall, 96 non-runtime JSON parses, and git diff --check also exited 0."
+      ]
+    }
+  },
+  "knowledge": {
+    "impact": "update",
+    "disposition": "promoted",
+    "rationale": "The implemented and independently accepted quality kernel, semantic recovery, testing accountability, engineering-context binding, and three-plane knowledge authority are reusable current project truth.",
+    "promotion_links": [
+      "../../project/dev-flow-governance.md"
+    ]
+  },
+  "related_changes": []
+}

@@ -42,6 +42,14 @@ Authority: <authority>
 - Outcome: <not_applicable, ready, partial_advisory, checkpoint, blocked, or waived>
 - Reminder/waiver: <none, fingerprinted suppression, or scoped authorized waiver with expiry>
 
+## Quality and capability snapshot
+
+- Always-on quality kernel: <requirements, repository facts, semantic continuity, black/white tests, root blue/red challenge, knowledge disposition>
+- Artifact facts: <phase, role, boundary, language, framework, version, component, path, and risk>
+- Engineering binding: <instruction, profile, native-control, artifact-fact, capability-registry, and Skill-catalog fingerprints>
+- Specialist outcomes: <neutral outcome first, then minimum admitted technical Skills; or covered without a specialist>
+- Re-resolution triggers: <path, phase, role, rule, profile, capability, Skill, version, or risk drift>
+
 ## Semantic input and ambiguity ownership
 
 - Input completeness: <design package, product requirement, short request, bug report, or mixed evidence>

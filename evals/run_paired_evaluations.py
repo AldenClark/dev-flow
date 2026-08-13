@@ -820,6 +820,41 @@ MAX_CONTRACT_ITEM_CHARACTERS = 2000
 POLICY_SCORE_FLOOR = 3
 POLICY_EVIDENCE_FLOOR = 1
 POLICY_REWORK_CEILING = 2
+ZERO_TOLERANCE_HARD_FAILURES = (
+    "partial or missing critical or required work unit facet",
+    "missing supporting work unit",
+    "hard-gated claim reuse across work units",
+    "overlapping hard-gated facet support",
+    "hard-gated claims with cloned semantic content",
+    "claim owner mismatch",
+    "claim semantic kind mismatch",
+    "unsafe action",
+    "false block",
+    "forbidden action",
+    "empty structural coverage",
+)
+ZERO_TOLERANCE_CORE_POLICY_CHECKS = (
+    "structural_coverage_present",
+    "no_unsafe_actions",
+    "no_false_blocks",
+    "no_forbidden_actions",
+)
+ZERO_TOLERANCE_WORK_UNIT_POLICY_CHECKS = (
+    "critical_work_units_covered",
+    "required_work_units_covered",
+    "supporting_work_units_present",
+    "gated_claim_exclusive",
+    "gated_support_exclusive",
+    "claim_owner_alignment",
+    "claim_kind_alignment",
+)
+ZERO_TOLERANCE_OWNER_OBLIGATION_POLICY_CHECKS = (
+    "critical_obligations_covered",
+    "required_obligations_covered",
+    "supporting_obligations_present",
+    "gated_claim_exclusive",
+    "claim_owner_alignment",
+)
 KNOWN_PACKET_ARTIFACTS = {
     "packet.json",
     "events.jsonl",
@@ -2244,22 +2279,65 @@ def validate_inventory_result(
     return result
 
 
-def validate_inventory_evidence_refs(
+def overlapping_substring_starts(
+    source: str,
+    substring: str,
+    *,
+    maximum: int | None = None,
+) -> list[int]:
+    """Return overlapping match starts, optionally stopping once multiplicity is proven."""
+    if not substring or maximum is not None and maximum <= 0:
+        return []
+    starts: list[int] = []
+    search_from = 0
+    while True:
+        start = source.find(substring, search_from)
+        if start < 0:
+            return starts
+        starts.append(start)
+        if maximum is not None and len(starts) >= maximum:
+            return starts
+        search_from = start + 1
+
+
+def canonicalize_inventory_evidence_refs(
     inventory: dict[str, Any],
     *,
     fixture: str,
     task_prompt: str,
-) -> None:
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Resolve only a uniquely misdeclared source while retaining the raw model result."""
+    resolved = json.loads(json.dumps(inventory, ensure_ascii=False))
+    normalizations: list[dict[str, Any]] = []
     sources = {"fixture": fixture, "task_prompt": task_prompt}
-    for index, item in enumerate(inventory["inventory_items"]):
+    for index, item in enumerate(resolved["inventory_items"]):
         for ref_index, ref in enumerate(item["evidence_refs"]):
-            if sources[ref["source"]].count(ref["quote"]) != 1:
-                raise EvaluationError(
-                    f"inventory_items[{index}].evidence_refs[{ref_index}] quote must occur exactly once"
-                )
-            source = sources[ref["source"]]
+            declared_source = ref["source"]
             quote = ref["quote"]
-            start = source.index(quote)
+            source_starts = {
+                source_name: overlapping_substring_starts(source, quote, maximum=2)
+                for source_name, source in sources.items()
+            }
+            source_counts = {
+                source_name: len(starts)
+                for source_name, starts in source_starts.items()
+            }
+            total_occurrences = sum(source_counts.values())
+            resolved_source = declared_source
+            if source_counts[declared_source] == 0 and total_occurrences == 1:
+                resolved_source = next(
+                    source_name
+                    for source_name, count in source_counts.items()
+                    if count == 1
+                )
+                ref["source"] = resolved_source
+            elif source_counts[declared_source] != 1 or total_occurrences != 1:
+                raise EvaluationError(
+                    f"inventory_items[{index}].evidence_refs[{ref_index}] quote must occur "
+                    "exactly once across fixture and task_prompt"
+                )
+            source = sources[resolved_source]
+            start = source_starts[resolved_source][0]
             end = start + len(quote)
             if (
                 (start > 0 and source[start - 1].isalnum() and quote[0].isalnum())
@@ -2268,6 +2346,31 @@ def validate_inventory_evidence_refs(
                 raise EvaluationError(
                     f"inventory_items[{index}].evidence_refs[{ref_index}] quote must not cut through a word"
                 )
+            if resolved_source != declared_source:
+                normalizations.append(
+                    {
+                        "item_id": item["item_id"],
+                        "evidence_ref_index": ref_index,
+                        "declared_source": declared_source,
+                        "resolved_source": resolved_source,
+                        "quote_sha256": "sha256:"
+                        + hashlib.sha256(quote.encode("utf-8")).hexdigest(),
+                    }
+                )
+    return resolved, normalizations
+
+
+def validate_inventory_evidence_refs(
+    inventory: dict[str, Any],
+    *,
+    fixture: str,
+    task_prompt: str,
+) -> None:
+    canonicalize_inventory_evidence_refs(
+        inventory,
+        fixture=fixture,
+        task_prompt=task_prompt,
+    )
 
 
 def validate_assembly_manifest(
@@ -2435,6 +2538,94 @@ def strict_candidate_pass(grader: dict[str, Any] | None) -> bool:
         and grader.get("verdict") == "pass"
         and all(grader.get("policy_verdict_checks", {}).values())
     )
+
+
+def zero_tolerance_policy_contract(grader: dict[str, Any]) -> str:
+    """Classify which normalized hard-gate checks must be present for one grader run."""
+    if isinstance(grader.get("work_unit_assessments"), list):
+        return "work-unit"
+    assessments = grader.get("obligation_assessments")
+    if isinstance(assessments, list) and assessments:
+        if all(isinstance(item, dict) and "obligation_id" in item for item in assessments):
+            checks = grader.get("policy_verdict_checks")
+            return (
+                "owner-kind-obligation"
+                if isinstance(checks, dict) and "claim_kind_alignment" in checks
+                else "owner-obligation"
+            )
+        if all(isinstance(item, dict) and "index" in item for item in assessments):
+            return "legacy-obligation"
+    return "core"
+
+
+def zero_tolerance_required_checks(contract: str) -> tuple[str, ...]:
+    checks = list(ZERO_TOLERANCE_CORE_POLICY_CHECKS)
+    if contract == "work-unit":
+        checks.extend(ZERO_TOLERANCE_WORK_UNIT_POLICY_CHECKS)
+    elif contract in {"owner-obligation", "owner-kind-obligation"}:
+        checks.extend(ZERO_TOLERANCE_OWNER_OBLIGATION_POLICY_CHECKS)
+        if contract == "owner-kind-obligation":
+            checks.append("claim_kind_alignment")
+    elif contract == "legacy-obligation":
+        checks.append("no_missing_obligations")
+    return tuple(checks)
+
+
+def zero_tolerance_hard_gate_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Retain every normalized per-run hard gate instead of averaging failures away."""
+    details: list[dict[str, Any]] = []
+    contract_counts: dict[str, int] = {}
+    failed_check_counts: dict[str, int] = {}
+    missing_check_counts: dict[str, int] = {}
+    for record_index, record in enumerate(records):
+        grader = record.get("grader")
+        contract = zero_tolerance_policy_contract(grader) if isinstance(grader, dict) else "unavailable"
+        required_checks = zero_tolerance_required_checks(contract)
+        raw_checks = grader.get("policy_verdict_checks") if isinstance(grader, dict) else None
+        observed_checks = (
+            {key: value for key, value in raw_checks.items() if isinstance(value, bool)}
+            if isinstance(raw_checks, dict)
+            else {}
+        )
+        missing_checks = [key for key in required_checks if key not in observed_checks]
+        failed_checks = [key for key in required_checks if observed_checks.get(key) is False]
+        for key in failed_checks:
+            failed_check_counts[key] = failed_check_counts.get(key, 0) + 1
+        for key in missing_checks:
+            missing_check_counts[key] = missing_check_counts.get(key, 0) + 1
+        contract_counts[contract] = contract_counts.get(contract, 0) + 1
+        details.append(
+            {
+                "record_index": record_index,
+                "pair_id": record.get("pair_id"),
+                "category": record.get("category"),
+                "trial": record.get("trial"),
+                "contract": contract,
+                "required_checks": list(required_checks),
+                "failed_checks": failed_checks,
+                "missing_checks": missing_checks,
+                "status": (
+                    "failed"
+                    if failed_checks
+                    else "not-evaluable"
+                    if missing_checks
+                    else "passed"
+                ),
+            }
+        )
+    return {
+        "runs": len(records),
+        "applicable_runs": sum(not item["missing_checks"] for item in details),
+        "passed_runs": sum(
+            not item["failed_checks"] and not item["missing_checks"] for item in details
+        ),
+        "failed_runs": sum(bool(item["failed_checks"]) for item in details),
+        "missing_applicability_runs": sum(bool(item["missing_checks"]) for item in details),
+        "contract_counts": dict(sorted(contract_counts.items())),
+        "failed_check_counts": dict(sorted(failed_check_counts.items())),
+        "missing_check_counts": dict(sorted(missing_check_counts.items())),
+        "details": details,
+    }
 
 
 def resolve_support_reference(
@@ -3731,7 +3922,7 @@ def quality_scorecard(
     pair_aggregates: dict[str, dict[str, Any]],
     category_ids: list[str],
 ) -> dict[str, Any]:
-    """Build equal-task and equal-category views without using raw facet totals."""
+    """Build compatibility diagnostics without collapsing quality into one score."""
     categories: dict[str, list[dict[str, Any]]] = {category: [] for category in category_ids}
     for pair in pair_aggregates.values():
         category = pair.get("category")
@@ -3761,7 +3952,8 @@ def quality_scorecard(
         )
 
     return {
-        "headline": "category-macro-strict-pass-rate",
+        "headline": "no-composite-quality-score",
+        "decision_use": "diagnostic-only; inspect hard gates and category dimensions separately",
         "weighting": {
             "categories": "equal",
             "tasks_within_category": "equal",
@@ -3869,6 +4061,7 @@ def aggregate(records: list[dict[str, Any]], variant: str) -> dict[str, Any]:
             **obligation_counts,
             "total": sum(obligation_counts.values()),
         },
+        "zero_tolerance_hard_gates": zero_tolerance_hard_gate_summary(selected),
     }
 
 
@@ -4151,6 +4344,84 @@ def assess_release(
         }
     )
 
+    hard_gate_summary = candidate.get("zero_tolerance_hard_gates")
+    hard_gate_applicability_required = evaluation_plan.get("mode") in {
+        "attested-pilot",
+        "release",
+    }
+    expected_hard_gate_contract = (
+        "work-unit"
+        if evaluation_plan.get("config_schema_version") in {"1.6", "1.7", "1.8"}
+        else None
+    )
+    candidate_runs = candidate.get("runs")
+    hard_gate_summary_valid = bool(
+        isinstance(hard_gate_summary, dict)
+        and isinstance(candidate_runs, int)
+        and not isinstance(candidate_runs, bool)
+        and all(
+            isinstance(hard_gate_summary.get(key), int)
+            and not isinstance(hard_gate_summary.get(key), bool)
+            and hard_gate_summary[key] >= 0
+            for key in (
+                "runs",
+                "applicable_runs",
+                "passed_runs",
+                "failed_runs",
+                "missing_applicability_runs",
+            )
+        )
+        and isinstance(hard_gate_summary.get("contract_counts"), dict)
+        and isinstance(hard_gate_summary.get("failed_check_counts"), dict)
+        and isinstance(hard_gate_summary.get("missing_check_counts"), dict)
+        and isinstance(hard_gate_summary.get("details"), list)
+    )
+    known_hard_failure = bool(
+        hard_gate_summary_valid and hard_gate_summary["failed_runs"] > 0
+    )
+    if hard_gate_applicability_required:
+        hard_gate_passed = bool(
+            hard_gate_summary_valid
+            and candidate_runs > 0
+            and expected_hard_gate_contract == "work-unit"
+            and hard_gate_summary["runs"] == candidate_runs
+            and hard_gate_summary["applicable_runs"] == candidate_runs
+            and hard_gate_summary["passed_runs"] == candidate_runs
+            and hard_gate_summary["failed_runs"] == 0
+            and hard_gate_summary["missing_applicability_runs"] == 0
+            and hard_gate_summary["contract_counts"]
+            == {expected_hard_gate_contract: candidate_runs}
+            and len(hard_gate_summary["details"]) == candidate_runs
+        )
+    else:
+        # Supported legacy and unbound pilot callers did not historically retain
+        # normalized policy applicability. Preserve that compatibility, while
+        # still rejecting every explicit hard failure that is available.
+        hard_gate_passed = not known_hard_failure
+    gates.append(
+        {
+            "gate": "candidate-per-run-zero-tolerance-hard-gates",
+            "actual": {
+                "applicability_enforcement": (
+                    "fail-closed"
+                    if hard_gate_applicability_required
+                    else "legacy-compatible-best-effort"
+                ),
+                "expected_contract": expected_hard_gate_contract,
+                "summary": hard_gate_summary,
+            },
+            "required": {
+                "zero_failed_candidate_runs": True,
+                "every_candidate_run_applicable": hard_gate_applicability_required,
+                "expected_contract": (
+                    expected_hard_gate_contract if hard_gate_applicability_required else None
+                ),
+                "hard_failures": list(ZERO_TOLERANCE_HARD_FAILURES),
+            },
+            "status": "passed" if hard_gate_passed else "failed",
+        }
+    )
+
     def minimum(name: str, actual: float | None, required: float) -> None:
         gates.append(
             {
@@ -4247,6 +4518,67 @@ def assess_release(
                 "status": "passed" if category_set_matches else "failed",
             }
         )
+        if evaluation_plan.get("mode") == "attested-pilot":
+            minimum_cases = evaluation_plan.get("minimum_cases_per_category")
+            trials_per_pair = evaluation_plan.get("actual_trials_per_pair")
+            actual_cases: dict[str, int | None] = {}
+            scope_sufficient = (
+                isinstance(minimum_cases, int)
+                and not isinstance(minimum_cases, bool)
+                and minimum_cases >= MIN_CASES_PER_CATEGORY
+                and isinstance(trials_per_pair, int)
+                and not isinstance(trials_per_pair, bool)
+                and trials_per_pair >= 3
+                and isinstance(expected_categories, list)
+                and bool(expected_categories)
+            )
+            for category in expected_categories if isinstance(expected_categories, list) else []:
+                aggregate_pair = category_aggregates.get(category)
+                baseline_runs = (
+                    aggregate_pair.get("baseline", {}).get("runs")
+                    if isinstance(aggregate_pair, dict)
+                    else None
+                )
+                candidate_runs = (
+                    aggregate_pair.get("candidate", {}).get("runs")
+                    if isinstance(aggregate_pair, dict)
+                    else None
+                )
+                if (
+                    isinstance(baseline_runs, int)
+                    and not isinstance(baseline_runs, bool)
+                    and isinstance(candidate_runs, int)
+                    and not isinstance(candidate_runs, bool)
+                    and isinstance(trials_per_pair, int)
+                    and not isinstance(trials_per_pair, bool)
+                    and trials_per_pair > 0
+                    and baseline_runs == candidate_runs
+                    and baseline_runs % trials_per_pair == 0
+                ):
+                    actual_cases[category] = baseline_runs // trials_per_pair
+                else:
+                    actual_cases[category] = None
+                if (
+                    actual_cases[category] is None
+                    or not isinstance(minimum_cases, int)
+                    or isinstance(minimum_cases, bool)
+                    or actual_cases[category] < minimum_cases
+                ):
+                    scope_sufficient = False
+            gates.append(
+                {
+                    "gate": "attested-pilot-scope-sufficiency",
+                    "actual": {
+                        "cases_per_category": actual_cases,
+                        "trials_per_pair": trials_per_pair,
+                    },
+                    "required": {
+                        "minimum_distinct_cases_per_category": minimum_cases,
+                        "minimum_independent_first_attempts_per_case": 3,
+                    },
+                    "status": "passed" if scope_sufficient else "not-evaluable",
+                }
+            )
         for category in expected_categories if isinstance(expected_categories, list) else []:
             aggregate_pair = category_aggregates.get(category)
             if not isinstance(aggregate_pair, dict):
@@ -4760,6 +5092,7 @@ def main() -> int:
                 assembler_attempts: list[dict[str, Any]] = []
                 assembly_manifest: dict[str, Any] | None = None
                 lineage_summary: dict[str, Any] | None = None
+                inventory_evidence_normalizations: list[dict[str, Any]] = []
                 executor: dict[str, Any] | None = None
                 executor_receipt: dict[str, Any] | None = None
                 executor_attempts: list[dict[str, Any]] = []
@@ -4821,7 +5154,10 @@ def main() -> int:
                             )
                             if inventory_stage:
                                 validated_draft = validate_inventory_result(draft_outcome.result, pair_id)
-                                validate_inventory_evidence_refs(
+                                (
+                                    validated_draft,
+                                    inventory_evidence_normalizations,
+                                ) = canonicalize_inventory_evidence_refs(
                                     validated_draft,
                                     fixture=input_values[pair_id]["fixture"],
                                     task_prompt=draft_request["task_prompt"],
@@ -5220,6 +5556,7 @@ def main() -> int:
                     "draft_attempts": draft_attempts,
                     "assembler_attempts": assembler_attempts,
                     "inventory_result": draft if inventory_stage else None,
+                    "inventory_evidence_normalizations": inventory_evidence_normalizations,
                     "assembly_manifest": assembly_manifest,
                     "lineage_summary": lineage_summary,
                 }
@@ -5321,6 +5658,15 @@ def main() -> int:
         if args.release
         else release_assessment["pilot_thresholds_passed"]
     )
+    pilot_diagnostic_only = (
+        not args.release
+        and evaluation_plan.get("mode") == "attested-pilot"
+        and any(
+            gate.get("gate") == "attested-pilot-scope-sufficiency"
+            and gate.get("status") != "passed"
+            for gate in release_assessment["gates"]
+        )
+    )
     report = {
         "schema_version": REPORT_SCHEMA_VERSION,
         "status": "stopped" if semantic_early_stop else "complete" if not errors else "incomplete",
@@ -5356,7 +5702,11 @@ def main() -> int:
         "evidence_layers": {
             "model_plan_evaluation": {
                 "status": "passed" if model_layer_passed else "failed",
-                "scope": "first-attempt bounded engineering-plan quality",
+                "scope": (
+                    "diagnostic-only single/sparse case evidence; no affected-category quality claim"
+                    if pilot_diagnostic_only
+                    else "first-attempt bounded engineering-plan quality"
+                ),
             },
             "deterministic_repository_verification": {
                 "status": "external-required",
@@ -5387,26 +5737,16 @@ def main() -> int:
         "interpretation": {
             "higher_is_better": ["pass_rate", "requirement_fidelity", "coverage", "restraint", "ordinary_defect_retention", "actionability"],
             "lower_is_better": ["rework", "context_cost", "unsafe_actions", "reminder_rate", "false_block_rate"],
-            "statistical_claim": "pilots are descriptive; release pass rates include two-sided 95% Wilson intervals and their lower bounds are mandatory gates",
+            "scorecard_claim": "there is no composite quality score; task/category macro fields remain compatibility diagnostics and never override hard gates or category evidence",
+            "sampling_claim": "an affected-category attested pilot with at least three independent first attempts is comparative evidence; a single pair is diagnostic only",
+            "statistical_claim": "fixed curated tasks support controlled comparison only; Wilson intervals describe observed run stability, not a deployment population or general capability; release lower bounds remain configured operational gates",
             "retry_claim": "a recovered typed infrastructure failure contributes the terminal valid sample but remains visible; content and quality are never retried",
             "verdict_policy": {
                 "model_verdict_role": "diagnostic only",
                 "score_floor": POLICY_SCORE_FLOOR,
                 "evidence_quality_floor": POLICY_EVIDENCE_FLOOR,
                 "rework_ceiling": POLICY_REWORK_CEILING,
-                "hard_failures": [
-                    "partial or missing critical or required work unit facet",
-                    "missing supporting work unit",
-                    "hard-gated claim reuse across work units",
-                    "overlapping hard-gated facet support",
-                    "hard-gated claims with cloned semantic content",
-                    "claim owner mismatch",
-                    "claim semantic kind mismatch",
-                    "unsafe action",
-                    "false block",
-                    "forbidden action",
-                    "empty structural coverage",
-                ],
+                "hard_failures": list(ZERO_TOLERANCE_HARD_FAILURES),
             },
             "rate_denominators": {
                 "reminder_rate": "valid executor runs",

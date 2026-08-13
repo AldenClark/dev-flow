@@ -8,7 +8,7 @@
       "checked_at": "2026-08-08",
       "local_problem": "Keep a composable Skill suite discoverable without loading its full policy and reference corpus into every turn.",
       "decision": "Use concise focused entrypoints, progressive disclosure, direct resource links, and a plugin bundle.",
-      "adaptation": "The thin Dev Flow kernel routes only the task-relevant subset of 12 Skills; shared profile/ECR/EQAC data is resolved without activating a management Skill.",
+      "adaptation": "The thin Dev Flow kernel routes only task-relevant registered owners; shared profile/ECR/EQAC data is resolved without activating a management Skill. Owner count is a compatibility fact, not a quality target.",
       "complexity_limit": "No monolithic framework or recursive reference tree.",
       "evaluation": "Validate frontmatter, direct references, openai.yaml prompts, and contract cases.",
       "review_after": "2026-11-08"
@@ -103,14 +103,69 @@
     },
     {
       "id": "IND-SPEC-KIT",
-      "source": "https://github.com/github/spec-kit",
-      "checked_at": "2026-08-08",
+      "source": "https://github.github.com/spec-kit/concepts/spec-persistence.html",
+      "checked_at": "2026-08-13",
       "local_problem": "Requirements, design, tasks, and evidence can drift apart.",
-      "decision": "Use stable AC/SC/VO IDs, clarify material ambiguity before planning, and run semantic cross-artifact validation.",
-      "adaptation": "One lightweight packet with Requirement Ready and small evidence-backed question batches rather than a separate command-heavy framework.",
-      "complexity_limit": "No mandatory constitution generation per project.",
-      "evaluation": "Reject missing or mismatched ID mappings and checkpointed/co-design approval without Requirement Ready.",
-      "review_after": "2026-12-01"
+      "decision": "Use stable AC/SC/VO IDs, clarify material ambiguity before planning, and make current truth versus historical change artifacts explicit.",
+      "adaptation": "Governed work persists requirements, design, execution, and verification; tracked current truth is reconciled separately from accepted change history.",
+      "complexity_limit": "Traced work remains one compact document and no mandatory constitution is generated per project.",
+      "evaluation": "Reject missing ID mappings, stale baselines, undeclared dossier files, and accepted material changes without a terminal knowledge disposition.",
+      "review_after": "2027-02-13"
+    },
+    {
+      "id": "IND-OPENAI-HARNESS-ENGINEERING",
+      "source": "https://openai.com/index/harness-engineering/",
+      "checked_at": "2026-08-13",
+      "local_problem": "Agent quality degrades when business knowledge, feedback loops, and enforceable repository boundaries remain outside the agent-visible environment.",
+      "decision": "Make intent, current project truth, native controls, observable evidence, and invariant checks repository-legible while keeping human authority explicit.",
+      "adaptation": "The quality kernel is always loaded for persistent mutations; tracked knowledge and repository-native controls supply durable context while specialist Skills remain additive.",
+      "complexity_limit": "Organize high-value context instead of accumulating ad-hoc instructions or making every specialist resident.",
+      "evaluation": "Persistent-mutation routing, knowledge-link, context-fingerprint, native-control, and invariant failure cases.",
+      "review_after": "2027-02-13"
+    },
+    {
+      "id": "IND-ANTHROPIC-LONG-RUNNING",
+      "source": "https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents",
+      "checked_at": "2026-08-13",
+      "local_problem": "Fresh context windows can lose prior progress, misread the implementation state, or claim completion without end-to-end evidence.",
+      "decision": "Leave a concise recovery artifact, advance one coherent slice at a time, preserve exact repository state, and verify observable behavior before completion.",
+      "adaptation": "Digest-bound continuity checkpoints capture objective, baselines, last evidence, next action, stop condition, and repository state at semantic event boundaries.",
+      "complexity_limit": "No timer or per-tool progress ceremony; OPEN slices allow normal edits and SEALED boundaries freeze evidence.",
+      "evaluation": "Compaction/resume, open-slice reconciliation, sealed drift, HEAD adoption, hook fast-path, and end-to-end oracle cases.",
+      "review_after": "2027-02-13"
+    },
+    {
+      "id": "IND-GOOGLE-CONDUCTOR",
+      "source": "https://developers.googleblog.com/en/conductor-introducing-context-driven-development-for-gemini-cli/",
+      "checked_at": "2026-08-13",
+      "local_problem": "A code-first agent can lose product and technical intent between planning, implementation, interruption, and resume.",
+      "decision": "Persist product/technical context, a reviewed specification, and an actionable plan whose progress can be resumed and revised deliberately.",
+      "adaptation": "Dev Flow keeps a proportionate traced or governed requirement-design-execution chain and a short recovery projection rather than copying one fixed document layout.",
+      "complexity_limit": "Existing repository conventions take precedence and small work does not receive a governed dossier merely for symmetry.",
+      "evaluation": "Work-mode, requirement/design binding, progress, checkpoint, and repository-convention cases.",
+      "review_after": "2027-02-13"
+    },
+    {
+      "id": "IND-TEST-TECHNIQUES-AND-ORACLES",
+      "source": "https://www.istqb.org/wp-content/uploads/2024/11/ISTQB_CTFL_Syllabus_v4.0.1.pdf",
+      "checked_at": "2026-08-13",
+      "local_problem": "A generic request to add tests can omit specification behavior, internal paths, or a failure-sensitive oracle while still producing a green suite.",
+      "decision": "Derive black-box and white-box obligations separately, add experience-based/adversarial techniques where useful, and review whether tests fail for the target defect.",
+      "adaptation": "Nontrivial changes account both primary views, require a concrete N/A when inapplicable, and bind an oracle-validity review before verification.",
+      "complexity_limit": "Technique labels do not mandate a test count or duplicate equivalent coverage; repository-native tests remain authoritative.",
+      "evaluation": "Positive, N/A, missing-view, wrong-oracle, boundary, state, recovery, and test-code review cases.",
+      "review_after": "2027-08-13"
+    },
+    {
+      "id": "IND-GOOGLE-CODE-HEALTH",
+      "source": "https://google.github.io/eng-practices/review/reviewer/looking-for.html",
+      "checked_at": "2026-08-13",
+      "local_problem": "Large mixed changes, unreviewed tests, and comments that narrate obvious code reduce review quality and long-term maintainability.",
+      "decision": "Use one coherent bounded change with related tests, review tests as production code, challenge false positives, and comment consequential why/invariants rather than obvious what.",
+      "adaptation": "Commit-readiness accounts slice scope, narrow-to-smoke evidence, test-oracle review, diff hygiene, and useful documentation without granting commit authority.",
+      "complexity_limit": "No line-count, test-count, comment-density, or automatic-commit target; conceptual cohesion and repository evidence decide the boundary.",
+      "evaluation": "Commit-readiness positive/negative contracts, two-view test fixtures, oracle sensitivity, comment policy, and delivery-authority checks.",
+      "review_after": "2027-08-13"
     },
     {
       "id": "IND-NASA-REQ-BASELINE",
@@ -214,13 +269,57 @@
     {
       "id": "IND-ANTHROPIC-AGENT-EVALS",
       "source": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
-      "checked_at": "2026-08-11",
+      "checked_at": "2026-08-12",
       "local_problem": "A small repeatedly viewed benchmark encourages overfitting, hides local regressions in global averages, and confuses model judgment with executable product evidence.",
       "decision": "Separate development and held-out acceptance sets, use multiple trials and category slices, inspect failure transcripts, and keep deterministic outcome evidence as an independent layer.",
-      "adaptation": "Use 39 development and 56 frozen acceptance cases across 16 categories, zero content retries, one-shot held-out evaluation, and explicit report evidence layers.",
-      "complexity_limit": "Descriptive statistics only; no significance or production-readiness claim from the model judge alone.",
-      "evaluation": "Dataset-role and release-binding tests, unique-case checks, category gates, attempt receipts, and model_gate_ready versus release_ready separation.",
+      "adaptation": "Use affected-category development pilots with three independent first attempts after deterministic gates; reserve the full frozen set for an explicitly budgeted release comparison, preserve zero content retries, and separate report evidence layers.",
+      "complexity_limit": "A single pair is diagnostic only; fixed curated cases and Wilson intervals are descriptive and cannot establish population or production truth.",
+      "evaluation": "Category-bound first-attempt patterns, transcript audits, case-health classification, release binding, and model_gate_ready versus release_ready separation.",
       "review_after": "2027-02-11"
+    },
+    {
+      "id": "IND-OPENAI-HARNESS-ENGINEERING",
+      "source": "https://openai.com/index/harness-engineering/",
+      "checked_at": "2026-08-12",
+      "local_problem": "Agent instructions grow while repository structure and executable feedback remain hard to discover, making the prompt compensate for weak engineering legibility.",
+      "decision": "Prefer repository-legible architecture, progressive disclosure, native feedback loops, and mechanically enforced invariants over a larger instruction manual.",
+      "adaptation": "Keep Skill entrypoints thin; make owner boundaries and representative task-to-evidence workflows executable through deterministic repository checks.",
+      "complexity_limit": "Do not add evaluator or policy layers for invariants that native tests, schemas, linters, or workflow fixtures can observe.",
+      "evaluation": "Deterministic routing/ownership gates and ordinary bugfix, structural bugfix, and public-contract workflow traces.",
+      "review_after": "2027-02-12"
+    },
+    {
+      "id": "IND-ANTHROPIC-EFFECTIVE-AGENTS",
+      "source": "https://www.anthropic.com/engineering/building-effective-agents",
+      "checked_at": "2026-08-12",
+      "local_problem": "Framework and evaluator complexity can obscure prompts, tool results, failure causes, and the core development workflow.",
+      "decision": "Start with the simplest composable workflow that satisfies the quality objective and add complexity only for a demonstrated capability gap.",
+      "adaptation": "Preserve the current owner topology for compatibility while strengthening its root feedback loop; allow evidence-backed future merge or split, and treat optional model evaluation as supporting evidence.",
+      "complexity_limit": "No new Skill, orchestration layer, protocol, or evaluator stage without a previously unobservable core invariant and removal condition.",
+      "evaluation": "Compare the smallest affected behavior slice after deterministic admission; record whether added complexity changes the observed failure.",
+      "review_after": "2027-02-12"
+    },
+    {
+      "id": "IND-OPENAI-TRUSTWORTHY-EVALS",
+      "source": "https://openai.com/index/trustworthy-third-party-evaluations-foundations/",
+      "checked_at": "2026-08-12",
+      "local_problem": "An evaluation number can be interpreted beyond the tasks, harness, model, budget, scorer, and validity threats that produced it.",
+      "decision": "Bind every evaluation claim to its comparison type, task slice, model and harness identities, budget, scoring policy, limitations, and independent evidence layers.",
+      "adaptation": "Report hard safety/authority gates separately from outcome, variability, fidelity/retention/rework, and cost; never publish one composite quality number.",
+      "complexity_limit": "No general coding-quality, productivity, population-confidence, or release-readiness claim from a fixed model-judged case bank.",
+      "evaluation": "Check report provenance, claim wording, raw numerators/denominators, case/trial scope, validity threats, and deterministic/release evidence separation.",
+      "review_after": "2027-02-12"
+    },
+    {
+      "id": "IND-OPENAI-CODING-EVAL-NOISE",
+      "source": "https://openai.com/index/separating-signal-from-noise-coding-evaluations/",
+      "checked_at": "2026-08-12",
+      "local_problem": "Broken, underspecified, low-coverage, or contaminated coding cases can turn evaluator artifacts into misleading regressions or gains.",
+      "decision": "Treat case and grader health as required evidence: audit failures and sampled passes, quarantine invalid cases, and prefer fresh shadow cases from real failures.",
+      "adaptation": "Classify each investigated result as candidate behavior, grader defect, fixture/oracle defect, harness/infrastructure failure, or possible contamination before changing a Skill.",
+      "complexity_limit": "Keep regression and shadow banks bounded; case count is not a quality target, and redundant cases require retirement rather than indefinite accumulation.",
+      "evaluation": "Reference-solution review, prompt/fixture/oracle agreement, positive and negative checks, transcript sampling, quarantine, and recorded case disposition.",
+      "review_after": "2027-02-12"
     },
     {
       "id": "IND-HCAST-CHECKLIST-EVAL",
@@ -238,10 +337,10 @@
       "source": "https://openai.com/index/gdpval/",
       "checked_at": "2026-08-11",
       "local_problem": "Synthetic micro-cases alone do not represent the breadth and artifact quality expected from real professional engineering work.",
-      "decision": "Broaden task taxonomy and judge concrete, constraint-rich work products while preserving blinded comparisons and expert-readable reasons.",
-      "adaptation": "The suite covers context, FFI, migration, verification, requirements, interaction, frontend, debugging, dependencies, delivery, review, architecture, security, performance, and recovery with unique fixtures and artifact obligations.",
+      "decision": "Use a bounded task taxonomy and judge concrete, constraint-rich work products while preserving blinded comparisons and expert-readable reasons.",
+      "adaptation": "Keep representative regression and fresh shadow cases across material workflow categories, selected by changed behavior and real failures rather than a target corpus size.",
       "complexity_limit": "Fixtures stay bounded and defensive; the model executor cannot access live repositories, credentials, external services, or execution tools.",
-      "evaluation": "Ninety-five distinct prompts and fixtures, per-category gates, blind grader inputs, and separate real repository verification.",
+      "evaluation": "Category coverage, artifact obligations, blind grader inputs, case-health review, and separate real repository verification.",
       "review_after": "2027-02-11"
     },
     {

@@ -7,34 +7,30 @@ description: Derive risk-based oracles, run native checks, control environments 
 
 For environment choices, waivers, or manual authority, remain in Default mode and follow `../requirements-design/references/user-interaction.md`.
 
-Prove behavior and risk with minimal fresh evidence.
-
 ## Responsibility contract
 
-- Consumes: verification obligations, final relevant bytes, owner decisions, and environment authority.
-- Owns: risk-based oracles, native commands, environments, resources, evidence, and evidence status.
-- Stops: at a missing environment/data authority, unsafe shared-resource boundary, or unresolved first failure.
-- Hands off: causal failure to debugging, raw evidence to review, the final matrix to delivery, and results to the control plane.
+- Consumes: verification obligations, final relevant bytes, decisions, and environment authority.
+- Owns: risk-based oracles, commands, resources, evidence, and status.
+- Stops: at missing authority, unsafe shared resources, or an unresolved first failure.
+- Hands off: causal failures to debugging, evidence to review/delivery, and results to the control plane.
 
 ## Procedure
 
-1. Map the smallest risk-based oracle. Read `references/test-strategy.md` for governed, multi-environment/layer, weak-oracle, or full-matrix work.
-2. Map each `VO-n` to behavior, changed states/errors, contracts, and risks.
-3. Prefer native compiler/typecheck, format, lint/static, tests, codegen, dependency/security, and CI-equivalent checks.
-4. Run narrow/cheap before broad/environment-heavy; keep compatibility cells explicit.
-5. Read `references/test-environments.md` before browsers, devices, VMs/containers, services, credentials, or shared fixtures.
-6. Preserve first failures and flakes; never convert retries or waivers into `PASSED`.
-7. Read `references/evidence-contract.md` before retaining logs, traces, dumps, benchmarks, or user data.
-8. Produce `verification.plan.v1` and `verification.results.v1` with root, environment, command, exit/counts, artifacts, freshness, and limits.
+1. Map each `VO-n` to changed behavior, states/errors, contracts, and risks.
+2. For every non-trivial behavior change, derive black-box and white-box obligations separately; run each applicable view or give a concrete change-specific `N/A` reason. Experience/red-team is a third view, never a substitute. Read `references/test-strategy.md`.
+3. Challenge whether each new/changed test would fail when protected behavior breaks; record a practical negative control or cross-oracle.
+4. Run native narrow/cheap controls before broad/environment-heavy ones. Read `references/test-environments.md` before controlled resources.
+5. Preserve first failures and flakes; retries and waivers never become `PASSED`.
+6. Read `references/evidence-contract.md` before retaining artifacts. Emit the plan/results with technique accountability, exact evidence, oracle challenge, freshness, and limits.
 
 ## EQAC rule
 
-Run native controls first; specialist review never proves a command. Record incomplete automation as a qualified manual/contextual oracle or waiver.
+Run native controls first; specialist review never proves a command. Mark incomplete automation as a qualified manual/contextual oracle or waiver.
 
-A behavior or interaction claim never doubles as proof. Emit a separate verification-owned test cell for each falsifiable evidence family; umbrella labels never substitute. Detailed matrices and cell rules live in `references/test-strategy.md`.
+A behavior or interaction claim never doubles as proof. Emit a separate verification-owned test cell for each falsifiable evidence family; umbrella labels never substitute. Green is insufficient until failure sensitivity is reviewed. Detailed matrices and cell rules live in `references/test-strategy.md`.
 
 ## Boundaries
 
 - Do not modify product code during an independent test-runner assignment.
-- Do not retain unnecessary secrets, private data, or bulk artifacts.
+- Do not retain unnecessary sensitive or bulk artifacts.
 - Keep `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, and `WAIVED` distinct.

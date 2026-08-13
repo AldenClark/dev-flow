@@ -1,24 +1,27 @@
 # Dev Flow state contract
 
-`<repo>/.codex/dev-flow/<change-id>/` is local state; exclude it with `.git/info/exclude` unless publication is authorized. New writes use schema 2.0; the validator still reads schemas 1.0, 1.1, and 1.2 under their original `micro`/`full` contracts.
+`<repo>/.codex/dev-flow/<change-id>/` is ignored recovery/evidence state; tracked knowledge is separate (see `knowledge-system.md`). New packets use capability-tagged schema 2.0. Older or untagged packets keep their original contract; never upgrade them silently.
 
 ## Work modes
 
-- `direct`: no packet; retain the decision, scope, and fresh evidence inline for clear micro/spike work.
+- `direct`: no packet and no persistent mutation; retain non-mutating micro/spike evidence inline.
 - `traced`: `packet.json`, append-only `events.jsonl`, `trace.md`, and optional `artifacts/`.
-- `governed`: traced state plus context, requirements, design, execution, matrix, two audits, evidence, decisions, and child brief/report/artifact directories.
+- `governed`: traced state plus split context, requirements, design, execution, matrix, audits, evidence, decisions, and child directories.
 
-Auto-select governed for security, unsafe/FFI/ABI, migration, dependency, release/deployment, public protocol/API, persisted-data, regulated, rollback, or material UI semantics. Explicit user/team policy may escalate; rising risk may never silently downgrade.
+Use governed mode for explicit governance or material security, FFI/ABI, migration, dependency, delivery, public-contract/data, regulated, rollback, or UI risk. Escalate with evidence; never silently downgrade.
 
-## Schema 2.0 machine state
+## Schema 2.0 projection and capabilities
 
-`packet.json` projects identity/version, work/documentation mode, state/time, roots/base, authority, collaboration/UI/compatibility/risk, AC/SC/VO IDs, requirement revision/digest, ambiguity/dependency ledgers, iteration control, approvals, and transition history.
+`packet.json` projects lifecycle, authority, mode, risk/scope, AC/SC/VO, baselines, ledgers, approvals, continuity, knowledge, and history. The first event's immutable `creation_contract` binds initial capabilities, task/mutation class, roots, authority, collaboration, UI, compatibility, and risk. Contiguous schema-1.0 `events.jsonl` exactly projects state/history plus approval, ambiguity, checkpoint, and knowledge records; event time is nondecreasing and each non-transition record binds the replayed state. CLI mutators append, then atomically replace the projection.
 
-`events.jsonl` is append-only schema 1.0 with contiguous sequence, event, time, projected state/mode, and payload. It starts with `packet-created`; state events exactly project `packet.json.history` and final state. Mutators append then atomically replace the projection; mismatch is invalid.
+New `skill_version` build tokens are exact additive capabilities:
 
-Schema 2.0 iteration state enforces the breaker in `orchestration.md`.
+- `change-set-transition-v1`: each `verifying` transition binds the existing `Change set` ledger/body SHA-256.
+- `quality-kernel-v1`: persistent work carries `mutation_intent`, `design_digest`, `continuity_checkpoint`, and `knowledge_manifest`; capability and authority come from an exact metadata-matching creation contract.
 
-States and ordinary transitions are:
+Tag downgrade with any residual quality metadata/event marker, incomplete interaction/event projection, or later bound-section drift fails. Local unsigned state detects inconsistency, not coordinated whole-packet rewriting; tamper evidence needs an external immutable/signed system.
+
+## Lifecycle and semantic approval
 
 ```text
 discovering -> awaiting-approval -> approved -> implementing -> verifying -> accepted -> archived
@@ -29,37 +32,50 @@ verifying -> implementing
 implementing | verifying -> awaiting-approval (open material/high-risk AMB-n required)
 ```
 
-Checkpointed/co-design work records `REQ-READY` between awaiting and approved. Material UI also records `UX-READY`. A concrete design approval is required for approved and later states. Content-bound approvals carry the current positive requirement revision and SHA-256 digest: governed hashes exact `requirements.md` bytes; traced hashes the `Requirement and design` body. Reopening archives the prior design approval, increments revision, clears the digest/current design, and requires a fresh approval cycle.
+Checkpointed/co-design work records `REQ-READY`; material UI also records `UX-READY`. Approval requires a concrete design approval. Governed requirements hash exact `requirements.md`; traced hashes the `Requirement and design` body. Quality-tagged approval also binds exact `design.md` or that body. A later material correction archives approval, increments revision, clears baselines/checkpoint, and appends an exact `checkpoint-invalidated` tombstone binding reason, the then-open material/high-risk ambiguity, prior checkpoint hash, and old/new revision; fresh readiness/approval is required while recovery remains possible.
 
-Every `AMB-n` records source, at least two interpretations, evidence, materiality, owner, affected AC/SC/VO IDs, recommendation, creation revision, status, and evidence-bearing resolution. Open material or high-risk ambiguity prevents approval.
+Each `AMB-n` records source, two or more surviving interpretations/evidence, materiality, owner, affected AC/SC/VO, recommendation, creation revision, status, and evidence-bearing resolution. Open material/high-risk AMB blocks approval.
 
-## Documentation
+## Semantic continuity
 
-`trace.md` keeps concrete authority/repository facts, INS IDs, acceptance/design, AC/SC/VO scope, protected behavior, ordered progress/decisions, fresh verification, proportionate blue/red checks, delivery status, and residual gates. No placeholder may remain.
+Quality-tagged implementing-or-later state requires a schema-1.1 `Continuity checkpoint`, projected into `packet.json` and `checkpoint-recorded`. Its fields are `Trigger`, requirement/design/context/repository baselines, `Repository reconciliation`, active objective/slice, last evidence, next action/stop, and drift review. Projection binds active AC/SC (plus pre-verification VO), ledger/body SHA-256, and time. Verification needs a fresh `pre-verification` checkpoint; later drift invalidates dependent evidence.
 
-Governed documents split those concerns so independent work is recoverable:
+Triggers are event semantics:
 
-- context and requirements: authority, facts, instructions, semantics, ambiguity, outcomes, compatibility, exclusions;
-- design and execution: decision, alternatives, failure behavior, complete scope, dependencies, task graph, ownership, drift, findings;
-- test matrix and audits: environments/resources, required cells/attempts/status, clean blue/red review and adjudication;
-- evidence and decisions: AC/SC/VO traceability, exact commands, changed files, remaining gates, approvals, sources, superseded choices.
+- **OPEN:** `implementation-start`, `resume`, `user-steering`, `slice-start`, `reconciliation`, `premise-change`. Bytes may evolve; ordinary mutation rehydrates the objective and checks root identity plus Git `HEAD`, not full bytes per tool call.
+- **SEALED:** `slice-end`, `delegation`, `phase-transition`, `pre-verification`, `final-claim`. These freeze the full-worktree premise; later deltas cannot inherit its evidence.
 
-Only root writes core packet state and owns final claims. Children return native finals; brief-assigned durable reports never gate stop. Root logs each task's reconciliation, deadlines, result/report, lease, interrupt, disposition, and recovery.
+`resume-packet` is the recovery entrypoint. OPEN deltas need evidence-bearing reconciliation before a boundary claim; SEALED deltas block. Git `HEAD` change needs explicit reconciliation to the exact root-qualified object ID; resume never adopts it. Repository identity change reopens the premise or needs a new packet.
 
-`current` activates hooks, not history; child lifecycle hooks ignore accepted, archived, and blocked packets. `deactivate-packet <packet>` preserves data and removes only its matching terminal regular-file pointer. Absence is idempotent; unsafe or mismatched pointers are refused.
+Observation covers every declared root (including a declared Git subtree and populated submodules); staged, unstaged, and untracked child bytes enter the full digest. SC/path labels do not narrow it. Non-Git roots record `observable=false` and need external byte-stability evidence. Use event/risk boundaries, not timers/tool counts.
+
+## Documentation and knowledge
+
+`trace.md` keeps source/understanding revisions, facts/authority, quality routes, requirement/design, AC/SC/VO, continuity, progress/decisions, test accountability, change set, evidence, basic blue/red challenge, knowledge/commit readiness, and delivery limits.
+
+Governed files split the same chain:
+
+- context/requirements: source, facts, instructions, understood revisions, semantics, ambiguity, outcome, compatibility, exclusions;
+- design/execution: grounded alternatives/choice, failure/rollback/tests, scope, dependencies, tasks, checkpoint, progress/drift, knowledge/commit readiness;
+- matrix/audits: resources, separate black-/white-box accountability, oracle review, blue/red findings/adjudication;
+- evidence/decisions: AC/SC/VO, commands, changed files, promotion, residual gates, approvals, sources, supersession.
+
+Before verifying, `knowledge_manifest` is mandatory: `none` binds only rationale; `add|update|deprecate` binds root, dossier `manifest.json`, and SHA-256. Structural validation must pass. Acceptance also needs terminal dossier status/disposition.
+
+Only root writes core packet state and owns claims. Child briefs/results bind baselines and ownership; terminal child state is not root completion. `current` activates hooks, not history. `deactivate-packet` removes only a matching terminal regular-file pointer and preserves the packet.
 
 ## Identifiers and evidence
 
 - `AC-n`: observable acceptance.
-- `SC-D/I/C/P/O/Ln`: direct, indirect, conditional, protected, excluded, and delivery scope.
+- `SC-D/I/C/P/O/Ln`: direct, indirect, conditional, protected, excluded, delivery scope.
 - `VO-n`: verification obligation.
-- `DEP-n`, `INS-n`, `AMB-n`: dependency, instruction, and ambiguity records.
-- `Tn`, `TM-n`, `BLUE-n`, `RED-n`: tasks, matrix cells, and review findings.
+- `DEP-n`, `INS-n`, `AMB-n`: dependency, instruction, ambiguity.
+- `Tn`, `TM-n`, `BLUE-n`, `RED-n`: task, matrix cell, review finding.
 
-Keep IDs stable and make declared ID sets equal documented sets. Each command record includes command, absolute root, relevant environment/version, time, exit, oracle/counts, artifact, and freshness after the last relevant edit. Preserve the first failure. Status is exactly `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, or `WAIVED`; waiver is never pass.
+Declared/documented ID sets must match. Command evidence records command, absolute root, relevant environment/version, time, exit, oracle/count, artifact, and final-byte freshness. Preserve first failure. Status is `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, or `WAIVED`; waiver is not pass.
 
-Schema 2.0 binds each `DEP-n` to identity, exact command/ref, files, operations and result digests. Matrix suffixes are uppercase; `Required` is `yes`/`no`. Unknowns or duplicates block acceptance.
+Schema 2.0 binds each `DEP-n` identity, command/ref, files, operations, and result digests. Matrix suffixes are uppercase; `Required` is `yes`/`no`. Quality verification separately accounts black-/white-box views (or concrete N/A), oracle failure sensitivity, and commit readiness; it grants no delivery authority.
 
-Optional `effective-preferences.json` and `context-readiness.json` retain their v1 contracts. Accepted state cannot retain blocked preferences or readiness checkpoint/block. Absence alone is advisory.
+Optional preference/readiness files keep v1 shape. Quality readiness adds a validator-recomputed canonical fingerprint over all governed fields; an old self-reported fingerprint cannot preserve changed tier/outcome/route/coverage. Checkpoints need non-blocked readiness. Accepted state cannot retain blocked/checkpoint readiness or preferences.
 
-Validate after approval, compaction, each material implementation/repair wave, final verification, and before transition. Use the CLI mutators so the event ledger and projection remain consistent.
+Validate after approval, resume/compaction, material implementation/repair waves, pre-verification, and final claim. Use CLI mutators so ledger and projection stay consistent.

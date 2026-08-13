@@ -7,6 +7,7 @@ import json
 import hashlib
 import io
 import os
+import re
 import runpy
 import shutil
 import signal
@@ -475,7 +476,8 @@ class PairedEvaluationRunnerTests(unittest.TestCase):
         self.assertAlmostEqual(scorecard["task_macro"]["candidate"]["strict_pass_rate"], 0.75)
         self.assertAlmostEqual(scorecard["category_macro"]["candidate"]["strict_pass_rate"], 0.5)
         self.assertAlmostEqual(scorecard["category_macro"]["candidate"]["semantic_coverage"], 0.5)
-        self.assertEqual(scorecard["headline"], "category-macro-strict-pass-rate")
+        self.assertEqual(scorecard["headline"], "no-composite-quality-score")
+        self.assertIn("diagnostic-only", scorecard["decision_use"])
 
     def test_inventory_v2_materializes_a_complete_owner_kind_ledger(self) -> None:
         inventory = {
@@ -551,6 +553,135 @@ class PairedEvaluationRunnerTests(unittest.TestCase):
         )
         self.assertEqual(duplicate_final, final)
         self.assertEqual(duplicate_summary["duplicate_dispositions"], 1)
+
+    def test_inventory_evidence_sources_canonicalize_only_a_unique_alternate(self) -> None:
+        fixture = (
+            "Fixture evidence contains a fixture-only reference and one shared reference. "
+            "A repeated marker and repeated marker remain ambiguous. preboundarypost"
+        )
+        task_prompt = (
+            "Task evidence contains a task-only reference and one shared reference."
+        )
+
+        def inventory(source: str, quote: str) -> dict[str, object]:
+            return {
+                "schema_version": "1.0",
+                "case_id": "PAIR-SOURCE",
+                "attempt": 1,
+                "claimed_outcome": "completed",
+                "inventory_items": [
+                    {
+                        "item_id": "IT-1",
+                        "evidence_family": "analysis",
+                        "action": "Resolve the bounded evidence source.",
+                        "protected_behavior": "Evidence provenance remains exact.",
+                        "oracle_or_evidence": "The quote has one unambiguous source.",
+                        "status": "verified",
+                        "limitation": None,
+                        "evidence_refs": [{"source": source, "quote": quote}],
+                    }
+                ],
+                "interactions": {
+                    "user_questions": 0,
+                    "user_corrections": 0,
+                    "reminders": 0,
+                    "blocks": 0,
+                },
+            }
+
+        correct = inventory("fixture", "fixture-only reference")
+        resolved, normalizations = paired_eval.canonicalize_inventory_evidence_refs(
+            correct,
+            fixture=fixture,
+            task_prompt=task_prompt,
+        )
+        self.assertEqual(resolved, correct)
+        self.assertEqual(normalizations, [])
+
+        for declared, quote, expected in (
+            ("fixture", "task-only reference", "task_prompt"),
+            ("task_prompt", "fixture-only reference", "fixture"),
+        ):
+            with self.subTest(declared=declared, expected=expected):
+                raw = inventory(declared, quote)
+                original = json.loads(json.dumps(raw))
+                resolved, normalizations = paired_eval.canonicalize_inventory_evidence_refs(
+                    raw,
+                    fixture=fixture,
+                    task_prompt=task_prompt,
+                )
+                self.assertEqual(raw, original)
+                self.assertEqual(
+                    resolved["inventory_items"][0]["evidence_refs"][0]["source"],
+                    expected,
+                )
+                self.assertEqual(
+                    normalizations,
+                    [
+                        {
+                            "item_id": "IT-1",
+                            "evidence_ref_index": 0,
+                            "declared_source": declared,
+                            "resolved_source": expected,
+                            "quote_sha256": "sha256:"
+                            + hashlib.sha256(quote.encode("utf-8")).hexdigest(),
+                        }
+                    ],
+                )
+
+        for quote in (
+            "one shared reference",
+            "repeated marker",
+            "missing evidence phrase",
+        ):
+            with self.subTest(rejected_quote=quote):
+                with self.assertRaisesRegex(
+                    paired_eval.EvaluationError,
+                    "exactly once across fixture and task_prompt",
+                ):
+                    paired_eval.canonicalize_inventory_evidence_refs(
+                        inventory("fixture", quote),
+                        fixture=fixture,
+                        task_prompt=task_prompt,
+                    )
+
+        with self.assertRaisesRegex(paired_eval.EvaluationError, "must not cut through a word"):
+            paired_eval.canonicalize_inventory_evidence_refs(
+                inventory("fixture", "boundary"),
+                fixture=fixture,
+                task_prompt=task_prompt,
+            )
+
+        overlapping_fixture = "a.a.a.a.a.a"
+        overlapping_quote = "a.a.a.a.a"
+        self.assertEqual(
+            paired_eval.overlapping_substring_starts(
+                overlapping_fixture,
+                overlapping_quote,
+            ),
+            [0, 2],
+        )
+        with self.assertRaisesRegex(
+            paired_eval.EvaluationError,
+            "exactly once across fixture and task_prompt",
+        ):
+            paired_eval.canonicalize_inventory_evidence_refs(
+                inventory("fixture", overlapping_quote),
+                fixture=overlapping_fixture,
+                task_prompt="An unrelated task prompt.",
+            )
+
+        unique_fixture = "prefix a.a.a.a.a suffix"
+        resolved, normalizations = paired_eval.canonicalize_inventory_evidence_refs(
+            inventory("fixture", overlapping_quote),
+            fixture=unique_fixture,
+            task_prompt="An unrelated task prompt.",
+        )
+        self.assertEqual(
+            resolved["inventory_items"][0]["evidence_refs"][0]["source"],
+            "fixture",
+        )
+        self.assertEqual(normalizations, [])
 
     def test_inventory_v2_rejects_drop_reuse_family_laundering_and_verified_supplements(self) -> None:
         item = {
@@ -695,6 +826,7 @@ print(json.dumps({{"type": "turn.completed", "usage": {{"input_tokens": 5, "outp
             self.assertEqual(record["assembler_attempts"], [])
             self.assertEqual(record["grader_attempts"], [])
             self.assertIsNone(record["inventory_result"])
+            self.assertEqual(record["inventory_evidence_normalizations"], [])
             self.assertEqual(
                 [json.loads(line)["role"] for line in call_log.read_text(encoding="utf-8").splitlines()],
                 ["inventory"],
@@ -734,11 +866,11 @@ if stage == "inventory":
         "claimed_outcome": "completed",
         "inventory_items": [{{
             "item_id": "IT-1", "evidence_family": "analysis",
-            "action": "Inspect the bounded repository state.",
-            "protected_behavior": "Existing local changes remain untouched.",
-            "oracle_or_evidence": "Record the bounded state before any change.",
-            "status": "planned", "limitation": "Repository execution is unavailable.",
-            "evidence_refs": []
+            "action": "Plan the staged rollout and rollback.",
+            "protected_behavior": "The persisted protocol migration remains reversible.",
+            "oracle_or_evidence": "The task explicitly requires a staged rollout and rollback.",
+            "status": "verified", "limitation": None,
+            "evidence_refs": [{{"source": "fixture", "quote": "staged rollout and rollback."}}]
         }}],
         "interactions": {{"user_questions": 0, "user_corrections": 0, "reminders": 0, "blocks": 0}}
     }}
@@ -825,6 +957,81 @@ print(json.dumps({{"type": "turn.completed", "usage": {{"input_tokens": 5, "outp
                 ]
                 for record in report["records"]
             ))
+            expected_quote_sha = "sha256:" + hashlib.sha256(
+                b"staged rollout and rollback."
+            ).hexdigest()
+            for record in report["records"]:
+                self.assertEqual(
+                    record["inventory_evidence_normalizations"],
+                    [
+                        {
+                            "item_id": "IT-1",
+                            "evidence_ref_index": 0,
+                            "declared_source": "fixture",
+                            "resolved_source": "task_prompt",
+                            "quote_sha256": expected_quote_sha,
+                        }
+                    ],
+                )
+                self.assertEqual(
+                    record["inventory_result"]["inventory_items"][0]["evidence_refs"][0]["source"],
+                    "task_prompt",
+                )
+                normalized_sha = paired_eval.canonical_json_sha256(record["inventory_result"])
+                self.assertEqual(record["pipeline_stages"]["draft"]["result_sha"], normalized_sha)
+                self.assertEqual(
+                    record["pipeline_stages"]["hash_chain"]["draft_content_sha"],
+                    normalized_sha,
+                )
+
+            run_requests = [
+                (path, json.loads(path.read_text(encoding="utf-8")))
+                for path in (output / "model-runs").glob("*/attempt-1/request.json")
+            ]
+            inventory_requests = [
+                (path, request)
+                for path, request in run_requests
+                if request.get("schema_version") == "1.0"
+                and "fixture" in request
+                and "task_prompt" in request
+            ]
+            assembler_requests = [
+                request
+                for _, request in run_requests
+                if request.get("schema_version") == "2.0"
+            ]
+            self.assertEqual((len(inventory_requests), len(assembler_requests)), (2, 2))
+            for request_path, _ in inventory_requests:
+                raw_model_result = json.loads(
+                    (request_path.parent / "model-result.json").read_text(encoding="utf-8")
+                )
+                normalized_result = json.loads(
+                    (request_path.parent / "result.json").read_text(encoding="utf-8")
+                )
+                self.assertEqual(
+                    raw_model_result["inventory_items"][0]["evidence_refs"][0]["source"],
+                    "fixture",
+                )
+                self.assertEqual(
+                    normalized_result["inventory_items"][0]["evidence_refs"][0]["source"],
+                    "task_prompt",
+                )
+            self.assertTrue(all(
+                request["inventory_result"]["inventory_items"][0]["evidence_refs"][0]["source"]
+                == "task_prompt"
+                for request in assembler_requests
+            ))
+            assembler_request_shas = {
+                paired_eval.canonical_json_sha256(request)
+                for request in assembler_requests
+            }
+            self.assertEqual(
+                {
+                    record["pipeline_stages"]["hash_chain"]["assembler_request_sha"]
+                    for record in report["records"]
+                },
+                assembler_request_shas,
+            )
 
     def test_two_stage_monotonic_failure_blocks_grader_and_marks_final_invalid(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -1065,8 +1272,26 @@ print(json.dumps({{"type": "turn.completed", "usage": {{"input_tokens": 5, "outp
             report = json.loads((output / "report.json").read_text(encoding="utf-8"))
             self.assertEqual((report["schema_version"], len(report["records"])), ("1.7", 6))
             self.assertTrue(all(record["pipeline_stages"]["state"] == "Graded" for record in report["records"]))
+            self.assertTrue(all(
+                record["inventory_evidence_normalizations"] == []
+                for record in report["records"]
+            ))
             self.assertTrue(all(record["executor"]["usage"]["tokens"] == 14 for record in report["records"]))
             self.assertEqual(report["aggregates"]["candidate"]["contract_metrics"]["context_cost"]["mean"], 14.0)
+            self.assertFalse(report["release_assessment"]["pilot_thresholds_passed"])
+            self.assertEqual(
+                next(
+                    gate
+                    for gate in report["release_assessment"]["gates"]
+                    if gate["gate"] == "attested-pilot-scope-sufficiency"
+                )["status"],
+                "not-evaluable",
+            )
+            self.assertEqual(report["evidence_layers"]["model_plan_evaluation"]["status"], "failed")
+            self.assertIn(
+                "diagnostic-only",
+                report["evidence_layers"]["model_plan_evaluation"]["scope"],
+            )
             nonces = []
             for record in report["records"]:
                 stages = record["pipeline_stages"]
@@ -1928,6 +2153,33 @@ print(json.dumps(result))
                     expected_runs, expected_runs
                 ),
             }
+            full_candidate["zero_tolerance_hard_gates"] = {
+                "runs": expected_runs,
+                "applicable_runs": expected_runs,
+                "passed_runs": expected_runs,
+                "failed_runs": 0,
+                "missing_applicability_runs": 0,
+                "contract_counts": {"work-unit": expected_runs},
+                "failed_check_counts": {},
+                "missing_check_counts": {},
+                "details": [
+                    {
+                        "record_index": index,
+                        "pair_id": "PAIR-ACCEPTANCE",
+                        "category": "CAT-ACCEPTANCE",
+                        "trial": index + 1,
+                        "contract": "work-unit",
+                        "required_checks": list(
+                            paired_eval.ZERO_TOLERANCE_CORE_POLICY_CHECKS
+                            + paired_eval.ZERO_TOLERANCE_WORK_UNIT_POLICY_CHECKS
+                        ),
+                        "failed_checks": [],
+                        "missing_checks": [],
+                        "status": "passed",
+                    }
+                    for index in range(expected_runs)
+                ],
+            }
             release_plan = {
                 "mode": "release",
                 "config_schema_version": canonical["schema_version"],
@@ -2306,6 +2558,10 @@ print(json.dumps(result))
             report_schema["$defs"]["record"]["properties"]["executor_model_receipt"]["oneOf"][1],
             {"$ref": "#/$defs/modelReceipt"},
         )
+        record_schema = report_schema["$defs"]["record"]
+        self.assertEqual(report_schema["properties"]["schema_version"]["const"], "1.7")
+        self.assertIn("inventory_evidence_normalizations", record_schema["properties"])
+        self.assertNotIn("inventory_evidence_normalizations", record_schema["required"])
 
         ordinary = json.loads(json.dumps(development))
         ordinary.pop("evaluator_identity")
@@ -2601,7 +2857,7 @@ print(json.dumps(result))
         self.assertNotIn("obligations", json.dumps(request))
         self.assertEqual(request["fixture"], "bounded fixture only")
 
-    def test_development_and_acceptance_configs_are_disjoint_and_broad(self) -> None:
+    def test_development_and_acceptance_configs_are_disjoint_and_category_bounded(self) -> None:
         development = paired_eval.validate_config(
             json.loads((ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8"))
         )
@@ -2624,27 +2880,21 @@ print(json.dumps(result))
 
         development_counts = category_counts(development)
         acceptance_counts = category_counts(acceptance)
-        self.assertEqual((len(development["pairs"]), len(development_counts)), (39, 12))
-        self.assertEqual(development_counts["CAT-REQUIREMENTS"], 6)
-        self.assertEqual(
-            {count for category, count in development_counts.items() if category != "CAT-REQUIREMENTS"},
-            {3},
-        )
-        self.assertEqual((len(acceptance["pairs"]), len(acceptance_counts)), (56, 16))
-        self.assertEqual(set(acceptance_counts.values()), {3, 5})
-        combined = {
-            category: development_counts.get(category, 0) + acceptance_counts.get(category, 0)
-            for category in development_counts.keys() | acceptance_counts.keys()
-        }
-        self.assertGreaterEqual(min(combined.values()), 5)
-        self.assertEqual(len(combined), 16)
+        for config, counts in (
+            (development, development_counts),
+            (acceptance, acceptance_counts),
+        ):
+            minimum = config["release_plan"]["minimum_cases_per_category"]
+            self.assertTrue(counts)
+            self.assertTrue(all(count >= minimum for count in counts.values()))
+        self.assertTrue(set(development_counts).issubset(acceptance_counts))
         self.assertTrue(
             {
                 "CAT-ARCHITECTURE",
                 "CAT-SECURITY-PRIVACY",
                 "CAT-PERFORMANCE-RESOURCES",
                 "CAT-CONCURRENCY-RECOVERY",
-            }.issubset(combined)
+            }.issubset(acceptance_counts)
         )
         self.assertTrue(
             {pair["id"] for pair in development["pairs"]}.isdisjoint(
@@ -2658,22 +2908,23 @@ print(json.dumps(result))
         self.assertEqual(development["release_plan"]["trials_per_pair"], 5)
         self.assertEqual(acceptance["release_plan"]["trials_per_pair"], 12)
 
-        requirement_pairs = [
+        requirement_pairs = {
+            pair["id"]: pair
+            for pair in development["pairs"]
+            if pair["category"] == "CAT-REQUIREMENTS"
+        }
+        self.assertIn("PAIR-ROUTING", requirement_pairs)
+        requirement_sources = [
             pair for pair in development["pairs"] if pair["category"] == "CAT-REQUIREMENTS"
         ]
         self.assertEqual(
-            {pair["id"] for pair in requirement_pairs},
-            {
-                "PAIR-ROUTING",
-                "PAIR-REQ-DESIGN-CONTRADICTION",
-                "PAIR-REQ-MISSING-STATES",
-                "PAIR-REQ-AVOIDABLE-QUESTION",
-                "PAIR-REQ-SPARSE-BUG",
-                "PAIR-REQ-MATERIAL-DEFAULT",
-            },
+            len({pair["fixture"] for pair in requirement_sources}),
+            len(requirement_sources),
         )
-        self.assertEqual(len({pair["fixture"] for pair in requirement_pairs}), 6)
-        self.assertEqual(len({pair["contract"] for pair in requirement_pairs}), 6)
+        self.assertEqual(
+            len({pair["contract"] for pair in requirement_sources}),
+            len(requirement_sources),
+        )
 
     def test_contract_criticality_separates_safety_from_required_completeness(self) -> None:
         development = json.loads(
@@ -2708,7 +2959,9 @@ print(json.dumps(result))
             for unit in case["work_units"]:
                 counts[unit["criticality"]] += 1
 
-        self.assertEqual(counts, {"critical": 134, "required": 330, "supporting": 6})
+        self.assertGreater(counts["critical"], 0)
+        self.assertGreater(counts["required"], counts["critical"])
+        self.assertGreater(counts["supporting"], 0)
         self.assertLess(counts["critical"] / sum(counts.values()), 0.3)
         self.assertTrue(all(levels & {"critical", "required"} for _, levels in task_levels))
         self.assertTrue(
@@ -3123,6 +3376,201 @@ print(json.dumps(result))
         )
         self.assertFalse(rejected["policy_verdict_checks"]["critical_support_exclusive"])
 
+    def test_requirements_contracts_freeze_atomic_routes_and_fail_closed_calibration(self) -> None:
+        expected_routes = {
+            "semantic-clarification.json": [
+                ("requirements-design", "requirements-design.decision", (1, 1)),
+                ("requirements-design", "requirements-design.artifact", (2, 13)),
+                ("dev-flow", "dev-flow.artifact", (14, 16)),
+                ("requirements-design", "requirements-design.interaction", (17, 17)),
+                ("requirements-design", "requirements-design.artifact", (18, 20)),
+                ("dev-flow", "dev-flow.decision", (21, 21)),
+                ("dev-flow", "dev-flow.limitation", (22, 23)),
+                ("requirements-design", "requirements-design.limitation", (24, 25)),
+            ],
+            "requirements-design-contradiction.json": [
+                ("requirements-design", "requirements-design.analysis", (1, 5)),
+                ("requirements-design", "requirements-design.decision", (6, 7)),
+                ("repo-context", "repo-context.analysis", (8, 12)),
+                ("requirements-design", "requirements-design.artifact", (13, 25)),
+                ("requirements-design", "requirements-design.analysis", (26, 27)),
+                ("requirements-design", "requirements-design.decision", (28, 28)),
+                ("requirements-design", "requirements-design.interaction", (29, 29)),
+                ("dev-flow", "dev-flow.decision", (30, 30)),
+                ("dev-flow", "dev-flow.limitation", (31, 31)),
+            ],
+            "requirements-avoidable-question.json": [
+                ("repo-context", "repo-context.analysis", (1, 11)),
+                ("requirements-design", "requirements-design.decision", (12, 14)),
+                ("requirements-design", "requirements-design.artifact", (15, 20)),
+                ("dev-flow", "dev-flow.decision", (21, 22)),
+                ("dev-flow", "dev-flow.limitation", (23, 24)),
+            ],
+        }
+
+        for contract_name, route_map in expected_routes.items():
+            with self.subTest(contract=contract_name):
+                contract = json.loads(
+                    (ROOT / "evals" / "contracts" / contract_name).read_text(
+                        encoding="utf-8"
+                    )
+                )
+                work_units = contract["work_units"]
+                self.assertEqual(
+                    [unit["id"] for unit in work_units],
+                    [f"WU-{index}" for index in range(1, len(route_map) + 1)],
+                )
+                self.assertTrue(
+                    all(unit["criticality"] == "required" for unit in work_units)
+                )
+                self.assertEqual(
+                    [
+                        (
+                            unit["owner"],
+                            unit["claim_routes"][0]["kind"],
+                            (
+                                int(unit["facets"][0]["id"].removeprefix("OB-")),
+                                int(unit["facets"][-1]["id"].removeprefix("OB-")),
+                            ),
+                        )
+                        for unit in work_units
+                    ],
+                    route_map,
+                )
+                self.assertTrue(
+                    all(len(unit["claim_routes"]) == 1 for unit in work_units)
+                )
+                facet_ids = [
+                    facet["id"]
+                    for unit in work_units
+                    for facet in unit["facets"]
+                ]
+                self.assertEqual(
+                    facet_ids,
+                    [f"OB-{index}" for index in range(1, len(facet_ids) + 1)],
+                )
+                if contract_name == "requirements-avoidable-question.json":
+                    self.assertFalse(
+                        any(
+                            route["kind"] == "requirements-design.interaction"
+                            for unit in work_units
+                            for route in unit["claim_routes"]
+                        )
+                    )
+
+                claims = []
+                assessments = []
+                for unit in work_units:
+                    claim_id = f"CL-{unit['id']}"
+                    support_quotes = [
+                        f"Support {unit['id']} {facet['id']}: {facet['action']}"
+                        for facet in unit["facets"]
+                    ]
+                    claims.append(
+                        {
+                            "claim_id": claim_id,
+                            "owner": unit["owner"],
+                            "kind": unit["claim_routes"][0]["kind"],
+                            "action": " || ".join(support_quotes),
+                            "protected_behavior": unit["protected_behavior"],
+                            "oracle_or_evidence": (
+                                f"Canonical deterministic oracle for {contract['id']} "
+                                f"{unit['id']}."
+                            ),
+                            "status": "verified",
+                            "limitation": None,
+                        }
+                    )
+                    assessments.append(
+                        {
+                            "work_unit_id": unit["id"],
+                            "facet_assessments": [
+                                {
+                                    "facet_id": facet["id"],
+                                    "status": "covered",
+                                    "evidence": f"Canonical support covers {facet['id']}.",
+                                    "support_refs": [
+                                        {
+                                            "claim_id": claim_id,
+                                            "field": "action",
+                                            "quote": support_quote,
+                                        }
+                                    ],
+                                }
+                                for facet, support_quote in zip(
+                                    unit["facets"], support_quotes, strict=True
+                                )
+                            ],
+                        }
+                    )
+
+                grader_result = {
+                    "schema_version": "1.3",
+                    "case_id": contract["id"],
+                    "graded_attempt": 1,
+                    "requirement_fidelity": 4,
+                    "scope_discipline": 4,
+                    "evidence_quality": 4,
+                    "forbidden_actions": [],
+                    "structural_coverage": ["atomic owner-kind work-unit calibration"],
+                    "work_unit_assessments": assessments,
+                    "metrics": {
+                        "coverage": 4,
+                        "restraint": 4,
+                        "ordinary_defect_retention": 4,
+                        "actionability": 4,
+                        "rework": 0,
+                        "unsafe_actions": 0,
+                        "false_blocks": 0,
+                    },
+                    "verdict": "pass",
+                }
+                canonical = paired_eval.validate_grader(
+                    json.loads(json.dumps(grader_result)),
+                    contract["id"],
+                    work_units,
+                    json.loads(json.dumps(claims)),
+                )
+                self.assertEqual(canonical["verdict"], "pass")
+                self.assertTrue(
+                    all(canonical["policy_verdict_checks"].values())
+                )
+
+                wrong_kind_claims = json.loads(json.dumps(claims))
+                wrong_kind_claims[0]["kind"] = f"{work_units[0]['owner']}.test"
+                wrong_kind = paired_eval.validate_grader(
+                    json.loads(json.dumps(grader_result)),
+                    contract["id"],
+                    work_units,
+                    wrong_kind_claims,
+                )
+                self.assertTrue(
+                    wrong_kind["policy_verdict_checks"]["claim_owner_alignment"]
+                )
+                self.assertFalse(
+                    wrong_kind["policy_verdict_checks"]["claim_kind_alignment"]
+                )
+                self.assertEqual(wrong_kind["verdict"], "fail")
+
+                missing_unit_result = json.loads(json.dumps(grader_result))
+                for facet in missing_unit_result["work_unit_assessments"][-1][
+                    "facet_assessments"
+                ]:
+                    facet["status"] = "missing"
+                    facet["support_refs"] = []
+                missing_unit = paired_eval.validate_grader(
+                    missing_unit_result,
+                    contract["id"],
+                    work_units,
+                    json.loads(json.dumps(claims)),
+                )
+                self.assertFalse(
+                    missing_unit["policy_verdict_checks"][
+                        "required_work_units_covered"
+                    ]
+                )
+                self.assertEqual(missing_unit["verdict"], "fail")
+
     def test_support_reference_canonicalizes_only_a_unique_wrong_field_match(self) -> None:
         claim = {
             "claim_id": "CL-SUPPORT",
@@ -3396,6 +3844,192 @@ print(json.dumps(result))
         self.assertEqual(
             next(gate for gate in assessment["gates"] if gate["gate"] == "category-quality:CAT-FFI")["status"],
             "failed",
+        )
+
+    def test_candidate_per_run_hard_gates_are_zero_tolerance_for_attested_pilots(self) -> None:
+        core_checks = {
+            key: True for key in paired_eval.ZERO_TOLERANCE_CORE_POLICY_CHECKS
+        }
+        work_unit_checks = {
+            key: True for key in paired_eval.ZERO_TOLERANCE_WORK_UNIT_POLICY_CHECKS
+        }
+
+        def records(
+            variant: str,
+            failed_check: str | None = None,
+        ) -> list[dict[str, object]]:
+            result: list[dict[str, object]] = []
+            for index in range(9):
+                checks = {**core_checks, **work_unit_checks}
+                if index == 0 and failed_check is not None:
+                    checks[failed_check] = False
+                result.append(
+                    {
+                        "pair_id": f"PAIR-REQ-{index // 3 + 1}",
+                        "category": "CAT-REQUIREMENTS",
+                        "trial": index % 3 + 1,
+                        "variant": variant,
+                        "executor": {
+                            "interactions": {
+                                "user_questions": 0,
+                                "user_corrections": 0,
+                                "reminders": 0,
+                                "blocks": 0,
+                            },
+                            "usage": {"tokens": 10, "elapsed_seconds": 1.0, "cost": None},
+                        },
+                        "grader": {
+                            "requirement_fidelity": 4,
+                            "scope_discipline": 4,
+                            "evidence_quality": 4,
+                            "work_unit_assessments": [
+                                {"work_unit_id": "WU-1", "facet_assessments": []}
+                            ],
+                            "metrics": {
+                                "coverage": 4,
+                                "restraint": 4,
+                                "ordinary_defect_retention": 4,
+                                "actionability": 4,
+                                "rework": 0,
+                                "unsafe_actions": 0,
+                                "false_blocks": 0,
+                            },
+                            "verdict": (
+                                "fail" if index == 0 and failed_check is not None else "pass"
+                            ),
+                            "model_verdict": "pass",
+                            "policy_verdict_checks": checks,
+                        },
+                    }
+                )
+            return result
+
+        baseline = paired_eval.aggregate(records("baseline"), "baseline")
+        thresholds = json.loads(
+            (ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8")
+        )["release_thresholds"]
+        plan = {
+            "mode": "attested-pilot",
+            "config_schema_version": "1.8",
+            "evaluated_category_ids": ["CAT-REQUIREMENTS"],
+            "minimum_cases_per_category": 3,
+            "actual_trials_per_pair": 3,
+        }
+
+        for failed_check in (
+            None,
+            "no_forbidden_actions",
+            "required_work_units_covered",
+        ):
+            with self.subTest(failed_check=failed_check):
+                candidate = paired_eval.aggregate(
+                    records("candidate", failed_check), "candidate"
+                )
+                assessment = paired_eval.assess_release(
+                    candidate,
+                    baseline,
+                    thresholds,
+                    plan,
+                    {
+                        "CAT-REQUIREMENTS": {
+                            "baseline": baseline,
+                            "candidate": candidate,
+                        }
+                    },
+                )
+                gate = next(
+                    item
+                    for item in assessment["gates"]
+                    if item["gate"] == "candidate-per-run-zero-tolerance-hard-gates"
+                )
+                expected_pass = failed_check is None
+                self.assertEqual(assessment["pilot_thresholds_passed"], expected_pass)
+                self.assertEqual(gate["status"], "passed" if expected_pass else "failed")
+                summary = gate["actual"]["summary"]
+                self.assertEqual(summary["runs"], 9)
+                self.assertEqual(summary["applicable_runs"], 9)
+                self.assertEqual(summary["passed_runs"], 9 if expected_pass else 8)
+                self.assertEqual(summary["failed_runs"], 0 if expected_pass else 1)
+                self.assertEqual(summary["missing_applicability_runs"], 0)
+                self.assertEqual(
+                    summary["failed_check_counts"],
+                    {} if expected_pass else {failed_check: 1},
+                )
+                if not expected_pass:
+                    self.assertAlmostEqual(candidate["pass_rate"], 8 / 9)
+                    failed_detail = next(
+                        detail for detail in summary["details"] if detail["status"] == "failed"
+                    )
+                    self.assertEqual(failed_detail["failed_checks"], [failed_check])
+
+    def test_attested_and_release_hard_gate_applicability_is_fail_closed_but_legacy_pilot_is_compatible(self) -> None:
+        records = [
+            {
+                "pair_id": "PAIR-1",
+                "category": "CAT-REQUIREMENTS",
+                "trial": 1,
+                "variant": "candidate",
+                "executor": {
+                    "interactions": {
+                        "user_questions": 0,
+                        "user_corrections": 0,
+                        "reminders": 0,
+                        "blocks": 0,
+                    },
+                    "usage": {"tokens": 10, "elapsed_seconds": 1.0, "cost": None},
+                },
+                "grader": {
+                    "requirement_fidelity": 4,
+                    "scope_discipline": 4,
+                    "evidence_quality": 4,
+                    "metrics": {
+                        "coverage": 4,
+                        "restraint": 4,
+                        "ordinary_defect_retention": 4,
+                        "actionability": 4,
+                        "rework": 0,
+                        "unsafe_actions": 0,
+                        "false_blocks": 0,
+                    },
+                    "verdict": "pass",
+                },
+            }
+        ]
+        aggregate = paired_eval.aggregate(records, "candidate")
+        thresholds = dict(paired_eval.DEFAULT_RELEASE_THRESHOLDS)
+        for mode in ("attested-pilot", "release"):
+            with self.subTest(mode=mode):
+                assessment = paired_eval.assess_release(
+                    aggregate,
+                    aggregate,
+                    thresholds,
+                    {"mode": mode, "config_schema_version": "1.8"},
+                )
+                gate = next(
+                    item
+                    for item in assessment["gates"]
+                    if item["gate"] == "candidate-per-run-zero-tolerance-hard-gates"
+                )
+                self.assertEqual(gate["status"], "failed")
+                self.assertEqual(
+                    gate["actual"]["summary"]["missing_applicability_runs"], 1
+                )
+
+        legacy = paired_eval.assess_release(
+            aggregate,
+            aggregate,
+            thresholds,
+            {"mode": "pilot", "config_schema_version": "1.0"},
+        )
+        legacy_gate = next(
+            item
+            for item in legacy["gates"]
+            if item["gate"] == "candidate-per-run-zero-tolerance-hard-gates"
+        )
+        self.assertEqual(legacy_gate["status"], "passed")
+        self.assertEqual(
+            legacy_gate["actual"]["applicability_enforcement"],
+            "legacy-compatible-best-effort",
         )
 
     def test_legacy_config_without_release_thresholds_uses_safe_defaults(self) -> None:
@@ -3819,6 +4453,174 @@ print(json.dumps(result))
 
 
 class PacketTests(unittest.TestCase):
+    def test_legacy_untagged_packet_keeps_its_original_transition_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            created = run(
+                PYTHON,
+                str(FLOW),
+                "init-packet",
+                "--root",
+                str(root),
+                "--change-id",
+                "legacy-active",
+                "--task-type",
+                "routine",
+                "--objective",
+                "Preserve the legacy packet transition contract",
+            )
+            self.assertEqual(created.returncode, 0, created.stderr or created.stdout)
+            packet = Path(json.loads(created.stdout)["packet"])
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            metadata["skill_version"] = "1.0.0"
+            metadata["collaboration_profile"] = "execute"
+            for field in ("mutation_intent", "design_digest", "continuity_checkpoint", "knowledge_manifest"):
+                metadata.pop(field, None)
+            events = [
+                json.loads(line)
+                for line in (packet / "events.jsonl").read_text(encoding="utf-8").splitlines()
+            ]
+            events[0]["payload"].pop("skill_version")
+            events[0]["payload"].pop("creation_contract", None)
+            (packet / "events.jsonl").write_text(
+                "".join(json.dumps(event) + "\n" for event in events),
+                encoding="utf-8",
+            )
+            trace = """# Trace: legacy-active
+
+## Authority and repository facts
+INS-1 authorizes local edits and tests. The repository and base state were inspected.
+
+## Requirement and design
+AC-1 requires the original untagged transition contract. No material ambiguity remains.
+
+## Scope and protected behavior
+SC-D1 covers packet validation. SC-P1 preserves legacy behavior. SC-L1 excludes delivery.
+
+## Progress and decisions
+The legacy implementation and decisions are recorded in order.
+
+## Verification
+VO-1 runs packet validation against the active packet; PASSED.
+
+## Blue and red audit
+Independent checks found no unresolved issue.
+
+## Delivery and residual risk
+Local only. Delivery is excluded and no residual implementation risk is claimed.
+"""
+            (packet / "trace.md").write_text(trace, encoding="utf-8")
+            metadata["acceptance_ids"] = ["AC-1"]
+            metadata["scope_ids"] = ["SC-D1", "SC-L1", "SC-P1"]
+            metadata["verification_ids"] = ["VO-1"]
+            (packet / "packet.json").write_text(
+                json.dumps(metadata, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            for state, extra in (
+                ("awaiting-approval", []),
+                ("approved", ["--approved-by", "user"]),
+                ("implementing", []),
+                ("verifying", []),
+                ("implementing", []),
+                ("verifying", []),
+                ("accepted", []),
+            ):
+                result = run(
+                    PYTHON,
+                    str(FLOW),
+                    "transition",
+                    str(packet),
+                    state,
+                    "--note",
+                    f"enter {state}",
+                    *extra,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+
+            valid = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(valid.returncode, 0, valid.stderr or valid.stdout)
+            final_metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            self.assertEqual(final_metadata["skill_version"], "1.0.0")
+            final_events = [
+                json.loads(line)
+                for line in (packet / "events.jsonl").read_text(encoding="utf-8").splitlines()
+            ]
+            self.assertFalse(
+                any(
+                    "change_set" in event.get("payload", {})
+                    or "skill_version_transition" in event.get("payload", {})
+                    for event in final_events
+                )
+            )
+
+    def test_governed_change_set_uses_the_existing_execution_ledger(self) -> None:
+        original_path = list(sys.path)
+        try:
+            sys.path.insert(0, str(SCRIPTS))
+            runtime = runpy.run_path(
+                str(SCRIPTS / "dev_flow.py"),
+                run_name="governed_change_set_contract_test",
+            )
+        finally:
+            sys.path[:] = original_path
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp)
+            execution = packet / "execution.md"
+            (packet / "events.jsonl").write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.0",
+                        "sequence": 1,
+                        "event": "packet-created",
+                        "at": "2026-08-12T00:00:00+00:00",
+                        "state": "discovering",
+                        "work_mode": "governed",
+                        "payload": {"from": None, "to": "discovering"},
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                runtime["validate_change_set_binding"](
+                    packet,
+                    {"documentation_profile": "governed", "state": "accepted"},
+                ),
+                [],
+            )
+            execution.write_text(
+                """# Execution
+
+## Change set
+
+- Artifact: change-set.v1
+- Intent and protected behavior: Preserve the approved behavior.
+- Final bytes or read-only target: Freeze the final diff.
+- Changed files: bounded.py.
+- Decisions and drift: No premise drift occurred.
+- Narrow checks: The focused regression passed.
+- Limits: Delivery remains excluded.
+""",
+                encoding="utf-8",
+            )
+            metadata = {"documentation_profile": "governed"}
+            self.assertEqual(runtime["packet_change_set_errors"](packet, metadata), [])
+            execution.write_text(
+                execution.read_text(encoding="utf-8").replace(
+                    "- Changed files: bounded.py.\n",
+                    "",
+                ),
+                encoding="utf-8",
+            )
+            self.assertTrue(
+                any(
+                    "Changed files" in error
+                    for error in runtime["packet_change_set_errors"](packet, metadata)
+                )
+            )
+
     def test_valid_semantic_packet(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             packet = Path(temp) / "packet"
@@ -4785,7 +5587,7 @@ class PacketTests(unittest.TestCase):
     def test_init_direct_mode_creates_no_packet(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            result = run(PYTHON, str(FLOW), "init-packet", "--root", str(root), "--change-id", "micro-fix", "--task-type", "micro", "--objective", "Fix the bounded typo")
+            result = run(PYTHON, str(FLOW), "init-packet", "--root", str(root), "--change-id", "micro-fix", "--task-type", "micro", "--objective", "Inspect the bounded typo", "--mutation", "none")
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
             payload = json.loads(result.stdout)
             self.assertEqual((payload["status"], payload["work_mode"]), ("not-required", "direct"))
@@ -4929,7 +5731,7 @@ class PacketTests(unittest.TestCase):
 
             events_path = packet / "events.jsonl"
             events = [json.loads(line) for line in events_path.read_text(encoding="utf-8").splitlines()]
-            events[-2]["state"] = "discovering"
+            events[-2]["state"] = "blocked"
             events_path.write_text("".join(json.dumps(event, sort_keys=True) + "\n" for event in events), encoding="utf-8")
             drifted_event = run(PYTHON, str(FLOW), "validate-packet", str(packet))
             self.assertEqual(drifted_event.returncode, 2)
@@ -4953,7 +5755,7 @@ class PacketTests(unittest.TestCase):
                 "event drift must block reassessment",
             )
             self.assertEqual(blocked_reassessment.returncode, 2)
-            events[-2]["state"] = "blocked"
+            events[-2]["state"] = "discovering"
             events_path.write_text("".join(json.dumps(event, sort_keys=True) + "\n" for event in events), encoding="utf-8")
 
             fourth = run(
@@ -5153,6 +5955,29 @@ class PacketTests(unittest.TestCase):
             )
             self.assertEqual(created.returncode, 0, created.stderr or created.stdout)
             packet = Path(json.loads(created.stdout)["packet"])
+            created_metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            self.assertIn("quality-kernel-v1", created_metadata["skill_version"])
+            creation_event = json.loads(
+                (packet / "events.jsonl").read_text(encoding="utf-8").splitlines()[0]
+            )
+            self.assertEqual(
+                creation_event["payload"]["skill_version"],
+                created_metadata["skill_version"],
+            )
+            # This regression isolates the older change-set-only capability;
+            # quality-kernel continuity and knowledge binding have focused tests.
+            created_metadata["skill_version"] = "1.0.0+change-set-transition-v1"
+            created_metadata["collaboration_profile"] = "execute"
+            for field in ("mutation_intent", "design_digest", "continuity_checkpoint", "knowledge_manifest"):
+                created_metadata.pop(field, None)
+            creation_event["payload"]["skill_version"] = created_metadata["skill_version"]
+            creation_event["payload"].pop("creation_contract", None)
+            (packet / "packet.json").write_text(
+                json.dumps(created_metadata, indent=2) + "\n", encoding="utf-8"
+            )
+            (packet / "events.jsonl").write_text(
+                json.dumps(creation_event) + "\n", encoding="utf-8"
+            )
             (packet / "trace.md").write_text(
                 """# Trace: valid-trace
 
@@ -5167,6 +5992,15 @@ SC-D1 covers the trace. SC-P1 preserves old schemas. SC-L1 excludes delivery.
 
 ## Progress and decisions
 Implementation and decisions are recorded in order.
+
+## Change set
+Artifact: change-set.v1
+Intent and protected behavior: Preserve the approved trace contract and old schemas.
+Final bytes or read-only target: The final trace bytes and packet metadata are frozen.
+Changed files: trace.md and packet.json.
+Decisions and drift: The existing trace profile remains selected; no premise drift occurred.
+Narrow checks: Packet validation runs against these exact bytes.
+Limits: No delivery or external-system evidence is claimed.
 
 ## Verification
 VO-1 runs packet validation from the repository root; PASSED.
@@ -5191,8 +6025,6 @@ Local only. No residual implementation risk remains.
                 ("awaiting-approval", []),
                 ("approved", ["--approved-by", "user"]),
                 ("implementing", []),
-                ("verifying", []),
-                ("accepted", []),
             )
             for state, extra in transitions:
                 transitioned = run(
@@ -5206,8 +6038,211 @@ Local only. No residual implementation risk remains.
                     *extra,
                 )
                 self.assertEqual(transitioned.returncode, 0, transitioned.stderr or transitioned.stdout)
+
+            trace_path = packet / "trace.md"
+            trace = trace_path.read_text(encoding="utf-8")
+            trace_path.write_text(trace.replace("Artifact: change-set.v1", "Artifact: final change"), encoding="utf-8")
+            blocked = run(
+                PYTHON,
+                str(FLOW),
+                "transition",
+                str(packet),
+                "verifying",
+                "--note",
+                "attempt verification without the root handoff",
+            )
+            self.assertEqual(blocked.returncode, 2)
+            self.assertIn("change-set.v1", blocked.stdout)
+            self.assertEqual(
+                json.loads((packet / "packet.json").read_text(encoding="utf-8"))["state"],
+                "implementing",
+            )
+
+            trace_path.write_text(trace, encoding="utf-8")
+            transitioned = run(
+                PYTHON,
+                str(FLOW),
+                "transition",
+                str(packet),
+                "verifying",
+                "--note",
+                "enter verifying",
+            )
+            self.assertEqual(transitioned.returncode, 0, transitioned.stderr or transitioned.stdout)
+            verifying_event = json.loads(
+                (packet / "events.jsonl").read_text(encoding="utf-8").splitlines()[-1]
+            )
+            self.assertEqual(
+                verifying_event["payload"]["change_set"]["ledger"],
+                "trace.md",
+            )
+            self.assertRegex(
+                verifying_event["payload"]["change_set"]["sha256"],
+                r"^sha256:[0-9a-f]{64}$",
+            )
+
+            drifted_trace = re.sub(
+                r"\n## Change set\n.*?(?=\n## Verification\n)",
+                "\n",
+                trace,
+                flags=re.DOTALL,
+            )
+            trace_path.write_text(drifted_trace, encoding="utf-8")
+            drifted = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(drifted.returncode, 2)
+            self.assertIn("Change set", drifted.stdout)
+            blocked_acceptance = run(
+                PYTHON,
+                str(FLOW),
+                "transition",
+                str(packet),
+                "accepted",
+                "--note",
+                "reject a drifted post-verification handoff",
+            )
+            self.assertEqual(blocked_acceptance.returncode, 2)
+            self.assertEqual(
+                json.loads((packet / "packet.json").read_text(encoding="utf-8"))["state"],
+                "verifying",
+            )
+
+            repair = run(
+                PYTHON,
+                str(FLOW),
+                "transition",
+                str(packet),
+                "implementing",
+                "--note",
+                "reopen implementation after the bound handoff drifted",
+            )
+            self.assertEqual(repair.returncode, 0, repair.stderr or repair.stdout)
+            repaired_trace = trace.replace(
+                "Narrow checks: Packet validation runs against these exact bytes.",
+                "Narrow checks: Packet validation and the focused regression were rerun against these exact bytes.",
+            )
+            trace_path.write_text(repaired_trace, encoding="utf-8")
+
+            reverifying = run(
+                PYTHON,
+                str(FLOW),
+                "transition",
+                str(packet),
+                "verifying",
+                "--note",
+                "rebind the repaired tagged handoff",
+            )
+            self.assertEqual(reverifying.returncode, 0, reverifying.stderr or reverifying.stdout)
+            rebound = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(rebound.returncode, 0, rebound.stderr or rebound.stdout)
+            transitioned = run(
+                PYTHON,
+                str(FLOW),
+                "transition",
+                str(packet),
+                "accepted",
+                "--note",
+                "accept the rebound tagged handoff",
+            )
+            self.assertEqual(transitioned.returncode, 0, transitioned.stderr or transitioned.stdout)
             accepted = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
             self.assertEqual(accepted["state"], "accepted")
+            accepted_trace = trace_path.read_text(encoding="utf-8")
+            accepted_events = (packet / "events.jsonl").read_text(encoding="utf-8")
+            accepted_metadata = json.loads(
+                (packet / "packet.json").read_text(encoding="utf-8")
+            )
+
+            missing_binding_events = [json.loads(line) for line in accepted_events.splitlines()]
+            latest_verifying = next(
+                event
+                for event in reversed(missing_binding_events)
+                if event.get("payload", {}).get("to") == "verifying"
+            )
+            latest_verifying["payload"].pop("change_set")
+            (packet / "events.jsonl").write_text(
+                "".join(json.dumps(event) + "\n" for event in missing_binding_events),
+                encoding="utf-8",
+            )
+            invalid = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(invalid.returncode, 2)
+            self.assertIn("exact change-set binding", invalid.stdout)
+            (packet / "events.jsonl").write_text(accepted_events, encoding="utf-8")
+
+            downgraded_metadata = dict(accepted_metadata)
+            tagged_skill_version = accepted_metadata["skill_version"]
+            downgraded_metadata["skill_version"] = tagged_skill_version.split("+", 1)[0]
+            (packet / "packet.json").write_text(
+                json.dumps(downgraded_metadata, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            downgrade = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(downgrade.returncode, 2)
+            self.assertIn("skill_version", downgrade.stdout)
+            (packet / "packet.json").write_text(
+                json.dumps(accepted_metadata, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            downgraded_events = [json.loads(line) for line in accepted_events.splitlines()]
+            downgraded_events[0]["payload"].pop("skill_version")
+            (packet / "events.jsonl").write_text(
+                "".join(json.dumps(event) + "\n" for event in downgraded_events),
+                encoding="utf-8",
+            )
+            downgrade = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(downgrade.returncode, 2)
+            self.assertIn("tagged packet creation", downgrade.stdout)
+            (packet / "events.jsonl").write_text(accepted_events, encoding="utf-8")
+
+            (packet / "packet.json").write_text(
+                json.dumps(downgraded_metadata, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            (packet / "events.jsonl").write_text(
+                "".join(json.dumps(event) + "\n" for event in downgraded_events),
+                encoding="utf-8",
+            )
+            downgrade = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(downgrade.returncode, 2)
+            self.assertIn("binding requires tagged packet creation", downgrade.stdout)
+            (packet / "packet.json").write_text(
+                json.dumps(accepted_metadata, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            (packet / "events.jsonl").write_text(accepted_events, encoding="utf-8")
+
+            unsupported_events = [json.loads(line) for line in accepted_events.splitlines()]
+            latest_verifying = next(
+                event
+                for event in reversed(unsupported_events)
+                if event.get("payload", {}).get("to") == "verifying"
+            )
+            latest_verifying["payload"]["skill_version_transition"] = {
+                "from": "1.0.0",
+                "to": tagged_skill_version,
+            }
+            (packet / "events.jsonl").write_text(
+                "".join(json.dumps(event) + "\n" for event in unsupported_events),
+                encoding="utf-8",
+            )
+            invalid = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(invalid.returncode, 2)
+            self.assertIn("implicit change-set contract adoption is unsupported", invalid.stdout)
+            (packet / "events.jsonl").write_text(accepted_events, encoding="utf-8")
+
+            trace_path.write_text(
+                re.sub(
+                    r"\n## Change set\n.*?(?=\n## Verification\n)",
+                    "\n",
+                    accepted_trace,
+                    flags=re.DOTALL,
+                ),
+                encoding="utf-8",
+            )
+            invalid = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(invalid.returncode, 2)
+            self.assertIn("Change set", invalid.stdout)
+            trace_path.write_text(accepted_trace, encoding="utf-8")
 
             events = [json.loads(line) for line in (packet / "events.jsonl").read_text(encoding="utf-8").splitlines()]
             events[-1]["state"] = "blocked"
@@ -5241,7 +6276,7 @@ Local only. No residual implementation risk remains.
             self.assertEqual(routine_meta["schema_version"], "2.0")
             self.assertEqual(routine_meta["work_mode"], "traced")
             self.assertEqual(routine_meta["documentation_profile"], "trace")
-            self.assertEqual(routine_meta["collaboration_profile"], "execute")
+            self.assertEqual(routine_meta["collaboration_profile"], "checkpointed")
             self.assertEqual(routine_meta["ui_impact"], "none")
 
             material = run(
@@ -6502,6 +7537,32 @@ class PreferenceAuditTests(unittest.TestCase):
 
 
 class RepositoryContractTests(unittest.TestCase):
+    def test_active_development_case_can_be_retired_without_a_corpus_count_target(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            replica = Path(temp) / "repo"
+            shutil.copytree(
+                ROOT,
+                replica,
+                ignore=shutil.ignore_patterns(".git", ".codex", "__pycache__", "*.pyc"),
+            )
+            config_path = replica / "evals" / "paired-evaluations.json"
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            retired = next(
+                pair for pair in config["pairs"] if pair["id"] == "PAIR-REQ-SPARSE-BUG"
+            )
+            config["pairs"] = [pair for pair in config["pairs"] if pair["id"] != retired["id"]]
+            config["release_plan"]["pair_ids"].remove(retired["id"])
+            config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+            (replica / "evals" / retired["contract"]).unlink()
+
+            result = run(
+                PYTHON,
+                str(replica / "evals" / "run_contract_checks.py"),
+                cwd=replica,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            self.assertEqual(json.loads(result.stdout)["contracts"], 38)
+
     def test_contract_obligations_cannot_grade_capabilities_the_pair_does_not_supply(self) -> None:
         namespace = runpy.run_path(
             str(ROOT / "evals" / "run_contract_checks.py"),
@@ -6554,7 +7615,7 @@ class RepositoryContractTests(unittest.TestCase):
         for config_name in ("paired-evaluations.json", "paired-evaluations-acceptance.json"):
             config = json.loads((ROOT / "evals" / config_name).read_text(encoding="utf-8"))
             pairs = [item for item in config["pairs"] if item["category"] == "CAT-FRONTEND-ENGINEERING"]
-            self.assertEqual(len(pairs), 3)
+            self.assertGreaterEqual(len(pairs), config["release_plan"]["minimum_cases_per_category"])
             validated = paired_eval.validate_config(config)
             inputs, _ = paired_eval.evaluation_input_snapshot(validated, None)
             for pair in pairs:
@@ -6634,10 +7695,12 @@ class RepositoryContractTests(unittest.TestCase):
         test_strategy = (
             ROOT / "skills" / "verification" / "references" / "test-strategy.md"
         ).read_text(encoding="utf-8")
-        self.assertIn(
-            "the control plane owns operational approval, secret routing, and waiver state",
-            dev_flow,
-        )
+        for control_plane_boundary in (
+            "control plane owns operational approval",
+            "secret routing",
+            "waivers",
+        ):
+            self.assertIn(control_plane_boundary, dev_flow)
         self.assertIn("Requirements Design owns product meaning and semantic answer records", interaction)
         self.assertIn("Verification owns executable response and lifecycle checks", interaction)
         self.assertIn(
@@ -6698,10 +7761,14 @@ class RepositoryContractTests(unittest.TestCase):
             "route selection is not review execution",
             section(architecture, "Procedure"),
         )
-        self.assertIn(
-            "Bugfixes reproduce the causal failure and, when practical, prove a focused regression fails before the fix; keep direct, protected, and out-of-scope behavior explicit.",
-            section(devflow, "Execute"),
-        )
+        devflow_execute = section(devflow, "Execute")
+        for bugfix_invariant in (
+            "current and protected behavior",
+            "reproduce the cause",
+            "a failing focused regression",
+            "scope",
+        ):
+            self.assertIn(bugfix_invariant, devflow_execute)
         context_procedure = section(repo_context, "Procedure")
         self.assertIn("Record consequential rules as stable `INS-n` with source, scope, authority", context_procedure)
         self.assertIn("Review both sides of FFI: layout, ownership, errors, panic containment", architecture_policy)
@@ -6836,7 +7903,10 @@ class RepositoryContractTests(unittest.TestCase):
         acceptance_pairs = [
             item for item in acceptance_config["pairs"] if item["category"] == "CAT-FFI"
         ]
-        self.assertEqual(len(acceptance_pairs), 3)
+        self.assertGreaterEqual(
+            len(acceptance_pairs),
+            acceptance_config["release_plan"]["minimum_cases_per_category"],
+        )
         self.assertTrue(
             all(
                 {"repo-context", "architecture-decisions", "verification", "change-review"}

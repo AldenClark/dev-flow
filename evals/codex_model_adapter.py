@@ -583,12 +583,12 @@ Analyze only the fixed task and fixture. Do not browse, run commands, inspect ho
 
 {capability_instruction}
 
-Task request:
-<task-request>
+Task request (evidence source `task_prompt`):
+<task_prompt>
 {task_prompt}
-</task-request>
+</task_prompt>
 
-Fixed fixture:
+Fixed fixture (evidence source `fixture`):
 <fixture>
 {fixture}
 </fixture>
@@ -598,7 +598,7 @@ Return exactly one JSON object matching the supplied inventory-result schema. sc
 - evidence_family is a neutral, immutable semantic family and must be exactly one of analysis, artifact, decision, interaction, limitation, or test. Planned or not-run status does not change the family: an unexecuted check remains test, route admission remains decision, and missing discovery remains analysis.
 - Each item states action, protected_behavior, oracle_or_evidence, honest status, and limitation. Do not collapse supplied members behind umbrella plurals, `each`, `all`, or `both`.
 - A verified item must have limitation=null and one or more evidence_refs. A planned, not-run, or blocked item must have a non-empty limitation and may use an empty evidence_refs list when the fixture does not provide execution evidence.
-- Every supplied evidence_ref must be an exact 8..500 character quote from only fixture or task_prompt. Each quote must include at least four alphanumeric characters, must occur exactly once in the named source, and must directly ground the item. Capability guidance is never an evidence source.
+- Every supplied evidence_ref must be an exact 8..500 character quote from only fixture or task_prompt. Use source="task_prompt" only for text copied from <task_prompt>, and source="fixture" only for text copied from <fixture>. Each quote must include at least four alphanumeric characters, must occur exactly once across both allowed sources, and must directly ground the item. Capability guidance is never an evidence source.
 - Preserve first-attempt claimed_outcome and interaction counts honestly. Completing this bounded inventory is completed; it is not a claim of implementation or execution.
 - Do not emit actions/evidence narratives, artifacts, usage, provenance, receipts, grading content, hidden work units, facets, variants, conditions, or paths.
 """
@@ -758,6 +758,27 @@ Return exactly one JSON object matching the supplied executor-result schema. sch
 """
 
 
+def overlapping_substring_starts(
+    source: str,
+    substring: str,
+    *,
+    maximum: int | None = None,
+) -> list[int]:
+    """Return overlapping match starts, optionally stopping once multiplicity is proven."""
+    if not substring or maximum is not None and maximum <= 0:
+        return []
+    starts: list[int] = []
+    search_from = 0
+    while True:
+        start = source.find(substring, search_from)
+        if start < 0:
+            return starts
+        starts.append(start)
+        if maximum is not None and len(starts) >= maximum:
+            return starts
+        search_from = start + 1
+
+
 def _validate_inventory_evidence_grounding(
     inventory: dict[str, Any],
     *,
@@ -769,12 +790,24 @@ def _validate_inventory_evidence_grounding(
         for ref_index, ref in enumerate(item["evidence_refs"]):
             source = sources[ref["source"]]
             quote = ref["quote"]
-            if source.count(quote) != 1:
+            source_starts = {
+                source_name: overlapping_substring_starts(
+                    candidate,
+                    quote,
+                    maximum=2,
+                )
+                for source_name, candidate in sources.items()
+            }
+            source_counts = {
+                source_name: len(starts)
+                for source_name, starts in source_starts.items()
+            }
+            if source_counts[ref["source"]] != 1 or sum(source_counts.values()) != 1:
                 raise AdapterError(
                     f"inventory_result.inventory_items[{item_index}].evidence_refs[{ref_index}].quote "
-                    "must occur exactly once in its named source"
+                    "must occur exactly once across fixture and task_prompt in its named source"
                 )
-            start = source.index(quote)
+            start = source_starts[ref["source"]][0]
             end = start + len(quote)
             if (
                 (start > 0 and source[start - 1].isalnum() and quote[0].isalnum())
@@ -843,12 +876,12 @@ Route the immutable atomic inventory into a claim manifest. Do not rewrite the i
 
 {capability_instruction}
 
-Task request:
-<task-request>
+Task request (evidence source `task_prompt`):
+<task_prompt>
 {task_prompt}
-</task-request>
+</task_prompt>
 
-Fixed fixture:
+Fixed fixture (evidence source `fixture`):
 <fixture>
 {fixture}
 </fixture>

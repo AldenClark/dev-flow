@@ -11,6 +11,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -19,6 +20,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import engineering_context
+import knowledge_system
 from dependency_contracts import (
     action_reference_scan,
     approval_binds_file,
@@ -145,10 +147,43 @@ PACKET_EVENTS = {
     "ambiguity-recorded",
     "ambiguity-resolved",
     "approval-recorded",
+    "checkpoint-invalidated",
+    "checkpoint-recorded",
+    "knowledge-bound",
     "iteration-recorded",
     "iteration-reassessed",
     "packet-created",
     "transition",
+}
+CHANGE_SET_SKILL_VERSION_TAG = "change-set-transition-v1"
+QUALITY_KERNEL_SKILL_VERSION_TAG = "quality-kernel-v1"
+CREATION_CONTRACT_SCHEMA_VERSION = "1.0"
+ENGINEERING_CONTEXT_PROJECTION_SCHEMA_VERSION = "1.0"
+QUALITY_PROJECTION_FIELDS = {
+    "mutation_intent",
+    "design_digest",
+    "continuity_checkpoint",
+    "knowledge_manifest",
+}
+QUALITY_EVENT_MARKERS = {
+    "checkpoint-invalidated",
+    "checkpoint-recorded",
+    "knowledge-bound",
+}
+QUALITY_PAYLOAD_FIELDS = {
+    "checkpoint_invalidation",
+    "continuity_checkpoint",
+    "design_digest",
+    "knowledge_manifest",
+}
+CHECKPOINT_INVALIDATION_SCHEMA_VERSION = "1.0"
+CHECKPOINT_INVALIDATION_FIELDS = {
+    "schema_version",
+    "reason",
+    "ambiguity_id",
+    "invalidated_checkpoint_sha256",
+    "from_requirement_revision",
+    "new_requirement_revision",
 }
 ITERATION_CAUSE_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,127}$")
 FULL_FILES = (
@@ -255,6 +290,14 @@ SCHEMA_1_2_HEADINGS = {
     "red-audit.md": ("Finding classification and requirement reopening",),
     "evidence.md": ("Semantic clarification evidence",),
 }
+CHANGE_SET_FIELDS = (
+    "Intent and protected behavior",
+    "Final bytes or read-only target",
+    "Changed files",
+    "Decisions and drift",
+    "Narrow checks",
+    "Limits",
+)
 MICRO_HEADINGS = (
     "Authority and repository facts",
     "Requirement and design",
@@ -264,6 +307,83 @@ MICRO_HEADINGS = (
     "Blue and red audit",
     "Delivery and residual risk",
 )
+QUALITY_GOVERNED_HEADINGS = {
+    "context.md": ("Quality and capability snapshot",),
+    "requirements.md": ("Requirement source and understanding revisions",),
+    "design.md": ("Testing and implementation strategy",),
+    "execution.md": ("Continuity checkpoint", "Slice and commit readiness", "Knowledge disposition"),
+    "test-matrix.md": ("Technique accountability", "Oracle validity review"),
+    "evidence.md": ("Engineering-practice and knowledge evidence",),
+}
+QUALITY_TRACE_HEADINGS = (
+    "Requirement source and understanding revisions",
+    "Engineering context and quality routes",
+    "Continuity checkpoint",
+    "Test technique accountability",
+    "Knowledge and commit readiness",
+)
+CONTINUITY_FIELDS = (
+    "Trigger",
+    "Requirement baseline",
+    "Design baseline",
+    "Engineering context",
+    "Repository baseline",
+    "Repository reconciliation",
+    "Active objective and slice",
+    "Last completed and evidence",
+    "Next action and stop condition",
+    "Drift review",
+)
+CONTINUITY_CHECKPOINT_FIELDS = {
+    "schema_version",
+    "trigger",
+    "requirement_revision",
+    "requirements_digest",
+    "design_digest",
+    "engineering_context_fingerprint",
+    "repository_snapshot",
+    "repository_reconciliation",
+    "active_ids",
+    "active_objective",
+    "last_evidence",
+    "next_action",
+    "stop_condition",
+    "drift",
+    "ledger",
+    "section_sha256",
+    "at",
+}
+COMMIT_READY_FIELDS = (
+    "Status",
+    "Slice",
+    "Narrow and integration checks",
+    "Diff and scope audit",
+    "Test-oracle audit",
+    "Comment and documentation audit",
+    "Delivery authority",
+)
+CONTINUITY_TRIGGERS = {
+    "implementation-start",
+    "resume",
+    "user-steering",
+    "slice-start",
+    "slice-end",
+    "delegation",
+    "reconciliation",
+    "premise-change",
+    "phase-transition",
+    "pre-verification",
+    "final-claim",
+}
+OPEN_CONTINUITY_TRIGGERS = {
+    "implementation-start",
+    "resume",
+    "user-steering",
+    "slice-start",
+    "reconciliation",
+    "premise-change",
+}
+SEALED_CONTINUITY_TRIGGERS = CONTINUITY_TRIGGERS - OPEN_CONTINUITY_TRIGGERS
 PLACEHOLDER_RE = re.compile(r"<[^>\n]+>|\b(?:TODO|TBD|FIXME)\b|^\s*X\s*$", re.IGNORECASE | re.MULTILINE)
 ID_PATTERNS = {
     "acceptance": re.compile(r"\bAC-\d+\b"),
@@ -288,15 +408,21 @@ def documentation_family(profile: Any) -> str | None:
     return None
 
 
-def select_work_mode(task_type: str, risks: Iterable[str], requested: str = "auto") -> tuple[str, list[str]]:
+def select_work_mode(
+    task_type: str,
+    risks: Iterable[str],
+    requested: str = "auto",
+    *,
+    persistent_mutation: bool = False,
+) -> tuple[str, list[str]]:
     risk_set = engineering_context.canonical_risks(risks)
     governed = engineering_context.GOVERNED_RISKS
     if risk_set & governed or task_type in {"migration", "security", "release-hotfix", "dependency-change", "rollback"}:
         automatic, reasons = "governed", sorted(risk_set & governed) or [task_type]
-    elif task_type in {"micro", "spike"}:
+    elif task_type in {"micro", "spike"} and not persistent_mutation:
         automatic, reasons = "direct", [task_type]
     else:
-        automatic, reasons = "traced", [task_type]
+        automatic, reasons = "traced", ["persistent-mutation", task_type] if persistent_mutation else [task_type]
     if requested == "auto":
         return automatic, reasons
     if requested not in WORK_MODES:
@@ -419,6 +545,26 @@ def current_requirements_digest(packet: Path, profile: Any) -> str | None:
     if content is None:
         return None
     return f"sha256:{hashlib.sha256(content).hexdigest()}"
+
+
+def design_content(packet: Path, profile: Any) -> bytes | None:
+    """Return exact design bytes for the quality-kernel approval contract."""
+    family = documentation_family(profile)
+    if family == "governed":
+        path = packet / "design.md"
+        return path.read_bytes() if path.is_file() else None
+    if family == "trace":
+        path = packet / "trace.md"
+        if not path.is_file():
+            return None
+        body = heading_body(path.read_text(encoding="utf-8"), "Requirement and design")
+        return body.encode("utf-8") if body is not None else None
+    return None
+
+
+def current_design_digest(packet: Path, profile: Any) -> str | None:
+    content = design_content(packet, profile)
+    return f"sha256:{hashlib.sha256(content).hexdigest()}" if content is not None else None
 
 
 def semantic_metadata_errors(
@@ -603,6 +749,166 @@ def plugin_version() -> str:
     return str(manifest["version"])
 
 
+def packet_skill_version() -> str:
+    """Tag new packets with additive, independently detectable capabilities."""
+    return f"{plugin_version()}+{CHANGE_SET_SKILL_VERSION_TAG}.{QUALITY_KERNEL_SKILL_VERSION_TAG}"
+
+
+def skill_capabilities(value: object) -> set[str]:
+    if not isinstance(value, str) or "+" not in value:
+        return set()
+    build = value.split("+", 1)[1]
+    return {token for token in build.split(".") if token}
+
+
+def has_skill_capability(value: object, capability: str) -> bool:
+    return capability in skill_capabilities(value)
+
+
+def has_change_set_contract(value: object) -> bool:
+    return has_skill_capability(value, CHANGE_SET_SKILL_VERSION_TAG)
+
+
+def has_quality_kernel_contract(value: object) -> bool:
+    return has_skill_capability(value, QUALITY_KERNEL_SKILL_VERSION_TAG)
+
+
+def creation_contract(metadata: dict[str, Any]) -> dict[str, Any]:
+    """Return the immutable packet classification and authority envelope."""
+
+    return {
+        "schema_version": CREATION_CONTRACT_SCHEMA_VERSION,
+        "skill_version": metadata.get("skill_version"),
+        "capabilities": sorted(skill_capabilities(metadata.get("skill_version"))),
+        "task_type": metadata.get("task_type"),
+        "mutation_intent": metadata.get("mutation_intent"),
+        "work_mode": metadata.get("work_mode"),
+        "documentation_profile": metadata.get("documentation_profile"),
+        "repository_roots": metadata.get("repository_roots"),
+        "authority": metadata.get("authority"),
+        "collaboration_profile": metadata.get("collaboration_profile"),
+        "ui_impact": metadata.get("ui_impact"),
+        "compatibility_required": metadata.get("compatibility_required"),
+        "risk_modifiers": metadata.get("risk_modifiers"),
+    }
+
+
+def packet_creation_contract(packet: Path) -> dict[str, Any] | None:
+    """Read a new packet's immutable contract without interpreting mutable metadata."""
+
+    ledger = packet / "events.jsonl"
+    if not ledger.is_file():
+        return None
+    try:
+        first = next(line for line in ledger.read_text(encoding="utf-8").splitlines() if line.strip())
+        event = json.loads(first)
+    except (OSError, StopIteration, json.JSONDecodeError):
+        return None
+    payload = event.get("payload") if isinstance(event, dict) else None
+    contract = payload.get("creation_contract") if isinstance(payload, dict) else None
+    return contract if isinstance(contract, dict) else None
+
+
+def packet_has_creation_capability(packet: Path, metadata: dict[str, Any], capability: str) -> bool:
+    contract = packet_creation_contract(packet)
+    capabilities = contract.get("capabilities") if isinstance(contract, dict) else None
+    if isinstance(capabilities, list):
+        return capability in capabilities
+    return has_skill_capability(metadata.get("skill_version"), capability)
+
+
+def packet_has_immutable_creation_capability(packet: Path, capability: str) -> bool:
+    contract = packet_creation_contract(packet)
+    capabilities = contract.get("capabilities") if isinstance(contract, dict) else None
+    return isinstance(capabilities, list) and capability in capabilities
+
+
+def quality_provenance_markers(metadata: dict[str, Any], events: list[dict[str, Any]]) -> set[str]:
+    """Find any current-quality provenance before interpreting a packet schema."""
+
+    markers = {f"packet.{field}" for field in QUALITY_PROJECTION_FIELDS if field in metadata}
+    if has_quality_kernel_contract(metadata.get("skill_version")):
+        markers.add("packet.skill_version.quality-kernel-v1")
+    for event in events:
+        name = event.get("event")
+        if name in QUALITY_EVENT_MARKERS:
+            markers.add(f"event.{name}")
+        if has_quality_kernel_contract(event.get("skill_version")):
+            markers.add("event.skill_version.quality-kernel-v1")
+        payload = event.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        if has_quality_kernel_contract(payload.get("skill_version")):
+            markers.add("event.payload.skill_version.quality-kernel-v1")
+        if name == "packet-created" and "creation_contract" in payload:
+            markers.add("event.payload.creation_contract")
+        for field in QUALITY_PAYLOAD_FIELDS:
+            if field in payload:
+                markers.add(f"event.payload.{field}")
+        contract = payload.get("creation_contract")
+        if isinstance(contract, dict):
+            if has_quality_kernel_contract(contract.get("skill_version")):
+                markers.add("event.payload.creation_contract.skill_version.quality-kernel-v1")
+            capabilities = contract.get("capabilities")
+            if isinstance(capabilities, list) and QUALITY_KERNEL_SKILL_VERSION_TAG in capabilities:
+                markers.add("event.payload.creation_contract.capabilities.quality-kernel-v1")
+        design_approval = payload.get("design_approval")
+        if isinstance(design_approval, dict) and "design_digest" in design_approval:
+            markers.add("event.payload.design_approval.design_digest")
+    return markers
+
+
+def quality_provenance_errors(packet: Path, metadata: dict[str, Any]) -> list[str]:
+    """Fail closed on partial current-quality state before schema dispatch."""
+
+    ledger = packet / "events.jsonl"
+    events: list[dict[str, Any]] = []
+    ledger_errors: list[str] = []
+    if ledger.is_file():
+        try:
+            lines = ledger.read_text(encoding="utf-8").splitlines()
+        except OSError as exc:
+            lines = []
+            ledger_errors.append(f"events.jsonl cannot be read: {exc}")
+        for index, line in enumerate(lines, start=1):
+            if not line.strip():
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError as exc:
+                ledger_errors.append(f"events.jsonl:{index}: invalid JSON while resolving quality provenance: {exc}")
+                continue
+            if isinstance(event, dict):
+                events.append(event)
+            else:
+                ledger_errors.append(f"events.jsonl:{index}: non-object event while resolving quality provenance")
+    markers = quality_provenance_markers(metadata, events)
+    if not markers:
+        return []
+
+    errors = list(ledger_errors)
+    creation_payload = events[0].get("payload") if events else None
+    contract = creation_payload.get("creation_contract") if isinstance(creation_payload, dict) else None
+    capabilities = contract.get("capabilities") if isinstance(contract, dict) else None
+    immutable_quality = (
+        isinstance(contract, dict)
+        and has_quality_kernel_contract(contract.get("skill_version"))
+        and isinstance(capabilities, list)
+        and QUALITY_KERNEL_SKILL_VERSION_TAG in capabilities
+    )
+    marker_text = f"; residual markers={sorted(markers)}"
+    if metadata.get("schema_version") != "2.0":
+        errors.append("quality provenance requires packet schema 2.0" + marker_text)
+    if not immutable_quality:
+        errors.append("quality provenance requires an immutable current-quality creation contract" + marker_text)
+    return errors
+
+
+def canonical_json_digest(value: Any) -> str:
+    payload = json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
 def read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -755,16 +1061,418 @@ def git_state(root: Path) -> str:
     return result.stdout.strip() if result.returncode == 0 else "not-a-git-repository"
 
 
+def run_bytes(command: list[str], cwd: Path, timeout: int = 60) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run(command, cwd=cwd, check=False, capture_output=True, timeout=timeout)
+
+
+def hash_untracked_bytes(digest: Any, root: Path, payload: bytes) -> None:
+    for raw_path in sorted(value for value in payload.split(b"\0") if value):
+        digest.update(b"\0path\0" + raw_path + b"\0")
+        if raw_path.startswith(b"/") or b".." in raw_path.split(b"/"):
+            digest.update(b"invalid-path")
+            continue
+        candidate = root / os.fsdecode(raw_path)
+        try:
+            info = candidate.lstat()
+        except OSError:
+            digest.update(b"missing")
+            continue
+        digest.update(str(stat.S_IFMT(info.st_mode)).encode("ascii") + b"\0")
+        if stat.S_ISLNK(info.st_mode):
+            try:
+                digest.update(b"symlink\0" + os.fsencode(os.readlink(candidate)))
+            except OSError:
+                digest.update(b"unreadable-symlink")
+        elif stat.S_ISREG(info.st_mode):
+            try:
+                with candidate.open("rb") as handle:
+                    for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                        digest.update(chunk)
+            except OSError:
+                digest.update(b"unreadable-file")
+        else:
+            digest.update(f"special:{info.st_size}:{info.st_mtime_ns}".encode("ascii"))
+
+
+def submodule_worktree_payload(git_root: Path, scope: str) -> tuple[bytes, list[str]]:
+    """Capture changed bytes inside populated submodules, including nested ones."""
+
+    payload = bytearray()
+    errors: list[str] = []
+    seen: set[Path] = set()
+
+    def visit(parent: Path, prefix: str, restrict: str | None) -> None:
+        modules = parent / ".gitmodules"
+        if not modules.is_file():
+            return
+        configured = run_bytes(
+            ["git", "config", "--file", ".gitmodules", "--null", "--get-regexp", r"^submodule\..*\.path$"],
+            parent,
+        )
+        if configured.returncode not in {0, 1}:
+            errors.append(f"cannot inspect submodule declarations for {parent}")
+            return
+        entries: list[str] = []
+        for raw in configured.stdout.split(b"\0"):
+            if not raw or b"\n" not in raw:
+                continue
+            _, raw_path = raw.split(b"\n", 1)
+            entries.append(os.fsdecode(raw_path))
+        for relative_text in sorted(entries):
+            relative = Path(relative_text)
+            if relative.is_absolute() or ".." in relative.parts:
+                errors.append(f"submodule path is outside its repository: {relative_text}")
+                continue
+            combined = (Path(prefix) / relative).as_posix() if prefix else relative.as_posix()
+            if restrict not in {None, "."}:
+                restrict_path = Path(restrict)
+                combined_path = Path(combined)
+                if not (combined_path == restrict_path or combined_path.is_relative_to(restrict_path)):
+                    continue
+            candidate = (parent / relative).resolve()
+            if candidate in seen or not candidate.is_dir():
+                continue
+            seen.add(candidate)
+            top = run_bytes(["git", "rev-parse", "--show-toplevel"], candidate)
+            if top.returncode or Path(os.fsdecode(top.stdout.strip())).resolve() != candidate:
+                errors.append(f"populated submodule cannot be inspected: {combined}")
+                continue
+            commands = (
+                ["git", "rev-parse", "--verify", "HEAD"],
+                ["git", "status", "--porcelain=v1", "-z", "--untracked-files=all", "--ignore-submodules=none"],
+                ["git", "diff", "--cached", "--binary", "--no-ext-diff", "--no-renames", "--submodule=diff"],
+                ["git", "diff", "--binary", "--no-ext-diff", "--no-renames", "--submodule=diff"],
+                ["git", "ls-files", "--others", "--exclude-standard", "-z"],
+            )
+            results = [run_bytes(command, candidate) for command in commands]
+            if any(result.returncode for result in results):
+                errors.append(f"cannot inspect populated submodule bytes: {combined}")
+                continue
+            payload.extend(b"\0submodule\0" + os.fsencode(combined) + b"\0")
+            for label, result in zip((b"head", b"status", b"staged", b"unstaged"), results[:4], strict=True):
+                payload.extend(b"\0" + label + b"\0" + result.stdout)
+            child_digest = hashlib.sha256()
+            hash_untracked_bytes(child_digest, candidate, results[4].stdout)
+            payload.extend(b"\0untracked\0" + child_digest.digest())
+            visit(candidate, combined, None)
+
+    visit(git_root, "", scope)
+    return bytes(payload), errors
+
+
+def repository_identities(metadata: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
+    """Resolve canonical repository roots and Git identities without scanning bytes."""
+
+    roots = metadata.get("repository_roots")
+    if not isinstance(roots, list) or not roots or any(not isinstance(value, str) for value in roots):
+        return [], ["packet.json: repository_roots must be a non-empty string list"]
+    canonical = sorted({str(Path(value).resolve()) for value in roots})
+    if len(canonical) != len(roots):
+        return [], ["packet.json: repository_roots must be unique after canonicalization"]
+    identities: list[dict[str, Any]] = []
+    errors: list[str] = []
+    for root_text in canonical:
+        root = Path(root_text)
+        if not root.is_dir():
+            errors.append(f"repository root is unavailable: {root_text}")
+            continue
+        top = run_bytes(["git", "rev-parse", "--show-toplevel"], root)
+        if top.returncode:
+            identities.append(
+                {
+                    "root": str(root),
+                    "vcs": "none",
+                    "git_root": None,
+                    "scope": ".",
+                    "head": None,
+                    "observable": False,
+                }
+            )
+            continue
+        try:
+            git_root = Path(os.fsdecode(top.stdout.strip())).resolve()
+            relative = root.relative_to(git_root)
+        except (OSError, ValueError) as exc:
+            errors.append(f"cannot resolve Git identity for {root}: {exc}")
+            continue
+        head_result = run_bytes(["git", "rev-parse", "--verify", "HEAD"], root)
+        head = os.fsdecode(head_result.stdout.strip()) if head_result.returncode == 0 else "unborn"
+        identities.append(
+            {
+                "root": str(root),
+                "vcs": "git",
+                "git_root": str(git_root),
+                "scope": relative.as_posix() if relative.parts else ".",
+                "head": head,
+                "observable": True,
+            }
+        )
+    return identities, errors
+
+
+def repository_snapshot(metadata: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
+    """Capture exact local source identity without persisting source bytes.
+
+    The packet is ignored local state, but the snapshot still stores only a
+    digest and a bounded path inventory. Pre-existing user changes are part of
+    the checkpoint; only later drift requires reconciliation.
+    """
+
+    identities, errors = repository_identities(metadata)
+    if errors:
+        return [], errors
+    snapshots: list[dict[str, Any]] = []
+    for identity in identities:
+        root = Path(str(identity["root"]))
+        if identity["vcs"] == "none":
+            snapshots.append(
+                {
+                    **identity,
+                    "worktree_sha256": None,
+                    "changed_path_count": 0,
+                    "changed_paths": [],
+                    "paths_truncated": False,
+                }
+            )
+            continue
+        git_root = Path(str(identity["git_root"]))
+        head = str(identity["head"])
+        scope = str(identity["scope"])
+        pathspec = ["--", scope]
+        status = run_bytes(
+            ["git", "status", "--porcelain=v1", "-z", "--untracked-files=all", "--ignore-submodules=none", *pathspec],
+            git_root,
+        )
+        if status.returncode:
+            errors.append(f"cannot inspect Git worktree for {root}: {os.fsdecode(status.stderr).strip()}")
+            continue
+        tracked_command = ["git", "diff", "--name-only", "-z"]
+        if head != "unborn":
+            tracked_command.append("HEAD")
+        else:
+            tracked_command.extend(("--cached",))
+        tracked_command.extend(pathspec)
+        tracked = run_bytes(tracked_command, git_root)
+        staged = run_bytes(
+            ["git", "diff", "--cached", "--binary", "--no-ext-diff", "--no-renames", "--submodule=diff", *pathspec],
+            git_root,
+        )
+        unstaged = run_bytes(
+            ["git", "diff", "--binary", "--no-ext-diff", "--no-renames", "--submodule=diff", *pathspec],
+            git_root,
+        )
+        untracked = run_bytes(["git", "ls-files", "--others", "--exclude-standard", "-z", *pathspec], git_root)
+        if tracked.returncode or staged.returncode or unstaged.returncode or untracked.returncode:
+            errors.append(f"cannot inventory Git bytes for {root}")
+            continue
+        raw_paths = sorted(
+            {
+                value
+                for payload in (tracked.stdout, untracked.stdout)
+                for value in payload.split(b"\0")
+                if value
+            }
+        )
+        digest = hashlib.sha256()
+        digest.update(b"dev-flow-worktree-v2\0")
+        digest.update(status.stdout)
+        digest.update(b"\0staged\0" + staged.stdout)
+        digest.update(b"\0unstaged\0" + unstaged.stdout)
+        hash_untracked_bytes(digest, git_root, untracked.stdout)
+        submodule_payload, submodule_errors = submodule_worktree_payload(git_root, scope)
+        if submodule_errors:
+            errors.extend(submodule_errors)
+            continue
+        digest.update(submodule_payload)
+        displays = [value.decode("utf-8", "backslashreplace") for value in raw_paths[:200]]
+        snapshots.append(
+            {
+                **identity,
+                "worktree_sha256": "sha256:" + digest.hexdigest(),
+                "changed_path_count": len(raw_paths),
+                "changed_paths": displays,
+                "paths_truncated": len(raw_paths) > len(displays),
+            }
+        )
+    return snapshots, errors
+
+
+def repository_snapshot_summary(snapshots: object) -> str:
+    if not isinstance(snapshots, list):
+        return "invalid"
+    parts: list[str] = []
+    for item in snapshots:
+        if not isinstance(item, dict):
+            continue
+        if item.get("vcs") == "git":
+            parts.append(
+                f"{item.get('root')} at {item.get('head')}; {item.get('worktree_sha256')}; "
+                f"changed paths={item.get('changed_path_count')}"
+            )
+        else:
+            parts.append(f"{item.get('root')} (non-Git; byte drift not mechanically observable)")
+    return " | ".join(parts)
+
+
+def repository_snapshot_digest(snapshots: object) -> str | None:
+    if not isinstance(snapshots, list):
+        return None
+    payload = json.dumps(snapshots, ensure_ascii=True, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
+def repository_snapshot_change_kinds(before: object, after: object) -> set[str]:
+    if not isinstance(before, list) or not isinstance(after, list):
+        return {"identity", "head", "worktree"}
+    previous = {item.get("root"): item for item in before if isinstance(item, dict)}
+    current = {item.get("root"): item for item in after if isinstance(item, dict)}
+    if set(previous) != set(current):
+        return {"identity", "head", "worktree"}
+    changes: set[str] = set()
+    for root in previous:
+        left, right = previous[root], current[root]
+        if (
+            left.get("vcs"),
+            left.get("git_root"),
+            left.get("scope"),
+            left.get("observable"),
+        ) != (
+            right.get("vcs"),
+            right.get("git_root"),
+            right.get("scope"),
+            right.get("observable"),
+        ):
+            changes.add("identity")
+        if left.get("head") != right.get("head"):
+            changes.add("head")
+        if left.get("worktree_sha256") != right.get("worktree_sha256"):
+            changes.add("worktree")
+    return changes
+
+
+def repository_head_changes(before: object, after: object) -> dict[str, str]:
+    """Return the exact current HEAD required to accept each changed Git root."""
+
+    if not isinstance(before, list) or not isinstance(after, list):
+        return {}
+    previous = {item.get("root"): item for item in before if isinstance(item, dict)}
+    current = {item.get("root"): item for item in after if isinstance(item, dict)}
+    changed: dict[str, str] = {}
+    for root in sorted(set(previous) & set(current)):
+        left, right = previous[root], current[root]
+        if left.get("head") == right.get("head") or right.get("vcs") != "git":
+            continue
+        if isinstance(root, str) and isinstance(right.get("head"), str):
+            changed[root] = right["head"]
+    return changed
+
+
+def parse_accepted_heads(values: Iterable[str]) -> tuple[dict[str, str], list[str]]:
+    accepted: dict[str, str] = {}
+    errors: list[str] = []
+    for raw in values:
+        if "=" not in raw:
+            errors.append("--accept-head must use ROOT=OID")
+            continue
+        root_text, oid = raw.rsplit("=", 1)
+        try:
+            root = str(Path(root_text).resolve())
+        except OSError as exc:
+            errors.append(f"--accept-head root cannot be resolved: {root_text}: {exc}")
+            continue
+        if root in accepted:
+            errors.append(f"--accept-head repeats repository root: {root}")
+            continue
+        if oid != "unborn" and re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", oid) is None:
+            errors.append(f"--accept-head requires an exact Git OID for {root}")
+            continue
+        accepted[root] = oid
+    return accepted, errors
+
+
+def repository_reconciliation_summary(value: object) -> str:
+    if not isinstance(value, dict):
+        return "invalid"
+    kinds = value.get("change_kinds")
+    kinds_text = ",".join(kinds) if isinstance(kinds, list) and kinds else "none"
+    heads = value.get("accepted_heads")
+    if isinstance(heads, dict) and heads:
+        heads_text = ", ".join(f"{root}={oid}" for root, oid in sorted(heads.items()))
+    else:
+        heads_text = "none"
+    return f"changes={kinds_text}; accepted heads={heads_text}; evidence={value.get('evidence')}"
+
+
+def repository_snapshot_drift_errors(
+    metadata: dict[str, Any],
+    expected: object,
+    *,
+    check_worktree: bool,
+) -> list[str]:
+    required_keys = {
+        "root",
+        "vcs",
+        "git_root",
+        "scope",
+        "head",
+        "observable",
+        "worktree_sha256",
+        "changed_path_count",
+        "changed_paths",
+        "paths_truncated",
+    }
+    if not isinstance(expected, list) or not expected:
+        return ["packet.json: continuity checkpoint requires a repository snapshot"]
+    if any(not isinstance(item, dict) or set(item) != required_keys for item in expected):
+        return ["packet.json: continuity checkpoint repository snapshot has an invalid schema"]
+    observed, observation_errors = (
+        repository_snapshot(metadata)
+        if check_worktree
+        else repository_identities(metadata)
+    )
+    if observation_errors:
+        return observation_errors
+    expected_by_root = {item.get("root"): item for item in expected if isinstance(item.get("root"), str)}
+    observed_by_root = {item.get("root"): item for item in observed if isinstance(item.get("root"), str)}
+    if set(expected_by_root) != set(observed_by_root):
+        return ["repository roots drifted from the continuity checkpoint"]
+    errors: list[str] = []
+    for root in sorted(expected_by_root):
+        before = expected_by_root[root]
+        current = observed_by_root[root]
+        if (
+            before.get("vcs") != current.get("vcs")
+            or before.get("git_root") != current.get("git_root")
+            or before.get("scope") != current.get("scope")
+            or before.get("observable") != current.get("observable")
+        ):
+            errors.append(f"repository identity drifted from the checkpoint: {root}")
+            continue
+        if before.get("head") != current.get("head"):
+            errors.append(f"repository HEAD drifted from the checkpoint: {root}")
+        if check_worktree and before.get("worktree_sha256") != current.get("worktree_sha256"):
+            errors.append(f"repository worktree changed since the checkpoint: {root}")
+    return errors
+
+
 def ensure_local_exclude(root: Path) -> None:
     result = run(["git", "rev-parse", "--git-path", "info/exclude"], cwd=root)
     if result.returncode:
+        return
+    top = run(["git", "rev-parse", "--show-toplevel"], cwd=root)
+    if top.returncode:
+        return
+    try:
+        relative = root.resolve().relative_to(Path(top.stdout.strip()).resolve())
+    except (OSError, ValueError):
         return
     exclude = Path(result.stdout.strip())
     if not exclude.is_absolute():
         exclude = root / exclude
     exclude.parent.mkdir(parents=True, exist_ok=True)
     current = exclude.read_text(encoding="utf-8") if exclude.exists() else ""
-    rule = ".codex/dev-flow/"
+    prefix = relative.as_posix().rstrip("/") if relative.parts else ""
+    rule = f"{prefix + '/' if prefix else ''}.codex/dev-flow/"
     if rule not in {line.strip() for line in current.splitlines()}:
         with exclude.open("a", encoding="utf-8") as handle:
             if current and not current.endswith("\n"):
@@ -786,9 +1494,17 @@ def init_packet(args: argparse.Namespace) -> int:
         return emit({"status": "error", "errors": ["change ID must be 3-81 lowercase safe characters"]}, 2)
     if args.task_type not in TASK_TYPES:
         return emit({"status": "error", "errors": [f"unsupported task type: {args.task_type}"]}, 2)
+    mutation_intent = args.mutation or ("none" if args.task_type == "read-only-audit" else "persistent")
+    if args.task_type == "read-only-audit" and mutation_intent != "none":
+        return emit({"status": "error", "errors": ["read-only-audit cannot declare persistent mutation"]}, 2)
 
     try:
-        work_mode, mode_reasons = select_work_mode(args.task_type, args.risk, args.work_mode)
+        work_mode, mode_reasons = select_work_mode(
+            args.task_type,
+            args.risk,
+            args.work_mode,
+            persistent_mutation=mutation_intent == "persistent",
+        )
     except ValueError as exc:
         return emit({"status": "error", "errors": [str(exc)]}, 2)
     if args.ui_impact == "material" and work_mode != "governed":
@@ -856,17 +1572,18 @@ def init_packet(args: argparse.Namespace) -> int:
     if collaboration_profile is None:
         if args.ui_impact == "material":
             collaboration_profile = "co-design"
-        elif work_mode == "traced":
+        elif work_mode == "traced" and mutation_intent != "persistent":
             collaboration_profile = "execute"
         else:
             collaboration_profile = "checkpointed"
     metadata: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
-        "skill_version": plugin_version(),
+        "skill_version": packet_skill_version(),
         "change_id": args.change_id,
         "state": "discovering",
         "work_mode": work_mode,
         "work_mode_reasons": mode_reasons,
+        "mutation_intent": mutation_intent,
         "documentation_profile": profile,
         "task_type": args.task_type,
         "created_at": now,
@@ -883,6 +1600,9 @@ def init_packet(args: argparse.Namespace) -> int:
         "verification_ids": [],
         "requirement_revision": 1,
         "requirements_digest": None,
+        "design_digest": None,
+        "continuity_checkpoint": None,
+        "knowledge_manifest": None,
         "ambiguity_ids": [],
         "ambiguities": [],
         "dependency_changes": [],
@@ -928,7 +1648,18 @@ def init_packet(args: argparse.Namespace) -> int:
         report = replace_tokens((templates / "agent-report.md").read_text(encoding="utf-8"), values)
         (packet / "briefs" / "README.template.md").write_text(brief, encoding="utf-8")
         (packet / "reports" / "README.template.md").write_text(report, encoding="utf-8")
-    write_packet(packet, metadata, "packet-created", {"from": None, "to": "discovering", "reasons": mode_reasons})
+    write_packet(
+        packet,
+        metadata,
+        "packet-created",
+        {
+            "from": None,
+            "to": "discovering",
+            "reasons": mode_reasons,
+            "skill_version": metadata["skill_version"],
+            "creation_contract": creation_contract(metadata),
+        },
+    )
     atomic_write_text(current, args.change_id + "\n")
     ensure_local_exclude(root)
     return emit(
@@ -943,7 +1674,11 @@ def init_packet(args: argparse.Namespace) -> int:
     )
 
 
-def load_packet(packet: Path) -> tuple[dict[str, Any], list[str]]:
+def load_packet(
+    packet: Path,
+    *,
+    validate_change_set: bool = True,
+) -> tuple[dict[str, Any], list[str]]:
     errors: list[str] = []
     metadata_path = packet / "packet.json"
     if not metadata_path.is_file():
@@ -954,20 +1689,29 @@ def load_packet(packet: Path) -> tuple[dict[str, Any], list[str]]:
         return {}, [f"invalid packet.json: {exc}"]
     if not isinstance(metadata, dict):
         return {}, ["invalid packet.json: top-level value must be an object"]
+    errors.extend(quality_provenance_errors(packet, metadata))
     if metadata.get("schema_version") == "2.0":
         errors.extend(validate_iteration_control(metadata))
         errors.extend(validate_iteration_evidence(packet, metadata))
-        errors.extend(validate_event_projection(packet, metadata))
+        errors.extend(validate_event_projection(packet, metadata, quality_provenance_checked=True))
+        if validate_change_set:
+            errors.extend(validate_change_set_binding(packet, metadata))
+            errors.extend(validate_continuity_binding(packet, metadata))
     return metadata, errors
 
 
-def validate_event_projection(packet: Path, metadata: dict[str, Any]) -> list[str]:
+def validate_event_projection(
+    packet: Path,
+    metadata: dict[str, Any],
+    *,
+    quality_provenance_checked: bool = False,
+) -> list[str]:
+    errors = [] if quality_provenance_checked else quality_provenance_errors(packet, metadata)
     if metadata.get("schema_version") != "2.0":
-        return []
+        return errors
     ledger = packet / "events.jsonl"
     if not ledger.is_file():
-        return ["missing required file: events.jsonl"]
-    errors: list[str] = []
+        return [*errors, "missing required file: events.jsonl"]
     events: list[dict[str, Any]] = []
     for index, line in enumerate(ledger.read_text(encoding="utf-8").splitlines(), start=1):
         if not line.strip():
@@ -995,6 +1739,233 @@ def validate_event_projection(packet: Path, metadata: dict[str, Any]) -> list[st
         return [*errors, "events.jsonl: at least one event is required"]
     if events[0].get("event") != "packet-created":
         errors.append("events.jsonl: first event must be packet-created")
+    creation_payload = events[0].get("payload")
+    metadata_skill_version = metadata.get("skill_version")
+    creation_skill_version = (
+        creation_payload.get("skill_version")
+        if isinstance(creation_payload, dict)
+        else None
+    )
+    immutable_contract = (
+        creation_payload.get("creation_contract")
+        if isinstance(creation_payload, dict)
+        else None
+    )
+    for index, event in enumerate(events, start=1):
+        payload = event.get("payload")
+        if isinstance(payload, dict) and "skill_version_transition" in payload:
+            errors.append(f"events.jsonl:{index}: implicit change-set contract adoption is unsupported")
+    creation_tagged = has_change_set_contract(creation_skill_version)
+    metadata_tagged = has_change_set_contract(metadata_skill_version)
+    creation_quality_tagged = has_quality_kernel_contract(creation_skill_version)
+    metadata_quality_tagged = has_quality_kernel_contract(metadata_skill_version)
+    quality_markers = quality_provenance_markers(metadata, events)
+    if immutable_contract is None and (creation_quality_tagged or metadata_quality_tagged or quality_markers):
+        errors.append(
+            "events.jsonl: quality-shaped packet is missing its immutable creation contract"
+            + (f"; residual markers={sorted(quality_markers)}" if quality_markers else "")
+        )
+    if creation_tagged or metadata_tagged or creation_quality_tagged or metadata_quality_tagged:
+        if creation_skill_version != metadata_skill_version:
+            errors.append("events.jsonl: tagged packet creation must exactly match packet skill_version")
+    contract_quality_tagged = False
+    if immutable_contract is not None:
+        expected_contract_keys = set(creation_contract(metadata))
+        if not isinstance(immutable_contract, dict) or set(immutable_contract) != expected_contract_keys:
+            errors.append("events.jsonl: creation contract must use the exact immutable authority schema")
+        else:
+            capabilities = immutable_contract.get("capabilities")
+            contract_quality_tagged = isinstance(capabilities, list) and QUALITY_KERNEL_SKILL_VERSION_TAG in capabilities
+            if not contract_quality_tagged and quality_markers:
+                errors.append(
+                    "events.jsonl: quality-shaped packet cannot drop its creation capability"
+                    f"; residual markers={sorted(quality_markers)}"
+                )
+            if immutable_contract.get("schema_version") != CREATION_CONTRACT_SCHEMA_VERSION:
+                errors.append("events.jsonl: creation contract has an unsupported schema_version")
+            if immutable_contract.get("skill_version") != creation_skill_version:
+                errors.append("events.jsonl: creation contract skill_version does not match tagged creation")
+            if capabilities != sorted(skill_capabilities(immutable_contract.get("skill_version"))):
+                errors.append("events.jsonl: creation contract capabilities do not match its skill_version")
+            current_contract = creation_contract(metadata)
+            for field in expected_contract_keys - {"schema_version", "collaboration_profile"}:
+                if immutable_contract.get(field) != current_contract.get(field):
+                    errors.append(f"events.jsonl: creation contract {field} drifted from packet projection")
+            profile_rank = {"execute": 0, "checkpointed": 1, "co-design": 2}
+            original_profile = immutable_contract.get("collaboration_profile")
+            current_profile = metadata.get("collaboration_profile")
+            if (
+                original_profile not in profile_rank
+                or current_profile not in profile_rank
+                or profile_rank[current_profile] < profile_rank[original_profile]
+            ):
+                errors.append("events.jsonl: creation contract collaboration_profile was weakened")
+    bound_without_contract = any(
+        isinstance(event.get("payload"), dict)
+        and isinstance(event["payload"].get("change_set"), dict)
+        for event in events
+    )
+    if bound_without_contract and not creation_tagged:
+        errors.append("events.jsonl: change-set binding requires tagged packet creation")
+    quality_contract = contract_quality_tagged or creation_quality_tagged or metadata_quality_tagged
+    replayed_state: Any = None
+    replayed_requirement_revision = 1
+    previous_event_time: dt.datetime | None = None
+    latest_ambiguities: dict[str, Any] = {}
+    ambiguity_order: list[str] = []
+    malformed_ambiguity_event = False
+    latest_checkpoint: dict[str, Any] | None = None
+    pending_invalidation: dict[str, Any] | None = None
+    pending_invalidation_index: int | None = None
+    for index, event in enumerate(events, start=1):
+        event_time = parsed_timestamp(event.get("at"))
+        if event_time is not None:
+            if previous_event_time is not None and event_time < previous_event_time:
+                errors.append(f"events.jsonl:{index}: event timestamps must be nondecreasing")
+            previous_event_time = event_time
+        name = event.get("event")
+        payload = event.get("payload")
+        if pending_invalidation is not None and not (
+            name == "transition"
+            and pending_invalidation_index is not None
+            and index == pending_invalidation_index + 1
+        ):
+            errors.append(
+                f"events.jsonl:{index}: checkpoint invalidation must be immediately followed by its reopening transition"
+            )
+            pending_invalidation = None
+            pending_invalidation_index = None
+        prior_state = replayed_state
+        if name == "packet-created":
+            if index != 1 or replayed_state is not None:
+                errors.append(f"events.jsonl:{index}: packet-created may only initialize the ledger")
+            if not isinstance(payload, dict) or payload.get("from") is not None or payload.get("to") != event.get("state"):
+                errors.append(f"events.jsonl:{index}: packet-created does not initialize its projected lifecycle state")
+            replayed_state = event.get("state")
+        elif name == "transition":
+            if not isinstance(payload, dict) or payload.get("from") != replayed_state or payload.get("to") != event.get("state"):
+                errors.append(f"events.jsonl:{index}: transition does not follow the replayed lifecycle state")
+            replayed_state = event.get("state")
+        elif event.get("state") != replayed_state:
+            errors.append(f"events.jsonl:{index}: non-transition event does not match the replayed lifecycle state")
+
+        record = payload.get("record") if isinstance(payload, dict) else None
+        if name == "ambiguity-recorded":
+            ambiguity_id = record.get("id") if isinstance(record, dict) else None
+            if (
+                not isinstance(ambiguity_id, str)
+                or ambiguity_id in latest_ambiguities
+                or record.get("status") != "open"
+                or record.get("resolution") is not None
+                or record.get("discovered_in_revision") != replayed_requirement_revision
+            ):
+                malformed_ambiguity_event = True
+            elif isinstance(record, dict):
+                ambiguity_order.append(ambiguity_id)
+                latest_ambiguities[ambiguity_id] = record
+        elif name == "ambiguity-resolved":
+            ambiguity_id = record.get("id") if isinstance(record, dict) else None
+            previous = latest_ambiguities.get(ambiguity_id) if isinstance(ambiguity_id, str) else None
+            if not isinstance(record, dict) or not isinstance(previous, dict) or previous.get("status") != "open":
+                malformed_ambiguity_event = True
+            else:
+                expected = dict(previous)
+                expected["status"] = record.get("status")
+                expected["resolution"] = record.get("resolution")
+                if record.get("status") == "open" or not isinstance(record.get("resolution"), dict) or record != expected:
+                    malformed_ambiguity_event = True
+                latest_ambiguities[ambiguity_id] = record
+        elif name == "checkpoint-recorded":
+            if not isinstance(payload, dict):
+                errors.append(f"events.jsonl:{index}: checkpoint record must use an object payload")
+                latest_checkpoint = None
+            elif quality_contract and set(payload) != CONTINUITY_CHECKPOINT_FIELDS:
+                errors.append(f"events.jsonl:{index}: checkpoint record must use the exact checkpoint schema")
+                latest_checkpoint = None
+            else:
+                if quality_contract and payload.get("requirement_revision") != replayed_requirement_revision:
+                    errors.append(
+                        f"events.jsonl:{index}: checkpoint record does not match the replayed requirement premise"
+                    )
+                latest_checkpoint = payload
+        elif name == "checkpoint-invalidated":
+            label = f"events.jsonl:{index}: checkpoint invalidation"
+            if not isinstance(payload, dict) or set(payload) != CHECKPOINT_INVALIDATION_FIELDS:
+                errors.append(f"{label} must use the exact tombstone schema")
+            else:
+                if payload.get("schema_version") != CHECKPOINT_INVALIDATION_SCHEMA_VERSION:
+                    errors.append(f"{label} has an unsupported schema_version")
+                if payload.get("reason") != "late-material-requirement-reopening":
+                    errors.append(f"{label} has an invalid reason")
+                from_revision = payload.get("from_requirement_revision")
+                new_revision = payload.get("new_requirement_revision")
+                if not isinstance(latest_checkpoint, dict):
+                    errors.append(f"{label} does not identify a preceding checkpoint record")
+                else:
+                    if payload.get("invalidated_checkpoint_sha256") != canonical_json_digest(latest_checkpoint):
+                        errors.append(f"{label} hash does not identify the preceding checkpoint record")
+                    if from_revision != latest_checkpoint.get("requirement_revision"):
+                        errors.append(f"{label} from revision does not match the invalidated checkpoint")
+                if (
+                    not isinstance(from_revision, int)
+                    or isinstance(from_revision, bool)
+                    or not isinstance(new_revision, int)
+                    or isinstance(new_revision, bool)
+                    or from_revision != replayed_requirement_revision
+                    or new_revision != replayed_requirement_revision + 1
+                ):
+                    errors.append(f"{label} revisions do not exactly advance the replayed requirement premise")
+                ambiguity = latest_ambiguities.get(payload.get("ambiguity_id"))
+                if (
+                    not isinstance(ambiguity, dict)
+                    or ambiguity.get("status") != "open"
+                    or ambiguity.get("materiality") not in {"material", "high-risk"}
+                    or ambiguity.get("discovered_in_revision") != replayed_requirement_revision
+                ):
+                    errors.append(f"{label} does not identify an open material ambiguity at that ledger position")
+                pending_invalidation = payload
+                pending_invalidation_index = index
+        if name == "transition" and isinstance(payload, dict):
+            bound_invalidation = payload.get("checkpoint_invalidation")
+            reopening = (
+                quality_contract
+                and payload.get("from") in {"implementing", "verifying", "blocked"}
+                and payload.get("to") == "awaiting-approval"
+            )
+            if bound_invalidation is not None:
+                ambiguity = (
+                    latest_ambiguities.get(bound_invalidation.get("ambiguity_id"))
+                    if isinstance(bound_invalidation, dict)
+                    else None
+                )
+                if (
+                    pending_invalidation is None
+                    or pending_invalidation_index != index - 1
+                    or bound_invalidation != pending_invalidation
+                    or payload.get("from") != prior_state
+                    or payload.get("to") != "awaiting-approval"
+                    or not isinstance(ambiguity, dict)
+                    or ambiguity.get("status") != "open"
+                    or ambiguity.get("materiality") not in {"material", "high-risk"}
+                ):
+                    errors.append(
+                        f"events.jsonl:{index}: reopening transition does not match the adjacent open ambiguity tombstone"
+                    )
+                if isinstance(bound_invalidation, dict):
+                    new_revision = bound_invalidation.get("new_requirement_revision")
+                    if isinstance(new_revision, int) and not isinstance(new_revision, bool):
+                        replayed_requirement_revision = new_revision
+                latest_checkpoint = None
+                pending_invalidation = None
+                pending_invalidation_index = None
+            elif reopening:
+                errors.append(f"events.jsonl:{index}: reopening transition is missing its adjacent checkpoint invalidation")
+
+    if pending_invalidation is not None:
+        errors.append("events.jsonl: checkpoint invalidation is missing its immediately following reopening transition")
+    if quality_contract and metadata.get("requirement_revision") != replayed_requirement_revision:
+        errors.append("events.jsonl: replayed requirement revision does not exactly match the packet projection")
+
     state_events = [item for item in events if item.get("event") in {"packet-created", "transition"}]
     history = metadata.get("history", [])
     if not isinstance(history, list) or len(state_events) != len(history):
@@ -1019,13 +1990,69 @@ def validate_event_projection(packet: Path, metadata: dict[str, Any]) -> list[st
             for index, (event, projected) in enumerate(zip(iteration_events, control["records"], strict=True), start=1):
                 if event.get("payload") != projected:
                     errors.append(f"events.jsonl: iteration event {index} does not match packet projection")
-                expected_state = "blocked" if projected.get("outcome") == "failed" and projected.get("round") == 3 else None
-                if expected_state is None:
-                    sequence = event.get("sequence")
-                    if isinstance(sequence, int) and sequence > 1:
-                        expected_state = events[sequence - 2].get("state")
+                expected_state = None
+                sequence = event.get("sequence")
+                if isinstance(sequence, int) and sequence > 1:
+                    expected_state = events[sequence - 2].get("state")
                 if expected_state is not None and event.get("state") != expected_state:
                     errors.append(f"events.jsonl: iteration event {index} projected state is invalid")
+    checkpoint_events = [
+        item
+        for item in events
+        if item.get("event") in {"checkpoint-recorded", "checkpoint-invalidated"}
+    ]
+    projected_checkpoint = metadata.get("continuity_checkpoint")
+    if quality_contract:
+        if projected_checkpoint is None and checkpoint_events:
+            if checkpoint_events[-1].get("event") != "checkpoint-invalidated":
+                errors.append("events.jsonl: checkpoint lifecycle is missing from packet projection")
+        elif projected_checkpoint is not None:
+            if not checkpoint_events:
+                errors.append("events.jsonl: continuity checkpoint requires an event projection")
+            elif checkpoint_events[-1].get("event") != "checkpoint-recorded" or checkpoint_events[-1].get("payload") != projected_checkpoint:
+                errors.append("events.jsonl: latest checkpoint event does not match packet projection")
+        knowledge_events = [item for item in events if item.get("event") == "knowledge-bound"]
+        projected_knowledge = metadata.get("knowledge_manifest")
+        if projected_knowledge is None and knowledge_events:
+            errors.append("events.jsonl: knowledge binding is missing from packet projection")
+        elif projected_knowledge is not None:
+            if not knowledge_events:
+                errors.append("events.jsonl: knowledge binding requires an event projection")
+            elif knowledge_events[-1].get("payload") != projected_knowledge:
+                errors.append("events.jsonl: latest knowledge event does not match packet projection")
+    if contract_quality_tagged:
+        approval_events = [item for item in events if item.get("event") == "approval-recorded"]
+        approvals = metadata.get("approvals")
+        if isinstance(approvals, dict):
+            for kind in ("requirements", "ux", "dependencies", "waivers", "delivery"):
+                projected = [
+                    item.get("payload", {}).get("record")
+                    for item in approval_events
+                    if isinstance(item.get("payload"), dict) and item["payload"].get("kind") == kind
+                ]
+                if projected != approvals.get(kind):
+                    errors.append(f"events.jsonl: approval events must project exactly to approvals.{kind}")
+            design_events = [
+                item["payload"].get("design_approval")
+                for item in events
+                if item.get("event") == "transition"
+                and isinstance(item.get("payload"), dict)
+                and item["payload"].get("to") == "approved"
+            ]
+            design_history = approvals.get("design_history", [])
+            current_design = approvals.get("design")
+            if not isinstance(design_history, list):
+                errors.append("events.jsonl: approvals.design_history must be a list for exact projection")
+                projected_designs: list[Any] = []
+            else:
+                projected_designs = [*design_history, *([current_design] if current_design else [])]
+            if design_events != projected_designs:
+                errors.append("events.jsonl: design approval events must project exactly to approvals")
+        projected_ambiguities = [latest_ambiguities[value] for value in ambiguity_order if value in latest_ambiguities]
+        if malformed_ambiguity_event or projected_ambiguities != metadata.get("ambiguities"):
+            errors.append("events.jsonl: ambiguity events must project exactly to packet ambiguities")
+        if ambiguity_order != metadata.get("ambiguity_ids"):
+            errors.append("events.jsonl: ambiguity events must project exactly to ambiguity_ids")
     return errors
 
 
@@ -1213,7 +2240,10 @@ def validate_iteration_evidence(packet: Path, metadata: dict[str, Any]) -> list[
 
 def transition_packet(args: argparse.Namespace) -> int:
     packet = args.packet.resolve()
-    metadata, errors = load_packet(packet)
+    metadata, errors = load_packet(
+        packet,
+        validate_change_set=args.state not in {"implementing", "awaiting-approval"},
+    )
     if errors:
         return emit({"status": "invalid", "errors": errors}, 2)
     old = metadata.get("state")
@@ -1228,6 +2258,7 @@ def transition_packet(args: argparse.Namespace) -> int:
         if isinstance(iteration_control, dict)
         else None
     )
+    checkpoint_invalidation: dict[str, Any] | None = None
     if old == "blocked" and new != "blocked" and active_iteration_block is not None:
         return emit(
             {
@@ -1323,6 +2354,26 @@ def transition_packet(args: argparse.Namespace) -> int:
             return emit({"status": "invalid", "errors": ["requirement_revision must be a positive integer"]}, 2)
         metadata["requirement_revision"] = revision + 1
         metadata["requirements_digest"] = None
+        if has_quality_kernel_contract(metadata.get("skill_version")):
+            metadata["design_digest"] = None
+            previous_checkpoint = metadata.get("continuity_checkpoint")
+            if not isinstance(previous_checkpoint, dict):
+                return emit(
+                    {
+                        "status": "invalid",
+                        "errors": ["quality-kernel requirement reopening requires an intact checkpoint to invalidate"],
+                    },
+                    2,
+                )
+            checkpoint_invalidation = {
+                "schema_version": CHECKPOINT_INVALIDATION_SCHEMA_VERSION,
+                "reason": "late-material-requirement-reopening",
+                "ambiguity_id": ambiguity_id,
+                "invalidated_checkpoint_sha256": canonical_json_digest(previous_checkpoint),
+                "from_requirement_revision": revision,
+                "new_requirement_revision": metadata["requirement_revision"],
+            }
+            metadata["continuity_checkpoint"] = None
     if new == "approved" and not args.approved_by:
         return emit({"status": "invalid", "errors": ["--approved-by is required for approved state"]}, 2)
     if new == "approved" and schema_version in READINESS_SCHEMA_VERSIONS:
@@ -1393,11 +2444,43 @@ def transition_packet(args: argparse.Namespace) -> int:
             if validation_code:
                 validation["status"] = "approval-blocked"
                 return emit(validation, 2)
+    change_set_record: dict[str, str] | None = None
+    continuity_record: dict[str, Any] | None = None
+    if new == "implementing" and has_quality_kernel_contract(metadata.get("skill_version")):
+        report, code = validate_packet_data(packet, state_override="implementing")
+        if code:
+            report["status"] = "implementation-blocked"
+            return emit(report, 2)
+    if (
+        new == "verifying"
+        and schema_version == "2.0"
+        and (
+            has_change_set_contract(metadata.get("skill_version"))
+            or has_quality_kernel_contract(metadata.get("skill_version"))
+        )
+    ):
+        report, code = validate_packet_data(packet, state_override="verifying")
+        if has_change_set_contract(metadata.get("skill_version")):
+            change_set_record, handoff_errors = packet_change_set_record(packet, metadata)
+            if handoff_errors:
+                report["errors"] = sorted(set([*report.get("errors", []), *handoff_errors]))
+                code = 2
+        if code:
+            report["status"] = "verification-blocked"
+            return emit(report, 2)
+        if has_quality_kernel_contract(metadata.get("skill_version")):
+            projected = metadata.get("continuity_checkpoint")
+            if not isinstance(projected, dict):
+                return emit({"status": "verification-blocked", "errors": ["missing continuity checkpoint"]}, 2)
+            continuity_record = json.loads(json.dumps(projected))
     if new == "accepted":
         report, code = validate_packet_data(packet, state_override="accepted")
         if code:
             report["status"] = "acceptance-blocked"
             return emit(report, 2)
+    if checkpoint_invalidation is not None:
+        metadata["updated_at"] = now
+        append_packet_event(packet, metadata, "checkpoint-invalidated", checkpoint_invalidation)
     metadata["state"] = new
     metadata["updated_at"] = now
     metadata.setdefault("history", []).append({"from": old, "to": new, "at": now, "note": args.note})
@@ -1410,8 +2493,23 @@ def transition_packet(args: argparse.Namespace) -> int:
         if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS:
             design_record["requirement_revision"] = metadata["requirement_revision"]
             design_record["requirements_digest"] = metadata["requirements_digest"]
+        if has_quality_kernel_contract(metadata.get("skill_version")):
+            design_digest = current_design_digest(packet, metadata.get("documentation_profile"))
+            if design_digest is None:
+                return emit({"status": "invalid", "errors": ["cannot compute the design baseline digest"]}, 2)
+            metadata["design_digest"] = design_digest
+            design_record["design_digest"] = design_digest
         metadata.setdefault("approvals", {})["design"] = design_record
-    write_packet(packet, metadata, "transition", {"from": old, "to": new, "note": args.note})
+    transition_payload: dict[str, Any] = {"from": old, "to": new, "note": args.note}
+    if new == "approved":
+        transition_payload["design_approval"] = json.loads(json.dumps(metadata["approvals"]["design"]))
+    if change_set_record is not None:
+        transition_payload["change_set"] = change_set_record
+    if continuity_record is not None:
+        transition_payload["continuity_checkpoint"] = continuity_record
+    if checkpoint_invalidation is not None:
+        transition_payload["checkpoint_invalidation"] = json.loads(json.dumps(checkpoint_invalidation))
+    write_packet(packet, metadata, "transition", transition_payload)
     return emit(
         {
             "status": "transitioned",
@@ -1566,11 +2664,11 @@ def record_iteration(args: argparse.Namespace) -> int:
             "at": now,
         }
         control["blocked"] = blocked_record
+        append_packet_event(packet, metadata, "iteration-recorded", record)
         metadata["state"] = "blocked"
         metadata.setdefault("history", []).append(
             {"from": old_state, "to": "blocked", "at": now, "note": f"three failed {args.kind} rounds for {args.cause_id}"}
         )
-        append_packet_event(packet, metadata, "iteration-recorded", record)
         write_packet(
             packet,
             metadata,
@@ -1705,7 +2803,7 @@ def record_approval(args: argparse.Namespace) -> int:
     if args.kind == "dependencies" and args.id not in metadata.setdefault("dependency_changes", []):
         metadata["dependency_changes"].append(args.id)
     metadata["updated_at"] = record["at"]
-    write_packet(packet, metadata, "approval-recorded", {"kind": args.kind, "id": args.id})
+    write_packet(packet, metadata, "approval-recorded", {"kind": args.kind, "record": record})
     return emit({"status": "recorded", "kind": args.kind, "record": record})
 
 
@@ -1789,7 +2887,7 @@ def record_ambiguity(args: argparse.Namespace) -> int:
     ):
         metadata["collaboration_profile"] = "checkpointed"
     metadata["updated_at"] = now
-    write_packet(packet, metadata, "ambiguity-recorded", {"id": ambiguity_id})
+    write_packet(packet, metadata, "ambiguity-recorded", {"record": record})
     return emit(
         {
             "status": "recorded",
@@ -1838,7 +2936,7 @@ def resolve_ambiguity(args: argparse.Namespace) -> int:
         "evidence": evidence,
     }
     metadata["updated_at"] = now
-    write_packet(packet, metadata, "ambiguity-resolved", {"id": args.id, "status": args.status})
+    write_packet(packet, metadata, "ambiguity-resolved", {"record": record})
     return emit({"status": "resolved", "ambiguity": record})
 
 
@@ -1856,6 +2954,1018 @@ def placeholder_error(filename: str, heading: str, body: str | None) -> str | No
     if PLACEHOLDER_RE.search(body):
         return f"{filename}: unresolved placeholder in `{heading}`"
     return None
+
+
+def replace_heading_body(text: str, heading: str, body: str) -> str:
+    pattern = re.compile(rf"(?ms)(^##\s+{re.escape(heading)}\s*$\n)(.*?)(?=^##\s+|\Z)")
+    if pattern.search(text) is None:
+        suffix = "" if text.endswith("\n") else "\n"
+        return f"{text}{suffix}\n## {heading}\n\n{body.rstrip()}\n"
+    return pattern.sub(lambda match: match.group(1) + "\n" + body.rstrip() + "\n\n", text, count=1)
+
+
+def labeled_fields(body: str | None, fields: Iterable[str]) -> tuple[dict[str, str], list[str]]:
+    values: dict[str, str] = {}
+    errors: list[str] = []
+    if body is None:
+        return values, ["section is missing"]
+    for field in fields:
+        matches = re.findall(rf"(?im)^\s*(?:[-*]\s*)?{re.escape(field)}\s*:\s*(.+?)\s*$", body)
+        if len(matches) != 1 or not matches[0].strip():
+            errors.append(f"requires exactly one non-empty `{field}` field")
+        else:
+            values[field] = matches[0].strip()
+    return values, errors
+
+
+def engineering_context_projection_fingerprint(value: dict[str, Any]) -> str:
+    """Digest every governed readiness field while excluding only digest claims."""
+
+    projection = {
+        key: nested
+        for key, nested in value.items()
+        if key != "projection_fingerprint"
+    }
+    payload = json.dumps(projection, ensure_ascii=True, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return "sha256:" + hashlib.sha256(
+        f"dev-flow-engineering-context-projection-{ENGINEERING_CONTEXT_PROJECTION_SCHEMA_VERSION}\0".encode("ascii")
+        + payload
+    ).hexdigest()
+
+
+def validate_engineering_context_projection(value: dict[str, Any]) -> tuple[str | None, list[str]]:
+    errors: list[str] = []
+    for field in ("schema_version", "tier", "outcome", "quality_coverage"):
+        if field not in value:
+            errors.append(f"context-readiness.json canonical projection requires {field}")
+    claimed = value.get("projection_fingerprint")
+    observed = engineering_context_projection_fingerprint(value)
+    if not isinstance(claimed, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", claimed) is None:
+        errors.append("context-readiness.json requires a valid canonical projection fingerprint")
+    elif claimed != observed:
+        errors.append("context-readiness.json canonical projection fingerprint drifted")
+    return (observed if not errors else None), errors
+
+
+def engineering_context_fingerprint(packet: Path) -> tuple[str | None, list[str]]:
+    path = packet / "context-readiness.json"
+    if not path.is_file():
+        return None, ["context-readiness.json is required by quality-kernel-v1"]
+    try:
+        value = read_json(path)
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        return None, [f"context-readiness.json cannot be read: {exc}"]
+    outcome = value.get("outcome")
+    if outcome in {"blocked", "invalid", "checkpoint"}:
+        return None, [f"context-readiness.json outcome {outcome!r} is not implementation-ready"]
+    fingerprint = value.get("fingerprint")
+    if not isinstance(fingerprint, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", fingerprint) is None:
+        return None, ["context-readiness.json requires a valid fingerprint"]
+    return validate_engineering_context_projection(value)
+
+
+def continuity_ledger(packet: Path, metadata: dict[str, Any]) -> tuple[str | None, Path | None]:
+    family = documentation_family(metadata.get("documentation_profile"))
+    filename = "trace.md" if family == "trace" else "execution.md" if family == "governed" else None
+    return (filename, packet / filename) if filename is not None else (None, None)
+
+
+def continuity_checkpoint_errors(
+    packet: Path,
+    metadata: dict[str, Any],
+    *,
+    effective_state: str,
+) -> list[str]:
+    if not has_quality_kernel_contract(metadata.get("skill_version")):
+        return []
+    if effective_state not in {"implementing", "verifying", "accepted", "archived"}:
+        return []
+    checkpoint = metadata.get("continuity_checkpoint")
+    if not isinstance(checkpoint, dict) or set(checkpoint) != CONTINUITY_CHECKPOINT_FIELDS:
+        return ["packet.json: quality-kernel-v1 requires an exact continuity_checkpoint"]
+    errors: list[str] = []
+    if checkpoint.get("schema_version") != "1.1":
+        errors.append("packet.json: continuity_checkpoint schema_version must be 1.1")
+    if checkpoint.get("trigger") not in CONTINUITY_TRIGGERS:
+        errors.append("packet.json: continuity_checkpoint has an invalid trigger")
+    if effective_state in {"verifying", "accepted", "archived"} and checkpoint.get("trigger") != "pre-verification":
+        errors.append("packet.json: verification requires a fresh pre-verification continuity checkpoint")
+    if checkpoint.get("requirement_revision") != metadata.get("requirement_revision"):
+        errors.append("packet.json: continuity checkpoint requirement revision is stale")
+    if checkpoint.get("requirements_digest") != current_requirements_digest(packet, metadata.get("documentation_profile")):
+        errors.append("packet.json: continuity checkpoint requirement digest is stale")
+    if checkpoint.get("design_digest") != current_design_digest(packet, metadata.get("documentation_profile")):
+        errors.append("packet.json: continuity checkpoint design digest is stale")
+    context_fingerprint, context_errors = engineering_context_fingerprint(packet)
+    errors.extend(context_errors)
+    if checkpoint.get("engineering_context_fingerprint") != context_fingerprint:
+        errors.append("packet.json: continuity checkpoint engineering context is stale")
+    errors.extend(
+        repository_snapshot_drift_errors(
+            metadata,
+            checkpoint.get("repository_snapshot"),
+            check_worktree=effective_state in {"verifying", "accepted", "archived"},
+        )
+    )
+    reconciliation = checkpoint.get("repository_reconciliation")
+    if not isinstance(reconciliation, dict) or set(reconciliation) != {
+        "changed_since_prior",
+        "prior_snapshot_sha256",
+        "change_kinds",
+        "accepted_heads",
+        "evidence",
+    }:
+        errors.append("packet.json: continuity checkpoint requires exact repository reconciliation evidence")
+    else:
+        if not isinstance(reconciliation.get("changed_since_prior"), bool):
+            errors.append("packet.json: repository reconciliation changed_since_prior must be boolean")
+        prior_digest = reconciliation.get("prior_snapshot_sha256")
+        if prior_digest is not None and (
+            not isinstance(prior_digest, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", prior_digest) is None
+        ):
+            errors.append("packet.json: repository reconciliation prior snapshot digest is invalid")
+        if not isinstance(reconciliation.get("evidence"), str) or not reconciliation["evidence"].strip():
+            errors.append("packet.json: repository reconciliation evidence must be non-empty")
+        change_kinds = reconciliation.get("change_kinds")
+        if (
+            not isinstance(change_kinds, list)
+            or len(change_kinds) != len(set(change_kinds))
+            or change_kinds != sorted(change_kinds)
+            or any(value not in {"head", "identity", "worktree"} for value in change_kinds)
+        ):
+            errors.append("packet.json: repository reconciliation change_kinds must be a sorted unique known list")
+            change_kinds = []
+        accepted_heads = reconciliation.get("accepted_heads")
+        if not isinstance(accepted_heads, dict) or any(
+            not isinstance(root, str)
+            or not isinstance(oid, str)
+            or (oid != "unborn" and re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", oid) is None)
+            for root, oid in (accepted_heads.items() if isinstance(accepted_heads, dict) else ())
+        ):
+            errors.append("packet.json: repository reconciliation accepted_heads must map roots to exact Git OIDs")
+            accepted_heads = {}
+        current_heads = {
+            item.get("root"): item.get("head")
+            for item in checkpoint.get("repository_snapshot", [])
+            if isinstance(item, dict) and item.get("vcs") == "git"
+        } if isinstance(checkpoint.get("repository_snapshot"), list) else {}
+        if any(current_heads.get(root) != oid for root, oid in accepted_heads.items()):
+            errors.append("packet.json: repository reconciliation accepted_heads do not match the checkpoint")
+        if ("head" in change_kinds) != bool(accepted_heads):
+            errors.append("packet.json: HEAD changes require exact accepted_heads and unchanged HEAD requires none")
+    active_ids = checkpoint.get("active_ids")
+    if not isinstance(active_ids, list) or not active_ids or any(not isinstance(value, str) for value in active_ids):
+        errors.append("packet.json: continuity_checkpoint active_ids must be a non-empty string list")
+        active_set: set[str] = set()
+    else:
+        active_set = set(active_ids)
+        if len(active_set) != len(active_ids):
+            errors.append("packet.json: continuity_checkpoint active_ids must be unique")
+        undeclared = active_set - declared_trace_ids(metadata)
+        if undeclared:
+            errors.append(f"packet.json: continuity_checkpoint uses undeclared IDs: {sorted(undeclared)}")
+        if not any(value.startswith("AC-") for value in active_set) or not any(value.startswith("SC-") for value in active_set):
+            errors.append("packet.json: continuity_checkpoint requires at least one AC and one SC identifier")
+        if effective_state in {"verifying", "accepted", "archived"} and not any(value.startswith("VO-") for value in active_set):
+            errors.append("packet.json: pre-verification continuity requires at least one VO identifier")
+    for field in ("active_objective", "last_evidence", "next_action", "stop_condition"):
+        if not isinstance(checkpoint.get(field), str) or not checkpoint[field].strip():
+            errors.append(f"packet.json: continuity_checkpoint requires non-empty {field}")
+    if checkpoint.get("drift") != "aligned":
+        errors.append("packet.json: continuity checkpoint drift must be aligned before implementation or verification")
+    if parsed_timestamp(checkpoint.get("at")) is None:
+        errors.append("packet.json: continuity_checkpoint requires a timezone-aware timestamp")
+    ledger_name, ledger_path = continuity_ledger(packet, metadata)
+    if checkpoint.get("ledger") != ledger_name or ledger_path is None or not ledger_path.is_file():
+        errors.append("packet.json: continuity_checkpoint ledger is invalid")
+    else:
+        body = heading_body(ledger_path.read_text(encoding="utf-8"), "Continuity checkpoint")
+        section_error = placeholder_error(ledger_name or "ledger", "Continuity checkpoint", body)
+        if section_error:
+            errors.append(section_error)
+        elif body is not None:
+            digest = "sha256:" + hashlib.sha256(body.encode("utf-8")).hexdigest()
+            if checkpoint.get("section_sha256") != digest:
+                errors.append("packet.json: continuity checkpoint section drifted from its projection")
+            fields, field_errors = labeled_fields(body, CONTINUITY_FIELDS)
+            errors.extend(f"{ledger_name}: Continuity checkpoint {error}" for error in field_errors)
+            if not field_errors:
+                expected_values = {
+                    "Trigger": str(checkpoint.get("trigger")),
+                    "Requirement baseline": f"revision {checkpoint.get('requirement_revision')}; {checkpoint.get('requirements_digest')}",
+                    "Design baseline": str(checkpoint.get("design_digest")),
+                    "Engineering context": str(checkpoint.get("engineering_context_fingerprint")),
+                    "Repository baseline": repository_snapshot_summary(checkpoint.get("repository_snapshot")),
+                    "Repository reconciliation": repository_reconciliation_summary(
+                        checkpoint.get("repository_reconciliation")
+                    ),
+                    "Active objective and slice": f"{checkpoint.get('active_objective')}; IDs: {', '.join(active_ids if isinstance(active_ids, list) else [])}",
+                    "Last completed and evidence": str(checkpoint.get("last_evidence")),
+                    "Next action and stop condition": f"{checkpoint.get('next_action')}; STOP: {checkpoint.get('stop_condition')}",
+                    "Drift review": str(checkpoint.get("drift")),
+                }
+                if fields != expected_values:
+                    errors.append(f"{ledger_name}: Continuity checkpoint fields do not match packet projection")
+    return errors
+
+
+def record_checkpoint(args: argparse.Namespace) -> int:
+    packet = args.packet.resolve()
+    metadata, errors = load_packet(packet)
+    if errors:
+        return emit({"status": "invalid", "errors": errors}, 2)
+    if not has_quality_kernel_contract(metadata.get("skill_version")):
+        return emit({"status": "invalid", "errors": ["record-checkpoint requires quality-kernel-v1"]}, 2)
+    if metadata.get("state") not in {"awaiting-approval", "approved", "implementing"}:
+        return emit({"status": "invalid", "errors": ["checkpoint may be recorded only before verification"]}, 2)
+    if args.trigger == "pre-verification" and metadata.get("state") != "implementing":
+        return emit({"status": "invalid", "errors": ["pre-verification checkpoint requires implementing state"]}, 2)
+    if args.drift == "reopened" and metadata.get("state") != "awaiting-approval":
+        return emit({"status": "invalid", "errors": ["reopened drift requires awaiting-approval state"]}, 2)
+    active_ids = list(dict.fromkeys(value.strip() for value in args.active_id if value.strip()))
+    undeclared = set(active_ids) - declared_trace_ids(metadata)
+    if undeclared or not any(value.startswith("AC-") for value in active_ids) or not any(
+        value.startswith("SC-") for value in active_ids
+    ):
+        return emit(
+            {
+                "status": "invalid",
+                "errors": [
+                    "checkpoint active IDs require declared AC and SC identifiers"
+                    + (f"; undeclared={sorted(undeclared)}" if undeclared else "")
+                ],
+            },
+            2,
+        )
+    if args.trigger == "pre-verification" and not any(value.startswith("VO-") for value in active_ids):
+        return emit({"status": "invalid", "errors": ["pre-verification checkpoint requires a declared VO ID"]}, 2)
+    requirement_digest = current_requirements_digest(packet, metadata.get("documentation_profile"))
+    design_digest = current_design_digest(packet, metadata.get("documentation_profile"))
+    if args.drift == "aligned" and (
+        requirement_digest is None
+        or requirement_digest != metadata.get("requirements_digest")
+        or design_digest is None
+        or design_digest != metadata.get("design_digest")
+    ):
+        return emit({"status": "invalid", "errors": ["approved requirement or design baseline is missing or stale"]}, 2)
+    context_fingerprint, context_errors = engineering_context_fingerprint(packet)
+    if context_errors:
+        return emit({"status": "invalid", "errors": context_errors}, 2)
+    source_snapshot, snapshot_errors = repository_snapshot(metadata)
+    if snapshot_errors:
+        return emit({"status": "invalid", "errors": snapshot_errors}, 2)
+    previous_checkpoint = metadata.get("continuity_checkpoint")
+    previous_snapshot = (
+        previous_checkpoint.get("repository_snapshot")
+        if isinstance(previous_checkpoint, dict)
+        else None
+    )
+    change_kinds = repository_snapshot_change_kinds(previous_snapshot, source_snapshot) if previous_snapshot is not None else set()
+    reconciliation_text = args.repository_reconciliation.strip() if args.repository_reconciliation else ""
+    accepted_heads, accepted_head_errors = parse_accepted_heads(args.accept_head)
+    if accepted_head_errors:
+        return emit({"status": "invalid", "errors": accepted_head_errors}, 2)
+    if change_kinds and not reconciliation_text:
+        return emit(
+            {
+                "status": "invalid",
+                "errors": [
+                    "repository bytes or identity changed since the prior checkpoint; inspect the delta and provide --repository-reconciliation"
+                ],
+            },
+            2,
+        )
+    if "identity" in change_kinds:
+        return emit(
+            {
+                "status": "invalid",
+                "errors": [
+                    "repository identity changed; reopen the affected scope or create a new packet instead of rebinding it in place"
+                ],
+            },
+            2,
+        )
+    expected_heads = repository_head_changes(previous_snapshot, source_snapshot)
+    if "head" in change_kinds:
+        if args.trigger not in {"premise-change", "reconciliation"}:
+            return emit(
+                {
+                    "status": "invalid",
+                    "errors": [
+                        "repository HEAD changed; only premise-change or reconciliation may establish a reviewed new baseline"
+                    ],
+                },
+                2,
+            )
+        if accepted_heads != expected_heads:
+            return emit(
+                {
+                    "status": "invalid",
+                    "errors": [
+                        "repository HEAD reconciliation requires one exact --accept-head ROOT=OID for every changed root",
+                        f"expected={expected_heads}; received={accepted_heads}",
+                    ],
+                },
+                2,
+            )
+    elif accepted_heads:
+        return emit({"status": "invalid", "errors": ["--accept-head is only valid when HEAD changed"]}, 2)
+    if "worktree" in change_kinds and args.trigger in {"implementation-start", "resume", "slice-start", "user-steering"}:
+        return emit(
+            {
+                "status": "invalid",
+                "errors": [
+                    "an open-slice worktree delta cannot be silently rebound by this trigger; inspect it and use reconciliation or a sealed boundary"
+                ],
+            },
+            2,
+        )
+    reconciliation = {
+        "changed_since_prior": bool(change_kinds),
+        "prior_snapshot_sha256": repository_snapshot_digest(previous_snapshot),
+        "change_kinds": sorted(change_kinds),
+        "accepted_heads": accepted_heads,
+        "evidence": reconciliation_text
+        or ("initial repository snapshot" if previous_snapshot is None else "repository snapshot unchanged since the prior checkpoint"),
+    }
+    ledger_name, ledger_path = continuity_ledger(packet, metadata)
+    if ledger_name is None or ledger_path is None or not ledger_path.is_file():
+        return emit({"status": "invalid", "errors": ["cannot locate the continuity ledger"]}, 2)
+    now = utc_now()
+    body = "\n".join(
+        (
+            f"- Trigger: {args.trigger}",
+            f"- Requirement baseline: revision {metadata.get('requirement_revision')}; {requirement_digest}",
+            f"- Design baseline: {design_digest}",
+            f"- Engineering context: {context_fingerprint}",
+            f"- Repository baseline: {repository_snapshot_summary(source_snapshot)}",
+            f"- Repository reconciliation: {repository_reconciliation_summary(reconciliation)}",
+            f"- Active objective and slice: {args.objective.strip()}; IDs: {', '.join(active_ids)}",
+            f"- Last completed and evidence: {args.last_evidence.strip()}",
+            f"- Next action and stop condition: {args.next_action.strip()}; STOP: {args.stop_condition.strip()}",
+            f"- Drift review: {args.drift}",
+        )
+    )
+    ledger_text = ledger_path.read_text(encoding="utf-8")
+    atomic_write_text(ledger_path, replace_heading_body(ledger_text, "Continuity checkpoint", body))
+    checkpoint = {
+        "schema_version": "1.1",
+        "trigger": args.trigger,
+        "requirement_revision": metadata.get("requirement_revision"),
+        "requirements_digest": requirement_digest,
+        "design_digest": design_digest,
+        "engineering_context_fingerprint": context_fingerprint,
+        "repository_snapshot": source_snapshot,
+        "repository_reconciliation": reconciliation,
+        "active_ids": active_ids,
+        "active_objective": args.objective.strip(),
+        "last_evidence": args.last_evidence.strip(),
+        "next_action": args.next_action.strip(),
+        "stop_condition": args.stop_condition.strip(),
+        "drift": args.drift,
+        "ledger": ledger_name,
+        "section_sha256": "sha256:" + hashlib.sha256(body.encode("utf-8")).hexdigest(),
+        "at": now,
+    }
+    metadata["continuity_checkpoint"] = checkpoint
+    metadata["updated_at"] = now
+    write_packet(packet, metadata, "checkpoint-recorded", checkpoint)
+    report, code = validate_packet_data(packet)
+    if code and metadata.get("state") in {"approved", "implementing"}:
+        report["status"] = "checkpoint-invalid"
+        return emit(report, 2)
+    return emit({"status": "recorded", "packet": str(packet), "checkpoint": checkpoint})
+
+
+def resume_packet(args: argparse.Namespace) -> int:
+    packet = args.packet.resolve()
+    metadata, load_errors = load_packet(packet)
+    report, code = validate_packet_data(packet) if metadata else (
+        {"status": "invalid", "packet": str(packet), "errors": load_errors, "warnings": []},
+        2,
+    )
+    checkpoint = metadata.get("continuity_checkpoint") if isinstance(metadata, dict) else None
+    resume_status: str | None = None
+    if metadata and has_quality_kernel_contract(metadata.get("skill_version")) and isinstance(checkpoint, dict):
+        observed_snapshot, observation_errors = repository_snapshot(metadata)
+        change_kinds = (
+            repository_snapshot_change_kinds(checkpoint.get("repository_snapshot"), observed_snapshot)
+            if not observation_errors
+            else {"identity", "head", "worktree"}
+        )
+        if observation_errors:
+            report["errors"] = sorted(set([*report.get("errors", []), *observation_errors]))
+            code = 2
+        elif change_kinds & {"identity", "head"}:
+            details = repository_snapshot_drift_errors(
+                metadata,
+                checkpoint.get("repository_snapshot"),
+                check_worktree=False,
+            )
+            report["errors"] = sorted(set([*report.get("errors", []), *details]))
+            resume_status = "blocked"
+            code = 2
+        elif "worktree" in change_kinds:
+            trigger = checkpoint.get("trigger")
+            if trigger in OPEN_CONTINUITY_TRIGGERS:
+                report["errors"] = sorted(
+                    set(
+                        [
+                            *report.get("errors", []),
+                            "open-slice-delta: repository bytes changed inside an open implementation slice; inspect the exact delta and record an explicit reconciliation or sealed boundary checkpoint",
+                        ]
+                    )
+                )
+                resume_status = "reconciliation-required"
+            else:
+                report["errors"] = sorted(
+                    set(
+                        [
+                            *report.get("errors", []),
+                            "sealed checkpoint worktree drift: repository bytes changed after the last coherent boundary",
+                        ]
+                    )
+                )
+                resume_status = "blocked"
+            code = 2
+        unobservable = [
+            item.get("root")
+            for item in observed_snapshot
+            if isinstance(item, dict) and item.get("observable") is False
+        ]
+        if unobservable:
+            report["warnings"] = sorted(
+                set(
+                    [
+                        *report.get("warnings", []),
+                        "repository byte continuity is not mechanically observable for non-Git roots: "
+                        + ", ".join(str(value) for value in unobservable),
+                    ]
+                )
+            )
+    open_ambiguities = [
+        record.get("id")
+        for record in metadata.get("ambiguities", [])
+        if isinstance(record, dict) and record.get("status") == "open"
+    ] if isinstance(metadata, dict) and isinstance(metadata.get("ambiguities"), list) else []
+    legacy = bool(metadata) and not has_quality_kernel_contract(metadata.get("skill_version"))
+    payload = {
+        "status": (
+            "legacy-readable"
+            if legacy and code == 0
+            else "ready"
+            if code == 0
+            else resume_status or "blocked"
+        ),
+        "packet": str(packet),
+        "change_id": metadata.get("change_id") if isinstance(metadata, dict) else None,
+        "state": metadata.get("state") if isinstance(metadata, dict) else None,
+        "requirement_revision": metadata.get("requirement_revision") if isinstance(metadata, dict) else None,
+        "requirements_digest": metadata.get("requirements_digest") if isinstance(metadata, dict) else None,
+        "design_digest": metadata.get("design_digest") if isinstance(metadata, dict) else None,
+        "open_ambiguities": open_ambiguities,
+        "checkpoint": checkpoint,
+        "legacy_unbound": legacy,
+        "errors": report.get("errors", []),
+        "warnings": report.get("warnings", []),
+    }
+    return emit(payload, 0 if code == 0 else 2)
+
+
+def knowledge_binding_errors(
+    packet: Path,
+    metadata: dict[str, Any],
+    *,
+    effective_state: str,
+) -> list[str]:
+    immutable_quality = packet_has_immutable_creation_capability(packet, QUALITY_KERNEL_SKILL_VERSION_TAG)
+    if not immutable_quality and not has_quality_kernel_contract(metadata.get("skill_version")):
+        return []
+    binding = metadata.get("knowledge_manifest")
+    if binding is None:
+        return (
+            ["packet.json: verification requires an explicit project-knowledge disposition"]
+            if effective_state in {"verifying", "accepted", "archived"}
+            else []
+        )
+    expected_keys = {
+        "schema_version",
+        "impact",
+        "rationale",
+        "repository_root",
+        "project_root",
+        "changes_root",
+        "convention_path",
+        "manifest",
+        "sha256",
+    }
+    if not isinstance(binding, dict) or set(binding) != expected_keys:
+        return ["packet.json: knowledge_manifest must use the exact quality-kernel-v1 schema"]
+    errors: list[str] = []
+    if binding.get("schema_version") != "1.0":
+        errors.append("packet.json: knowledge_manifest schema_version must be 1.0")
+    impact = binding.get("impact")
+    if impact not in knowledge_system.KNOWLEDGE_IMPACTS:
+        errors.append("packet.json: knowledge_manifest has an invalid impact")
+    if not isinstance(binding.get("rationale"), str) or not binding["rationale"].strip():
+        errors.append("packet.json: knowledge_manifest rationale must be non-empty")
+    if impact == "none":
+        if any(
+            binding.get(field) is not None
+            for field in ("repository_root", "project_root", "changes_root", "convention_path", "manifest", "sha256")
+        ):
+            errors.append("packet.json: no-impact knowledge disposition must not bind a manifest")
+        return errors
+    roots = metadata.get("repository_roots")
+    root_text = binding.get("repository_root")
+    if not isinstance(roots, list) or root_text not in roots or not isinstance(root_text, str):
+        return [*errors, "packet.json: knowledge manifest must bind a declared repository root"]
+    root = Path(root_text).resolve()
+    manifest_value = binding.get("manifest")
+    try:
+        manifest_path = contained_path(
+            root,
+            manifest_value,
+            label="knowledge manifest",
+            require_relative=True,
+            reject_symlinks=True,
+        )
+    except PathContractError as exc:
+        return [*errors, str(exc)]
+    if manifest_path.name != "manifest.json" or not manifest_path.is_file():
+        return [*errors, "packet.json: knowledge manifest must name an existing manifest.json"]
+    observed_digest = "sha256:" + hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+    if binding.get("sha256") != observed_digest:
+        errors.append("packet.json: project-knowledge manifest digest drifted")
+    try:
+        manifest = read_json(manifest_path)
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        return [*errors, f"project-knowledge manifest cannot be read: {exc}"]
+    if manifest.get("change_id") != metadata.get("change_id"):
+        errors.append("project-knowledge manifest change_id does not match the packet")
+    authority_binding = manifest.get("authority_binding")
+    if immutable_quality and authority_binding is None:
+        errors.append("new quality packet material knowledge requires a complete authority_binding")
+    if authority_binding is not None:
+        expected_authority_keys = {
+            "schema_version",
+            "change_id",
+            "requirements",
+            "design",
+            "identifier_sets",
+        }
+        if not isinstance(authority_binding, dict):
+            errors.append("project-knowledge manifest authority_binding must be an object")
+        else:
+            if set(authority_binding) != expected_authority_keys:
+                errors.append("project-knowledge authority binding must use the exact schema")
+            if authority_binding.get("schema_version") != "1.0":
+                errors.append("project-knowledge authority binding schema_version must be 1.0")
+            if authority_binding.get("change_id") != metadata.get("change_id"):
+                errors.append("project-knowledge authority binding change_id does not match the packet")
+            documents = manifest.get("documents")
+            dossier_format = manifest.get("format")
+            expected_paths: dict[str, Any] = {"requirements": None, "design": None}
+            if isinstance(documents, dict):
+                if dossier_format == "governed":
+                    expected_paths = {
+                        "requirements": documents.get("requirements"),
+                        "design": documents.get("design"),
+                    }
+                elif dossier_format == "single":
+                    expected_paths = {
+                        "requirements": documents.get("change"),
+                        "design": documents.get("change"),
+                    }
+            current_digests = {
+                "requirements": current_requirements_digest(packet, metadata.get("documentation_profile")),
+                "design": current_design_digest(packet, metadata.get("documentation_profile")),
+            }
+            approved_digests = {
+                "requirements": metadata.get("requirements_digest"),
+                "design": metadata.get("design_digest"),
+            }
+            for role in ("requirements", "design"):
+                record = authority_binding.get(role)
+                if not isinstance(record, dict) or set(record) != {"path", "sha256"}:
+                    errors.append(f"project-knowledge authority binding {role} must use exact path and sha256 fields")
+                    continue
+                if record.get("path") != expected_paths[role]:
+                    errors.append(f"project-knowledge authority binding {role} path does not match the manifest document role")
+                digest = record.get("sha256")
+                if digest != current_digests[role] or (
+                    approved_digests[role] is not None and digest != approved_digests[role]
+                ):
+                    errors.append(f"project-knowledge authority binding {role} bytes do not match the packet baseline")
+            identifier_sets = authority_binding.get("identifier_sets")
+            expected_sets = {
+                "acceptance_criteria": metadata.get("acceptance_ids"),
+                "scope": metadata.get("scope_ids"),
+                "verification_obligations": metadata.get("verification_ids"),
+            }
+            if not isinstance(identifier_sets, dict) or set(identifier_sets) != set(expected_sets):
+                errors.append("project-knowledge authority binding identifier_sets must use the exact identifier families")
+            else:
+                for family, expected_values in expected_sets.items():
+                    observed_values = identifier_sets.get(family)
+                    if (
+                        not isinstance(observed_values, list)
+                        or not isinstance(expected_values, list)
+                        or len(observed_values) != len(set(observed_values))
+                        or len(expected_values) != len(set(expected_values))
+                        or set(observed_values) != set(expected_values)
+                    ):
+                        errors.append(
+                            f"project-knowledge authority binding {family} must exactly equal the packet identifier set"
+                        )
+    knowledge = manifest.get("knowledge")
+    if not isinstance(knowledge, dict) or knowledge.get("impact") != impact:
+        errors.append("project-knowledge manifest impact does not match the packet disposition")
+    report = knowledge_system.validate_knowledge_system(
+        root,
+        project_root=binding.get("project_root"),
+        changes_root=binding.get("changes_root"),
+        convention_path=binding.get("convention_path"),
+        change_id=str(metadata.get("change_id")),
+    )
+    if report.get("status") != "valid":
+        errors.extend(f"project knowledge: {error}" for error in report.get("errors", []))
+    changes_root = report.get("roots", {}).get("changes") if isinstance(report.get("roots"), dict) else None
+    if isinstance(changes_root, str):
+        expected_manifest = (root / changes_root / str(metadata.get("change_id")) / "manifest.json").resolve()
+        if manifest_path.resolve() != expected_manifest:
+            errors.append("packet.json: knowledge manifest is not the configured change dossier")
+    if effective_state in {"accepted", "archived"}:
+        if manifest.get("status") not in knowledge_system.TERMINAL_ACCEPTED_STATUSES:
+            errors.append("accepted packet requires an accepted or superseded change dossier")
+        if not isinstance(knowledge, dict) or knowledge.get("disposition") in {None, "pending"}:
+            errors.append("accepted packet requires a final project-knowledge disposition")
+    return errors
+
+
+def bind_knowledge(args: argparse.Namespace) -> int:
+    packet = args.packet.resolve()
+    metadata, errors = load_packet(packet)
+    if errors:
+        return emit({"status": "invalid", "errors": errors}, 2)
+    if not has_quality_kernel_contract(metadata.get("skill_version")):
+        return emit({"status": "invalid", "errors": ["bind-knowledge requires quality-kernel-v1"]}, 2)
+    if metadata.get("state") not in {"awaiting-approval", "approved", "implementing", "verifying"}:
+        return emit({"status": "invalid", "errors": ["knowledge may be bound only before acceptance"]}, 2)
+    if not args.rationale.strip():
+        return emit({"status": "invalid", "errors": ["knowledge rationale must be non-empty"]}, 2)
+    if args.impact == "none":
+        if args.manifest is not None or args.root is not None:
+            return emit({"status": "invalid", "errors": ["impact none must not bind a repository manifest"]}, 2)
+        binding: dict[str, Any] = {
+            "schema_version": "1.0",
+            "impact": "none",
+            "rationale": args.rationale.strip(),
+            "repository_root": None,
+            "project_root": None,
+            "changes_root": None,
+            "convention_path": None,
+            "manifest": None,
+            "sha256": None,
+        }
+    else:
+        roots = metadata.get("repository_roots", [])
+        root = args.root.resolve() if args.root is not None else Path(roots[0]).resolve() if len(roots) == 1 else None
+        if root is None or str(root) not in roots or args.manifest is None:
+            return emit(
+                {"status": "invalid", "errors": ["material knowledge impact requires --root and --manifest in a declared repository"]},
+                2,
+            )
+        try:
+            manifest_path = contained_path(
+                root,
+                args.manifest,
+                label="knowledge manifest",
+                require_relative=True,
+                reject_symlinks=True,
+            )
+        except PathContractError as exc:
+            return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+        if not manifest_path.is_file():
+            return emit({"status": "invalid", "errors": ["knowledge manifest does not exist"]}, 2)
+        report = knowledge_system.validate_knowledge_system(
+            root,
+            project_root=args.project_root,
+            changes_root=args.changes_root,
+            convention_path=args.convention_path,
+            change_id=str(metadata.get("change_id")),
+        )
+        if report.get("status") != "valid":
+            return emit({"status": "invalid", "errors": report.get("errors", [])}, 2)
+        resolved_roots = report.get("roots")
+        if not isinstance(resolved_roots, dict):
+            return emit({"status": "invalid", "errors": ["knowledge validator did not resolve roots"]}, 2)
+        project_root = resolved_roots.get("project")
+        changes_root = resolved_roots.get("changes")
+        if not isinstance(project_root, str) or not isinstance(changes_root, str):
+            return emit({"status": "invalid", "errors": ["knowledge validator returned invalid roots"]}, 2)
+        expected_manifest = (root / changes_root / str(metadata.get("change_id")) / "manifest.json").resolve()
+        if manifest_path.resolve() != expected_manifest:
+            return emit({"status": "invalid", "errors": ["knowledge manifest is not the resolved change dossier"]}, 2)
+        binding = {
+            "schema_version": "1.0",
+            "impact": args.impact,
+            "rationale": args.rationale.strip(),
+            "repository_root": str(root),
+            "project_root": project_root,
+            "changes_root": changes_root,
+            "convention_path": args.convention_path,
+            "manifest": manifest_path.relative_to(root).as_posix(),
+            "sha256": "sha256:" + hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
+        }
+    candidate = dict(metadata)
+    candidate["knowledge_manifest"] = binding
+    binding_errors = knowledge_binding_errors(packet, candidate, effective_state=str(metadata.get("state")))
+    if binding_errors:
+        return emit({"status": "invalid", "errors": binding_errors}, 2)
+    now = utc_now()
+    metadata["knowledge_manifest"] = binding
+    metadata["updated_at"] = now
+    write_packet(packet, metadata, "knowledge-bound", binding)
+    return emit({"status": "bound", "packet": str(packet), "knowledge_manifest": binding})
+
+
+def validate_knowledge_command(args: argparse.Namespace) -> int:
+    report = knowledge_system.validate_knowledge_system(
+        args.root.resolve(),
+        project_root=args.project_root,
+        changes_root=args.changes_root,
+        convention_path=args.convention_path,
+        change_id=args.change_id,
+    )
+    return emit(report, 0 if report.get("status") == "valid" else 2)
+
+
+def technique_accountability_errors(text: str) -> list[str]:
+    body = heading_body(text, "Technique accountability")
+    if body is None:
+        return ["test-matrix.md: missing heading `Technique accountability`"]
+    errors: list[str] = []
+    rows: dict[str, list[str]] = {}
+    for line in body.splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if cells and cells[0] in {"Black-box", "White-box", "Experience-based / exploratory / adversarial"}:
+            rows[cells[0]] = cells
+    for perspective in ("Black-box", "White-box"):
+        cells = rows.get(perspective)
+        if cells is None or len(cells) != 4:
+            errors.append(f"test-matrix.md: {perspective} requires one four-column accountability row")
+            continue
+        derivation, applicability, mapped = cells[1:]
+        if not derivation or PLACEHOLDER_RE.search(derivation):
+            errors.append(f"test-matrix.md: {perspective} requires concrete derived obligations")
+        is_not_applicable = re.search(r"\bN/?A\b|not applicable", applicability, re.IGNORECASE) is not None
+        if not applicability or PLACEHOLDER_RE.search(applicability):
+            errors.append(f"test-matrix.md: {perspective} requires applicability or a concrete N/A reason")
+        elif is_not_applicable:
+            reason = re.sub(r"(?i)\bN/?A\b|not applicable|because|[:;-]", " ", applicability).strip()
+            if len(reason.split()) < 3:
+                errors.append(f"test-matrix.md: {perspective} N/A requires a concrete change-specific reason")
+            if TEST_MATRIX_CELL_RE.search(mapped):
+                errors.append(f"test-matrix.md: {perspective} N/A must not map executable cells")
+        elif not TEST_MATRIX_CELL_RE.search(mapped):
+            errors.append(f"test-matrix.md: applicable {perspective} requires at least one mapped TM cell")
+    oracle_body = heading_body(text, "Oracle validity review")
+    if oracle_body is None:
+        errors.append("test-matrix.md: missing heading `Oracle validity review`")
+    elif "evidence gap" in oracle_body.lower() and "closed" not in oracle_body.lower():
+        errors.append("test-matrix.md: unresolved test-oracle evidence gap blocks verification")
+    elif TEST_MATRIX_CELL_RE.search(oracle_body) is None and "no changed test" not in oracle_body.lower():
+        errors.append("test-matrix.md: Oracle validity review requires a mapped TM cell or concrete no-changed-test rationale")
+    return errors
+
+
+def trace_technique_accountability_errors(text: str) -> list[str]:
+    body = heading_body(text, "Test technique accountability")
+    fields, field_errors = labeled_fields(body, ("Black-box", "White-box", "Oracle"))
+    errors = [f"trace.md: Test technique accountability {error}" for error in field_errors]
+    if field_errors:
+        return errors
+    for perspective in ("Black-box", "White-box"):
+        value = fields[perspective]
+        not_applicable = re.search(r"\bN/?A\b|not applicable", value, re.IGNORECASE) is not None
+        if not_applicable:
+            reason = re.sub(r"(?i)\bN/?A\b|not applicable|because|[:;,.-]", " ", value).strip()
+            if len(reason.split()) < 3:
+                errors.append(f"trace.md: {perspective} N/A requires a concrete change-specific reason")
+        elif re.fullmatch(r"(?i)(?:none|no|unknown|pending|not run|not reviewed)", value.strip()):
+            errors.append(f"trace.md: {perspective} requires concrete applicable obligations and evidence")
+    oracle = fields["Oracle"]
+    if re.search(r"(?i)\b(?:not reviewed|not run|pending|unknown|missing|open)\b", oracle) or len(oracle.split()) < 4:
+        errors.append("trace.md: Oracle requires a concrete failure-sensitivity review")
+    return errors
+
+
+def trace_commit_ready_errors(text: str) -> list[str]:
+    body = heading_body(text, "Knowledge and commit readiness")
+    fields, field_errors = labeled_fields(
+        body,
+        ("Knowledge impact", "Slice", "Commit-ready", "Delivery authority"),
+    )
+    errors = [f"trace.md: Knowledge and commit readiness {error}" for error in field_errors]
+    if field_errors:
+        return errors
+    impact = fields["Knowledge impact"].strip().lower()
+    if not any(impact.startswith(value) for value in ("none", "add", "update", "deprecate")):
+        errors.append("trace.md: Knowledge impact must record none, add, update, or deprecate")
+    if re.match(r"(?i)^yes\b", fields["Commit-ready"].strip()) is None:
+        errors.append("trace.md: Commit-ready must be yes before verification")
+    delivery = fields["Delivery authority"].lower()
+    if not all(word in delivery for word in ("stage", "commit", "push")) or not any(
+        marker in delivery
+        for marker in ("not authorized", "separate authority", "separately authorized", "independent", "no stage")
+    ):
+        errors.append("trace.md: commit-ready must preserve separate stage, commit, and push authority")
+    return errors
+
+
+def commit_ready_errors(text: str) -> list[str]:
+    body = heading_body(text, "Slice and commit readiness")
+    fields, errors = labeled_fields(body, COMMIT_READY_FIELDS)
+    rendered = [f"execution.md: Slice and commit readiness {error}" for error in errors]
+    if errors:
+        return rendered
+    if fields.get("Status", "").strip().lower() != "commit-ready":
+        rendered.append("execution.md: Slice and commit readiness Status must be commit-ready before verification")
+    delivery = fields.get("Delivery authority", "").lower()
+    if not all(word in delivery for word in ("stage", "commit", "push")) or not any(
+        marker in delivery
+        for marker in ("not authorized", "separate authority", "separately authorized", "independent", "no stage")
+    ):
+        rendered.append("execution.md: commit-ready must preserve separate stage, commit, and push authority")
+    return rendered
+
+
+def change_set_errors(filename: str, body: str | None) -> list[str]:
+    """Validate the lightweight root handoff before verification starts."""
+    if body is None:
+        return [f"{filename}: missing heading `Change set`"]
+    errors: list[str] = []
+    if "change-set.v1" not in body:
+        errors.append(f"{filename}: `Change set` must identify change-set.v1")
+    for field in CHANGE_SET_FIELDS:
+        if re.search(
+            rf"(?im)^\s*(?:[-*]\s*)?{re.escape(field)}\s*:\s*\S",
+            body,
+        ) is None:
+            errors.append(f"{filename}: `Change set` requires a non-empty `{field}` field")
+    return errors
+
+
+def packet_change_set_errors(packet: Path, metadata: dict[str, Any]) -> list[str]:
+    """Validate the existing-ledger handoff only when a new verification transition occurs."""
+    _, errors = packet_change_set_record(packet, metadata)
+    return errors
+
+
+def packet_change_set_record(
+    packet: Path,
+    metadata: dict[str, Any],
+) -> tuple[dict[str, str] | None, list[str]]:
+    """Return the canonical existing-ledger binding for change-set.v1."""
+    family = documentation_family(metadata.get("documentation_profile"))
+    filename = "trace.md" if family == "trace" else "execution.md" if family == "governed" else None
+    if filename is None:
+        return None, ["packet.json: invalid documentation profile for change-set.v1"]
+    path = packet / filename
+    if not path.is_file():
+        return None, [f"missing required file: {filename}"]
+    body = heading_body(path.read_text(encoding="utf-8"), "Change set")
+    error = placeholder_error(filename, "Change set", body)
+    errors = [error] if error else change_set_errors(filename, body)
+    if errors or body is None:
+        return None, errors
+    return {
+        "schema_version": "1.0",
+        "artifact": "change-set.v1",
+        "ledger": filename,
+        "sha256": "sha256:" + hashlib.sha256(body.encode("utf-8")).hexdigest(),
+    }, []
+
+
+def validate_change_set_binding(packet: Path, metadata: dict[str, Any]) -> list[str]:
+    """Bind tagged-at-creation packets while preserving the complete legacy contract."""
+    ledger = packet / "events.jsonl"
+    if not ledger.is_file():
+        return []
+    try:
+        events = [
+            json.loads(line)
+            for line in ledger.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+    except (OSError, json.JSONDecodeError):
+        return []
+    if not events or not isinstance(events[0], dict):
+        return []
+    verifying_events = [
+        event
+        for event in events
+        if isinstance(event, dict)
+        and event.get("event") == "transition"
+        and isinstance(event.get("payload"), dict)
+        and event["payload"].get("to") == "verifying"
+    ]
+    tagged_creation = (
+        isinstance(events[0].get("payload"), dict)
+        and has_change_set_contract(events[0]["payload"].get("skill_version"))
+    )
+    if not tagged_creation:
+        return []
+    for event in verifying_events:
+        marker = event["payload"].get("change_set")
+        if not isinstance(marker, dict) or set(marker) != {
+            "schema_version",
+            "artifact",
+            "ledger",
+            "sha256",
+        }:
+            return ["events.jsonl: new verifying transition requires an exact change-set binding"]
+        if (
+            marker.get("schema_version") != "1.0"
+            or marker.get("artifact") != "change-set.v1"
+            or marker.get("ledger") not in {"trace.md", "execution.md"}
+            or not isinstance(marker.get("sha256"), str)
+            or re.fullmatch(r"sha256:[0-9a-f]{64}", marker["sha256"]) is None
+        ):
+            return ["events.jsonl: verifying transition has an invalid change-set binding"]
+
+    state = metadata.get("state")
+    if state not in {"verifying", "accepted", "archived"}:
+        return []
+    if not verifying_events:
+        return ["events.jsonl: new verifying packet is missing its change-set transition binding"]
+    expected, errors = packet_change_set_record(packet, metadata)
+    if errors:
+        return errors
+    observed = verifying_events[-1]["payload"]["change_set"]
+    if observed != expected:
+        return ["events.jsonl: change-set.v1 drifted after the verifying transition"]
+    return []
+
+
+def validate_continuity_binding(packet: Path, metadata: dict[str, Any]) -> list[str]:
+    """Freeze the recovery checkpoint at every new-contract verifying transition."""
+    if not has_quality_kernel_contract(metadata.get("skill_version")):
+        return []
+    ledger = packet / "events.jsonl"
+    if not ledger.is_file():
+        return ["events.jsonl: quality-kernel-v1 requires an event ledger"]
+    try:
+        events = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines() if line.strip()]
+    except (OSError, json.JSONDecodeError):
+        return ["events.jsonl: cannot validate continuity checkpoint binding"]
+    if not events or not isinstance(events[0], dict):
+        return ["events.jsonl: quality-kernel-v1 requires tagged creation evidence"]
+    creation_payload = events[0].get("payload")
+    if not isinstance(creation_payload, dict) or not has_quality_kernel_contract(
+        creation_payload.get("skill_version")
+    ):
+        return ["events.jsonl: quality-kernel-v1 is missing tagged creation evidence"]
+    verifying_events = [
+        event
+        for event in events
+        if isinstance(event, dict)
+        and event.get("event") == "transition"
+        and isinstance(event.get("payload"), dict)
+        and event["payload"].get("to") == "verifying"
+    ]
+    for event in verifying_events:
+        marker = event["payload"].get("continuity_checkpoint")
+        if not isinstance(marker, dict) or set(marker) != {
+            "schema_version",
+            "trigger",
+            "requirement_revision",
+            "requirements_digest",
+            "design_digest",
+            "engineering_context_fingerprint",
+            "repository_snapshot",
+            "repository_reconciliation",
+            "active_ids",
+            "active_objective",
+            "last_evidence",
+            "next_action",
+            "stop_condition",
+            "drift",
+            "ledger",
+            "section_sha256",
+            "at",
+        }:
+            return ["events.jsonl: quality-kernel verifying transition requires an exact continuity binding"]
+    if metadata.get("state") not in {"verifying", "accepted", "archived"}:
+        return []
+    if not verifying_events:
+        return ["events.jsonl: quality-kernel packet is missing its continuity transition binding"]
+    if verifying_events[-1]["payload"].get("continuity_checkpoint") != metadata.get("continuity_checkpoint"):
+        return ["events.jsonl: continuity checkpoint drifted after the verifying transition"]
+    return []
 
 
 def ids(text: str, kind: str) -> set[str]:
@@ -2035,12 +4145,20 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
         if value in (None, "", [], {}):
             errors.append(f"packet.json: missing concrete `{field}`")
     schema_version = metadata.get("schema_version")
+    effective_state = state_override or metadata.get("state")
+    quality_tagged = packet_has_creation_capability(
+        packet,
+        metadata,
+        QUALITY_KERNEL_SKILL_VERSION_TAG,
+    )
     if schema_version not in SUPPORTED_SCHEMA_VERSIONS:
         errors.append(f"packet.json: unsupported schema_version {metadata.get('schema_version')!r}")
     if metadata.get("state") not in STATES:
         errors.append(f"packet.json: invalid state {metadata.get('state')!r}")
     if metadata.get("task_type") not in TASK_TYPES:
         errors.append(f"packet.json: invalid task_type {metadata.get('task_type')!r}")
+    if metadata.get("task_type") == "read-only-audit" and metadata.get("mutation_intent") != "none":
+        errors.append("packet.json: read-only-audit cannot declare persistent mutation")
     if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{2,80}", str(metadata.get("change_id", ""))):
         errors.append("packet.json: invalid change_id")
     if schema_version in READINESS_SCHEMA_VERSIONS:
@@ -2050,6 +4168,12 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
             errors.append(f"packet.json: invalid collaboration_profile {collaboration_profile!r}")
         if ui_impact not in UI_IMPACTS:
             errors.append(f"packet.json: invalid ui_impact {ui_impact!r}")
+    if quality_tagged:
+        if metadata.get("mutation_intent") not in {"none", "persistent"}:
+            errors.append("packet.json: quality-kernel-v1 requires mutation_intent none or persistent")
+        for field in ("design_digest", "continuity_checkpoint", "knowledge_manifest"):
+            if field not in metadata:
+                errors.append(f"packet.json: quality-kernel-v1 requires `{field}` projection")
 
     profile = metadata.get("documentation_profile")
     family = documentation_family(profile)
@@ -2073,6 +4197,21 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                 error = placeholder_error(path.name, heading, heading_body(text, heading))
                 if error:
                     errors.append(error)
+            if quality_tagged:
+                for heading in QUALITY_TRACE_HEADINGS:
+                    body = heading_body(text, heading)
+                    if heading == "Continuity checkpoint" and effective_state not in {
+                        "implementing",
+                        "verifying",
+                        "accepted",
+                        "archived",
+                    }:
+                        if body is None:
+                            errors.append("trace.md: missing heading `Continuity checkpoint`")
+                        continue
+                    error = placeholder_error(path.name, heading, body)
+                    if error:
+                        errors.append(error)
     elif family == "governed":
         for filename in FULL_FILES:
             path = packet / filename
@@ -2093,6 +4232,21 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
             if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS:
                 for heading in SCHEMA_1_2_HEADINGS.get(filename, ()):
                     error = placeholder_error(filename, heading, heading_body(text, heading))
+                    if error:
+                        errors.append(error)
+            if quality_tagged:
+                for heading in QUALITY_GOVERNED_HEADINGS.get(filename, ()):
+                    body = heading_body(text, heading)
+                    if heading == "Continuity checkpoint" and effective_state not in {
+                        "implementing",
+                        "verifying",
+                        "accepted",
+                        "archived",
+                    }:
+                        if body is None:
+                            errors.append(f"{filename}: missing heading `Continuity checkpoint`")
+                        continue
+                    error = placeholder_error(filename, heading, body)
                     if error:
                         errors.append(error)
     else:
@@ -2204,6 +4358,16 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                     errors.append(f"{ambiguity_id} is missing from execution.md")
                 if ambiguity_id not in evidence:
                     errors.append(f"{ambiguity_id} is missing from evidence.md")
+    errors.extend(continuity_checkpoint_errors(packet, metadata, effective_state=str(effective_state)))
+    errors.extend(knowledge_binding_errors(packet, metadata, effective_state=str(effective_state)))
+    if quality_tagged and effective_state in {"verifying", "accepted", "archived"}:
+        if family == "governed":
+            errors.extend(technique_accountability_errors(texts.get("test-matrix.md", "")))
+            errors.extend(commit_ready_errors(texts.get("execution.md", "")))
+        elif family == "trace":
+            trace = texts.get("trace.md", "")
+            errors.extend(trace_technique_accountability_errors(trace))
+            errors.extend(trace_commit_ready_errors(trace))
 
     approvals_value = metadata.get("approvals", {})
     if not isinstance(approvals_value, dict):
@@ -2258,7 +4422,7 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
             for error in validate_dependency_approval(record):
                 errors.append(f"packet.json: approvals.dependencies[{index}]: {error}")
 
-    state = state_override or metadata.get("state")
+    state = effective_state
     if state in {"approved", "implementing", "verifying", "accepted", "archived"}:
         if schema_version in READINESS_SCHEMA_VERSIONS and concrete_design_record(approvals) is None:
             errors.append(f"state {state} requires a concrete design approval record")
@@ -2312,6 +4476,14 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
                 or design_record.get("requirements_digest") != current_digest
             ):
                 errors.append("design approval does not match the current requirement revision and digest")
+            if quality_tagged:
+                design_digest = current_design_digest(packet, profile)
+                if design_digest is None:
+                    errors.append("quality-kernel-v1 requires a computable design baseline")
+                elif metadata.get("design_digest") != design_digest:
+                    errors.append("design changed after its content-bound approval")
+                if design_record is not None and design_record.get("design_digest") != design_digest:
+                    errors.append("design approval does not match the current design digest")
             if design_record is not None and approved_times and awaiting_times:
                 approved_at = max(approved_times)
                 eligible_awaiting = [value for value in awaiting_times if value <= approved_at]
@@ -2373,6 +4545,9 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
             fingerprint = readiness.get("fingerprint")
             if not isinstance(fingerprint, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", fingerprint):
                 errors.append("context-readiness.json: invalid fingerprint")
+            if quality_tagged:
+                _, projection_errors = validate_engineering_context_projection(readiness)
+                errors.extend(projection_errors)
             if state in {"accepted", "archived"} and readiness.get("outcome") in {"checkpoint", "blocked"}:
                 errors.append("accepted packet cannot retain a context-readiness checkpoint or block")
 
@@ -2643,6 +4818,7 @@ def assess_context_command(args: argparse.Namespace) -> int:
         )
     except (OSError, ValueError, json.JSONDecodeError, tomllib.TOMLDecodeError, engineering_context.ContractError) as exc:
         return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+    result["projection_fingerprint"] = engineering_context_projection_fingerprint(result)
     output_path = args.output
     if output_path is None and args.packet:
         output_path = args.packet / "context-readiness.json"
@@ -2662,31 +4838,62 @@ def route_task(args: argparse.Namespace) -> int:
         reasons.setdefault(skill, []).append(reason)
 
     needs = set(args.need)
+    unknowns = set(args.unknown)
+    # An unresolved delivery dimension is not delivery intent or authority.
+    needs.update(value for value in unknowns if value in {"architecture", "dependency", "diagnosis", "review"})
+    mutation_intent = args.mutation or ("none" if args.task_type == "read-only-audit" else "persistent")
+    if args.task_type == "read-only-audit" and mutation_intent != "none":
+        return emit({"status": "invalid", "errors": ["read-only-audit cannot declare persistent mutation"]}, 2)
+    decision_work = args.task_type != "read-only-audit"
+    mutating = decision_work and mutation_intent == "persistent"
+    conservative_risks = list(args.risk)
+    conservative_risks.extend(
+        {
+            "security": "security",
+            "data": "persisted-data",
+            "compatibility": "compatibility",
+            "dependency": "dependency",
+        }[value]
+        for value in sorted(unknowns & {"security", "data", "compatibility", "dependency"})
+    )
     try:
-        risks = engineering_context.canonical_risks(args.risk)
-        work_mode, mode_reasons = select_work_mode(args.task_type, risks, args.work_mode)
+        risks = engineering_context.canonical_risks(conservative_risks)
+        work_mode, mode_reasons = select_work_mode(
+            args.task_type,
+            risks,
+            args.work_mode,
+            persistent_mutation=mutating,
+        )
     except ValueError as exc:
         return emit({"status": "invalid", "errors": [str(exc)]}, 2)
-    decision_work = args.task_type != "read-only-audit"
-    mutating = args.task_type not in {"read-only-audit", "spike"}
-    if args.ui_impact == "material" and work_mode != "governed":
+    if (args.ui_impact == "material" or "ui" in unknowns) and work_mode != "governed":
         if args.work_mode != "auto":
-            return emit({"status": "invalid", "errors": ["material UI impact requires governed work mode"]}, 2)
-        work_mode, mode_reasons = "governed", ["material-ui-impact"]
+            message = (
+                "material UI impact requires governed work mode"
+                if args.ui_impact == "material"
+                else "unresolved UI impact requires governed work mode"
+            )
+            return emit({"status": "invalid", "errors": [message]}, 2)
+        work_mode, mode_reasons = "governed", ["material-ui-impact" if args.ui_impact == "material" else "unresolved-ui-impact"]
     if args.profile_operation:
         add("manage-engineering-profiles", "explicit profile or instruction lifecycle operation")
-    if args.ui_impact in {"preserve", "material"}:
+    if args.ui_impact in {"preserve", "material"} or "ui" in unknowns:
         add(
             "product-ux-discovery",
-            "material UI intent and UX Ready baseline" if args.ui_impact == "material" else "existing UI intent and protected behavior",
+            "material or unresolved UI intent and UX Ready baseline"
+            if args.ui_impact == "material" or "ui" in unknowns
+            else "existing UI intent and protected behavior",
         )
     if (
+        mutating
+        or
         args.ambiguity
         or args.task_type in {"large-feature", "large-refactor", "migration", "dependency-change", "security"}
         or args.ui_impact == "material"
+        or unknowns & {"compatibility", "data", "security", "ui"}
         or decision_work and risks & REQUIREMENTS_ROUTING_RISKS
     ):
-        add("requirements-design", "material requirement, design, scope, or compatibility baseline")
+        add("requirements-design", "durable requirement understanding, scope, and compatibility baseline")
     if args.task_type == "bugfix" or "diagnosis" in needs or risks & DIAGNOSIS_ROUTING_RISKS:
         add("systematic-debugging", "failure reproduction and causal diagnosis")
     if (
@@ -2710,15 +4917,25 @@ def route_task(args: argparse.Namespace) -> int:
         or args.task_type in {"security", "migration", "release-hotfix", "dependency-change", "rollback"}
     ):
         add("change-review", "independent specification and adversarial review")
-    if "delivery" in needs or args.task_type in {"release-hotfix", "rollback"}:
+    if "delivery" in needs:
         add("delivery-readiness", "acceptance, rollback, and delivery authority accounting")
     return emit(
         {
             "status": "routed",
             "kernel": "dev-flow",
+            "quality_kernel": {
+                "always_loaded": True,
+                "requirements": "resolve repository facts, persist understood semantics, and stop affected slices on open material ambiguity",
+                "continuity": "rehydrate at lifecycle and premise-change triggers from digest-bound requirement, design, context, and checkpoint state",
+                "testing": "account black-box and white-box views separately; challenge oracle failure sensitivity",
+                "challenge": "root performs basic specification and adversarial checks at every phase; independent deep review remains risk-routed",
+                "knowledge": "record a project-knowledge impact/disposition and promote only implemented, verified, reusable truth",
+                "specialists": "derive neutral outcomes first, then load the minimum repository-valid technical Skills; re-resolve on path, phase, rule, or risk drift",
+            },
             "work_mode": work_mode,
             "work_mode_reasons": mode_reasons,
             "routes": [{"skill": skill, "reasons": reasons[skill]} for skill in routes],
+            "unresolved_dimensions": sorted(unknowns),
             "excluded": {
                 "manage-engineering-profiles": "ordinary profile consumption does not activate management" if not args.profile_operation else None,
                 "dev-flow-maintainer": "explicit-only" if not args.suite_maintenance else None,
@@ -2813,20 +5030,16 @@ def check_plugin(args: argparse.Namespace) -> int:
     except (OSError, json.JSONDecodeError, AttributeError) as exc:
         errors.append(f"invalid marketplace manifest: {exc}")
 
-    expected_skills = {
-        "architecture-decisions",
-        "change-review",
-        "delivery-readiness",
-        "dependency-decisions",
-        "dev-flow",
-        "dev-flow-maintainer",
-        "manage-engineering-profiles",
-        "product-ux-discovery",
-        "repo-context",
-        "requirements-design",
-        "systematic-debugging",
-        "verification",
-    }
+    try:
+        capabilities = read_json(root / "governance" / "capability-contracts.json").get("capabilities", [])
+        expected_skills = {
+            item.get("skill")
+            for item in capabilities
+            if isinstance(item, dict) and isinstance(item.get("skill"), str) and item["skill"]
+        }
+    except (OSError, json.JSONDecodeError, AttributeError) as exc:
+        errors.append(f"invalid capability registry: {exc}")
+        expected_skills = set()
     observed_skills = {path.name for path in (root / "skills").glob("*/") if path.is_dir()}
     if observed_skills != expected_skills:
         errors.append(f"skill inventory mismatch: expected {sorted(expected_skills)}, observed {sorted(observed_skills)}")
@@ -3136,6 +5349,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--collaboration-profile", choices=sorted(COLLABORATION_PROFILES))
     init.add_argument("--ui-impact", choices=sorted(UI_IMPACTS), default="none")
     init.add_argument("--compatibility-required", action="store_true")
+    init.add_argument("--mutation", choices=("none", "persistent"))
     init.add_argument("--reuse", action="store_true")
     init.add_argument("--work-mode", choices=("auto", *sorted(WORK_MODES)), default="auto")
     init.set_defaults(func=init_packet)
@@ -3151,6 +5365,51 @@ def build_parser() -> argparse.ArgumentParser:
     transition.add_argument("--approved-by")
     transition.add_argument("--ambiguity-id", help="Open material AMB-n that justifies content-bound reopening")
     transition.set_defaults(func=transition_packet)
+
+    checkpoint = sub.add_parser("record-checkpoint", help="Persist a digest-bound semantic recovery checkpoint")
+    checkpoint.add_argument("packet", type=Path)
+    checkpoint.add_argument("--trigger", choices=sorted(CONTINUITY_TRIGGERS), required=True)
+    checkpoint.add_argument("--objective", required=True)
+    checkpoint.add_argument("--active-id", action="append", required=True)
+    checkpoint.add_argument("--last-evidence", required=True)
+    checkpoint.add_argument("--next-action", required=True)
+    checkpoint.add_argument("--stop-condition", required=True)
+    checkpoint.add_argument(
+        "--repository-reconciliation",
+        help="required when repository identity, HEAD, or worktree bytes changed since the prior checkpoint",
+    )
+    checkpoint.add_argument(
+        "--accept-head",
+        action="append",
+        default=[],
+        metavar="ROOT=OID",
+        help="exact current Git OID accepted for each changed repository root; repeat per root",
+    )
+    checkpoint.add_argument("--drift", choices=("aligned", "reopened"), default="aligned")
+    checkpoint.set_defaults(func=record_checkpoint)
+
+    resume = sub.add_parser("resume-packet", help="Rehydrate the current requirement, design, context, and checkpoint")
+    resume.add_argument("packet", type=Path)
+    resume.set_defaults(func=resume_packet)
+
+    bind = sub.add_parser("bind-knowledge", help="Bind a final knowledge disposition or tracked change dossier")
+    bind.add_argument("packet", type=Path)
+    bind.add_argument("--impact", choices=sorted(knowledge_system.KNOWLEDGE_IMPACTS), required=True)
+    bind.add_argument("--rationale", required=True)
+    bind.add_argument("--root", type=Path)
+    bind.add_argument("--project-root")
+    bind.add_argument("--changes-root")
+    bind.add_argument("--convention-path", default=knowledge_system.DEFAULT_CONVENTION_PATH)
+    bind.add_argument("--manifest", help="repository-relative path to the change dossier manifest")
+    bind.set_defaults(func=bind_knowledge)
+
+    knowledge = sub.add_parser("validate-knowledge", help="Validate tracked project truth and change dossiers")
+    knowledge.add_argument("--root", type=Path, required=True)
+    knowledge.add_argument("--project-root")
+    knowledge.add_argument("--changes-root")
+    knowledge.add_argument("--convention-path", default=knowledge_system.DEFAULT_CONVENTION_PATH)
+    knowledge.add_argument("--change-id")
+    knowledge.set_defaults(func=validate_knowledge_command)
 
     iteration = sub.add_parser("record-iteration", help="Record a causal hypothesis or repair attempt and enforce the three-round breaker")
     iteration.add_argument("packet", type=Path)
@@ -3253,6 +5512,14 @@ def build_parser() -> argparse.ArgumentParser:
     route.add_argument("--ambiguity", action="store_true")
     route.add_argument("--profile-operation", action="store_true")
     route.add_argument("--suite-maintenance", action="store_true")
+    route.add_argument("--mutation", choices=("none", "persistent"))
+    route.add_argument(
+        "--unknown",
+        choices=("architecture", "compatibility", "data", "delivery", "dependency", "diagnosis", "review", "security", "ui"),
+        action="append",
+        default=[],
+        help="Unresolved risk dimension; route conservatively until repository evidence closes it",
+    )
     route.add_argument("--work-mode", choices=("auto", *sorted(WORK_MODES)), default="auto")
     route.set_defaults(func=route_task)
 

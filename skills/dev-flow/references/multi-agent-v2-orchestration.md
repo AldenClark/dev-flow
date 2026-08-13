@@ -48,7 +48,9 @@ Install the bundled role configs with `dev-flow.py install-runtime`. Resolve cur
 
 ## Dispatch contract
 
-Create a task brief from `templates/task-brief.md` before every spawn. Include one deliverable, dependency edges, exact repository root, instructions/Skills, owned paths/symbols/environments, AC/SC IDs, current requirement revision/digest, applicable `AMB-n` dispositions, user-owned semantics the child must not reinterpret, approved decisions/non-goals, allowed/forbidden actions, verification command/oracle, soft and hard deadlines, resource lease, native-result route, optional durable-report requirement, and stop conditions.
+Create a task brief from `templates/task-brief.md` before every spawn. Bind one deliverable and dependency edges to the exact repository root, base commit and worktree, current requirement and design revisions/digests, effective instruction/profile/capability fingerprint, applicable `AMB-n` dispositions, and `AC/SC/VO` IDs. Include user-owned semantics the child must not reinterpret, approved decisions/non-goals, exclusive paths/symbols/environments, resource lease, allowed/forbidden actions, separately derived black-box and white-box obligations, exact verification command/oracle, soft and hard deadlines, native-result route, optional durable-report requirement, and stop conditions.
+
+The child must stop and return drift when the base/worktree, requirement/design baseline, effective engineering context, ownership boundary, resource lease, or `AC/SC/VO` mapping no longer matches. It must not reinterpret semantics, expand scope, add a dependency, or convert a commit-ready checkpoint into staging, commit, push, PR, or delivery authority.
 
 The native final result delivered to the root is the primary coordination result. Request a Markdown report only when a durable independent audit/test artifact materially improves recovery or traceability; name its path in the brief. Failure to write that secondary projection must never block native child stop or by itself justify redispatch.
 
@@ -85,6 +87,6 @@ Use stable observability definitions from packet/session evidence: `DEV_FLOW_AGE
 
 ## Result adjudication and repair
 
-For each native result and any optional durable report, read referenced source/diff/artifacts, verify ownership and scope, reproduce material claims, resolve conflicts, and record accept/revise/reject. Terminal child status is coordination evidence only; root reconciliation makes the task complete.
+For each native result and any optional durable report, the root independently rechecks the bound base/worktree, requirement/design revisions and digests, effective engineering context fingerprint, complete diff and generated artifacts, ownership/scope, black-box and white-box accounting, test-oracle validity, commands, evidence, integration, and resource teardown. Reproduce material claims, resolve conflicts, and record accept/revise/reject. Terminal child status is coordination evidence only; root reconciliation makes the task complete.
 
 Keep the original implementer on a bounded fix when context remains valid. After repair, rerun the affected verification and a scoped clean re-review. After three failed hypotheses or repair rounds, interrupt ongoing work, stop layering patches, classify the failure as reproduction/model/architecture/environment/oracle, and bring the evidence and design question back to the user.

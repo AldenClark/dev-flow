@@ -7,7 +7,7 @@ description: Explicit-only maintenance of Dev Flow schemas, routing, host adapte
 
 For public-contract or breaking-migration decisions, remain in Default mode and follow `../requirements-design/references/user-interaction.md`.
 
-Maintain the suite as a versioned product with measurable trigger, context, safety, and compatibility behavior.
+Maintain the suite as a versioned product whose core workflow quality comes first and whose evaluation stays proportionate, diagnostic, and claim-bounded.
 
 ## Responsibility contract
 
@@ -25,8 +25,9 @@ Maintain the suite as a versioned product with measurable trigger, context, safe
 5. Read `references/maintenance-contract.md` before changing public names, schemas, routing, or cutover behavior.
 6. Read `references/capability-registry.json` before changing EQAC capability IDs or candidate routes. Installation is inventory; local host admission owns activation.
 7. First prove exact routing, work mode, owner outputs, stop/handoff behavior, collisions, compatibility, safe counterexamples, and representative repository workflows with deterministic tests.
-8. Run paired model evaluation only for a material model-dependent behavior or release comparison after those gates pass; never let the evaluator define ownership or drive case-specific Skill text.
-9. Preserve first failures, migration provenance, rollback, and exact content disposition. Publish only the integrated suite.
+8. For material model-dependent behavior, map every affected development category and run at least the configured minimum of three distinct cases per category, each with at least three independent first attempts, after deterministic gates pass. Treat a smaller slice as diagnostic only; reserve the frozen full comparison for an explicitly budgeted release decision.
+9. Keep safety/authority hard gates separate from outcome, variability, fidelity/retention/rework, and cost. Do not derive one overall quality number. Audit every new failure transcript and a rotating sample of passes for candidate, grader, case, contamination, or infrastructure defects.
+10. Freeze evaluator/schema growth unless a core invariant is otherwise unobservable; record the smaller rejected alternative, owner, cost, rollback, and removal condition. Preserve first failures, migration provenance, and exact content disposition. Publish only the integrated suite.
 
 Use `scripts/validate-suite.py` for the maintainer-specific inventory and dangling-route gate before the repository-wide checks.
 
@@ -34,4 +35,5 @@ Use `scripts/validate-suite.py` for the maintainer-specific inventory and dangli
 
 - Never edit or promote personal/team/project profile values as suite maintenance.
 - Never auto-install, auto-enable, or silently rewrite third-party Skills/plugins.
+- Never use a model score or confidence interval as population truth or repository/release proof.
 - Never treat structural validity as quality admission or publish internal waves as supported partial architecture.
