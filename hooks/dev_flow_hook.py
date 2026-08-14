@@ -43,11 +43,6 @@ DEPENDENCY_RE = re.compile(
     r"build\.gradle|libs\.versions\.toml)",
     re.IGNORECASE,
 )
-COMPLETION_RE = re.compile(
-    r"(?:\bcomplete(?:d)?\b|\bfixed\b|\bpassing\b|\bverified\b|\brelease[- ]ready\b|"
-    r"已完成|已修复|全部通过|验证通过|可以发布|提交完成)",
-    re.IGNORECASE,
-)
 AGENT_LIFECYCLE_STATES = {
     "discovering",
     "awaiting-approval",
@@ -56,6 +51,17 @@ AGENT_LIFECYCLE_STATES = {
     "verifying",
 }
 QUALITY_KERNEL_CAPABILITY = "quality-kernel-v1"
+MAX_SEMVER_TEXT_LENGTH = 256
+MAX_SCHEMA_VERSION_TEXT_LENGTH = 32
+SEMVER_CORE_NUMBER = r"(?:0|[1-9][0-9]*)"
+SEMVER_PRERELEASE_IDENTIFIER = r"(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)"
+SEMVER_RE = re.compile(
+    rf"(?P<major>{SEMVER_CORE_NUMBER})\."
+    rf"(?P<minor>{SEMVER_CORE_NUMBER})\."
+    rf"(?P<patch>{SEMVER_CORE_NUMBER})"
+    rf"(?:-(?P<prerelease>{SEMVER_PRERELEASE_IDENTIFIER}(?:\.{SEMVER_PRERELEASE_IDENTIFIER})*))?"
+    r"(?:\+(?P<build>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?"
+)
 
 
 def output(payload: dict[str, Any]) -> None:
@@ -721,23 +727,152 @@ def load_validator() -> Any:
     return module
 
 
+def semantic_version(value: Any) -> tuple[int, int, int, tuple[str, ...] | None] | None:
+    if not isinstance(value, str) or len(value) > MAX_SEMVER_TEXT_LENGTH:
+        return None
+    match = SEMVER_RE.fullmatch(value)
+    if match is None:
+        return None
+    prerelease_text = match.group("prerelease")
+    prerelease = tuple(prerelease_text.split(".")) if prerelease_text is not None else None
+    return (
+        int(match.group("major")),
+        int(match.group("minor")),
+        int(match.group("patch")),
+        prerelease,
+    )
+
+
+def semantic_version_is_newer(
+    candidate: tuple[int, int, int, tuple[str, ...] | None],
+    runtime: tuple[int, int, int, tuple[str, ...] | None],
+) -> bool:
+    if candidate[:3] != runtime[:3]:
+        return candidate[:3] > runtime[:3]
+    candidate_prerelease = candidate[3]
+    runtime_prerelease = runtime[3]
+    if candidate_prerelease is None:
+        return runtime_prerelease is not None
+    if runtime_prerelease is None:
+        return False
+    for candidate_part, runtime_part in zip(candidate_prerelease, runtime_prerelease):
+        if candidate_part == runtime_part:
+            continue
+        candidate_numeric = candidate_part.isdigit()
+        runtime_numeric = runtime_part.isdigit()
+        if candidate_numeric and runtime_numeric:
+            return int(candidate_part) > int(runtime_part)
+        if candidate_numeric != runtime_numeric:
+            return not candidate_numeric
+        return candidate_part > runtime_part
+    return len(candidate_prerelease) > len(runtime_prerelease)
+
+
+def schema_version(value: Any) -> tuple[int, int] | None:
+    if not isinstance(value, str) or len(value) > MAX_SCHEMA_VERSION_TEXT_LENGTH:
+        return None
+    match = re.fullmatch(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", value)
+    if match is None:
+        return None
+    return tuple(int(part) for part in match.groups())
+
+
+def runtime_mismatch(metadata: dict[str, Any], validator: Any) -> str | None:
+    packet_schema_text = metadata.get("schema_version")
+    supported = getattr(validator, "SUPPORTED_SCHEMA_VERSIONS", None)
+    supported_values = (
+        tuple(value for value in supported if isinstance(value, str))
+        if isinstance(supported, (set, frozenset, list, tuple))
+        else ()
+    )
+    if isinstance(packet_schema_text, str) and supported_values and packet_schema_text not in supported_values:
+        packet_schema = schema_version(packet_schema_text)
+        supported_schemas = [parsed for value in supported_values if (parsed := schema_version(value)) is not None]
+        if packet_schema is not None and supported_schemas and packet_schema > max(supported_schemas):
+            return f"packet schema {packet_schema_text!r} is newer than this runtime supports"
+
+    packet_version = semantic_version(metadata.get("skill_version"))
+    try:
+        runtime_version_text = validator.plugin_version()
+    except Exception:  # The validator module is a versioned runtime boundary and Stop must stay fail open.
+        runtime_version_text = None
+    runtime_version = semantic_version(runtime_version_text)
+    if (
+        packet_version is not None
+        and runtime_version is not None
+        and semantic_version_is_newer(packet_version, runtime_version)
+    ):
+        return (
+            f"packet producer {metadata.get('skill_version')!r} is newer than "
+            f"runtime {runtime_version_text!r}"
+        )
+    return None
+
+
 def stop(event: dict[str, Any], packet: Path) -> None:
     metadata = packet_metadata(packet)
-    message = str(event.get("last_assistant_message") or "")
-    should_gate = metadata.get("state") in {"verifying", "accepted"} or bool(COMPLETION_RE.search(message))
-    if not should_gate:
+    state = metadata.get("state")
+    if not isinstance(state, str):
         output({})
         return
+    if state not in {"verifying", "accepted"}:
+        output({})
+        return
+    if not isinstance(metadata.get("schema_version"), str):
+        output(
+            {
+                "systemMessage": (
+                    "DEV_FLOW_COMPLETION_INVALID: The active packet has a missing or non-string schema_version. "
+                    "The final response was left intact; resume the task to repair the packet."
+                )
+            }
+        )
+        return
     try:
-        report, code = load_validator().validate_packet_data(packet)
+        validator = load_validator()
     except Exception as exc:  # Hook must fail conservatively without leaking internals.
         output({"systemMessage": f"Dev Flow could not validate the active packet: {exc}"})
         return
-    if code and not bool(event.get("stop_hook_active")):
-        summary = "; ".join(report.get("errors", [])[:5])
-        output({"decision": "block", "reason": f"Completion is not traceable yet. Repair the active packet: {summary}"})
-    elif code:
-        output({"systemMessage": "Dev Flow packet remains invalid after the stop-hook continuation; report it as an explicit blocker."})
+
+    try:
+        mismatch = runtime_mismatch(metadata, validator)
+    except Exception as exc:  # Compatibility classification is also a versioned runtime boundary.
+        output({"systemMessage": f"Dev Flow could not classify the active packet runtime: {exc}"})
+        return
+    if mismatch:
+        output(
+            {
+                "systemMessage": (
+                    "DEV_FLOW_RUNTIME_MISMATCH: Completion validation was skipped because "
+                    f"{mismatch}. Preserve the packet, use a newer Dev Flow runtime, and restart in a new task."
+                )
+            }
+        )
+        return
+
+    try:
+        report, code = validator.validate_packet_data(packet)
+    except Exception as exc:  # Stop runs after the user-facing final, so diagnostics must fail open.
+        output({"systemMessage": f"Dev Flow could not validate the active packet: {exc}"})
+        return
+    if code:
+        raw_errors = report.get("errors", []) if isinstance(report, dict) else []
+        if isinstance(raw_errors, (list, tuple)):
+            errors = raw_errors
+        elif raw_errors is None:
+            errors = []
+        else:
+            errors = [raw_errors]
+        summary = "; ".join(str(error) for error in errors[:5]) or "validator returned no structured errors"
+        output(
+            {
+                "systemMessage": (
+                    "DEV_FLOW_COMPLETION_INVALID: The active packet failed completion validation: "
+                    f"{summary}. The final response was left intact; resume the task to repair the packet "
+                    "before making another completion claim."
+                )
+            }
+        )
     else:
         output({})
 

@@ -8,12 +8,12 @@ Freeze these values before delivery:
 
 - one full commit SHA and its clean tree;
 - the version in `.codex-plugin/plugin.json`;
-- the monotonic RC tag, such as `v1.0.0-rc.1`;
+- the monotonic RC tag, written below as `vX.Y.Z-rc.N`;
 - the archive SHA-256 from `release-manifest.json`;
 - the approved model run size and models;
 - the actor allowed to merge, sign, create a draft, and publish a stable release.
 
-Never rewrite or reuse an RC tag. A changed byte requires a new commit and the next RC number. Final `v1.0.0` publication is a separate authorization even after an RC passes.
+Never rewrite or reuse an RC tag. A changed byte requires a new commit and the next RC number. Final `vX.Y.Z` publication is a separate authorization even after an RC passes.
 
 ## Gate order
 
@@ -33,14 +33,14 @@ Use an absent or empty output directory. The builder refuses populated files, sy
 ```bash
 git rev-parse HEAD
 python3 tools/build_release.py build \
-  --root . --output dist-a --version 1.0.0 --commit FULL_COMMIT_SHA
+  --root . --output dist-a --version 1.0.1 --commit FULL_COMMIT_SHA
 python3 tools/build_release.py build \
-  --root . --output dist-b --version 1.0.0 --commit FULL_COMMIT_SHA
-cmp dist-a/dev-flow-1.0.0.tar.gz dist-b/dev-flow-1.0.0.tar.gz
+  --root . --output dist-b --version 1.0.1 --commit FULL_COMMIT_SHA
+cmp dist-a/dev-flow-1.0.1.tar.gz dist-b/dev-flow-1.0.1.tar.gz
 cmp dist-a/release-manifest.json dist-b/release-manifest.json
 cmp dist-a/SHA256SUMS dist-b/SHA256SUMS
 python3 tools/build_release.py verify \
-  --artifact-dir dist-a --expected-version 1.0.0 --expected-commit FULL_COMMIT_SHA
+  --artifact-dir dist-a --expected-version 1.0.1 --expected-commit FULL_COMMIT_SHA
 ```
 
 Determinism is asserted for the pinned release environment. Gzip/zlib implementations outside that environment are not claimed to be cross-version byte-identical; promotion always reuses the already attested bytes instead of rebuilding them.
@@ -51,7 +51,7 @@ After the workflow is present on the default branch, dispatch it against the exa
 
 ```bash
 gh workflow run release-candidate.yml \
-  --ref main -f version=1.0.0 -f expected_sha=FULL_COMMIT_SHA
+  --ref main -f version=1.0.1 -f expected_sha=FULL_COMMIT_SHA
 ```
 
 The workflow has `contents: read`, `id-token: write`, and `attestations: write` only. It does not have `contents: write` or Release publication permission. Anchore upload, release-asset, and dependency-snapshot behavior is disabled; the separately pinned upload Action retains the public candidate evidence for 30 days.
@@ -60,10 +60,10 @@ After downloading the workflow artifact, verify locally and against GitHub's tra
 
 ```bash
 python3 tools/build_release.py verify \
-  --artifact-dir dist --expected-version 1.0.0 --expected-commit FULL_COMMIT_SHA
-gh attestation verify dist/dev-flow-1.0.0.tar.gz \
+  --artifact-dir dist --expected-version 1.0.1 --expected-commit FULL_COMMIT_SHA
+gh attestation verify dist/dev-flow-1.0.1.tar.gz \
   --repo AldenClark/dev-flow
-gh attestation verify dist/dev-flow-1.0.0.tar.gz \
+gh attestation verify dist/dev-flow-1.0.1.tar.gz \
   --repo AldenClark/dev-flow \
   --predicate-type https://spdx.dev/Document/v2.3
 ```
@@ -114,8 +114,9 @@ Use a dedicated temporary Codex home and never the primary user profile:
 
 ```bash
 DEV_FLOW_TEST_CODEX_HOME=/absolute/private/temporary-codex-home
+DEV_FLOW_RC_TAG=vX.Y.Z-rc.N
 CODEX_HOME="$DEV_FLOW_TEST_CODEX_HOME" \
-  codex plugin marketplace add AldenClark/dev-flow --ref v1.0.0-rc.1 --json
+  codex plugin marketplace add AldenClark/dev-flow --ref "$DEV_FLOW_RC_TAG" --json
 CODEX_HOME="$DEV_FLOW_TEST_CODEX_HOME" \
   codex plugin add dev-flow@dev-flow --json
 CODEX_HOME="$DEV_FLOW_TEST_CODEX_HOME" \
@@ -131,8 +132,9 @@ If the RC tag does not yet exist, local snapshot install proves only CLI/manifes
 Check the signing identity before tag creation. A missing or unverifiable identity blocks the tag; never generate, copy, or expose a private key as an implicit release step.
 
 ```bash
-git tag -s v1.0.0-rc.1 FULL_COMMIT_SHA -m 'dev-flow v1.0.0-rc.1'
-git tag -v v1.0.0-rc.1
+DEV_FLOW_RC_TAG=vX.Y.Z-rc.N
+git tag -s "$DEV_FLOW_RC_TAG" FULL_COMMIT_SHA -m "dev-flow $DEV_FLOW_RC_TAG"
+git tag -v "$DEV_FLOW_RC_TAG"
 ```
 
 Push the signed tag and create a draft release only when those exact actions are authorized and every required gate is green. Attach the already attested archive, SBOM, manifest, and checksums; do not rebuild. Verify the remote tag SHA, signature, release draft state, asset digests, and attestation subject afterward.

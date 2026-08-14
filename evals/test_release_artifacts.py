@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BUILDER = ROOT / "tools" / "build_release.py"
 FLOW = ROOT / "skills" / "dev-flow" / "scripts" / "dev-flow.py"
 PYTHON = sys.executable
-VERSION = "1.0.0"
+VERSION = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))["version"]
 
 
 def run(*args: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
@@ -106,7 +106,7 @@ class ReleaseArtifactTests(unittest.TestCase):
     def test_wrong_version_is_rejected_without_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp) / "release"
-            result = self.build(output, version="1.0.1")
+            result = self.build(output, version="1.0.2")
             self.assertEqual(result.returncode, 2, result.stderr or result.stdout)
             self.assertIn("does not match plugin manifest", result.stderr)
             self.assertFalse(list(output.iterdir()))
@@ -161,6 +161,14 @@ class RuntimeLifecycleSmokeTests(unittest.TestCase):
 
 
 class ReleaseWorkflowContractTests(unittest.TestCase):
+    def test_readme_current_install_ref_matches_manifest_version(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn(f"当前已发布稳定标签为 `v{VERSION}`", readme)
+        self.assertIn(
+            f"codex plugin marketplace add AldenClark/dev-flow --ref v{VERSION}",
+            readme,
+        )
+
     def test_workflow_run_scalars_do_not_embed_mapping_tokens_unquoted(self) -> None:
         workflows = ROOT / ".github" / "workflows"
         for path in sorted((*workflows.glob("*.yml"), *workflows.glob("*.yaml"))):

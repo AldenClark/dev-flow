@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-08-14
+
 ### Added
 
 - A composable engineering workbench whose current 12-Skill topology spans repository context, profile management, requirements/design, product/UX, architecture, dependencies, debugging, verification, review, delivery readiness, and explicit suite maintenance; the count is a compatibility fact rather than a quality target.
@@ -30,6 +32,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- Advanced the source, release workflow defaults, runbook examples, and release artifact contracts to patch version `1.0.1`.
+- Stop Hook completion checks are now advisory and lifecycle-scoped, distinguish newer packet/runtime incompatibility from packet corruption, and preserve the first assistant final; explicit pre-final validation, terminal transition, and matching-pointer deactivation remain the hard closeout path.
 - Repositioned `dev-flow` as a neutral thin orchestration kernel and migrated stable engineering, dependency, debugging, testing, review, UX, and delivery practices to focused owners.
 - Moved personal Rust/frontend/library choices out of public policy into configurable profile examples and current decision/snapshot surfaces.
 - Frontend guidance now separates non-visual, preserve, and material product/UX work instead of treating UI as an implementation-only profile.
@@ -64,5 +68,6 @@ All notable changes to this project are documented here. The format follows [Kee
 - Runtime markers no longer persist absolute packet paths, start/stop stay fail-open on marker storage or malformed data, and markers are removed whenever subagent stop is observed.
 - Runtime traces, plugin data, secrets, caches, and build outputs are excluded from source control.
 
-[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/AldenClark/dev-flow/compare/v0.2.0...v1.0.1
 [0.2.0]: https://github.com/AldenClark/dev-flow/releases/tag/v0.2.0

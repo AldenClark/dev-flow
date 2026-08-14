@@ -6716,6 +6716,241 @@ class RuntimeInstallerTests(unittest.TestCase):
 
 
 class HookTests(unittest.TestCase):
+    def invoke_stop(
+        self,
+        root: Path,
+        message: str = "Task completed.",
+        plugin_root: Path = ROOT,
+    ) -> dict[str, object]:
+        env = os.environ.copy()
+        env["PLUGIN_ROOT"] = str(plugin_root)
+        event = {
+            "cwd": str(root),
+            "hook_event_name": "Stop",
+            "last_assistant_message": message,
+            "stop_hook_active": False,
+        }
+        result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+        return json.loads(result.stdout)
+
+    def write_stop_packet(self, root: Path, metadata: dict[str, object]) -> Path:
+        flow = root / ".codex" / "dev-flow"
+        packet = flow / "sample-change"
+        packet.mkdir(parents=True)
+        (flow / "current").write_text("sample-change\n", encoding="utf-8")
+        (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+        return packet
+
+    def test_stop_reports_runtime_mismatch_without_blocking(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.write_stop_packet(
+                root,
+                {
+                    "schema_version": "999.0",
+                    "skill_version": "999.0.0+future-capability-v1",
+                    "state": "verifying",
+                },
+            )
+
+            payload = self.invoke_stop(root)
+            self.assertNotIn("decision", payload)
+            self.assertIn("DEV_FLOW_RUNTIME_MISMATCH", payload["systemMessage"])
+            self.assertIn("newer Dev Flow runtime", payload["systemMessage"])
+            self.assertNotIn("Repair the active packet", payload["systemMessage"])
+
+    def test_stop_reports_newer_producer_on_supported_schema_without_blocking(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.write_stop_packet(
+                root,
+                {
+                    "schema_version": "2.0",
+                    "skill_version": "999.0.0+quality-kernel-v1",
+                    "state": "verifying",
+                },
+            )
+
+            payload = self.invoke_stop(root)
+            self.assertNotIn("decision", payload)
+            self.assertIn("DEV_FLOW_RUNTIME_MISMATCH", payload["systemMessage"])
+            self.assertIn("producer", payload["systemMessage"])
+
+    def test_stop_reports_same_runtime_invalid_packet_without_blocking(self) -> None:
+        for state in ("verifying", "accepted"):
+            with self.subTest(state=state), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                plugin_version = json.loads(
+                    (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+                )["version"]
+                self.write_stop_packet(
+                    root,
+                    {
+                        "schema_version": "2.0",
+                        "skill_version": f"{plugin_version}+change-set-transition-v1.quality-kernel-v1",
+                        "state": state,
+                    },
+                )
+
+                payload = self.invoke_stop(root)
+                self.assertNotIn("decision", payload)
+                self.assertIn("DEV_FLOW_COMPLETION_INVALID", payload["systemMessage"])
+                self.assertIn("resume the task", payload["systemMessage"])
+
+    def test_stop_ignores_completion_words_outside_completion_states(self) -> None:
+        for message in ("Task completed.", "任务已完成。"):
+            with self.subTest(message=message), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                self.write_stop_packet(root, {"schema_version": "2.0", "state": "implementing"})
+                self.assertEqual(self.invoke_stop(root, message), {})
+
+    def test_stop_does_not_treat_malformed_producer_version_as_runtime_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.write_stop_packet(
+                root,
+                {
+                    "schema_version": "2.0",
+                    "skill_version": "future-version",
+                    "state": "verifying",
+                },
+            )
+
+            payload = self.invoke_stop(root)
+            self.assertNotIn("decision", payload)
+            self.assertIn("DEV_FLOW_COMPLETION_INVALID", payload["systemMessage"])
+            self.assertNotIn("DEV_FLOW_RUNTIME_MISMATCH", payload["systemMessage"])
+
+    def test_stop_does_not_treat_malformed_schema_as_runtime_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            plugin_version = json.loads(
+                (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+            )["version"]
+            self.write_stop_packet(
+                root,
+                {
+                    "schema_version": "future-schema",
+                    "skill_version": plugin_version,
+                    "state": "verifying",
+                },
+            )
+
+            payload = self.invoke_stop(root)
+            self.assertNotIn("decision", payload)
+            self.assertIn("DEV_FLOW_COMPLETION_INVALID", payload["systemMessage"])
+            self.assertNotIn("DEV_FLOW_RUNTIME_MISMATCH", payload["systemMessage"])
+
+    def test_stop_keeps_malformed_and_oversized_metadata_inside_advisory_boundary(self) -> None:
+        plugin_version = json.loads(
+            (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+        )["version"]
+        inert_cases = (
+            {"schema_version": "2.0", "skill_version": plugin_version, "state": ["verifying"]},
+            {"schema_version": "2.0", "skill_version": plugin_version},
+        )
+        for metadata in inert_cases:
+            with self.subTest(inert_metadata=metadata), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                self.write_stop_packet(root, metadata)
+                self.assertEqual(self.invoke_stop(root), {})
+
+        diagnostic_cases = (
+            {"schema_version": ["2.0"], "skill_version": plugin_version, "state": "verifying"},
+            {"schema_version": "9" * 5000 + ".0", "skill_version": plugin_version, "state": "verifying"},
+            {"schema_version": "2.0", "skill_version": "9" * 5000 + ".0.0", "state": "verifying"},
+            {"schema_version": "1٢.0", "skill_version": plugin_version, "state": "verifying"},
+        )
+        for metadata in diagnostic_cases:
+            with self.subTest(metadata_field_types={key: type(value).__name__ for key, value in metadata.items()}):
+                with tempfile.TemporaryDirectory() as temp:
+                    root = Path(temp)
+                    self.write_stop_packet(root, metadata)
+                    payload = self.invoke_stop(root)
+                    self.assertNotIn("decision", payload)
+                    self.assertIn("DEV_FLOW_COMPLETION_INVALID", payload["systemMessage"])
+
+    def test_stop_version_parser_accepts_semver_prerelease_and_build_metadata(self) -> None:
+        hook_globals = runpy.run_path(str(HOOK))
+        parse = hook_globals["semantic_version"]
+        newer = hook_globals["semantic_version_is_newer"]
+        rc1 = parse("1.2.3-rc.1+build.7")
+        rc2 = parse("1.2.3-rc.2+other-build")
+        final = parse("1.2.3")
+        self.assertEqual(rc1, (1, 2, 3, ("rc", "1")))
+        self.assertTrue(newer(rc2, rc1))
+        self.assertTrue(newer(final, rc2))
+        self.assertFalse(newer(parse("1.2.3+build.8"), final))
+        for malformed in (
+            "future-version",
+            "999.0.0-.",
+            "999.0.0+.",
+            "999.0.0-01",
+            "999.0.0-rc..1",
+            "1٢.0.0",
+        ):
+            with self.subTest(malformed=malformed):
+                self.assertIsNone(parse(malformed))
+
+    def test_stop_normalizes_untrusted_validator_error_shapes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            fake_plugin = root / "fake-plugin"
+            validator_path = fake_plugin / "skills" / "dev-flow" / "scripts" / "dev_flow.py"
+            validator_path.parent.mkdir(parents=True)
+            validator_path.write_text(
+                "SUPPORTED_SCHEMA_VERSIONS = {'2.0'}\n"
+                "def plugin_version():\n"
+                "    return '1.0.0'\n"
+                "def validate_packet_data(packet):\n"
+                "    return {'errors': None}, 2\n",
+                encoding="utf-8",
+            )
+            self.write_stop_packet(
+                root,
+                {"schema_version": "2.0", "skill_version": "1.0.0", "state": "verifying"},
+            )
+
+            payload = self.invoke_stop(root, plugin_root=fake_plugin)
+            self.assertNotIn("decision", payload)
+            self.assertIn("DEV_FLOW_COMPLETION_INVALID", payload["systemMessage"])
+            self.assertIn("validator returned no structured errors", payload["systemMessage"])
+
+    def test_stop_is_silent_for_valid_supported_packet(self) -> None:
+        for state in ("verifying", "accepted"):
+            with self.subTest(state=state), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                flow = root / ".codex" / "dev-flow"
+                packet = flow / "sample-change"
+                (flow / "current").parent.mkdir(parents=True)
+                (flow / "current").write_text("sample-change\n", encoding="utf-8")
+                write_valid_packet(packet, state=state, schema_version="1.0")
+
+                self.assertEqual(self.invoke_stop(root), {})
+
+    def test_public_close_contract_validates_and_deactivates_before_final(self) -> None:
+        skill = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
+        schema = (ROOT / "skills" / "dev-flow" / "references" / "artifact-schemas.md").read_text(
+            encoding="utf-8"
+        )
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        for text in (skill, schema, readme):
+            self.assertIn("validate-packet", text)
+            self.assertIn("deactivate-packet", text)
+        self.assertRegex(
+            skill,
+            r"(?s)Before the successful final.*`validate-packet`.*terminal transition.*`deactivate-packet`.*Stop Hook is advisory",
+        )
+        self.assertRegex(
+            schema,
+            r"(?s)Before a successful final:.*`validate-packet`.*terminal transition.*`deactivate-packet`.*Stop as advisory",
+        )
+        self.assertRegex(
+            readme,
+            r"执行 `validate-packet`.*`transition \.\.\. accepted`.*`deactivate-packet`.*最后才发送成功回复",
+        )
+
     def test_blocking_states_fail_closed_for_every_bash_command(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

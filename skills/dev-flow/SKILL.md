@@ -52,4 +52,6 @@ At user checkpoints, remain in Default mode and follow `../requirements-design/r
 
 Run fresh `verification` against frozen bytes; review tests/findings before repair. Green needs an oracle sensitive to the target defect. Keep failures, flakes, blocks, waivers, and unrun gates distinct.
 
+Before the successful final, follow the reference's `validate-packet` → terminal transition → `deactivate-packet` sequence; the Stop Hook is advisory.
+
 Never commit, push, create a PR, tag, release, deploy, install, or message externally without separate authority.

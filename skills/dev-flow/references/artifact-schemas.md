@@ -78,4 +78,4 @@ Schema 2.0 binds each `DEP-n` identity, command/ref, files, operations, and resu
 
 Optional preference/readiness files keep v1 shape. Quality readiness adds a validator-recomputed canonical fingerprint over all governed fields; an old self-reported fingerprint cannot preserve changed tier/outcome/route/coverage. Checkpoints need non-blocked readiness. Accepted state cannot retain blocked/checkpoint readiness or preferences.
 
-Validate after approval, resume/compaction, material implementation/repair waves, pre-verification, and final claim. Use CLI mutators so ledger and projection stay consistent.
+Validate after approval, resume/compaction, material implementation/repair waves, pre-verification, and final claim. Use CLI mutators so ledger and projection stay consistent. Before a successful final: `validate-packet`, terminal transition, then matching `deactivate-packet`; preserve newer packets on runtime mismatch, and treat Stop as advisory.

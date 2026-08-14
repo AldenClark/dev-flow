@@ -53,10 +53,10 @@ max_concurrent_threads_per_session = 3
 
 ## 安装
 
-发布与插件清单版本一致的标签后，可直接添加仓库内的 marketplace 并安装固定到该标签的插件。当前已发布稳定标签为 `v0.2.0`；源码中的下一版本能力需待对应标签发布后再从 marketplace 安装：
+发布与插件清单版本一致的标签后，可直接添加仓库内的 marketplace 并安装固定到该标签的插件。当前已发布稳定标签为 `v1.0.1`；只有对应标签已推送后，才应从 marketplace 安装该版本：
 
 ```bash
-codex plugin marketplace add AldenClark/dev-flow --ref v0.2.0
+codex plugin marketplace add AldenClark/dev-flow --ref v1.0.1
 codex plugin add dev-flow@dev-flow
 ```
 
@@ -272,6 +272,8 @@ python3 skills/dev-flow/scripts/dev-flow.py bind-knowledge \
 python3 skills/dev-flow/scripts/dev-flow.py deactivate-packet .codex/dev-flow/<change-id>
 ```
 
+成功收尾的顺序是：冻结 `pre-verification` 检查点并进入 `verifying`，完成新鲜验证与证据记录，执行 `validate-packet`，通过 `transition ... accepted` 的终态校验，再对匹配的终态工作包执行 `deactivate-packet`，最后才发送成功回复。源码校验不证明当前任务已加载同一插件快照；遇到不受当前运行时支持的 schema 或更新的工作包生产版本时，应保留工作包并升级运行时，而不是降级或改写证据。
+
 ## 仓库内容与运行时数据
 
 | 公开上传 | 不应上传 |
@@ -283,7 +285,7 @@ python3 skills/dev-flow/scripts/dev-flow.py deactivate-packet .codex/dev-flow/<c
 
 工作包可能包含命令、路径、日志和测试产物，因此默认只保存在使用者项目的本地 `.codex/dev-flow/` 中，不属于插件源码。提交 Issue 或 PR 前应移除凭据、个人数据和不必要的运行时内容。
 
-Hooks 只在仓库显式激活 `.codex/dev-flow/current` 时工作；子代理生命周期 Hook 还要求工作包处于活动流程状态，accepted、archived 和 blocked 包不会继续治理后续子代理。Hooks 不包含 MCP 服务、不发起网络请求、不读取凭据。子代理运行标记写入 `PLUGIN_DATA`，只保存不可逆的数据包标识哈希和时间戳，并在停止时清理；marker 存储不可用会给出 `DEV_FLOW_AGENT_MARKER_UNAVAILABLE`，缺少可选报告会给出 `DEV_FLOW_AGENT_REPORT_MISSING`，两者都不会阻断原生生命周期。
+Hooks 只在仓库显式激活 `.codex/dev-flow/current` 时工作；子代理生命周期 Hook 还要求工作包处于活动流程状态，accepted、archived 和 blocked 包不会继续治理后续子代理。Stop Hook 在 assistant 回复之后运行，因此只对 `verifying`/`accepted` 工作包提供只读诊断：运行时不兼容和同版本验证失败都不会返回阻断决策或拉起新的 assistant turn；硬门由回复前的 CLI 验证和生命周期转换承担。Hooks 不包含 MCP 服务、不发起网络请求、不读取凭据。子代理运行标记写入 `PLUGIN_DATA`，只保存不可逆的数据包标识哈希和时间戳，并在停止时清理；marker 存储不可用会给出 `DEV_FLOW_AGENT_MARKER_UNAVAILABLE`，缺少可选报告会给出 `DEV_FLOW_AGENT_REPORT_MISSING`，两者都不会阻断原生生命周期。
 
 ## 仓库结构
 
@@ -329,9 +331,9 @@ python3 evals/run_paired_evaluations.py \
 ```bash
 git rev-parse HEAD
 python3 tools/build_release.py build \
-  --root . --output dist --version 1.0.0 --commit FULL_COMMIT_SHA
+  --root . --output dist --version 1.0.1 --commit FULL_COMMIT_SHA
 python3 tools/build_release.py verify \
-  --artifact-dir dist --expected-version 1.0.0 --expected-commit FULL_COMMIT_SHA
+  --artifact-dir dist --expected-version 1.0.1 --expected-commit FULL_COMMIT_SHA
 ```
 
 `.github/workflows/release-candidate.yml` 只能手动运行并要求完整 `expected_sha`；它使用固定 SHA 的 Syft、GitHub attestation 和 artifact Actions，生成 SPDX 2.3 JSON、provenance/SBOM attestations、manifest 与 checksums，但没有发布 Release 的权限。新工作流只有进入默认分支后才能 dispatch，不能把 PR 通过误报成 provenance 已生成。
@@ -346,7 +348,7 @@ Marketplace 内的插件源使用当前快照相对路径 `.`；因此外层 `co
 - `MINOR`：向后兼容的新流程、命令、策略或能力；
 - `PATCH`：兼容的修复、文档和规则校正。
 
-源码与 Git tag 使用稳定版本（例如当前源码 `1.0.0`）；仅本地 Codex 开发重装时才临时追加 `+codex.<cachebuster>`，不把缓存破坏后缀发布为正式版本。源码版本不代表对应标签已经发布，发布状态以 Git tag/release 为准。RC 标签只证明候选身份，不等于稳定版发布。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+源码与 Git tag 使用稳定版本（例如当前源码 `1.0.1`）；仅本地 Codex 开发重装时才临时追加 `+codex.<cachebuster>`，不把缓存破坏后缀发布为正式版本。源码版本不代表对应标签已经发布，发布状态以 Git tag/release 为准。RC 标签只证明候选身份，不等于稳定版发布。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 参与和安全
 
