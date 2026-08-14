@@ -12,13 +12,14 @@ Escalate when a dependency/public contract appears, scope crosses components/roo
 
 1. Establish authority, runtime, instructions, roots, risks, and work mode. Persistent mutation requires traced/governed state; direct is non-mutating micro/spike only.
 2. Route repository context/current behavior and bind artifact facts plus instruction/profile/native-control/Skill fingerprints. Rerun routing before mutation when task, risk, UI, capability, path, phase, or delivery changes.
-3. For persistent work, persist original input and successive AI-understood requirement revisions. Resolve repository facts first, then ask one-to-three material questions per round until no material/high-risk ambiguity remains. Material UI additionally routes product/UX.
-4. Compare repository-grounded design alternatives, failure/compatibility/rollback behavior, implementation slices, and verification strategy; bind current requirement and design digests to approval.
-5. Confirm complete scope, dependency approvals, operations, and separate black-box/white-box verification obligations.
-6. Build a dependency-aware task graph with outcomes, inputs, owned paths/symbols, non-goals, checks, resources, and stop conditions.
-7. Freeze the smallest ready slice; rehydrate requirement/design/context/checkpoint; inspect edit sites/analogues; implement a coherent change including tests/docs/comments/generated surfaces; run narrow then relevant module/smoke checks; inspect diff, scope, drift, dependencies, secrets, and user work; update progress/checkpoint and record `change-set.v1`, knowledge disposition, and commit-ready state.
-8. Replan when evidence invalidates an assumption. Stop at authority, dependency, destructive/external, or material scope boundaries.
-9. Route verification, review test oracles, and run root basic blue/red challenge. Add clean-context independent review for explicit/governed risk; delivery readiness remains explicit.
+3. Run `select-methods` from explicit phase, task, risk, signals, and evidenced prerequisites; follow `methodology-system.md`. Persist only the bounded observation → failure hypothesis → method → owner artifact → evidence trace, not the full pool. Reselect on phase, risk, premise, architecture, or oracle drift. Missing prerequisites use the recorded fallback and remain unresolved/`NOT RUN`.
+4. For persistent work, persist original input and successive AI-understood requirement revisions. Resolve repository facts first, then ask one-to-three material questions per round until no material/high-risk ambiguity remains. Material UI additionally routes product/UX.
+5. Compare repository-grounded design alternatives, failure/compatibility/rollback behavior, implementation slices, and verification strategy; bind current requirement and design digests to approval.
+6. Confirm complete scope, dependency approvals, operations, and separate black-box/white-box verification obligations.
+7. Build a dependency-aware task graph with outcomes, inputs, owned paths/symbols, non-goals, checks, resources, and stop conditions.
+8. Freeze the smallest ready slice; rehydrate requirement/design/context/checkpoint; inspect edit sites/analogues; implement a coherent change including tests/docs/comments/generated surfaces; run narrow then relevant module/smoke checks; inspect diff, scope, drift, dependencies, secrets, and user work; update progress/checkpoint and record `change-set.v1`, knowledge disposition, and commit-ready state.
+9. Replan when evidence invalidates an assumption. Stop at authority, dependency, destructive/external, or material scope boundaries.
+10. Route verification, review test oracles, and run root basic blue/red challenge. Add clean-context independent review for explicit/governed risk; delivery readiness remains explicit.
 
 No slice closes until intent, final bytes/files, decisions/drift, progress, narrow evidence, scope, limits, and recovery next action are durable. Pre-verification additionally requires aligned baseline/checkpoint, both test views, knowledge disposition, module/smoke status, and a diff/comment/documentation audit.
 

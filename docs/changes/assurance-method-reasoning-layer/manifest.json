@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "change_id": "assurance-method-reasoning-layer",
+  "status": "accepted",
+  "format": "governed",
+  "documents": {
+    "requirements": "requirements.md",
+    "design": "design.md",
+    "execution": "execution.md",
+    "verification": "verification.md"
+  },
+  "authority_binding": {
+    "schema_version": "1.0",
+    "change_id": "assurance-method-reasoning-layer",
+    "requirements": {
+      "path": "requirements.md",
+      "sha256": "sha256:9468c966b2845946430b4c066d756153d9feb6fa55089d52bacea33c48c73010"
+    },
+    "design": {
+      "path": "design.md",
+      "sha256": "sha256:3fbfca6418043e43a02dfb480e234739da308921f18f37b720b6c02114dafcfa"
+    },
+    "identifier_sets": {
+      "acceptance_criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8"],
+      "scope": ["SC-C1", "SC-D1", "SC-D2", "SC-D3", "SC-D4", "SC-I1", "SC-L1", "SC-O1", "SC-P1", "SC-P2", "SC-P3", "SC-P4", "SC-P5"],
+      "verification_obligations": ["VO-1", "VO-2", "VO-3", "VO-4", "VO-5", "VO-6", "VO-7", "VO-8"]
+    }
+  },
+  "traceability": {
+    "acceptance_criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8"],
+    "scope": ["SC-C1", "SC-D1", "SC-D2", "SC-D3", "SC-D4", "SC-I1", "SC-L1", "SC-O1", "SC-P1", "SC-P2", "SC-P3", "SC-P4", "SC-P5"],
+    "verification_obligations": ["VO-1", "VO-2", "VO-3", "VO-4", "VO-5", "VO-6", "VO-7", "VO-8"]
+  },
+  "tests": {
+    "black_box": {
+      "status": "passed",
+      "rationale": "Public CLI output, invalid input, bounded selection, and representative scenario oracles.",
+      "evidence": ["18 public/scenario method-system contracts passed", "387-test strict full-suite run passed"]
+    },
+    "white_box": {
+      "status": "passed",
+      "rationale": "Registry structure, matching, filtering, deduplication, stable order, negative triggers, prerequisites, and reference integrity.",
+      "evidence": ["registry mutation, graph integrity, prerequisite, negative-rule, over-trigger, and link contracts passed", "contract/plugin/maintainer validators passed"]
+    }
+  },
+  "knowledge": {
+    "impact": "add",
+    "disposition": "promoted",
+    "rationale": "The implemented selector, selection boundary, registry governance, and research synthesis are reusable current Dev Flow truth.",
+    "promotion_links": ["../../project/dev-flow-governance.md"]
+  },
+  "related_changes": []
+}

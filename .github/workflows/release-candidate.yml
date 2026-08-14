@@ -6,7 +6,7 @@ on:
       version:
         description: SemVer declared by .codex-plugin/plugin.json
         required: true
-        default: "1.0.2"
+        default: "1.1.0"
         type: string
       expected_sha:
         description: Full immutable commit SHA to build and attest

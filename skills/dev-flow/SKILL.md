@@ -27,7 +27,7 @@ Every persistent mutation must establish facts; persist source, understood requi
 
 ## Establish context
 
-Route `repo-context`. Derive neutral outcomes, then load minimal repository-valid admitted technical Skills for affected facts. Re-resolve on relevant drift; personal Skills never become team policy silently.
+Route `repo-context`; derive neutral outcomes and load only repository-valid technical Skills. Then run `select-methods` and follow `references/methodology-system.md`; reselect on phase/risk/premise drift. Personal Skills never become team policy.
 
 ## Execute
 

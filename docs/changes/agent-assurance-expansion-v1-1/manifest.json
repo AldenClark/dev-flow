@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "change_id": "agent-assurance-expansion-v1-1",
+  "status": "implementing",
+  "format": "governed",
+  "documents": {
+    "requirements": "requirements.md",
+    "design": "design.md",
+    "execution": "execution.md",
+    "verification": "verification.md"
+  },
+  "authority_binding": {
+    "schema_version": "1.0",
+    "change_id": "agent-assurance-expansion-v1-1",
+    "requirements": {
+      "path": "requirements.md",
+      "sha256": "sha256:8a8d38f117176eceafa570a3304e88a84a517178e10e59a7f23c22e9a2ecd113"
+    },
+    "design": {
+      "path": "design.md",
+      "sha256": "sha256:29d5c049d4dfb0706b03bc4fb9357478827b2c68b4ce73ddcd6c7fb544d294ef"
+    },
+    "identifier_sets": {
+      "acceptance_criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8"],
+      "scope": ["SC-D1", "SC-D2", "SC-D3", "SC-I1", "SC-I2", "SC-L1", "SC-O1", "SC-P1", "SC-P2"],
+      "verification_obligations": ["VO-1", "VO-2", "VO-3", "VO-4", "VO-5", "VO-6", "VO-7", "VO-8"]
+    }
+  },
+  "traceability": {
+    "acceptance_criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8"],
+    "scope": ["SC-D1", "SC-D2", "SC-D3", "SC-I1", "SC-I2", "SC-L1", "SC-O1", "SC-P1", "SC-P2"],
+    "verification_obligations": ["VO-1", "VO-2", "VO-3", "VO-4", "VO-5", "VO-6", "VO-7", "VO-8"]
+  },
+  "tests": {
+    "black_box": {
+      "status": "planned",
+      "rationale": "Public CLI inventories, representative Agent scenarios, formal-depth boundaries, missing prerequisites, release artifacts, remote identities, and installed plugin behavior.",
+      "evidence": []
+    },
+    "white_box": {
+      "status": "planned",
+      "rationale": "Registry graph/source/reference integrity, deterministic scoring/filtering/caps, protected digest, version surfaces, full repository contracts, and clean-context review.",
+      "evidence": []
+    }
+  },
+  "knowledge": {
+    "impact": "update",
+    "disposition": "pending",
+    "rationale": "The Agent failure models, selected methods, and operating boundaries update reusable current Dev Flow truth.",
+    "promotion_links": ["../../project/dev-flow-governance.md"]
+  },
+  "related_changes": ["../assurance-method-reasoning-layer/manifest.json"]
+}

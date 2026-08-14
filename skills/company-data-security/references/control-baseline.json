@@ -7,7 +7,7 @@
     "skills/company-data-security/assets/chatgpt-work-instructions.md": "sha256:3bf085d72471b041c6791da2894bce2af30febd80c9d06509ad6a119303fdb80",
     "skills/company-data-security/assets/codex-agents-baseline.md": "sha256:24543ce1cdf25d9cae8e9247569d29c2ac5e1492f74d07510c34cff6bfd4a921",
     "skills/company-data-security/assets/ordinary-chat-instructions.md": "sha256:88658af74574702bb634f19fe90225be3c1f60cd9ba83e6e3772895b4f57ffdd",
-    "skills/company-data-security/assets/surface-attestation.example.json": "sha256:7472b64ee5423acf5a0e8eab18d27d64af1f5276cc6361eab65dd49bcc26b188",
+    "skills/company-data-security/assets/surface-attestation.example.json": "sha256:9c159b9c5b203a607b8c96d57f3e2c6da3c7b4fc4844e3e777fc43b6448f1db7",
     "skills/company-data-security/references/data-handling-policy.md": "sha256:63ce4df89f61be5bbc78de782237b1b93273f3cb680875f70a64bd7e66d8b99e",
     "skills/company-data-security/references/surface-playbooks.md": "sha256:d7ea529a8ad579c8b74eb2793b1d0a100fe214df6b44c16b72fb990be46f6c6c",
     "skills/company-data-security/scripts/data_security.py": "sha256:16713c267df638670999b90d6023b29f0ab968eeaf77f82f2ff7dd4531e3716d",

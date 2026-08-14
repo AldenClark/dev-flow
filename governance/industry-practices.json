@@ -408,6 +408,61 @@
       "complexity_limit": "Do not score a local edit as deployment performance.",
       "evaluation": "Flow metrics review.",
       "review_after": "2027-02-01"
+    },
+    {
+      "id": "IND-RISK-TO-METHOD-FORMAL",
+      "source": "https://alloytools.org/faq/what_kind_of_analysis_does_the_alloy_analyzer_do.html",
+      "checked_at": "2026-08-14",
+      "local_problem": "Formal-method names are often selected by prestige or generic complexity rather than the relational, temporal, refinement, or proof failure mechanism they can actually address.",
+      "decision": "Select formal representations from explicit identity/relation, state/interleaving, abstraction-preservation, or theorem obligations and keep bounded/model-to-code limits visible.",
+      "adaptation": "The method pool differentiates Alloy, TLA+/PlusCal, Event-B, refinement mappings, process models, symbolic execution, and theorem proving; formal depth requires a scored signal and evidenced prerequisites.",
+      "complexity_limit": "Low-risk routine work globally excludes formal specialists unless an explicit high-consequence, safety, critical-calculation, or regulated signal overrides it.",
+      "evaluation": "Registry integrity, low-risk negative trigger, formal-depth escalation, missing model/proof prerequisite, and identity/temporal/refinement scenario contracts.",
+      "review_after": "2027-08-14"
+    },
+    {
+      "id": "IND-RISK-TO-METHOD-ASSURANCE",
+      "source": "https://scsc.uk/gsn-standard",
+      "checked_at": "2026-08-14",
+      "local_problem": "Security, privacy, safety, supply-chain, and high-consequence claims can be conflated or supported by persuasive structure rather than relevant evidence.",
+      "decision": "Keep distinct adversary, privacy-harm, control-loss, provenance, and claim-evidence-defeater models, then route each artifact to its qualified owner.",
+      "adaptation": "STRIDE/attack trees/SSDF, LINDDUN, FMEA/FTA/HAZOP/STPA, SLSA/SBOM, and GSN are separate risk stacks with explicit domain/external gates and fallbacks.",
+      "complexity_limit": "A framework, scanner, threat tree, safety worksheet, provenance attestation, or assurance diagram never becomes a proof, certification, legal conclusion, or delivery authority by itself.",
+      "evaluation": "Owner, prerequisite, NOT RUN, false-assurance, high-consequence, privacy, safety, security, and supply-chain scenarios.",
+      "review_after": "2027-08-14"
+    },
+    {
+      "id": "IND-RISK-TO-METHOD-ORACLES",
+      "source": "https://discovery.ucl.ac.uk/id/eprint/1471263/",
+      "checked_at": "2026-08-14",
+      "local_problem": "A green suite can execute the changed path while lacking an oracle that distinguishes intended behavior from plausible faults.",
+      "decision": "Choose example, property, metamorphic, differential, model-based, combinatorial, mutation, fuzz, symbolic, concurrency, performance, UX, compatibility, or migration evidence from the oracle and failure class.",
+      "adaptation": "Every persistent change retains separate black-box/white-box derivation and oracle challenge; weak-oracle signals activate a bounded evidence-strengthening stack.",
+      "complexity_limit": "Coverage, mutation score, test count, and green status are diagnostics, not quality targets; tool absence yields a fallback and unresolved claim.",
+      "evaluation": "Representative oracle stacks, mutation-style negative controls, prerequisite gaps, phase filtering, cap behavior, and test failure sensitivity.",
+      "review_after": "2027-08-14"
+    },
+    {
+      "id": "IND-RISK-TO-METHOD-DELIVERY",
+      "source": "https://sre.google/workbook/part-I-foundations/",
+      "checked_at": "2026-08-14",
+      "local_problem": "Build/test readiness is often confused with safe rollout, observable health, recovery, and operational response.",
+      "decision": "Separate implementation evidence from canary, blue-green/shadow, SLO/error-budget, observability/USE, game-day, rollback, and postmortem methods.",
+      "adaptation": "Delivery/operations methods require explicit phase, authority, telemetry, target, thresholds, isolation, recovery, and post-state reconciliation; missing live authority activates a negative rule.",
+      "complexity_limit": "Local simulation or planning remains NOT RUN for deployment, production traffic, real cohort, live recovery, and operator evidence.",
+      "evaluation": "No-live-authority negative trigger, rollout risk, missing telemetry/rollback, context cap, and delivery-owner boundary cases.",
+      "review_after": "2027-08-14"
+    },
+    {
+      "id": "IND-RISK-TO-METHOD-AGENTS",
+      "source": "https://openai.com/index/harness-engineering/",
+      "checked_at": "2026-08-14",
+      "local_problem": "Agent quality can fail through hidden context, mutable model/tool identity, authority drift, long-run continuity loss, stochastic variance, or invalid evaluation cases even when generated code looks plausible.",
+      "decision": "Treat repository legibility, deterministic harnesses, authority/tool boundaries, semantic checkpoints, identity pinning, case health, and independent first attempts as selectable engineering methods.",
+      "adaptation": "AI-agent methods are activated only by explicit task/evaluation/long-running signals and remain subordinate to repository-native acceptance evidence.",
+      "complexity_limit": "No single benchmark, model judge, attempt count, speed result, or aggregate score is a quality objective; deterministic contracts remain the normal validation baseline.",
+      "evaluation": "Agent signal threshold, identity/prerequisite gaps, deterministic harness negative cases, low-context routing, and optional-first-attempt boundaries.",
+      "review_after": "2027-08-14"
     }
   ]
 }

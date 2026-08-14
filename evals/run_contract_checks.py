@@ -12,8 +12,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EVALS_ROOT = ROOT / "evals"
 sys.path.insert(0, str(EVALS_ROOT))
+sys.path.insert(0, str(ROOT / "skills" / "dev-flow" / "scripts"))
 
 from run_paired_evaluations import EvaluationError, validate_config  # noqa: E402
+import methodology_system  # noqa: E402
 
 
 CONTRACT_TEXT_FIELDS = ("id", "profile", "prompt", "fixture")
@@ -593,6 +595,17 @@ def main() -> int:
             errors.append(
                 f"industry-practice evaluation adaptation must retain {principle!r}"
             )
+
+    methodology_registry = methodology_system.read_registry(
+        ROOT / "governance" / "methodology-pool.json"
+    )
+    errors.extend(
+        f"methodology registry: {error}"
+        for error in methodology_system.validate_registry(
+            methodology_registry,
+            repository_root=ROOT,
+        )
+    )
 
     observed_skills = {item.get("skill") for item in capabilities if isinstance(item, dict)}
     filesystem_skills = {path.name for path in (ROOT / "skills").iterdir() if path.is_dir()}

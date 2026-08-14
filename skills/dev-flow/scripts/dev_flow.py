@@ -21,6 +21,7 @@ from typing import Any, Iterable
 
 import engineering_context
 import knowledge_system
+import methodology_system
 from dependency_contracts import (
     action_reference_scan,
     approval_binds_file,
@@ -4828,6 +4829,57 @@ def assess_context_command(args: argparse.Namespace) -> int:
     return emit({"status": result["outcome"], "output": str(output_path.resolve()) if output_path else None, "readiness": result}, code)
 
 
+def methodology_registry_path(path: Path | None = None) -> Path:
+    return path.resolve() if path is not None else plugin_root() / "governance" / "methodology-pool.json"
+
+
+def validate_methods_command(args: argparse.Namespace) -> int:
+    """Validate the source, method, and risk-model contracts as one graph."""
+    registry_path = methodology_registry_path(args.registry)
+    repository_root = args.root.resolve() if args.root else plugin_root()
+    try:
+        payload = methodology_system.read_registry(registry_path)
+        errors = methodology_system.validate_registry(payload, repository_root=repository_root)
+    except (OSError, json.JSONDecodeError, methodology_system.MethodologyContractError) as exc:
+        return emit({"status": "invalid", "registry": str(registry_path), "errors": [str(exc)]}, 2)
+    if errors:
+        return emit({"status": "invalid", "registry": str(registry_path), "errors": errors}, 2)
+    return emit(
+        {
+            "status": "valid",
+            "registry": str(registry_path),
+            "schema_version": payload["schema_version"],
+            "sources": len(payload["sources"]),
+            "methods": len(payload["methods"]),
+            "risk_models": len(payload["risk_models"]),
+            "phases": payload["selection_contract"]["phase_order"],
+        }
+    )
+
+
+def select_methods_command(args: argparse.Namespace) -> int:
+    """Select a bounded assurance-method stack from explicit observed facts."""
+    registry_path = methodology_registry_path(args.registry)
+    repository_root = args.root.resolve() if args.root else plugin_root()
+    try:
+        payload = methodology_system.read_registry(registry_path)
+        result = methodology_system.select_methods(
+            payload,
+            repository_root=repository_root,
+            phase=args.phase,
+            task_type=args.task_type,
+            risks=args.risk,
+            signals=args.signal,
+            available=args.available,
+            depth=args.depth,
+            max_methods=args.max_methods,
+        )
+    except (OSError, json.JSONDecodeError, methodology_system.MethodologyContractError) as exc:
+        return emit({"status": "invalid", "registry": str(registry_path), "errors": [str(exc)]}, 2)
+    result["registry"] = str(registry_path)
+    return emit(result)
+
+
 def route_task(args: argparse.Namespace) -> int:
     routes: list[str] = ["repo-context"]
     reasons: dict[str, list[str]] = {"repo-context": ["repository facts and task-relative readiness"]}
@@ -5071,6 +5123,7 @@ def check_plugin(args: argparse.Namespace) -> int:
         root / "skills" / "architecture-decisions" / "references" / "neutral-policy-registry.json",
         root / "skills" / "dev-flow-maintainer" / "references" / "capability-registry.json",
         root / "governance" / "industry-practices.json",
+        root / "governance" / "methodology-pool.json",
         root / "evals" / "structural-coverage.json",
     ):
         if not required.is_file():
@@ -5084,6 +5137,20 @@ def check_plugin(args: argparse.Namespace) -> int:
         )
     except (OSError, tomllib.TOMLDecodeError, json.JSONDecodeError, engineering_context.ContractError) as exc:
         errors.append(f"invalid engineering context governance: {exc}")
+
+    try:
+        methodology_registry = methodology_system.read_registry(
+            root / "governance" / "methodology-pool.json"
+        )
+        errors.extend(
+            f"methodology registry: {error}"
+            for error in methodology_system.validate_registry(
+                methodology_registry,
+                repository_root=root,
+            )
+        )
+    except (OSError, json.JSONDecodeError, methodology_system.MethodologyContractError) as exc:
+        errors.append(f"invalid methodology registry: {exc}")
 
     return emit({"status": "valid" if not errors else "invalid", "plugin": str(root), "errors": errors, "warnings": warnings}, 0 if not errors else 2)
 
@@ -5503,6 +5570,29 @@ def build_parser() -> argparse.ArgumentParser:
     readiness.add_argument("--packet", type=Path)
     readiness.add_argument("--output", type=Path)
     readiness.set_defaults(func=assess_context_command)
+
+    validate_methods = sub.add_parser(
+        "validate-methods",
+        help="Validate the assurance methodology pool, sources, references, and risk models",
+    )
+    validate_methods.add_argument("--registry", type=Path)
+    validate_methods.add_argument("--root", type=Path)
+    validate_methods.set_defaults(func=validate_methods_command)
+
+    select_methods = sub.add_parser(
+        "select-methods",
+        help="Select a bounded method stack from lifecycle, risk, and observed failure signals",
+    )
+    select_methods.add_argument("--phase", required=True)
+    select_methods.add_argument("--task-type", choices=sorted(TASK_TYPES), required=True)
+    select_methods.add_argument("--risk", action="append", default=[])
+    select_methods.add_argument("--signal", action="append", default=[])
+    select_methods.add_argument("--available", action="append", default=[])
+    select_methods.add_argument("--depth", choices=("starter", "deep", "formal"), default="starter")
+    select_methods.add_argument("--max-methods", type=int)
+    select_methods.add_argument("--registry", type=Path)
+    select_methods.add_argument("--root", type=Path)
+    select_methods.set_defaults(func=select_methods_command)
 
     route = sub.add_parser("route-task", help="Select the minimal built-in Skill composition for a classified task")
     route.add_argument("--task-type", choices=sorted(TASK_TYPES), required=True)

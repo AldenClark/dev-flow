@@ -4,6 +4,21 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-14
+
+### Added
+
+- A source-grounded assurance methodology pool with 111 lifecycle methods, 67 references, positive/negative triggers, prerequisites, bounded artifacts, evidence duties, limitations, and fallbacks.
+- A deterministic `method.selection.v1` risk-to-method reasoning layer and `validate-methods`/`select-methods` CLI that preserves owner boundaries, progressive disclosure, context caps, and explicit unresolved/`NOT RUN` prerequisites.
+- Progressive method playbooks and a reusable selection template spanning discovery through acceptance, delivery, operations, and AI-agent engineering.
+- Seventeen AI coding and general-agent methods covering minimum-effective autonomy, active information acquisition, receding-horizon/reactive planning, counterexample-guided repair, runtime assurance, temporal monitors, sagas, trajectory interventions, instruction/data provenance, memory lifecycle, human function allocation, multi-agent topology/allocation, calibrated selective action, and simulation.
+- Fourteen focused Agent risk models for autonomy overreach, partial observability, open-loop drift, reactive and hierarchical execution, patch overfit, untrusted context, irreversible side effects, stochastic evaluation validity, calibrated selective action, simulation reality gaps, memory drift/poisoning, multi-agent topology, and dynamic allocation.
+
+### Changed
+
+- Strengthened existing agent harness, checkpoint, context, impact, debugging, independent derivation, and evaluation guidance with ACI ergonomics, action ledgers, counterfactual interventions, infrastructure-noise separation, paired repeated trials, and common-mode independence controls.
+- Advanced the plugin manifest, release workflow defaults, current-source examples, release runbook, and data-security attestation example to minor version `1.1.0`.
+
 ## [1.0.2] - 2026-08-14
 
 ### Added
@@ -88,7 +103,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - Runtime markers no longer persist absolute packet paths, start/stop stay fail-open on marker storage or malformed data, and markers are removed whenever subagent stop is observed.
 - Runtime traces, plugin data, secrets, caches, and build outputs are excluded from source control.
 
-[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/AldenClark/dev-flow/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/AldenClark/dev-flow/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/AldenClark/dev-flow/compare/v0.2.0...v1.0.1
 [0.2.0]: https://github.com/AldenClark/dev-flow/releases/tag/v0.2.0
