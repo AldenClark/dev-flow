@@ -50,6 +50,30 @@
       "owner": "change-review"
     },
     {
+      "id": "company-data-security.analysis",
+      "owner": "company-data-security"
+    },
+    {
+      "id": "company-data-security.artifact",
+      "owner": "company-data-security"
+    },
+    {
+      "id": "company-data-security.decision",
+      "owner": "company-data-security"
+    },
+    {
+      "id": "company-data-security.interaction",
+      "owner": "company-data-security"
+    },
+    {
+      "id": "company-data-security.limitation",
+      "owner": "company-data-security"
+    },
+    {
+      "id": "company-data-security.test",
+      "owner": "company-data-security"
+    },
+    {
       "id": "delivery-readiness.analysis",
       "owner": "delivery-readiness"
     },

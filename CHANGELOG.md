@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-08-14
+
+### Added
+
+- A cross-surface `company-data-security` Skill with separate Codex, ChatGPT Work, and ordinary Chat playbooks and instruction templates.
+- Standard-library local secret/direct-identifier detection, non-reversible pseudonymization, and bounded redaction without a persistent raw-value map.
+- Independent Codex `UserPromptSubmit`, `PreToolUse`, and `PostToolUse` confidentiality Hooks for documented local tool paths.
+- A machine-readable doctor that detects protected-file, Hook-schema, capability-registration, and template drift while keeping live trust/account gates explicitly manual.
+- Synthetic blue/red tests for detector families, safe decoys, nested/base64/Unicode inputs, Hook leakage and size failures, and doctor tamper cases.
+
+### Changed
+
+- Advanced the source manifest, release workflow default, current-source examples, release runbook, and DLP attestation template to patch version `1.0.2`.
+
+### Security
+
+- Data-security Hook results never include matched values, and oversized or malformed model-bound payloads fail closed with bounded fixed messages.
+- Work/Chat templates and doctor output explicitly avoid claiming enterprise immutability, endpoint/network DLP, or deterministic pre-send interception outside supported Codex Hooks.
+
 ## [1.0.1] - 2026-08-14
 
 ### Added
@@ -68,6 +87,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Runtime markers no longer persist absolute packet paths, start/stop stay fail-open on marker storage or malformed data, and markers are removed whenever subagent stop is observed.
 - Runtime traces, plugin data, secrets, caches, and build outputs are excluded from source control.
 
-[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/AldenClark/dev-flow/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/AldenClark/dev-flow/compare/v0.2.0...v1.0.1
 [0.2.0]: https://github.com/AldenClark/dev-flow/releases/tag/v0.2.0

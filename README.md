@@ -25,6 +25,7 @@ Dev Flow 是一套面向 Codex 的中立、可组合、证据驱动工程工作�
 - 只把边界清晰的独立工作交给子代理，通常同时运行 1–2 个；根代理按 deadline、resource lease 和 disposition 完成综合、复核与最终验收；
 - 管控浏览器、模拟器、设备、虚拟机、容器和服务等测试资源；
 - 在需求、设计、实施、验证和最终 diff 上执行基本蓝/红质疑；对治理风险再路由独立深度审查；
+- 通过 `$company-data-security` 为 Codex、ChatGPT Work 和普通 Chat 提供同一 C0-C4 数据处理原则，并在受支持的 Codex 本地 Prompt/工具路径上增加高置信 Secret 检查和输出脱敏；
 - 保留当前职责分离的 Skill 拓扑作为兼容接口，但数量不是质量目标；只加载适用 owner 与专业技术 Skill，质量内核始终生效；
 - 解析 public baseline、个人、团队、项目、组件与任务六层 Profile，并输出带来源哈希、冲突和例外的有效快照；
 - 以 T0-T3 Engineering Context Readiness 检查当前任务真正需要的上下文，而不是按文件存在性评分；
@@ -87,9 +88,28 @@ python3 skills/dev-flow/scripts/dev-flow.py uninstall-runtime
 
 安装或更新 hooks 后，请在 Codex 中使用 `/hooks` 检查并明确授权。Codex 会跳过尚未信任的新建或已变化的非托管 hook 定义。
 
+### 机密数据安全 V1
+
+源码检查只证明插件包本身。先运行：
+
+```bash
+python3 skills/company-data-security/scripts/doctor.py --plugin-root "$PWD"
+python3 -m unittest evals.test_data_security -v
+```
+
+doctor 会检查受保护文件摘要、三个 DLP Hook 事件、Skill 元数据、能力注册和三类表面模板。Hook 信任、Codex 新任务实际加载、ChatGPT Work 指令和普通 Chat 指令属于现场证据；未提供时会保持 `not_observed`，不会伪装成通过。
+
+三份可复制的指令基线位于：
+
+- `skills/company-data-security/assets/codex-agents-baseline.md`
+- `skills/company-data-security/assets/chatgpt-work-instructions.md`
+- `skills/company-data-security/assets/ordinary-chat-instructions.md`
+
+该 V1 不替代企业策略、端点/网络出口 DLP、最小权限配置、MCP/连接器管理或事故响应。详见 `docs/confidentiality-aware-ai-work-v1.md`。
+
 ## 使用方式
 
-在 Codex 中调用 `$dev-flow`，并描述目标、允许的交付范围以及兼容性要求。主流程会先使用 `$repo-context` 建立仓库事实、ECR/EQAC 和有效 Profile，再只路由当前任务需要的能力。也可以直接调用 `$requirements-design`、`$architecture-decisions`、`$dependency-decisions`、`$systematic-debugging`、`$verification`、`$change-review` 或其他聚焦 Skill。
+在 Codex 中调用 `$dev-flow`，并描述目标、允许的交付范围以及兼容性要求。主流程会先使用 `$repo-context` 建立仓库事实、ECR/EQAC 和有效 Profile，再只路由当前任务需要的能力。也可以直接调用 `$requirements-design`、`$architecture-decisions`、`$dependency-decisions`、`$systematic-debugging`、`$verification`、`$change-review` 或其他聚焦 Skill。涉及凭据、个人/客户/生产数据、内部材料、连接器或敏感外部动作时，可显式调用 `$company-data-security`；它也允许按描述隐式触发。
 
 只有在创建、调整、解释、推广、退役或审计 Profile/质量策略时才调用 `$manage-engineering-profiles`；普通代码任务只消费解析结果。`$dev-flow-maintainer` 仅用于显式维护本插件。
 
@@ -331,9 +351,9 @@ python3 evals/run_paired_evaluations.py \
 ```bash
 git rev-parse HEAD
 python3 tools/build_release.py build \
-  --root . --output dist --version 1.0.1 --commit FULL_COMMIT_SHA
+  --root . --output dist --version 1.0.2 --commit FULL_COMMIT_SHA
 python3 tools/build_release.py verify \
-  --artifact-dir dist --expected-version 1.0.1 --expected-commit FULL_COMMIT_SHA
+  --artifact-dir dist --expected-version 1.0.2 --expected-commit FULL_COMMIT_SHA
 ```
 
 `.github/workflows/release-candidate.yml` 只能手动运行并要求完整 `expected_sha`；它使用固定 SHA 的 Syft、GitHub attestation 和 artifact Actions，生成 SPDX 2.3 JSON、provenance/SBOM attestations、manifest 与 checksums，但没有发布 Release 的权限。新工作流只有进入默认分支后才能 dispatch，不能把 PR 通过误报成 provenance 已生成。
@@ -348,7 +368,7 @@ Marketplace 内的插件源使用当前快照相对路径 `.`；因此外层 `co
 - `MINOR`：向后兼容的新流程、命令、策略或能力；
 - `PATCH`：兼容的修复、文档和规则校正。
 
-源码与 Git tag 使用稳定版本（例如当前源码 `1.0.1`）；仅本地 Codex 开发重装时才临时追加 `+codex.<cachebuster>`，不把缓存破坏后缀发布为正式版本。源码版本不代表对应标签已经发布，发布状态以 Git tag/release 为准。RC 标签只证明候选身份，不等于稳定版发布。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+源码与 Git tag 使用稳定版本（例如当前源码 `1.0.2`）；仅本地 Codex 开发重装时才临时追加 `+codex.<cachebuster>`，不把缓存破坏后缀发布为正式版本。源码版本不代表对应标签已经发布，发布状态以 Git tag/release 为准。RC 标签只证明候选身份，不等于稳定版发布。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 参与和安全
 

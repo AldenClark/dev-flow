@@ -54,6 +54,7 @@ At each phase/path/risk change, resolve applicable repository instructions, prof
 | `dependency-decisions` | external capability, version/features, graph, supply chain, rollback/removal | product semantics or delivery authority |
 | `verification` | oracles, commands, environments, evidence, evidence status | design, repair, review, or acceptance |
 | `change-review` | verified findings, severity, classification, disposition | upstream design or missing execution evidence |
+| `company-data-security` | surface-aware classification, least-data handling, reference/local-compute/redaction choices, and disclosure limits | enterprise policy, endpoint/network DLP, repository lifecycle, or delivery authority |
 | `delivery-readiness` | exact readiness level, residual gates, rollback, action-specific authority | implementation or inferred permission |
 | `manage-engineering-profiles` | profile ownership, resolution, promotion, retirement, waiver | product or repository decisions |
 | `dev-flow-maintainer` | Dev Flow public surfaces, compatibility, governance, and evaluation policy | ordinary product work |

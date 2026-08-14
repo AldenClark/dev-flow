@@ -112,6 +112,17 @@
       "orchestrated_conditions": ["review-need", "governed-risk", "material-ui", "security", "migration", "release", "rollback"]
     },
     {
+      "skill": "company-data-security",
+      "direct_trigger": "Handle a task that may expose secrets, personal data, production/customer information, internal documents, or sensitive external actions.",
+      "negative_trigger": "The task is clearly public-only and has no sensitive source, connector, tool output, or external disclosure action.",
+      "primary_outputs": ["confidentiality.work-plan.v1"],
+      "owner": "surface-aware data classification, least-data handling, reference/local-compute/redaction choices, and disclosure limits",
+      "consumes": ["user task", "current product surface", "selected data sources and actions"],
+      "stops": ["high-confidence secret disclosure", "unnecessary credential-store access", "unsupported enforcement claim", "unapproved high-impact external disclosure"],
+      "handoff_to": ["dev-flow"],
+      "orchestrated_conditions": ["explicit-confidentiality-operation"]
+    },
+    {
       "skill": "delivery-readiness",
       "direct_trigger": "Assess explicit acceptance, commit, PR, release, migration execution, deployment, rollback, or external-delivery eligibility.",
       "negative_trigger": "The task has no explicit delivery intent or delivery action to assess.",

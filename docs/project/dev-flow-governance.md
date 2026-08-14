@@ -11,6 +11,8 @@
 
 Dev Flow is packaged as a Codex plugin by `.codex-plugin/plugin.json`. Its registered capability owners and their inputs, outputs, stops, handoffs, and orchestration conditions are declared in `governance/capability-contracts.json`; repository checks derive the registered inventory from that contract rather than treating a fixed count as the design goal.
 
+The plugin also packages a first-class `company-data-security` capability. It supplies shared C0-C4 handling and differentiated Codex, ChatGPT Work, and ordinary Chat playbooks. Supported Codex prompt and local-tool paths receive a separate bounded Hook adapter; Work and ordinary Chat receive guidance/templates without an invented pre-send enforcement claim. `skills/company-data-security/scripts/doctor.py` checks packaged bytes and semantic registration while leaving live Hook trust and account alignment as explicit manual gates.
+
 The repository's lifecycle CLI is implemented in `skills/dev-flow/scripts/dev_flow.py`, its repository hook entry point is `hooks/dev_flow_hook.py`, and deterministic contract checks enter through `evals/run_contract_checks.py`. Behavioral claims about those surfaces require fresh evidence against the claimed bytes.
 
 Persistent mutation now carries an always-on compact quality kernel. Specialist Skills add depth but cannot remove requirement/design authority, repository context, continuity, test accountability, evidence, or root challenge. `direct` mode is limited to non-mutating micro/spike work; persistent work is at least traced.
@@ -31,4 +33,4 @@ The [quality-kernel and knowledge overhaul](../changes/quality-kernel-continuity
 
 ## Limits
 
-This document records stable repository workflow truth. It does not replace language, framework, security, or platform rules discovered for a particular task. Hooks remain defense in depth; lifecycle validation and fresh evidence are the hard gates. Non-Git byte continuity and physical/external environments require task-specific evidence.
+This document records stable repository workflow truth. It does not replace language, framework, security, company data-classification, or platform rules discovered for a particular task. Hooks remain defense in depth; lifecycle validation and fresh evidence are the hard gates. The confidentiality Hook is not endpoint/network DLP, has no control over unsupported hosted/specialized paths, and cannot prove Work/ordinary Chat pre-send enforcement. Non-Git byte continuity, Hook trust, account settings, and other physical/external environments require task-specific evidence.

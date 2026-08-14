@@ -1,7 +1,34 @@
 {
-  "description": "Traceability and scope guardrails for active Dev Flow packets.",
+  "description": "Traceability guardrails plus bounded local confidentiality checks for supported Codex paths.",
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$PLUGIN_ROOT/hooks/data_security_hook.py\"",
+            "commandWindows": "py -3 \"%PLUGIN_ROOT%\\hooks\\data_security_hook.py\"",
+            "timeout": 5,
+            "statusMessage": "Checking for accidental secret disclosure",
+            "additionalContextLimit": 400
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$PLUGIN_ROOT/hooks/data_security_hook.py\"",
+            "commandWindows": "py -3 \"%PLUGIN_ROOT%\\hooks\\data_security_hook.py\"",
+            "timeout": 5,
+            "statusMessage": "Checking sensitive tool input",
+            "additionalContextLimit": 400
+          }
+        ]
+      },
       {
         "matcher": "Bash|apply_patch|Edit|Write|Agent",
         "hooks": [
@@ -17,6 +44,19 @@
       }
     ],
     "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$PLUGIN_ROOT/hooks/data_security_hook.py\"",
+            "commandWindows": "py -3 \"%PLUGIN_ROOT%\\hooks\\data_security_hook.py\"",
+            "timeout": 5,
+            "statusMessage": "Redacting sensitive tool output",
+            "additionalContextLimit": 1600
+          }
+        ]
+      },
       {
         "matcher": "Bash|apply_patch|Edit|Write",
         "hooks": [

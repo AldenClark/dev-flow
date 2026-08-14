@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "checked_at": "YYYY-MM-DDTHH:MM:SSZ",
+  "codex": {
+    "plugin_version": "1.0.2",
+    "hook_trust_reviewed": false
+  },
+  "chatgpt_work": {
+    "instructions_reviewed": false,
+    "synthetic_self_test_passed": false
+  },
+  "ordinary_chat": {
+    "instructions_reviewed": false,
+    "synthetic_self_test_passed": false
+  }
+}

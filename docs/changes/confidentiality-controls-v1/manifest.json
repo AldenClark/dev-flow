@@ -1,0 +1,129 @@
+{
+  "schema_version": "1.0",
+  "change_id": "confidentiality-controls-v1",
+  "status": "accepted",
+  "format": "governed",
+  "documents": {
+    "requirements": "requirements.md",
+    "design": "design.md",
+    "execution": "execution.md",
+    "verification": "verification.md"
+  },
+  "authority_binding": {
+    "schema_version": "1.0",
+    "change_id": "confidentiality-controls-v1",
+    "requirements": {
+      "path": "requirements.md",
+      "sha256": "sha256:f54b382cb05033dd6621cc4940c4dbcde38e74240c2fecaf8f88c85ab6e98743"
+    },
+    "design": {
+      "path": "design.md",
+      "sha256": "sha256:1aec1dd9edbe8838f2b566f747cde33b61986d84d54487947696dc184fcb9c94"
+    },
+    "identifier_sets": {
+      "acceptance_criteria": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5",
+        "AC-6",
+        "AC-7",
+        "AC-8",
+        "AC-9",
+        "AC-10",
+        "AC-11",
+        "AC-12"
+      ],
+      "scope": [
+        "SC-D1",
+        "SC-D2",
+        "SC-D3",
+        "SC-D4",
+        "SC-D5",
+        "SC-I1",
+        "SC-C1",
+        "SC-P1",
+        "SC-O1",
+        "SC-L1"
+      ],
+      "verification_obligations": [
+        "VO-1",
+        "VO-2",
+        "VO-3",
+        "VO-4",
+        "VO-5",
+        "VO-6",
+        "VO-7",
+        "VO-8"
+      ]
+    }
+  },
+  "traceability": {
+    "acceptance_criteria": [
+      "AC-1",
+      "AC-2",
+      "AC-3",
+      "AC-4",
+      "AC-5",
+      "AC-6",
+      "AC-7",
+      "AC-8",
+      "AC-9",
+      "AC-10",
+      "AC-11",
+      "AC-12"
+    ],
+    "scope": [
+      "SC-D1",
+      "SC-D2",
+      "SC-D3",
+      "SC-D4",
+      "SC-D5",
+      "SC-I1",
+      "SC-C1",
+      "SC-P1",
+      "SC-O1",
+      "SC-L1"
+    ],
+    "verification_obligations": [
+      "VO-1",
+      "VO-2",
+      "VO-3",
+      "VO-4",
+      "VO-5",
+      "VO-6",
+      "VO-7",
+      "VO-8"
+    ]
+  },
+  "tests": {
+    "black_box": {
+      "status": "passed",
+      "rationale": "Public Skill/template behavior, three Hook subprocess boundaries, doctor states, and repository compatibility passed with synthetic isolated inputs.",
+      "evidence": [
+        "26 focused DLP tests passed in 1.275s",
+        "368 repository tests passed in 74.542s",
+        "doctor valid_with_manual_gates with zero required failures and five not_observed live gates"
+      ]
+    },
+    "white_box": {
+      "status": "passed",
+      "rationale": "Detector/exclusion branches, traversal and size caps, encoding, no-raw-value, tamper, semantic drift, and independent repository validators passed.",
+      "evidence": [
+        "39 contracts and 13 Skills validated",
+        "plugin, Skill, compileall, 97 JSON, knowledge, diff, and authority checks passed",
+        "byte/semantic tamper and installed-byte canary tests passed"
+      ]
+    }
+  },
+  "knowledge": {
+    "impact": "update",
+    "disposition": "promoted",
+    "rationale": "Differentiated confidentiality controls and their honest live-environment limits passed repository verification and are reflected in current project truth.",
+    "promotion_links": [
+      "../../project/dev-flow-governance.md"
+    ]
+  },
+  "related_changes": []
+}

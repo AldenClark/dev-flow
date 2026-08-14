@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -106,7 +107,7 @@ class ReleaseArtifactTests(unittest.TestCase):
     def test_wrong_version_is_rejected_without_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp) / "release"
-            result = self.build(output, version="1.0.2")
+            result = self.build(output, version="1.0.3")
             self.assertEqual(result.returncode, 2, result.stderr or result.stdout)
             self.assertIn("does not match plugin manifest", result.stderr)
             self.assertFalse(list(output.iterdir()))
@@ -161,13 +162,17 @@ class RuntimeLifecycleSmokeTests(unittest.TestCase):
 
 
 class ReleaseWorkflowContractTests(unittest.TestCase):
-    def test_readme_current_install_ref_matches_manifest_version(self) -> None:
+    def test_readme_install_ref_matches_declared_published_version(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn(f"当前已发布稳定标签为 `v{VERSION}`", readme)
+        published = re.search(r"当前已发布稳定标签为 `v([^`]+)`", readme)
+        self.assertIsNotNone(published)
+        published_version = published.group(1)
+        self.assertRegex(published_version, r"^\d+\.\d+\.\d+$")
         self.assertIn(
-            f"codex plugin marketplace add AldenClark/dev-flow --ref v{VERSION}",
+            f"codex plugin marketplace add AldenClark/dev-flow --ref v{published_version}",
             readme,
         )
+        self.assertIn(f"当前源码 `{VERSION}`", readme)
 
     def test_workflow_run_scalars_do_not_embed_mapping_tokens_unquoted(self) -> None:
         workflows = ROOT / ".github" / "workflows"
