@@ -54,10 +54,10 @@ max_concurrent_threads_per_session = 3
 
 ## 安装
 
-发布与插件清单版本一致的标签后，可直接添加仓库内的 marketplace 并安装固定到该标签的插件。当前已发布稳定标签为 `v1.0.1`；只有对应标签已推送后，才应从 marketplace 安装该版本：
+发布与插件清单版本一致的标签后，可直接添加仓库内的 marketplace 并安装固定到该标签的插件。当前已发布稳定标签为 `v1.0.2`；只有对应标签已推送后，才应从 marketplace 安装该版本：
 
 ```bash
-codex plugin marketplace add AldenClark/dev-flow --ref v1.0.1
+codex plugin marketplace add AldenClark/dev-flow --ref v1.0.2
 codex plugin add dev-flow@dev-flow
 ```
 

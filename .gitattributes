@@ -1,0 +1,3 @@
+hooks/hooks.json text eol=lf
+hooks/data_security_hook.py text eol=lf
+skills/company-data-security/** text eol=lf

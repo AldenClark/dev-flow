@@ -17,6 +17,7 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Changed
 
 - Advanced the source manifest, release workflow default, current-source examples, release runbook, and DLP attestation template to patch version `1.0.2`.
+- Forced LF checkout for byte-hashed confidentiality controls so exact DLP integrity checks remain portable on Windows.
 
 ### Security
 

@@ -291,6 +291,25 @@ class DoctorTests(unittest.TestCase):
         self.assertEqual(result.stderr, "")
         return result.returncode, json.loads(result.stdout)
 
+    def test_protected_controls_are_checked_out_with_lf_bytes(self) -> None:
+        result = subprocess.run(
+            ["git", "check-attr", "eol", "--", *doctor.PROTECTED_PATHS],
+            cwd=ROOT,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=10,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        observed: dict[str, str] = {}
+        for line in result.stdout.splitlines():
+            path, attribute, value = line.split(": ", 2)
+            self.assertEqual(attribute, "eol")
+            observed[path] = value
+        self.assertEqual(set(observed), set(doctor.PROTECTED_PATHS))
+        self.assertEqual({path: value for path, value in observed.items() if value != "lf"}, {})
+
     def test_intact_plugin_passes_with_honest_manual_gates(self) -> None:
         code, report = self.run_doctor(ROOT)
         self.assertEqual(code, 0)
