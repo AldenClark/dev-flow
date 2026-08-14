@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "change_id": "agent-assurance-expansion-v1-1",
-  "status": "implementing",
+  "status": "accepted",
   "format": "governed",
   "documents": {
     "requirements": "requirements.md",
@@ -33,19 +33,23 @@
   },
   "tests": {
     "black_box": {
-      "status": "planned",
+      "status": "passed",
       "rationale": "Public CLI inventories, representative Agent scenarios, formal-depth boundaries, missing prerequisites, release artifacts, remote identities, and installed plugin behavior.",
-      "evidence": []
+      "evidence": [
+        "On source commit 2069ec29916c195dbe5af454dadf7d03c7e37cbd, all 23 public selector scenarios, 392 strict repository tests, two exact-SHA release builds, and artifact verification passed; post-source remote/tag/install cells remain separately evidenced."
+      ]
     },
     "white_box": {
-      "status": "planned",
+      "status": "passed",
       "rationale": "Registry graph/source/reference integrity, deterministic scoring/filtering/caps, protected digest, version surfaces, full repository contracts, and clean-context review.",
-      "evidence": []
+      "evidence": [
+        "Registry/source/guidance closure, 32 focused risk-model thresholds, negative and prerequisite branches, source compatibility, 39 contracts, 13-Skill validation, protected digests, knowledge authority, compileall, diff review, and clean blue/red challenge passed."
+      ]
     }
   },
   "knowledge": {
     "impact": "update",
-    "disposition": "pending",
+    "disposition": "promoted",
     "rationale": "The Agent failure models, selected methods, and operating boundaries update reusable current Dev Flow truth.",
     "promotion_links": ["../../project/dev-flow-governance.md"]
   },
