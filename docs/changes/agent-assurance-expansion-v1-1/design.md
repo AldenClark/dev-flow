@@ -30,8 +30,8 @@ The unchanged chain is explicit facts → weighted risk models → candidate sta
 
 ## Requirement baseline and reopening
 
-- Bound revision: requirement revision 3; digest recorded by `REQ-READY` after AMB-1 and AMB-2 resolution.
-- Ambiguities: AMB-1 split specialist failure models and added negative scenarios; AMB-2 made tracked and runtime authority documents byte-identical with a portable relative link. No user-owned semantic changed.
+- Bound revision: requirement revision 4; digest recorded by `REQ-READY` after AMB-1, AMB-2, and AMB-3 resolution.
+- Ambiguities: AMB-1 split specialist failure models; AMB-2 made authority bytes portable and identical; AMB-3 orders the final commit before the sealed pre-verification checkpoint. No user-owned semantic changed.
 - Reopen on incompatible schema/owner/dependency need, changed AC meaning, or unsafe delivery identity drift.
 
 ## Dependency decisions
@@ -73,4 +73,4 @@ All registry changes are additive under schema `1.0`. Source rollback requires a
 
 ## Approval record
 
-Approved by the user's 2026-08-14 autonomous implementation/release direction. Revisions 2 and 3 are evidence-backed Codex-owned design/governance refinements inside that delegated authority; no new dependencies or external scope.
+Approved by the user's 2026-08-14 autonomous implementation/release direction. Revisions 2–4 are evidence-backed Codex-owned design/governance refinements inside that delegated authority; no new dependencies or external scope.

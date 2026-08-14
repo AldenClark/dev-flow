@@ -42,12 +42,12 @@ Extend the accepted 94-method Assurance Method System with 17 distinct Agent met
 ## Requirement Ready gate
 
 - Status: ready under the user's explicit execute-mode delegation and delivery authority.
-- Revision: 3; full file is the baseline. Revision 2 split five specialist failure mechanisms from broad Agent stacks; revision 3 makes the exact authority document portable to tracked knowledge and corrects its internal revision references. User outcome and delivery authority are unchanged.
+- Revision: 4; full file is the baseline. Revision 2 split five specialist failure mechanisms; revision 3 made exact authority portable to tracked knowledge; revision 4 records that the final commit must precede the sealed pre-verification checkpoint. User outcome and delivery authority are unchanged.
 - Reopen: incompatible schema/owner/dependency need, unsafe remote divergence, immutable identity failure, or a verified finding that changes AC semantics.
 
 ## Requirement baseline
 
-- Revision: 3.
+- Revision: 4.
 - Digest: content-bound by `REQ-READY` after these exact bytes and all governed packet projections validate.
 - Baseline content: this entire requirements document.
 - Reopen conditions: the conditions listed in the Requirement Ready gate.
@@ -58,9 +58,11 @@ Extend the accepted 94-method Assurance Method System with 17 distinct Agent met
 |---|---|---|---|---|---|---|
 | AMB-1 | Keep nine coarse Agent models with specialist cross-trigger risk, or split five specialist failure mechanisms into dedicated models. | Selector activates a method from its risk-model stack; targeted negative scenarios can distinguish HTN, contract-net, conformal, and simulation over-trigger. | material; Codex | AC-1, AC-3, AC-4 | Split to 14 new Agent models and add non-cross-trigger regression cases. | resolved by deterministic evidence under delegated design authority |
 | AMB-2 | Keep condensed tracked authority documents, or promote the exact approved bytes with a portable dossier-relative link. | `bind-knowledge` rejected both condensed documents; exact authority replay requires byte identity. | material; Codex | AC-5, AC-6 | Use one full exact document on both surfaces with `./manifest.json`. | resolved by fail-closed knowledge evidence under delegated design authority |
+| AMB-3 | Bypass a stale sealed checkpoint after committing, or restore the correct commit-before-pre-verification order. | The candidate commit changed HEAD after the sealed checkpoint; packet validation rejected the drift and verification state forbids checkpoint rewriting. | material; Codex | AC-7, AC-8, SC-L1 | Commit final evidence bytes while implementing, then seal and verify the final HEAD. | resolved by fail-closed continuity evidence under delegated design authority |
 
 ## Confirmation record
 
 - 2026-08-14: user approved autonomous implementation through release and local installation without intermediate confirmation.
 - 2026-08-14: revision 2 applies the evidence-backed AMB-1 refinement within that delegated authority; no user-owned outcome or external scope changed.
 - 2026-08-14: revision 3 applies the AMB-2 exact-byte portability repair within the same authority; no product outcome or delivery scope changed.
+- 2026-08-14: revision 4 applies the AMB-3 verification-order repair within the same authority; no product outcome or delivery scope changed.
