@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -81,9 +83,9 @@ class MethodologySystemContractTests(unittest.TestCase):
             methodology_system.validate_registry(self.pool, repository_root=ROOT),
             [],
         )
-        self.assertEqual(len(self.pool["methods"]), 111)
-        self.assertEqual(len(self.pool["sources"]), 67)
-        self.assertEqual(len(self.pool["risk_models"]), 32)
+        self.assertEqual(len(self.pool["methods"]), 117)
+        self.assertEqual(len(self.pool["sources"]), 73)
+        self.assertEqual(len(self.pool["risk_models"]), 38)
         self.assertEqual(
             set(self.pool["selection_contract"]["phase_order"]),
             {
@@ -137,7 +139,9 @@ class MethodologySystemContractTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr or completed.stdout)
         payload = json.loads(completed.stdout)
         self.assertEqual(payload["status"], "valid")
-        self.assertEqual((payload["methods"], payload["sources"], payload["risk_models"]), (111, 67, 32))
+        self.assertEqual((payload["methods"], payload["sources"], payload["risk_models"]), (117, 73, 38))
+        self.assertEqual(payload["engineering_risks_covered"], 55)
+        self.assertEqual(payload["risk_aliases"], 23)
 
     def test_low_risk_routine_selects_only_phase_foundation(self) -> None:
         result = self.select(
@@ -558,11 +562,213 @@ class MethodologySystemContractTests(unittest.TestCase):
             max_methods=2,
         )
         self.assertEqual(result["context_budget"]["selected"], 2)
-        self.assertEqual(result["context_budget"]["pool_size"], 111)
+        self.assertEqual(result["context_budget"]["pool_size"], 117)
         self.assertFalse(result["context_budget"]["full_pool_loaded_into_working_set"])
         self.assertTrue(
             any(entry["status"] == "context-cap-excluded" for entry in result["excluded_methods"])
         )
+
+    def test_engineering_risks_translate_and_ffi_has_a_real_failure_model(self) -> None:
+        completed = run_flow(
+            "select-methods",
+            "--phase",
+            "design",
+            "--task-type",
+            "large-feature",
+            "--risk",
+            "release",
+            "--risk",
+            "ffi",
+            "--risk",
+            "abi",
+            "--signal",
+            "cross-language-boundary",
+            "--available",
+            "repository-facts",
+            "--available",
+            "boundary-inventory",
+            "--available",
+            "consumer-toolchain",
+            "--depth",
+            "deep",
+            "--max-methods",
+            "30",
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr or completed.stdout)
+        payload = json.loads(completed.stdout)
+        self.assertEqual(payload["request"]["input_risks"], ["abi", "ffi", "release"])
+        self.assertEqual(payload["request"]["risks"], ["abi", "deployment", "ffi"])
+        translations = {
+            item["input"]: item["canonical"] for item in payload["request"]["risk_translations"]
+        }
+        self.assertEqual(translations["release"], ["deployment"])
+        self.assertIn("cross-language-abi-contract", self.selected_ids(payload))
+        matched = {
+            item["id"] for item in payload["reasoning_model"]["matched_risk_models"]
+        }
+        self.assertIn("RM-ABI-FFI-BOUNDARY", matched)
+
+    def test_new_architecture_workflow_data_and_investment_methods_are_signal_bounded(self) -> None:
+        cases = (
+            ("design", ["architecture"], ["cross-view-inconsistency"], "architecture-viewpoint-consistency"),
+            ("review", ["architecture"], ["architecture-conformance-drift"], "architecture-reflexion-conformance"),
+            ("design", ["ordering"], ["workflow-collaboration"], "bpmn-collaboration-process-model"),
+            ("design", ["persisted-data"], ["data-quality-risk"], "data-quality-scenario-reconciliation"),
+            ("design", ["architecture"], ["architecture-investment-choice"], "cost-benefit-architecture-analysis"),
+        )
+        for phase, risks, signals, method_id in cases:
+            with self.subTest(method_id=method_id):
+                selected = self.select(
+                    phase=phase,
+                    risks=risks,
+                    signals=signals,
+                    depth="deep",
+                    max_methods=30,
+                )
+                self.assertIn(method_id, self.selected_ids(selected))
+                broad_only = self.select(
+                    phase=phase,
+                    risks=risks,
+                    signals=[],
+                    depth="deep",
+                    max_methods=30,
+                )
+                self.assertNotIn(method_id, self.selected_ids(broad_only))
+
+    def test_governed_packet_initializes_and_gates_method_selection_end_to_end(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            created = run_flow(
+                "init-packet",
+                "--root",
+                str(root),
+                "--change-id",
+                "method-gate",
+                "--task-type",
+                "large-feature",
+                "--objective",
+                "Design a cross-language release change",
+                "--risk",
+                "ffi",
+                "--risk",
+                "release",
+                "--work-mode",
+                "governed",
+                "--collaboration-profile",
+                "execute",
+            )
+            self.assertEqual(created.returncode, 0, created.stderr or created.stdout)
+            packet = root / ".codex" / "dev-flow" / "method-gate"
+            initial = json.loads((packet / "method-selection.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(initial["records"]), 1)
+            self.assertTrue(initial["records"][0]["preliminary"])
+            self.assertEqual(
+                initial["records"][0]["selection"]["request"]["risks"],
+                ["deployment", "ffi"],
+            )
+            awaiting = run_flow(
+                "transition", str(packet), "awaiting-approval", "--note", "design prepared"
+            )
+            self.assertEqual(awaiting.returncode, 0, awaiting.stderr or awaiting.stdout)
+            blocked = run_flow(
+                "transition",
+                str(packet),
+                "approved",
+                "--note",
+                "approve design",
+                "--approved-by",
+                "user",
+            )
+            self.assertEqual(blocked.returncode, 2)
+            self.assertIn("non-preliminary design record", blocked.stdout)
+
+            recorded = run_flow(
+                "record-methods",
+                str(packet),
+                "--phase",
+                "design",
+                "--signal",
+                "cross-language-boundary",
+                "--available",
+                "repository-facts",
+                "--available",
+                "boundary-inventory",
+                "--available",
+                "consumer-toolchain",
+                "--depth",
+                "deep",
+                "--max-methods",
+                "30",
+            )
+            self.assertEqual(recorded.returncode, 0, recorded.stderr or recorded.stdout)
+            self.assertIn("cross-language-abi-contract", recorded.stdout)
+            ledger = json.loads((packet / "method-selection.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(ledger["records"]), 2)
+            self.assertFalse(ledger["records"][-1]["preliminary"])
+            self.assertEqual(
+                set(ledger["records"][-1]["artifact_bindings"]),
+                {
+                    item["id"]
+                    for item in ledger["records"][-1]["selection"]["selected_methods"]
+                },
+            )
+            blocked_foundation = run_flow(
+                "transition",
+                str(packet),
+                "approved",
+                "--note",
+                "reject missing phase foundation",
+                "--approved-by",
+                "user",
+            )
+            self.assertEqual(blocked_foundation.returncode, 2)
+            self.assertIn("did not satisfy its phase foundation", blocked_foundation.stdout)
+            wrong_phase = run_flow(
+                "record-methods",
+                str(packet),
+                "--phase",
+                "verification",
+                "--available",
+                "repository-facts",
+            )
+            self.assertEqual(wrong_phase.returncode, 2)
+            self.assertIn("requires packet state", wrong_phase.stdout)
+
+            markdown = packet / "method-selection.md"
+            original = markdown.read_text(encoding="utf-8")
+            markdown.write_text(original + "tamper\n", encoding="utf-8")
+            drifted = run_flow("validate-packet", str(packet))
+            self.assertEqual(drifted.returncode, 2)
+            self.assertIn("method-selection.md digest drifted", drifted.stdout)
+
+            # A coordinated sidecar/event/projection rewrite must still fail the
+            # semantic lifecycle oracle rather than passing on matching hashes.
+            markdown.write_text(original.replace("in `awaiting-approval`", "in `verifying`"), encoding="utf-8")
+            ledger["records"][-1]["recorded_state"] = "verifying"
+            selection_json = packet / "method-selection.json"
+            selection_json.write_text(json.dumps(ledger, indent=2) + "\n", encoding="utf-8")
+            projection = {
+                "schema_version": "1.0",
+                "json_path": "method-selection.json",
+                "json_sha256": "sha256:" + hashlib.sha256(selection_json.read_bytes()).hexdigest(),
+                "markdown_path": "method-selection.md",
+                "markdown_sha256": "sha256:" + hashlib.sha256(markdown.read_bytes()).hexdigest(),
+                "latest_sequence": len(ledger["records"]),
+            }
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            metadata["method_selection"] = projection
+            (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            events_path = packet / "events.jsonl"
+            events = [json.loads(line) for line in events_path.read_text(encoding="utf-8").splitlines()]
+            method_events = [event for event in events if event["event"] == "method-selection-recorded"]
+            method_events[-1]["payload"] = {"record": ledger["records"][-1], "projection": projection}
+            events_path.write_text(
+                "".join(json.dumps(event, sort_keys=True) + "\n" for event in events),
+                encoding="utf-8",
+            )
+            semantic_drift = run_flow("validate-packet", str(packet))
+            self.assertEqual(semantic_drift.returncode, 2)
+            self.assertIn("recorded_state does not match its lifecycle gate", semantic_drift.stdout)
 
     def test_invalid_or_duplicate_inputs_fail_closed(self) -> None:
         with self.assertRaisesRegex(methodology_system.MethodologyContractError, "unknown signal"):
@@ -631,7 +837,8 @@ class MethodologySystemContractTests(unittest.TestCase):
             self.assertTrue((ROOT / path).is_file(), path)
         skill = (ROOT / "skills/dev-flow/SKILL.md").read_text(encoding="utf-8")
         orchestration = (ROOT / "skills/dev-flow/references/orchestration.md").read_text(encoding="utf-8")
-        self.assertIn("run `select-methods`", skill)
+        self.assertIn("`select-methods`", skill)
+        self.assertIn("`record-methods`", skill)
         self.assertIn("methodology-system.md", skill)
         self.assertIn("observation → failure hypothesis → method → owner artifact → evidence", orchestration)
 

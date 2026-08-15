@@ -57,6 +57,8 @@ PACKET_ARTIFACTS = {
     "red-audit.md",
     "evidence.md",
     "decisions.md",
+    "method-selection.json",
+    "method-selection.md",
 }
 REGISTERED_SKILLS = frozenset(
     item.get("skill")

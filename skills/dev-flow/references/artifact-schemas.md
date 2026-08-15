@@ -6,20 +6,21 @@
 
 - `direct`: no packet and no persistent mutation; retain non-mutating micro/spike evidence inline.
 - `traced`: `packet.json`, append-only `events.jsonl`, `trace.md`, and optional `artifacts/`.
-- `governed`: traced state plus split context, requirements, design, execution, matrix, audits, evidence, decisions, and child directories.
+- `governed`: traced state plus split context, requirements, design, execution, matrix, audits, evidence, decisions, method-selection JSON/Markdown, and child directories.
 
-Use governed mode for explicit governance or material security, FFI/ABI, migration, dependency, delivery, public-contract/data, regulated, rollback, or UI risk. Escalate with evidence; never silently downgrade.
+Use governed mode for explicit governance or security, FFI/ABI, migration, dependency, delivery, public-contract/data, regulated, rollback, or UI. Never silently downgrade.
 
 ## Schema 2.0 projection and capabilities
 
-`packet.json` projects lifecycle, authority, mode, risk/scope, AC/SC/VO, baselines, ledgers, approvals, continuity, knowledge, and history. The first event's immutable `creation_contract` binds initial capabilities, task/mutation class, roots, authority, collaboration, UI, compatibility, and risk. Contiguous schema-1.0 `events.jsonl` exactly projects state/history plus approval, ambiguity, checkpoint, and knowledge records; event time is nondecreasing and each non-transition record binds the replayed state. CLI mutators append, then atomically replace the projection.
+`packet.json` projects lifecycle, authority, classification, AC/SC/VO, baselines, ledgers, continuity, knowledge, and history. The first event freezes capabilities, task/mutation class, roots, collaboration, UI, compatibility, risk, and authority. Contiguous `events.jsonl` projects state/history and non-transition records; CLI mutators append, then atomically replace the projection.
 
 New `skill_version` build tokens are exact additive capabilities:
 
 - `change-set-transition-v1`: each `verifying` transition binds the existing `Change set` ledger/body SHA-256.
 - `quality-kernel-v1`: persistent work carries `mutation_intent`, `design_digest`, `continuity_checkpoint`, and `knowledge_manifest`; capability and authority come from an exact metadata-matching creation contract.
+- `method-selection-v1`: governed creation records a preliminary design selection; approval, verification, and acceptance require fresh design, verification, and review records bound to registry, risks, requirement/design bytes, events, and owner artifacts.
 
-Tag downgrade with any residual quality metadata/event marker, incomplete interaction/event projection, or later bound-section drift fails. Local unsigned state detects inconsistency, not coordinated whole-packet rewriting; tamper evidence needs an external immutable/signed system.
+Tag downgrade with residual capability data/events, incomplete projection, or bound-section drift fails. Unsigned state detects inconsistency, not coordinated rewriting; tamper evidence needs external immutable storage.
 
 ## Lifecycle and semantic approval
 

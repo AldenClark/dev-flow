@@ -35,6 +35,21 @@ python3 skills/dev-flow/scripts/dev_flow.py select-methods \
   --depth deep
 ```
 
+For a governed schema-2 packet, use the packet-bound command instead of leaving the result in terminal output:
+
+```text
+python3 skills/dev-flow/scripts/dev_flow.py record-methods .codex/dev-flow/<change-id> \
+  --phase design \
+  --signal cross-language-boundary \
+  --available repository-facts \
+  --available requirement-baseline \
+  --available boundary-inventory \
+  --available consumer-toolchain \
+  --depth deep
+```
+
+Packet creation writes a preliminary design selection automatically. It is intentionally insufficient for approval because later repository facts, requirements, design bytes, signals, and prerequisites can change the result. Record a non-preliminary `design` selection before approval, `verification` after entering implementation and before verification, and `review` after entering verification and before acceptance. Each record is event-projected into `method-selection.json`, rendered into `method-selection.md`, bound to requirement/design bytes and the registry digest, and maps every selected owner to an existing packet artifact.
+
 Do not pass a prerequisite because it would produce a nicer answer. `--available` means current evidence demonstrates that prerequisite.
 
 ## Depth and context budget
@@ -57,7 +72,7 @@ The default cap is part of the safety contract. If applicable methods exceed it,
 - `excluded_methods`: depth, negative-trigger, or context-cap exclusions;
 - `unresolved`: conditions that prevent a complete assurance claim.
 
-Record the selection in the existing design/execution/test artifacts. A new mandatory packet field is deliberately avoided in schema 1.0.
+Standalone and legacy schema-1 selections remain advisory and are recorded in existing design/execution/test artifacts. New governed schema-2 packets advertise the additive `method-selection-v1` capability and fail lifecycle gates when the required phase selection is missing, preliminary, stale, or no longer covers packet risks. Older packets are never upgraded into the contract by mutable metadata alone.
 
 ## Novice-use protocol
 
@@ -68,7 +83,7 @@ The human user does not need to name a methodology. Explain each selected method
 3. “It will produce …, owned by …”
 4. “It will not prove …; if prerequisite … is unavailable, we will … instead.”
 
-Use `templates/method-selection.md` to persist this without copying the full registry.
+Use `record-methods` for governed packets. Use `templates/method-selection.md` only for standalone or legacy work that does not carry the packet capability.
 
 ## Reselection and stops
 

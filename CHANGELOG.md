@@ -4,6 +4,27 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-08-15
+
+### Added
+
+- A backward-compatible `method-selection-v1` governed-packet capability that automatically creates a preliminary design selection and persists phase selections in digest-bound JSON/Markdown plus the event ledger.
+- Hard design, verification, and review lifecycle gates requiring fresh, non-preliminary method records that cover current packet risks and requirement/design bytes.
+- Six source-grounded methods for architecture viewpoint consistency, architecture reflexion/conformance, BPMN collaboration workflows, data-quality reconciliation, cost-benefit architecture analysis, and cross-language ABI/ownership contracts.
+- Six focused risk models and deterministic scenarios for cross-view inconsistency, architecture drift, cross-participant workflows, data quality, architecture investment, and FFI/ABI boundary failure.
+
+### Fixed
+
+- Unified all 55 engineering-context risk tokens with methodology selection through 23 explicit aliases; `release` now maps to `deployment` without rejecting the request or silently dropping risk.
+- Added a real FFI/ABI failure model so accepted `ffi` and `abi` risks can no longer produce foundation-only false coverage.
+- Exposed method-selection requirements, canonical risk translations, and unmapped-risk evidence directly in `route-task` output.
+
+### Changed
+
+- Expanded the source-bound pool to 117 methods, 73 sources, and 38 deterministic risk models while preserving `method.selection.v1`, owner boundaries, context caps, and legacy packet readability.
+- Advanced the plugin manifest, release workflow defaults, current-source examples, release runbook, and data-security attestation example to patch version `1.1.1`.
+- Synchronized CI and release-candidate workflows so methodology, project knowledge, plugin, maintainer, data-security, strict test, and compile gates run in GitHub Actions as well as locally.
+
 ## [1.1.0] - 2026-08-14
 
 ### Added
@@ -103,7 +124,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - Runtime markers no longer persist absolute packet paths, start/stop stay fail-open on marker storage or malformed data, and markers are removed whenever subagent stop is observed.
 - Runtime traces, plugin data, secrets, caches, and build outputs are excluded from source control.
 
-[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/AldenClark/dev-flow/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/AldenClark/dev-flow/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/AldenClark/dev-flow/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/AldenClark/dev-flow/compare/v0.2.0...v1.0.1

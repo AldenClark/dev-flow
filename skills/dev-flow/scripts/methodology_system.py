@@ -55,9 +55,68 @@ SELECTION_KINDS = {"foundation", "automatic", "specialist"}
 COSTS = {"low", "medium", "high", "very-high"}
 MATCH_WEIGHTS = {"risks": 1, "signals": 3, "task_types": 1}
 
+# Engineering-context risks describe routing and governance concerns, while the
+# methodology pool describes failure classes. Keep the translation explicit so
+# callers never have to guess which vocabulary a public CLI expects.
+ENGINEERING_RISK_ALIASES: dict[str, tuple[str, ...]] = {
+    "battery": ("performance", "resource-limits"),
+    "binary-size": ("performance", "resource-limits"),
+    "browser": ("compatibility",),
+    "ci-cd": ("deployment",),
+    "device": ("compatibility",),
+    "entitlement": ("authorization", "security"),
+    "external-write": ("recovery", "security"),
+    "flaky-baseline": ("weak-tests",),
+    "incomplete-reproduction": ("weak-tests",),
+    "large-blast-radius": ("deployment", "recovery"),
+    "native-packaging": ("compatibility", "deployment"),
+    "os": ("compatibility",),
+    "platform-lifecycle": ("compatibility", "recovery"),
+    "production-config": ("deployment", "security"),
+    "regulated": ("privacy", "security"),
+    "release": ("deployment",),
+    "rollback": ("deployment", "recovery"),
+    "signing": ("deployment", "security"),
+    "simulator": ("compatibility",),
+    "slo": ("performance", "recovery"),
+    "startup": ("performance",),
+    "toolchain": ("compatibility", "dependency"),
+    "unfamiliar-subsystem": ("architecture",),
+}
+
 
 class MethodologyContractError(ValueError):
     """Raised when the methodology registry or selection request is invalid."""
+
+
+def normalize_risks(
+    vocabulary: dict[str, Any],
+    risks: list[str],
+) -> tuple[list[str], list[dict[str, Any]], list[str]]:
+    """Translate engineering-context risks into canonical methodology risks."""
+    canonical_vocabulary = set(vocabulary.get("risks", []))
+    normalized: set[str] = set()
+    translations: list[dict[str, Any]] = []
+    unknown: list[str] = []
+    for risk in sorted(risks):
+        if risk in canonical_vocabulary:
+            targets = (risk,)
+            kind = "canonical"
+        else:
+            targets = ENGINEERING_RISK_ALIASES.get(risk, ())
+            kind = "alias"
+        if not targets or not set(targets).issubset(canonical_vocabulary):
+            unknown.append(risk)
+            continue
+        normalized.update(targets)
+        translations.append(
+            {
+                "input": risk,
+                "canonical": sorted(targets),
+                "kind": kind,
+            }
+        )
+    return sorted(normalized), translations, sorted(set(unknown))
 
 
 def read_registry(path: Path) -> dict[str, Any]:
@@ -475,8 +534,13 @@ def select_methods(
         request_errors.append(f"unknown task type {task_type!r}")
     if depth not in contract["depths"]:
         request_errors.append(f"unknown depth {depth!r}")
+    duplicate_risks = sorted({value for value in risks if risks.count(value) > 1})
+    if duplicate_risks:
+        request_errors.append(f"duplicate risk values {duplicate_risks}")
+    normalized_risks, risk_translations, unknown_risks = normalize_risks(vocabulary, risks)
+    if unknown_risks:
+        request_errors.append(f"unknown risk values {unknown_risks}")
     for label, values, vocabulary_field in (
-        ("risk", risks, "risks"),
         ("signal", signals, "signals"),
         ("available prerequisite", available, "prerequisites"),
     ):
@@ -491,7 +555,7 @@ def select_methods(
     if request_errors:
         raise MethodologyContractError("; ".join(sorted(request_errors)))
 
-    risks_set = set(risks)
+    risks_set = set(normalized_risks)
     signals_set = set(signals)
     available_set = set(available)
     depth_index = {value: index for index, value in enumerate(contract["depths"])}
@@ -665,7 +729,9 @@ def select_methods(
             "phase": phase,
             "task_type": task_type,
             "depth": depth,
-            "risks": sorted(risks),
+            "input_risks": sorted(risks),
+            "risks": normalized_risks,
+            "risk_translations": risk_translations,
             "signals": sorted(signals),
             "available_prerequisites": sorted(available),
         },

@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "change_id": "dev-flow-1-1-1-method-enforcement",
+  "status": "accepted",
+  "format": "governed",
+  "documents": {
+    "requirements": "requirements.md",
+    "design": "design.md",
+    "execution": "execution.md",
+    "verification": "verification.md"
+  },
+  "authority_binding": {
+    "schema_version": "1.0",
+    "change_id": "dev-flow-1-1-1-method-enforcement",
+    "requirements": {
+      "path": "requirements.md",
+      "sha256": "sha256:82559f913766dbff42a523b2be5d5c71bb3d3d614aad810efa0a38c3ee1ac343"
+    },
+    "design": {
+      "path": "design.md",
+      "sha256": "sha256:c6b37b4ba134338ff7a5b3fa8eee6b9d98ec521aea44eae71a0a1918a7c5d04f"
+    },
+    "identifier_sets": {
+      "acceptance_criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8"],
+      "scope": ["SC-D1", "SC-D2", "SC-D3", "SC-D4", "SC-I1", "SC-I2", "SC-P1", "SC-P2", "SC-O1", "SC-L1"],
+      "verification_obligations": ["VO-1", "VO-2", "VO-3", "VO-4", "VO-5", "VO-6", "VO-7", "VO-8"]
+    }
+  },
+  "traceability": {
+    "acceptance_criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8"],
+    "scope": ["SC-D1", "SC-D2", "SC-D3", "SC-D4", "SC-I1", "SC-I2", "SC-P1", "SC-P2", "SC-O1", "SC-L1"],
+    "verification_obligations": ["VO-1", "VO-2", "VO-3", "VO-4", "VO-5", "VO-6", "VO-7", "VO-8"]
+  },
+  "tests": {
+    "black_box": {"status": "passed", "rationale": "Public routing, selection, packet lifecycle, validators, and strict repository behavior passed; commit-bound release and external identities remain separately recorded gates.", "evidence": ["384 strict non-release repository tests passed in 72.052 seconds", "26 focused methodology contracts and 39 public repository contracts passed", "route-task and select-methods exposed release translation, FFI activation, bounded selected methods, prerequisites, and lifecycle gates"]},
+    "white_box": {"status": "passed", "rationale": "Registry graph, exact aliases, record/event/projection binding, coordinated tamper, compatibility, protected bytes, and static budgets passed review and native validation.", "evidence": ["117 methods, 73 sources, 38 models, 55 engineering risks, and 23 exact aliases validated", "13-Skill maintainer validator reported 17,998 ordinary static bytes", "compileall, 103 JSON parses, knowledge validation, data-security doctor, and git diff check exited zero"]}
+  },
+  "knowledge": {
+    "impact": "update",
+    "disposition": "promoted",
+    "rationale": "Method activation and design/review methodology are reusable current Dev Flow truth.",
+    "promotion_links": ["../../project/dev-flow-governance.md"]
+  },
+  "related_changes": ["../assurance-method-reasoning-layer/manifest.json", "../agent-assurance-expansion-v1-1/manifest.json"]
+}

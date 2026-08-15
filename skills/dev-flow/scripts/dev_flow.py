@@ -151,6 +151,7 @@ PACKET_EVENTS = {
     "checkpoint-invalidated",
     "checkpoint-recorded",
     "knowledge-bound",
+    "method-selection-recorded",
     "iteration-recorded",
     "iteration-reassessed",
     "packet-created",
@@ -158,6 +159,29 @@ PACKET_EVENTS = {
 }
 CHANGE_SET_SKILL_VERSION_TAG = "change-set-transition-v1"
 QUALITY_KERNEL_SKILL_VERSION_TAG = "quality-kernel-v1"
+METHOD_SELECTION_SKILL_VERSION_TAG = "method-selection-v1"
+METHOD_SELECTION_PACKET_SCHEMA_VERSION = "method.selection.packet.v1"
+METHOD_SELECTION_RECORD_SCHEMA_VERSION = "1.0"
+METHOD_SELECTION_PROJECTION_FIELDS = {
+    "schema_version",
+    "json_path",
+    "json_sha256",
+    "markdown_path",
+    "markdown_sha256",
+    "latest_sequence",
+}
+METHOD_SELECTION_RECORD_FIELDS = {
+    "schema_version",
+    "sequence",
+    "phase",
+    "recorded_at",
+    "recorded_state",
+    "preliminary",
+    "registry_sha256",
+    "packet_binding",
+    "artifact_bindings",
+    "selection",
+}
 CREATION_CONTRACT_SCHEMA_VERSION = "1.0"
 ENGINEERING_CONTEXT_PROJECTION_SCHEMA_VERSION = "1.0"
 QUALITY_PROJECTION_FIELDS = {
@@ -752,7 +776,10 @@ def plugin_version() -> str:
 
 def packet_skill_version() -> str:
     """Tag new packets with additive, independently detectable capabilities."""
-    return f"{plugin_version()}+{CHANGE_SET_SKILL_VERSION_TAG}.{QUALITY_KERNEL_SKILL_VERSION_TAG}"
+    return (
+        f"{plugin_version()}+{CHANGE_SET_SKILL_VERSION_TAG}."
+        f"{QUALITY_KERNEL_SKILL_VERSION_TAG}.{METHOD_SELECTION_SKILL_VERSION_TAG}"
+    )
 
 
 def skill_capabilities(value: object) -> set[str]:
@@ -772,6 +799,10 @@ def has_change_set_contract(value: object) -> bool:
 
 def has_quality_kernel_contract(value: object) -> bool:
     return has_skill_capability(value, QUALITY_KERNEL_SKILL_VERSION_TAG)
+
+
+def has_method_selection_contract(value: object) -> bool:
+    return has_skill_capability(value, METHOD_SELECTION_SKILL_VERSION_TAG)
 
 
 def creation_contract(metadata: dict[str, Any]) -> dict[str, Any]:
@@ -950,6 +981,430 @@ def append_packet_event(packet: Path, metadata: dict[str, Any], event: str, payl
 def write_packet(packet: Path, metadata: dict[str, Any], event: str, payload: dict[str, Any] | None = None) -> None:
     append_packet_event(packet, metadata, event, payload)
     write_json(packet / "packet.json", metadata)
+
+
+def methodology_registry_digest(path: Path | None = None) -> str:
+    registry = methodology_registry_path(path)
+    return "sha256:" + hashlib.sha256(registry.read_bytes()).hexdigest()
+
+
+def default_method_artifact(owner: str, phase: str) -> str:
+    """Map a selected owner to the smallest existing governed-packet artifact."""
+    if owner == "repo-context":
+        return "context.md"
+    if owner in {"requirements-design", "product-ux-discovery"}:
+        return "requirements.md" if phase in {"discovery", "requirements"} else "design.md"
+    if owner in {"architecture-decisions", "dependency-decisions", "company-data-security"}:
+        return "design.md"
+    if owner == "systematic-debugging":
+        return "execution.md"
+    if owner == "verification":
+        return "test-matrix.md"
+    if owner == "change-review":
+        return "blue-audit.md"
+    if owner == "delivery-readiness":
+        return "evidence.md"
+    if phase in {"implementation", "diagnosis", "operations"}:
+        return "execution.md"
+    if phase in {"verification", "acceptance", "delivery"}:
+        return "evidence.md"
+    return "design.md"
+
+
+def render_method_selection_ledger(payload: dict[str, Any]) -> str:
+    """Render the machine-readable selection history as a concise owner/artifact ledger."""
+    lines = [
+        f"# Assurance method selection: {payload.get('change_id', 'unknown')}",
+        "",
+        "Generated from `method-selection.json`; edit by rerunning `record-methods`.",
+        "",
+    ]
+    records = payload.get("records", [])
+    for record in records if isinstance(records, list) else []:
+        if not isinstance(record, dict):
+            continue
+        selection = record.get("selection", {})
+        request = selection.get("request", {}) if isinstance(selection, dict) else {}
+        lines.extend(
+            [
+                f"## Selection {record.get('sequence')}: {record.get('phase')}",
+                "",
+                f"- Recorded: {record.get('recorded_at')} in `{record.get('recorded_state')}`",
+                f"- Preliminary: {'yes' if record.get('preliminary') else 'no'}",
+                f"- Task/depth: `{request.get('task_type')}` / `{request.get('depth')}`",
+                f"- Input risks: {', '.join(request.get('input_risks', [])) or 'none'}",
+                f"- Canonical method risks: {', '.join(request.get('risks', [])) or 'none'}",
+                f"- Signals: {', '.join(request.get('signals', [])) or 'none'}",
+                f"- Registry: `{record.get('registry_sha256')}`",
+                "",
+                "| Method | Owner | Planned artifact | Purpose |",
+                "|---|---|---|---|",
+            ]
+        )
+        bindings = record.get("artifact_bindings", {})
+        for method in selection.get("selected_methods", []) if isinstance(selection, dict) else []:
+            if not isinstance(method, dict):
+                continue
+            method_id = str(method.get("id", ""))
+            artifacts = bindings.get(method_id, []) if isinstance(bindings, dict) else []
+            summary = str(method.get("summary", "")).replace("|", "\\|")
+            lines.append(
+                f"| `{method_id}` | `{method.get('owner')}` | "
+                f"{', '.join(f'`{item}`' for item in artifacts) or 'unbound'} | {summary} |"
+            )
+        blocked = selection.get("blocked_methods", []) if isinstance(selection, dict) else []
+        unresolved = selection.get("unresolved", []) if isinstance(selection, dict) else []
+        blocked_ids = [
+            f"`{item.get('method_id')}`"
+            for item in blocked
+            if isinstance(item, dict)
+        ]
+        lines.extend(
+            [
+                "",
+                f"- Blocked methods: {', '.join(blocked_ids) or 'none'}",
+                f"- Unresolved: {' '.join(str(item) for item in unresolved) or 'none'}",
+                "",
+            ]
+        )
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def persist_method_selection(
+    packet: Path,
+    metadata: dict[str, Any],
+    *,
+    phase: str,
+    risks: list[str],
+    signals: list[str],
+    available: list[str],
+    depth: str,
+    max_methods: int | None,
+    preliminary: bool,
+) -> dict[str, Any]:
+    """Select, persist, render, and event-bind one packet method record."""
+    registry_path = methodology_registry_path()
+    registry = methodology_system.read_registry(registry_path)
+    selection = methodology_system.select_methods(
+        registry,
+        repository_root=plugin_root(),
+        phase=phase,
+        task_type=str(metadata.get("task_type")),
+        risks=risks,
+        signals=signals,
+        available=available,
+        depth=depth,
+        max_methods=max_methods,
+    )
+    json_path = packet / "method-selection.json"
+    if json_path.is_file():
+        payload = read_json(json_path)
+    else:
+        payload = {
+            "schema_version": METHOD_SELECTION_PACKET_SCHEMA_VERSION,
+            "change_id": metadata.get("change_id"),
+            "records": [],
+        }
+    records = payload.get("records")
+    if not isinstance(records, list):
+        raise ValueError("method-selection.json records must be a list")
+    selected_methods = selection.get("selected_methods", [])
+    artifact_bindings = {
+        str(method["id"]): [default_method_artifact(str(method["owner"]), phase)]
+        for method in selected_methods
+        if isinstance(method, dict) and method.get("id") and method.get("owner")
+    }
+    recorded_at = utc_now()
+    record = {
+        "schema_version": METHOD_SELECTION_RECORD_SCHEMA_VERSION,
+        "sequence": len(records) + 1,
+        "phase": phase,
+        "recorded_at": recorded_at,
+        "recorded_state": metadata.get("state"),
+        "preliminary": preliminary,
+        "registry_sha256": methodology_registry_digest(registry_path),
+        "packet_binding": {
+            "task_type": metadata.get("task_type"),
+            "input_risks": sorted(risks),
+            "requirement_revision": metadata.get("requirement_revision"),
+            "requirements_digest": current_requirements_digest(
+                packet, metadata.get("documentation_profile")
+            ),
+            "design_digest": current_design_digest(
+                packet, metadata.get("documentation_profile")
+            ),
+        },
+        "artifact_bindings": artifact_bindings,
+        "selection": selection,
+    }
+    records.append(record)
+    write_json(json_path, payload)
+    markdown_path = packet / "method-selection.md"
+    atomic_write_text(markdown_path, render_method_selection_ledger(payload))
+    projection = {
+        "schema_version": "1.0",
+        "json_path": "method-selection.json",
+        "json_sha256": "sha256:" + hashlib.sha256(json_path.read_bytes()).hexdigest(),
+        "markdown_path": "method-selection.md",
+        "markdown_sha256": "sha256:" + hashlib.sha256(markdown_path.read_bytes()).hexdigest(),
+        "latest_sequence": record["sequence"],
+    }
+    metadata["method_selection"] = projection
+    metadata["updated_at"] = recorded_at
+    write_packet(
+        packet,
+        metadata,
+        "method-selection-recorded",
+        {"record": record, "projection": projection},
+    )
+    return record
+
+
+def method_selection_binding_errors(
+    packet: Path,
+    metadata: dict[str, Any],
+    *,
+    effective_state: str | None = None,
+) -> list[str]:
+    """Validate the selection sidecars, event projection, and lifecycle freshness gates."""
+    if metadata.get("work_mode") != "governed" or not packet_has_immutable_creation_capability(
+        packet, METHOD_SELECTION_SKILL_VERSION_TAG
+    ):
+        return []
+    errors: list[str] = []
+    projection = metadata.get("method_selection")
+    if not isinstance(projection, dict) or set(projection) != METHOD_SELECTION_PROJECTION_FIELDS:
+        return ["packet.json: method_selection must use the exact method-selection-v1 projection"]
+    if projection.get("schema_version") != "1.0":
+        errors.append("packet.json: method_selection has an unsupported schema_version")
+    if projection.get("json_path") != "method-selection.json":
+        errors.append("packet.json: method_selection json_path must be method-selection.json")
+    if projection.get("markdown_path") != "method-selection.md":
+        errors.append("packet.json: method_selection markdown_path must be method-selection.md")
+    json_path = packet / "method-selection.json"
+    markdown_path = packet / "method-selection.md"
+    if not json_path.is_file() or not markdown_path.is_file():
+        return [*errors, "governed method selection requires method-selection.json and method-selection.md"]
+    observed_json_digest = "sha256:" + hashlib.sha256(json_path.read_bytes()).hexdigest()
+    observed_markdown_digest = "sha256:" + hashlib.sha256(markdown_path.read_bytes()).hexdigest()
+    if projection.get("json_sha256") != observed_json_digest:
+        errors.append("packet.json: method-selection.json digest drifted")
+    if projection.get("markdown_sha256") != observed_markdown_digest:
+        errors.append("packet.json: method-selection.md digest drifted")
+    try:
+        payload = read_json(json_path)
+    except (OSError, json.JSONDecodeError) as exc:
+        return [*errors, f"method-selection.json cannot be read: {exc}"]
+    if set(payload) != {"schema_version", "change_id", "records"}:
+        errors.append("method-selection.json must use the exact packet schema")
+    if payload.get("schema_version") != METHOD_SELECTION_PACKET_SCHEMA_VERSION:
+        errors.append("method-selection.json has an unsupported schema_version")
+    if payload.get("change_id") != metadata.get("change_id"):
+        errors.append("method-selection.json change_id does not match the packet")
+    records = payload.get("records")
+    if not isinstance(records, list) or not records:
+        return [*errors, "method-selection.json records must be a non-empty list"]
+    rendered = render_method_selection_ledger(payload)
+    if markdown_path.read_text(encoding="utf-8") != rendered:
+        errors.append("method-selection.md is not the deterministic rendering of method-selection.json")
+
+    event_records: list[dict[str, Any]] = []
+    latest_event_projection: Any = None
+    ledger = packet / "events.jsonl"
+    if ledger.is_file():
+        for line in ledger.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(event, dict) or event.get("event") != "method-selection-recorded":
+                continue
+            event_payload = event.get("payload")
+            if not isinstance(event_payload, dict) or set(event_payload) != {"record", "projection"}:
+                errors.append("events.jsonl: method selection event must bind record and projection")
+                continue
+            record = event_payload.get("record")
+            if isinstance(record, dict):
+                event_records.append(record)
+            else:
+                errors.append("events.jsonl: method selection event record must be an object")
+            latest_event_projection = event_payload.get("projection")
+    if event_records != records:
+        errors.append("events.jsonl: method selection records must project exactly to the sidecar")
+    if latest_event_projection != projection:
+        errors.append("events.jsonl: latest method selection projection does not match packet.json")
+    if projection.get("latest_sequence") != len(records):
+        errors.append("packet.json: method_selection latest_sequence does not match the record count")
+
+    valid_records: list[dict[str, Any]] = []
+    phase_record_states = {
+        "design": "awaiting-approval",
+        "verification": "implementing",
+        "review": "verifying",
+    }
+    for index, record in enumerate(records, start=1):
+        label = f"method-selection.json record {index}"
+        if not isinstance(record, dict) or set(record) != METHOD_SELECTION_RECORD_FIELDS:
+            errors.append(f"{label} must use the exact record schema")
+            continue
+        if record.get("schema_version") != METHOD_SELECTION_RECORD_SCHEMA_VERSION:
+            errors.append(f"{label} has an unsupported schema_version")
+        if record.get("sequence") != index:
+            errors.append(f"{label} sequence must be contiguous from 1")
+        if parsed_timestamp(record.get("recorded_at")) is None:
+            errors.append(f"{label} requires a timezone-aware recorded_at")
+        if not isinstance(record.get("registry_sha256"), str) or re.fullmatch(
+            r"sha256:[0-9a-f]{64}", record["registry_sha256"]
+        ) is None:
+            errors.append(f"{label} registry_sha256 must be an exact SHA-256 digest")
+        if not isinstance(record.get("preliminary"), bool):
+            errors.append(f"{label} preliminary must be boolean")
+        phase = record.get("phase")
+        if phase not in phase_record_states:
+            errors.append(f"{label} phase must be design, verification, or review")
+        expected_recorded_state = (
+            "discovering" if record.get("preliminary") is True else phase_record_states.get(phase)
+        )
+        if record.get("recorded_state") != expected_recorded_state:
+            errors.append(f"{label} recorded_state does not match its lifecycle gate")
+        if record.get("preliminary") is True and phase != "design":
+            errors.append(f"{label} preliminary selection is only valid for design")
+        selection = record.get("selection")
+        if not isinstance(selection, dict) or selection.get("schema_version") != methodology_system.OUTPUT_SCHEMA:
+            errors.append(f"{label} must bind a {methodology_system.OUTPUT_SCHEMA} selection")
+            continue
+        request = selection.get("request")
+        if not isinstance(request, dict) or request.get("phase") != record.get("phase"):
+            errors.append(f"{label} phase does not match the selection request")
+        if (
+            isinstance(request, dict)
+            and record.get("registry_sha256") == methodology_registry_digest()
+        ):
+            try:
+                replayed = methodology_system.select_methods(
+                    methodology_system.read_registry(methodology_registry_path()),
+                    repository_root=plugin_root(),
+                    phase=str(request.get("phase")),
+                    task_type=str(request.get("task_type")),
+                    risks=list(request.get("input_risks", [])),
+                    signals=list(request.get("signals", [])),
+                    available=list(request.get("available_prerequisites", [])),
+                    depth=str(request.get("depth")),
+                    max_methods=(
+                        selection.get("context_budget", {}).get("limit")
+                        if isinstance(selection.get("context_budget"), dict)
+                        else None
+                    ),
+                )
+            except (TypeError, ValueError, methodology_system.MethodologyContractError) as exc:
+                errors.append(f"{label} cannot replay its deterministic selection: {exc}")
+            else:
+                if replayed != selection:
+                    errors.append(f"{label} does not match deterministic selector replay")
+        binding = record.get("packet_binding")
+        if not isinstance(binding, dict) or set(binding) != {
+            "task_type",
+            "input_risks",
+            "requirement_revision",
+            "requirements_digest",
+            "design_digest",
+        }:
+            errors.append(f"{label} packet_binding must use the exact schema")
+        elif isinstance(request, dict):
+            if binding.get("input_risks") != request.get("input_risks"):
+                errors.append(f"{label} packet_binding input_risks do not match the selection")
+            if not isinstance(binding.get("requirement_revision"), int) or isinstance(
+                binding.get("requirement_revision"), bool
+            ) or binding["requirement_revision"] < 1:
+                errors.append(f"{label} packet_binding requirement_revision must be positive")
+            for digest_field in ("requirements_digest", "design_digest"):
+                if not isinstance(binding.get(digest_field), str) or re.fullmatch(
+                    r"sha256:[0-9a-f]{64}", binding[digest_field]
+                ) is None:
+                    errors.append(f"{label} packet_binding {digest_field} must be an exact SHA-256 digest")
+        selected = selection.get("selected_methods")
+        selected_ids = {
+            item.get("id")
+            for item in selected
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+        } if isinstance(selected, list) else set()
+        bindings = record.get("artifact_bindings")
+        if not isinstance(bindings, dict) or set(bindings) != selected_ids:
+            errors.append(f"{label} artifact_bindings must map every selected method exactly once")
+        else:
+            for method_id, paths in bindings.items():
+                if not isinstance(paths, list) or not paths or any(
+                    not isinstance(path, str) or path not in FULL_FILES for path in paths
+                ):
+                    errors.append(f"{label} artifact binding for {method_id} is invalid")
+        valid_records.append(record)
+
+    state = effective_state or metadata.get("state")
+    required_phases = {
+        "approved": ("design",),
+        "implementing": ("design",),
+        "verifying": ("design", "verification"),
+        "accepted": ("design", "verification", "review"),
+        "archived": ("design", "verification", "review"),
+    }.get(str(state), ())
+    if not required_phases:
+        return errors
+    trigger_states = phase_record_states
+    current_registry_digest = methodology_registry_digest()
+    current_requirement_digest = current_requirements_digest(
+        packet, metadata.get("documentation_profile")
+    )
+    current_design = current_design_digest(packet, metadata.get("documentation_profile"))
+    expected_risks, _, unknown_risks = methodology_system.normalize_risks(
+        methodology_system.read_registry(methodology_registry_path())["vocabulary"],
+        [
+            value
+            for value in metadata.get("risk_modifiers", [])
+            if isinstance(value, str)
+        ],
+    )
+    if unknown_risks:
+        errors.append(f"packet risks lack a methodology translation: {unknown_risks}")
+    for phase in required_phases:
+        candidates = [
+            record
+            for record in valid_records
+            if record.get("phase") == phase and record.get("preliminary") is False
+        ]
+        if not candidates:
+            errors.append(f"method selection gate requires a non-preliminary {phase} record")
+            continue
+        latest = candidates[-1]
+        trigger_times = history_times(metadata, trigger_states[phase])
+        recorded_at = parsed_timestamp(latest.get("recorded_at"))
+        if trigger_times and (recorded_at is None or recorded_at < max(trigger_times)):
+            errors.append(f"{phase} method selection predates the current lifecycle entry")
+        if latest.get("registry_sha256") != current_registry_digest:
+            errors.append(f"{phase} method selection is stale against the methodology registry")
+        binding = latest.get("packet_binding", {})
+        if isinstance(binding, dict):
+            if binding.get("task_type") != metadata.get("task_type"):
+                errors.append(f"{phase} method selection task_type drifted")
+            if binding.get("requirement_revision") != metadata.get("requirement_revision"):
+                errors.append(f"{phase} method selection requirement revision drifted")
+            if binding.get("requirements_digest") != current_requirement_digest:
+                errors.append(f"{phase} method selection requirement bytes drifted")
+            if binding.get("design_digest") != current_design:
+                errors.append(f"{phase} method selection design bytes drifted")
+        selection = latest.get("selection", {})
+        request = selection.get("request", {}) if isinstance(selection, dict) else {}
+        request_risks = set(request.get("risks", [])) if isinstance(request, dict) else set()
+        if not set(expected_risks).issubset(request_risks):
+            errors.append(f"{phase} method selection does not cover current packet risks")
+        foundations = selection.get("foundation", []) if isinstance(selection, dict) else []
+        if not any(
+            isinstance(entry, dict) and entry.get("status") in {"selected", "selected-shared"}
+            for entry in foundations
+        ):
+            errors.append(f"{phase} method selection did not satisfy its phase foundation")
+    return errors
 
 
 def run(command: list[str], cwd: Path | None = None, timeout: int = 30) -> subprocess.CompletedProcess[str]:
@@ -1604,6 +2059,7 @@ def init_packet(args: argparse.Namespace) -> int:
         "design_digest": None,
         "continuity_checkpoint": None,
         "knowledge_manifest": None,
+        "method_selection": None,
         "ambiguity_ids": [],
         "ambiguities": [],
         "dependency_changes": [],
@@ -1661,6 +2117,30 @@ def init_packet(args: argparse.Namespace) -> int:
             "creation_contract": creation_contract(metadata),
         },
     )
+    method_artifacts: list[str] = []
+    if work_mode == "governed" and has_method_selection_contract(metadata.get("skill_version")):
+        try:
+            persist_method_selection(
+                packet,
+                metadata,
+                phase="design",
+                risks=list(args.risk),
+                signals=[],
+                available=["repository-facts"],
+                depth="starter",
+                max_methods=None,
+                preliminary=True,
+            )
+        except (OSError, ValueError, json.JSONDecodeError, methodology_system.MethodologyContractError) as exc:
+            return emit(
+                {
+                    "status": "error",
+                    "errors": [f"cannot initialize governed method selection: {exc}"],
+                    "packet": str(packet),
+                },
+                2,
+            )
+        method_artifacts = ["method-selection.json", "method-selection.md"]
     atomic_write_text(current, args.change_id + "\n")
     ensure_local_exclude(root)
     return emit(
@@ -1669,7 +2149,12 @@ def init_packet(args: argparse.Namespace) -> int:
             "packet": str(packet),
             "work_mode": work_mode,
             "profile": profile,
-            "artifacts": ["packet.json", "events.jsonl", *(["trace.md"] if work_mode == "traced" else list(FULL_FILES))],
+            "artifacts": [
+                "packet.json",
+                "events.jsonl",
+                *(["trace.md"] if work_mode == "traced" else list(FULL_FILES)),
+                *method_artifacts,
+            ],
             "next_state": "awaiting-approval",
         }
     )
@@ -1695,6 +2180,7 @@ def load_packet(
         errors.extend(validate_iteration_control(metadata))
         errors.extend(validate_iteration_evidence(packet, metadata))
         errors.extend(validate_event_projection(packet, metadata, quality_provenance_checked=True))
+        errors.extend(method_selection_binding_errors(packet, metadata))
         if validate_change_set:
             errors.extend(validate_change_set_binding(packet, metadata))
             errors.extend(validate_continuity_binding(packet, metadata))
@@ -2441,6 +2927,20 @@ def transition_packet(args: argparse.Namespace) -> int:
         ):
             return emit({"status": "invalid", "errors": ["material UI work requires UX Ready approval"]}, 2)
         if schema_version in CONTENT_BOUND_SCHEMA_VERSIONS:
+            method_errors = method_selection_binding_errors(
+                packet,
+                metadata,
+                effective_state="approved",
+            )
+            if method_errors:
+                return emit(
+                    {
+                        "status": "approval-blocked",
+                        "packet": str(packet),
+                        "errors": method_errors,
+                    },
+                    2,
+                )
             validation, validation_code = validate_packet_data(packet)
             if validation_code:
                 validation["status"] = "approval-blocked"
@@ -4147,6 +4647,14 @@ def validate_packet_data(packet: Path, *, state_override: str | None = None) -> 
             errors.append(f"packet.json: missing concrete `{field}`")
     schema_version = metadata.get("schema_version")
     effective_state = state_override or metadata.get("state")
+    if not metadata_errors:
+        errors.extend(
+            method_selection_binding_errors(
+                packet,
+                metadata,
+                effective_state=str(effective_state),
+            )
+        )
     quality_tagged = packet_has_creation_capability(
         packet,
         metadata,
@@ -4844,6 +5352,40 @@ def validate_methods_command(args: argparse.Namespace) -> int:
         return emit({"status": "invalid", "registry": str(registry_path), "errors": [str(exc)]}, 2)
     if errors:
         return emit({"status": "invalid", "registry": str(registry_path), "errors": errors}, 2)
+    method_risks = set(payload["vocabulary"]["risks"])
+    alias_targets = {
+        target
+        for targets in methodology_system.ENGINEERING_RISK_ALIASES.values()
+        for target in targets
+    }
+    expected_aliases = engineering_context.RISK_TOKENS - method_risks
+    unexpected_aliases = sorted(
+        set(methodology_system.ENGINEERING_RISK_ALIASES) - expected_aliases
+    )
+    uncovered_engineering_risks = sorted(
+        engineering_context.RISK_TOKENS
+        - method_risks
+        - set(methodology_system.ENGINEERING_RISK_ALIASES)
+    )
+    invalid_alias_targets = sorted(alias_targets - method_risks)
+    if uncovered_engineering_risks or invalid_alias_targets or unexpected_aliases:
+        coverage_errors = []
+        if uncovered_engineering_risks:
+            coverage_errors.append(
+                f"engineering risks lack methodology translation {uncovered_engineering_risks}"
+            )
+        if invalid_alias_targets:
+            coverage_errors.append(
+                f"methodology risk aliases target unknown risks {invalid_alias_targets}"
+            )
+        if unexpected_aliases:
+            coverage_errors.append(
+                f"methodology risk aliases are not routing-only engineering risks {unexpected_aliases}"
+            )
+        return emit(
+            {"status": "invalid", "registry": str(registry_path), "errors": coverage_errors},
+            2,
+        )
     return emit(
         {
             "status": "valid",
@@ -4852,6 +5394,8 @@ def validate_methods_command(args: argparse.Namespace) -> int:
             "sources": len(payload["sources"]),
             "methods": len(payload["methods"]),
             "risk_models": len(payload["risk_models"]),
+            "engineering_risks_covered": len(engineering_context.RISK_TOKENS),
+            "risk_aliases": len(methodology_system.ENGINEERING_RISK_ALIASES),
             "phases": payload["selection_contract"]["phase_order"],
         }
     )
@@ -4878,6 +5422,77 @@ def select_methods_command(args: argparse.Namespace) -> int:
         return emit({"status": "invalid", "registry": str(registry_path), "errors": [str(exc)]}, 2)
     result["registry"] = str(registry_path)
     return emit(result)
+
+
+def record_methods_command(args: argparse.Namespace) -> int:
+    """Persist a fresh packet-bound method selection and owner/artifact trace."""
+    packet = args.packet.resolve()
+    metadata, errors = load_packet(packet)
+    if errors:
+        return emit({"status": "invalid", "errors": errors}, 2)
+    if metadata.get("work_mode") != "governed" or not packet_has_immutable_creation_capability(
+        packet, METHOD_SELECTION_SKILL_VERSION_TAG
+    ):
+        return emit(
+            {
+                "status": "invalid",
+                "errors": [
+                    "record-methods requires a governed packet created with method-selection-v1"
+                ],
+            },
+            2,
+        )
+    allowed_states = {
+        "design": {"awaiting-approval"},
+        "verification": {"implementing"},
+        "review": {"verifying"},
+    }
+    allowed = allowed_states.get(args.phase)
+    if allowed is not None and metadata.get("state") not in allowed:
+        return emit(
+            {
+                "status": "invalid",
+                "errors": [
+                    f"{args.phase} method selection requires packet state in {sorted(allowed)}"
+                ],
+            },
+            2,
+        )
+    raw_risks = sorted(
+        {
+            value
+            for value in [*metadata.get("risk_modifiers", []), *args.risk]
+            if isinstance(value, str)
+        }
+    )
+    try:
+        risks = sorted(engineering_context.canonical_risks(raw_risks))
+        record = persist_method_selection(
+            packet,
+            metadata,
+            phase=args.phase,
+            risks=risks,
+            signals=args.signal,
+            available=args.available,
+            depth=args.depth,
+            max_methods=args.max_methods,
+            preliminary=False,
+        )
+    except (OSError, ValueError, json.JSONDecodeError, methodology_system.MethodologyContractError) as exc:
+        return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+    selection = record["selection"]
+    return emit(
+        {
+            "status": "recorded",
+            "packet": str(packet),
+            "phase": record["phase"],
+            "sequence": record["sequence"],
+            "selection_status": selection["status"],
+            "selected_methods": [item["id"] for item in selection["selected_methods"]],
+            "blocked_methods": [item["method_id"] for item in selection["blocked_methods"]],
+            "artifacts": ["method-selection.json", "method-selection.md"],
+        }
+    )
 
 
 def route_task(args: argparse.Namespace) -> int:
@@ -4971,6 +5586,10 @@ def route_task(args: argparse.Namespace) -> int:
         add("change-review", "independent specification and adversarial review")
     if "delivery" in needs:
         add("delivery-readiness", "acceptance, rollback, and delivery authority accounting")
+    method_risks, risk_translations, unmapped_method_risks = methodology_system.normalize_risks(
+        methodology_system.read_registry(methodology_registry_path())["vocabulary"],
+        sorted(risks),
+    )
     return emit(
         {
             "status": "routed",
@@ -4988,6 +5607,16 @@ def route_task(args: argparse.Namespace) -> int:
             "work_mode_reasons": mode_reasons,
             "routes": [{"skill": skill, "reasons": reasons[skill]} for skill in routes],
             "unresolved_dimensions": sorted(unknowns),
+            "method_selection": {
+                "required": work_mode == "governed",
+                "input_risks": sorted(risks),
+                "canonical_risks": method_risks,
+                "translations": risk_translations,
+                "unmapped_risks": unmapped_method_risks,
+                "lifecycle_gates": ["design", "verification", "review"]
+                if work_mode == "governed"
+                else [],
+            },
             "excluded": {
                 "manage-engineering-profiles": "ordinary profile consumption does not activate management" if not args.profile_operation else None,
                 "dev-flow-maintainer": "explicit-only" if not args.suite_maintenance else None,
@@ -5593,6 +6222,23 @@ def build_parser() -> argparse.ArgumentParser:
     select_methods.add_argument("--registry", type=Path)
     select_methods.add_argument("--root", type=Path)
     select_methods.set_defaults(func=select_methods_command)
+
+    record_methods = sub.add_parser(
+        "record-methods",
+        help="Select and persist a packet-bound method stack for a lifecycle gate",
+    )
+    record_methods.add_argument("packet", type=Path)
+    record_methods.add_argument(
+        "--phase", choices=("design", "verification", "review"), required=True
+    )
+    record_methods.add_argument("--risk", action="append", default=[])
+    record_methods.add_argument("--signal", action="append", default=[])
+    record_methods.add_argument("--available", action="append", default=[])
+    record_methods.add_argument(
+        "--depth", choices=("starter", "deep", "formal"), default="starter"
+    )
+    record_methods.add_argument("--max-methods", type=int)
+    record_methods.set_defaults(func=record_methods_command)
 
     route = sub.add_parser("route-task", help="Select the minimal built-in Skill composition for a classified task")
     route.add_argument("--task-type", choices=sorted(TASK_TYPES), required=True)

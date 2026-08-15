@@ -6,7 +6,7 @@ on:
       version:
         description: SemVer declared by .codex-plugin/plugin.json
         required: true
-        default: "1.1.0"
+        default: "1.1.1"
         type: string
       expected_sha:
         description: Full immutable commit SHA to build and attest
@@ -67,11 +67,19 @@ jobs:
       - name: Run structural contracts
         run: python3 evals/run_contract_checks.py
 
+      - name: Validate assurance methodology and project knowledge
+        run: |
+          python3 skills/dev-flow/scripts/dev-flow.py validate-methods --root .
+          python3 skills/dev-flow/scripts/dev-flow.py validate-knowledge --root .
+
       - name: Validate plugin repository
         run: python3 skills/dev-flow/scripts/dev-flow.py check --plugin-root .
 
       - name: Validate focused Skill suite and cutover
         run: python3 skills/dev-flow-maintainer/scripts/validate-suite.py
+
+      - name: Validate protected data-security controls
+        run: python3 skills/company-data-security/scripts/doctor.py --plugin-root .
 
       - name: Compile Python sources
         run: python3 -m compileall -q hooks skills evals tools

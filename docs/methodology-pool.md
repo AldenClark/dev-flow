@@ -1,6 +1,6 @@
 # Dev Flow 方法论池与专业推理层
 
-本文件解释 Dev Flow 为什么以及怎样选择方法。机器可读真相位于 [`governance/methodology-pool.json`](../governance/methodology-pool.json)，详细操作卡按需位于 [`skills/dev-flow/references/`](../skills/dev-flow/references/)；这里不复制 111 张完整方法卡，避免文档和选择器分叉。
+本文件解释 Dev Flow 为什么以及怎样选择方法。机器可读真相位于 [`governance/methodology-pool.json`](../governance/methodology-pool.json)，详细操作卡按需位于 [`skills/dev-flow/references/`](../skills/dev-flow/references/)；这里不复制 117 张完整方法卡，避免文档和选择器分叉。
 
 ## 目标与边界
 
@@ -91,6 +91,12 @@ TDD/ATDD/BDD、typestate/smart types、coherent vertical slice、formal inspecti
 
 新增方法的主要研究锚点包括 [Agentless](https://arxiv.org/abs/2407.01489)、[Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)、[UALA](https://arxiv.org/abs/2401.14016)、[CodePlan](https://arxiv.org/abs/2309.12499)、[CEGIS](https://digicoll.lib.berkeley.edu/record/134841)、[Simplex runtime assurance](https://arxiv.org/abs/2102.12981)、[Runtime Verification](https://arxiv.org/abs/1707.05555)、[Sagas](https://www.cs.princeton.edu/research/techreps/598)、[NIST agent hijacking](https://www.nist.gov/news-events/news/2025/01/technical-blog-strengthening-ai-agent-hijacking-evaluations)、[indirect prompt injection](https://arxiv.org/abs/2302.12173)、[Human-AI Interaction Guidelines](https://www.microsoft.com/en-us/research/publication/guidelines-for-human-ai-interaction/)、[HTN planning](https://arxiv.org/abs/1403.7426)、[Behavior Trees](https://arxiv.org/abs/2203.13083)、[Conformal Language Modeling](https://arxiv.org/abs/2306.10193)、[SWE-agent ACI](https://arxiv.org/abs/2405.15793) 以及业界多 Agent 与评测基础设施研究。完整、稳定 ID 和适配边界以 registry 为准。
 
+### 9. 方案设计与方案审计必须把方法选择变成可验证流程
+
+1.1.1 增加了六类过去覆盖不足、但对复杂系统方案很实用的方法：ISO/IEC/IEEE 42010 风格的多视图一致性、Reflexion Model 风格的实现—架构符合性、OMG BPMN 协作流程、ISO/IEC 25012 数据质量场景与对账、SEI CBAM 成本收益架构决策，以及跨语言 ABI/所有权契约。它们只在对应 failure signal 出现时进入工作集，不能由 `large-feature` 或 `architecture` 宽标签单独触发。
+
+方法本身仍不构成执行证据。新受治理包在创建时自动生成初步设计选择，并在设计批准、进入验证、最终接受前分别要求新鲜的 design、verification、review 记录；每条记录绑定方法库摘要、需求/设计字节、规范化风险、前提、owner 和计划产物。独立/旧工作仍可只使用 `method.selection.v1`，不会被可变字段静默升级。
+
 ## 方法池结构
 
 当前机器池包含：
@@ -104,7 +110,7 @@ TDD/ATDD/BDD、typestate/smart types、coherent vertical slice、formal inspecti
 | Risk models | 观察、加权阈值、失败假设、方法栈、证据义务、升级规则 | 确定性匹配 |
 | Negative rules | 低风险 routine 禁止形式方法；无现场权限禁止 live/production experiment | 先于前提和 context cap |
 
-当前池含 111 个方法、67 个来源和 32 个确定性风险模型（其中 14 个为本次新增的 AI coding/general-agent 专项模型）。方法家庭包括 foundation、discovery、requirements、architecture、formal、security、privacy、safety、supply-chain、implementation、debugging、testing、assurance、delivery、operations、AI-agent。每个条目的完整字段由 `validate-methods` 失败关闭。
+当前池含 117 个方法、73 个来源和 38 个确定性风险模型（其中 14 个为 AI coding/general-agent 专项模型，6 个为 1.1.1 的方案设计/审计与 FFI 补强模型）。方法家庭包括 foundation、discovery、requirements、architecture、formal、security、privacy、safety、supply-chain、implementation、debugging、testing、assurance、delivery、operations、AI-agent。每个条目的完整字段由 `validate-methods` 失败关闭。
 
 ## 风险到方法的推理算法
 
@@ -159,6 +165,18 @@ python3 skills/dev-flow/scripts/dev-flow.py select-methods \
 ```
 
 `--available` 必须有当前证据，不是愿望清单。输出 `method.selection.v1` 记录 foundation、匹配模型、方法栈、blocked/excluded、context budget、重选触发和 assurance boundary。
+
+受治理工作包使用持久化命令：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py record-methods \
+  .codex/dev-flow/<change-id> --phase design \
+  --signal cross-language-boundary \
+  --available repository-facts --available requirement-baseline \
+  --available boundary-inventory --available consumer-toolchain --depth deep
+```
+
+`route-task` 会同时输出是否需要方法门禁、输入风险、canonical methodology risks、逐项翻译和未映射风险。工程上下文的 55 个风险现在要么直接是方法风险，要么通过 23 个显式 alias 转换；未知或目标不存在的映射失败关闭。
 
 ## 扩展治理
 

@@ -27,7 +27,7 @@ Every persistent mutation must establish facts; persist source, understood requi
 
 ## Establish context
 
-Route `repo-context`; derive neutral outcomes and load only repository-valid technical Skills. Then run `select-methods` and follow `references/methodology-system.md`; reselect on phase/risk/premise drift. Personal Skills never become team policy.
+Route `repo-context`; load only repository-valid Skills. Follow `references/methodology-system.md`: use `select-methods`, or governed `record-methods`; preliminary selection is not ready, and design/verification/review need fresh records. Reselect on drift.
 
 ## Execute
 

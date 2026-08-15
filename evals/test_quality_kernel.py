@@ -1604,6 +1604,17 @@ class QualityKernelTests(unittest.TestCase):
                 "The governed requirement is ready",
             )
             self.assertEqual(ready.returncode, 0, ready.stderr or ready.stdout)
+            methods = run_flow(
+                "record-methods",
+                packet,
+                "--phase",
+                "design",
+                "--available",
+                "repository-facts",
+                "--available",
+                "requirement-baseline",
+            )
+            self.assertEqual(methods.returncode, 0, methods.stderr or methods.stdout)
             approved = run_flow(
                 "transition",
                 packet,

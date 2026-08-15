@@ -200,6 +200,9 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
         self.assertIn("os: [ubuntu-24.04, macos-15, windows-2025]", workflow)
         self.assertIn('python: ["3.11", "3.14"]', workflow)
         self.assertIn("python -W error::ResourceWarning -m unittest discover -s evals -v", workflow)
+        self.assertIn("validate-methods --root .", workflow)
+        self.assertIn("validate-knowledge --root .", workflow)
+        self.assertIn("doctor.py --plugin-root .", workflow)
         self.assertIn("Record environment", workflow)
         self.assertIn("permissions:\n  contents: read", workflow)
 
@@ -227,6 +230,9 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
             "overwrite: false",
             "git fetch --no-tags --depth=1 origin \"$GITHUB_REF\"",
             "python3 -c \"import sys; assert sys.version_info >= (3, 11)",
+            "validate-methods --root .",
+            "validate-knowledge --root .",
+            "doctor.py --plugin-root .",
         )
         for token in required_tokens:
             self.assertIn(token, workflow)
