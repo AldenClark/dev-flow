@@ -206,6 +206,10 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
         self.assertIn("Record environment", workflow)
         self.assertIn("permissions:\n  contents: read", workflow)
 
+    def test_authority_bound_change_documents_keep_lf_on_every_runner(self) -> None:
+        attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
+        self.assertIn("docs/changes/** text eol=lf", attributes.splitlines())
+
     def test_release_workflow_is_manual_pinned_and_least_privilege(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "release-candidate.yml").read_text(encoding="utf-8")
         required_tokens = (

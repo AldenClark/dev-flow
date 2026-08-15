@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Fixed
+
+- Forced LF checkout for authority-bound change dossiers so exact requirement/design hashes validate on Windows CI and release-candidate runners as well as Linux and macOS.
+
 ## [1.1.1] - 2026-08-15
 
 ### Added
