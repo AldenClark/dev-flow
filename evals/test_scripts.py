@@ -5568,6 +5568,19 @@ Local only. Delivery is excluded and no residual implementation risk is claimed.
             self.assertIn("invalid cell id 'TM-X'", result.stdout)
             self.assertIn("duplicate cell id TM-1", result.stdout)
 
+    def test_accepted_matrix_distinguishes_oracle_review_rows_from_cells(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "packet"
+            write_valid_packet(packet, state="accepted")
+            matrix = packet / "test-matrix.md"
+            matrix.write_text(
+                matrix.read_text(encoding="utf-8")
+                + "\n| Oracle TM-1 | public result | negative control | closed |\n",
+                encoding="utf-8",
+            )
+            result = run(PYTHON, str(FLOW), "validate-packet", str(packet))
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+
     def test_rejects_passed_cell_without_attempt(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             packet = Path(temp) / "packet"

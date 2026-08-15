@@ -30,9 +30,9 @@ For every non-trivial behavior change, derive black-box and white-box obligation
 
 ## Oracle validity review
 
-| Cell | Protected behavior and observation point | Failure-sensitivity challenge | Result or evidence gap |
+| Oracle cell | Protected behavior and observation point | Failure-sensitivity challenge | Result or evidence gap |
 |---|---|---|---|
-| TM-1 | <what must be distinguished and where it is observed> | <pre-fix failure, negative control, local perturbation/mutation, assertion-path inspection, or independent cross-oracle> | <why this test fails when behavior breaks, or OPEN evidence gap> |
+| Oracle TM-1 | <what must be distinguished and where it is observed> | <pre-fix failure, negative control, local perturbation/mutation, assertion-path inspection, or independent cross-oracle> | <why this test fails when behavior breaks, or OPEN evidence gap> |
 
 ## Flaky triage
 
