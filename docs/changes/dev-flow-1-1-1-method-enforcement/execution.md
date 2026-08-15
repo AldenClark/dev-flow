@@ -10,7 +10,7 @@
 - SC-I2: implemented; `1.1.1` manifest/readme/runbook/attestation surfaces and both CI/release-candidate workflow gates agree.
 - SC-P1 and SC-P2: preserved by immutable capability gating, unchanged standalone output schema, standard-library implementation, and explicit authority/evidence boundaries.
 - SC-O1: no dependency, top-level Skill, incompatible schema migration, PR, GitHub Release, deploy, force-push, or unrelated change has been introduced.
-- SC-L1: source is commit-ready; commit, final commit-bound release verification, push, tag, and primary installation remain separate delivery gates.
+- SC-L1: delivered; release commit `e2212f0f9df196cb8e9c0cc864b3c9018eb8eb43`, immutable annotated `v1.1.1`, deterministic artifacts, remote tag, and the primary `1.1.1` installation agree. A normal follow-up commit `54e1baeada851a33d0599d9e5de250f161467548` fixes Windows authority-byte checkout on `main` without moving the release tag.
 
 ## Execution controls
 
@@ -23,4 +23,5 @@
 
 - The first strict broad run found one existing governed-packet fixture that needed an explicit design record and an ordinary-static context overage caused by the longer orchestrator sentence; both were repaired without weakening either gate.
 - Blue review found an unconstrained `record-methods --phase` parser and incomplete semantic binding checks. Red review showed a coordinated local sidecar/event rewrite could disguise `recorded_state`, and that extra non-routing alias keys were not rejected. The parser, record-state/digest/input-risk bindings, alias-set validator, and a coordinated-tamper regression were added; no review finding remains open.
-- Frozen source evidence now includes 384 strict non-release tests, 26 focused methodology tests, 39 repository contracts, plugin/maintainer/knowledge/compile/JSON/diff checks, and a data-security doctor with zero required failures. Exact commit release artifacts, remote refs, and installed cache identity remain deliberately unclaimed until those external gates run.
+- Final evidence includes 396 strict tests, 26 focused methodology tests, 39 repository contracts, plugin/maintainer/knowledge/compile/JSON/diff checks, and a data-security doctor with zero required failures. Two commit-bound artifact builds are byte-identical; the remote tag and primary cache resolve to the release commit; GitHub Actions run 31855056832 passes the six Linux/macOS/Windows and Python 3.11/3.14 cells.
+- The first hosted run passed Linux/macOS but exposed CRLF drift in exact authority-document hashes on Windows. The correction forces `docs/changes/**` to LF, has a repository contract, and passed both a local `core.autocrlf=true` checkout replay and the final hosted Windows jobs.
