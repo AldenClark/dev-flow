@@ -4,11 +4,24 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-08-15
+
+### Added
+
+- A deterministic `route-agent` CLI and versioned P0-P6/PX dispatch registry that map child role, workload, engineering risk, and reasoning signals to spawn-time model, reasoning-effort, and fork requests.
+- Orthogonal capability and effort upgrades, explicit P6/PX and policy-downgrade guards, root-only no-delegation results, runtime fallback receipts, and frozen cross-platform routing cases.
+- Dispatch selection and effective-runtime evidence in Multi-Agent V2 task briefs, agent reports, lifecycle reconciliation, and execution ledgers while keeping bundled role TOMLs model-neutral.
+
 ### Fixed
 
 - Forced LF checkout for authority-bound change dossiers so exact requirement/design hashes validate on Windows CI and release-candidate runners as well as Linux and macOS.
 - Allowed a verifying quality packet to return to implementing only when its failures are limited to repository HEAD/worktree or bound knowledge-manifest drift, so reviewed post-verification delivery evidence can be rebound, explicitly reconciled, and sealed behind a new pre-verification checkpoint; unrelated integrity drift still blocks.
 - Distinguished four-column Oracle review rows from eight-column `TM-*` execution cells in the generated test-matrix template so an otherwise complete governed packet can pass terminal acceptance parsing.
+
+### Changed
+
+- Advanced current plugin, workflow, release, installation, attestation, and documentation surfaces to patch version `1.1.2`.
+- Made CI execute focused agent-dispatch checks with native Python on Ubuntu, macOS, and Windows before the full suite; enabled deterministic UTF-8 process behavior without replacing the Windows shell with a POSIX wrapper.
 
 ## [1.1.1] - 2026-08-15
 
@@ -130,7 +143,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - Runtime markers no longer persist absolute packet paths, start/stop stay fail-open on marker storage or malformed data, and markers are removed whenever subagent stop is observed.
 - Runtime traces, plugin data, secrets, caches, and build outputs are excluded from source control.
 
-[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/AldenClark/dev-flow/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/AldenClark/dev-flow/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/AldenClark/dev-flow/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/AldenClark/dev-flow/compare/v1.0.1...v1.0.2

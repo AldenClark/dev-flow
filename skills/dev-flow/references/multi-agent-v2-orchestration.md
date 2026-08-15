@@ -44,17 +44,52 @@ Use fewer agents whenever work is ordered, tightly coupled, shares mutable resou
 - `dev-flow-blue-reviewer`: clean requirement/scope/maintainability review; read-only.
 - `dev-flow-red-reviewer`: clean adversarial/failure review; read-only and defensive.
 
-Install the bundled role configs with `dev-flow.py install-runtime`. Resolve current models by capability at runtime; do not hardcode a model name in the policy. Use strongest capability for root synthesis, ambiguity, security, migration, concurrency, FFI, audits, and acceptance; balanced capability fits deterministic bounded work.
+Install the bundled role configs with `dev-flow.py install-runtime`. Role TOMLs define permissions and responsibility only; they must not pin `model` or `model_reasoning_effort`. Current model names live only in `agent-dispatch-profiles.json` and are selected at spawn time.
+
+## Dispatch profiles and routing
+
+Before every spawn, classify one workload from the table below and run the deterministic router. Use its `requested_model`, `requested_reasoning_effort`, and `fork_turns` in the spawn call. Do not substitute effort for insufficient capability or reinterpret P3 and P4 as a total order.
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py route-agent \
+  --role dev-flow-worker --workload bounded-change \
+  --risk concurrency --signal oracle-challenge
+```
+
+| Profile | Capability / effort | Default use |
+|---|---|---|
+| P0 | E / low | exact lookup, fixed verification command, filtering, formatting |
+| P1 | E / medium | narrow documentation research, summary, deterministic mechanical change |
+| P2 | B / medium | ordinary exploration, implementation, or failure triage |
+| P3 | B / high | bounded causal depth, oracle challenge, routine independent review |
+| P4 | F / medium | broad context or multi-step work with a clear outcome |
+| P5 | F / high | cross-component/public contract, migration, concurrency, FFI, security, or complex review |
+| P6 | F / xhigh | explicit critical acceptance, irreversibility, or data-loss risk |
+| PX | F / max | acknowledged and evaluated exception; never automatic |
+
+E, B, and F are symbolic efficient, balanced, and frontier capability tiers. The current registry maps them to available runtime model slugs. P3 is deeper bounded reasoning; P4 is broader capability. A task requiring both resolves to P5.
+
+| Workload | Compatible role | Default |
+|---|---|---:|
+| exact lookup / documentation research / broad mapping / causal debugging | explorer | P0 / P1 / P2 / P3 |
+| exact verification / failure triage | test-runner | P0 / P2 |
+| mechanical / bounded / broad multi-step / cross-component change | worker | P1 / P2 / P4 / P5 |
+| routine / high-risk review | blue or red reviewer | P3 / P5 |
+| requirement semantics, dependency choice, architecture adjudication, final claim | root | no delegation |
+
+The router raises the capability tier for ambiguity, conflicting evidence, cross-root or large-context work, and multi-step planning. It raises effort for bounded causal uncertainty, nondeterminism, independent review, and oracle challenge. Public contracts, migration, concurrency, FFI, security, privacy, unsafe, data, and release risks require at least P5. `high-risk-acceptance`, `irreversible`, or `data-loss-risk` signals require P6. PX requires `--acknowledge-exception`; an explicit profile below the policy result requires `--acknowledge-downgrade` so the waiver cannot be silent.
+
+An explicit user model/effort request has host-level precedence. Still compute and retain the policy profile, record `selection_source=user`, and expose any difference rather than silently rewriting the user's choice. If the requested pair is unsupported, record `fallback_reason` and the observed `effective_model`/`effective_reasoning_effort`; inherit platform or parent selection only when safe. A non-observable effective pair stays `not-observed`, never assumed equal to the request.
 
 ## Dispatch contract
 
-Create a task brief from `templates/task-brief.md` before every spawn. Bind one deliverable and dependency edges to the exact repository root, base commit and worktree, current requirement and design revisions/digests, effective instruction/profile/capability fingerprint, applicable `AMB-n` dispositions, and `AC/SC/VO` IDs. Include user-owned semantics the child must not reinterpret, approved decisions/non-goals, exclusive paths/symbols/environments, resource lease, allowed/forbidden actions, separately derived black-box and white-box obligations, exact verification command/oracle, soft and hard deadlines, native-result route, optional durable-report requirement, and stop conditions.
+Create a task brief from `templates/task-brief.md` before every spawn. Bind the `route-agent` result, one deliverable and dependency edges to the exact repository root, base commit and worktree, current requirement and design revisions/digests, effective instruction/profile/capability fingerprint, applicable `AMB-n` dispositions, and `AC/SC/VO` IDs. Include user-owned semantics the child must not reinterpret, approved decisions/non-goals, exclusive paths/symbols/environments, resource lease, allowed/forbidden actions, separately derived black-box and white-box obligations, exact verification command/oracle, soft and hard deadlines, native-result route, optional durable-report requirement, and stop conditions.
 
 The child must stop and return drift when the base/worktree, requirement/design baseline, effective engineering context, ownership boundary, resource lease, or `AC/SC/VO` mapping no longer matches. It must not reinterpret semantics, expand scope, add a dependency, or convert a commit-ready checkpoint into staging, commit, push, PR, or delivery authority.
 
 The native final result delivered to the root is the primary coordination result. Request a Markdown report only when a durable independent audit/test artifact materially improves recovery or traceability; name its path in the brief. Failure to write that secondary projection must never block native child stop or by itself justify redispatch.
 
-Default `fork_turns: "none"`; use the smallest positive fork only when exact recent wording cannot be captured safely in the brief. Full history is exceptional. Children must not delegate unless the root explicitly grants one additional bounded level.
+Default `fork_turns: "none"`; use the smallest positive fork only when exact recent wording cannot be captured safely in the brief. A spawn that overrides model/effort must use `none` or a finite positive fork; full-history forks do not accept those overrides. Full history is exceptional. Children must not delegate unless the root explicitly grants one additional bounded level.
 
 Do not reveal the implementer's expected findings to an independent reviewer. A reviewer receives the approved contracts and changed surface, not the implementer's self-justification.
 
@@ -76,7 +111,7 @@ working -> overdue -> interrupt-requested
                          +-> terminal | orphan-suspected -> reconciled
 ```
 
-Record agent path/id, role/task, spawn time, soft and hard deadline, last observed status/time, native-result status, optional-report status, resource lease, interrupt count, final disposition, and recovery evidence in `execution.md`.
+Record agent path/id, role/task, dispatch profile/source, requested and effective model/effort, fork, fallback reason, spawn time, deadlines, last status, native result, duration/token/tool observations when exposed, optional report, resource lease, interrupts, final disposition, and recovery evidence in `execution.md`.
 
 - At a soft deadline, inspect `list_agents`, retained native output, repository state, and resource ownership; then wait again or steer. Do not redispatch only because the child is quiet.
 - At the declared hard deadline, inspect once more and request at most one interrupt for that task. Interruption stops active work but may intentionally leave a reusable resident thread.

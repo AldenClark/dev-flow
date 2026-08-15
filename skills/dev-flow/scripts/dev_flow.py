@@ -19,6 +19,7 @@ import tomllib
 from pathlib import Path
 from typing import Any, Iterable
 
+import agent_dispatch
 import engineering_context
 import knowledge_system
 import methodology_system
@@ -1421,6 +1422,7 @@ def parse_version(text: str) -> tuple[int, int, int]:
 def codex_preflight(args: argparse.Namespace) -> int:
     capability_issues: list[str] = []
     warnings: list[str] = []
+    dispatch_registry_ready = False
     binary = args.codex or shutil.which("codex")
     version_text = args.version_output
     features_text: str | None = None
@@ -1457,6 +1459,12 @@ def codex_preflight(args: argparse.Namespace) -> int:
     for feature in ("multi_agent", "multi_agent_v2", "hooks"):
         if features.get(feature) != "true":
             capability_issues.append(f"Codex feature {feature} is not enabled")
+
+    try:
+        agent_dispatch.load_registry()
+        dispatch_registry_ready = True
+    except (OSError, json.JSONDecodeError, agent_dispatch.DispatchContractError) as exc:
+        capability_issues.append(f"agent dispatch registry is invalid: {exc}")
 
     config_path = args.config or Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "config.toml"
     effective: dict[str, Any] = {}
@@ -1502,6 +1510,7 @@ def codex_preflight(args: argparse.Namespace) -> int:
             "capabilities": {
                 "core_workflow": True,
                 "delegation": delegation_available,
+                "agent_dispatch": dispatch_registry_ready,
                 "governed_hooks": features.get("hooks") == "true",
             },
             "required_capability": "delegation" if args.require_delegation else "core-workflow",
@@ -5639,6 +5648,24 @@ def route_task(args: argparse.Namespace) -> int:
     )
 
 
+def route_agent_command(args: argparse.Namespace) -> int:
+    """Resolve a child role/workload to a concrete Multi-Agent V2 request."""
+    try:
+        result = agent_dispatch.route_agent(
+            role=args.role,
+            workload=args.workload,
+            risks=args.risk,
+            signals=args.signal,
+            requested_profile=args.profile,
+            acknowledge_exception=args.acknowledge_exception,
+            acknowledge_downgrade=args.acknowledge_downgrade,
+            registry_path=args.registry,
+        )
+    except (agent_dispatch.DispatchContractError, engineering_context.ContractError) as exc:
+        return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+    return emit(result)
+
+
 def parse_frontmatter(path: Path) -> dict[str, str]:
     text = path.read_text(encoding="utf-8")
     if not text.startswith("---\n"):
@@ -5780,6 +5807,13 @@ def check_plugin(args: argparse.Namespace) -> int:
         )
     except (OSError, tomllib.TOMLDecodeError, json.JSONDecodeError, engineering_context.ContractError) as exc:
         errors.append(f"invalid engineering context governance: {exc}")
+
+    try:
+        agent_dispatch.load_registry(
+            root / "skills" / "dev-flow" / "references" / "agent-dispatch-profiles.json"
+        )
+    except (OSError, json.JSONDecodeError, agent_dispatch.DispatchContractError) as exc:
+        errors.append(f"invalid agent dispatch registry: {exc}")
 
     try:
         methodology_registry = methodology_system.read_registry(
@@ -6272,6 +6306,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     route.add_argument("--work-mode", choices=("auto", *sorted(WORK_MODES)), default="auto")
     route.set_defaults(func=route_task)
+
+    agent_route = sub.add_parser(
+        "route-agent",
+        help="Select a deterministic Multi-Agent V2 dispatch profile for one child workload",
+    )
+    agent_route.add_argument("--role", required=True)
+    agent_route.add_argument("--workload", required=True)
+    agent_route.add_argument("--risk", action="append", default=[])
+    agent_route.add_argument("--signal", action="append", default=[])
+    agent_route.add_argument("--profile")
+    agent_route.add_argument(
+        "--acknowledge-exception",
+        action="store_true",
+        help="Required for the explicit PX exceptional profile",
+    )
+    agent_route.add_argument(
+        "--acknowledge-downgrade",
+        action="store_true",
+        help="Allow an explicit profile below the policy minimum without hiding the downgrade",
+    )
+    agent_route.add_argument("--registry", type=Path)
+    agent_route.set_defaults(func=route_agent_command)
 
     check = sub.add_parser("check")
     check.add_argument("--plugin-root", type=Path)

@@ -6,7 +6,7 @@ on:
       version:
         description: SemVer declared by .codex-plugin/plugin.json
         required: true
-        default: "1.1.1"
+        default: "1.1.2"
         type: string
       expected_sha:
         description: Full immutable commit SHA to build and attest
@@ -61,16 +61,20 @@ jobs:
         run: >-
           python3 -c "import json, os, platform, sys; print(json.dumps({'python': sys.version, 'platform': platform.platform(), 'machine': platform.machine(), 'runner_image': os.environ.get('ImageOS'), 'runner_version': os.environ.get('ImageVersion'), 'commit': os.environ['GITHUB_SHA']}, sort_keys=True))"
 
+      - name: Validate cross-platform agent dispatch
+        run: python3 -W error::ResourceWarning -m unittest evals.test_agent_dispatch -v
+
       - name: Run behavioral tests
         run: python3 -W error::ResourceWarning -m unittest discover -s evals -v
 
       - name: Run structural contracts
         run: python3 evals/run_contract_checks.py
 
-      - name: Validate assurance methodology and project knowledge
-        run: |
-          python3 skills/dev-flow/scripts/dev-flow.py validate-methods --root .
-          python3 skills/dev-flow/scripts/dev-flow.py validate-knowledge --root .
+      - name: Validate assurance methodology
+        run: python3 skills/dev-flow/scripts/dev-flow.py validate-methods --root .
+
+      - name: Validate project knowledge
+        run: python3 skills/dev-flow/scripts/dev-flow.py validate-knowledge --root .
 
       - name: Validate plugin repository
         run: python3 skills/dev-flow/scripts/dev-flow.py check --plugin-root .

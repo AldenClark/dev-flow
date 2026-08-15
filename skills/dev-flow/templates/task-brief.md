@@ -4,6 +4,12 @@
 - Repository root: <repository-roots>
 - Base commit and worktree binding: <immutable base commit, worktree identity/path, initial dirty-state accounting, and recheck method>
 - Dependencies: <upstream and downstream task IDs>
+- Dispatch profile: <workload, default/policy/selected Px, E/B/F capability, and upgrade reasons from route-agent>
+- Selection source: <policy, explicit profile, user, or fallback>
+- Requested model: <spawn-time model slug, or user-owned explicit value>
+- Requested reasoning effort: <low, medium, high, xhigh, max, or user-owned explicit value>
+- Context fork: <default none, or smallest justified positive fork; full history cannot carry model/effort overrides>
+- Fallback behavior: <unsupported-pair stop/inherit rule, fallback_reason, and how effective_model/effective_reasoning_effort will be observed>
 - Required instructions and Skills: <exact paths or names>
 - Effective engineering context: <instruction-chain digest, profile mode/revision/digest, admitted specialist capabilities and combined fingerprint>
 - Applicable instruction IDs and product/UX constraints: <INS IDs, UI impact, protected flows, and approved design evidence>

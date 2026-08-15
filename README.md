@@ -23,7 +23,7 @@ Dev Flow 是一套面向 Codex 的中立、可组合、证据驱动工程工作�
 - 使用 `direct`（无工作包）、`traced`（三个核心状态文件）和 `governed`（完整治理记录）三级工作模式；
 - 按 Rust 后端、Web、Apple/Android/Windows 客户端、FFI、CLI/TUI 等项目形态组织验证；
 - 新依赖必须先比较候选方案、影响与维护成本，并取得明确批准；
-- 只把边界清晰的独立工作交给子代理，通常同时运行 1–2 个；根代理按 deadline、resource lease 和 disposition 完成综合、复核与最终验收；
+- 只把边界清晰的独立工作交给子代理，通常同时运行 1–2 个；以确定性的 P0-P6/PX 画像按任务宽度、推理深度与风险选择子代理模型/effort，根代理按 deadline、resource lease 和 disposition 完成综合、复核与最终验收；
 - 管控浏览器、模拟器、设备、虚拟机、容器和服务等测试资源；
 - 在需求、设计、实施、验证和最终 diff 上执行基本蓝/红质疑；对治理风险再路由独立深度审查；
 - 通过 `$company-data-security` 为 Codex、ChatGPT Work 和普通 Chat 提供同一 C0-C4 数据处理原则，并在受支持的 Codex 本地 Prompt/工具路径上增加高置信 Secret 检查和输出脱敏；
@@ -55,10 +55,10 @@ max_concurrent_threads_per_session = 3
 
 ## 安装
 
-发布与插件清单版本一致的标签后，可直接添加仓库内的 marketplace 并安装固定到该标签的插件。当前已发布稳定标签为 `v1.1.1`；只有对应标签已推送后，才应从 marketplace 安装该版本：
+发布与插件清单版本一致的标签后，可直接添加仓库内的 marketplace 并安装固定到该标签的插件。当前已发布稳定标签为 `v1.1.2`；只有对应标签已推送后，才应从 marketplace 安装该版本：
 
 ```bash
-codex plugin marketplace add AldenClark/dev-flow --ref v1.1.1
+codex plugin marketplace add AldenClark/dev-flow --ref v1.1.2
 codex plugin add dev-flow@dev-flow
 ```
 
@@ -130,6 +130,16 @@ python3 skills/dev-flow/scripts/dev-flow.py select-methods \
 受治理工作包会自动写入初始选择，但该记录只是 discovery 时的初筛，不能通过设计门禁。设计、验证和审计阶段分别使用 `record-methods <packet> --phase design|verification|review ...` 写入新鲜的 `method-selection.json`/`.md`；记录与方法库、需求/设计摘要、当前风险和 owner 产物绑定，缺失、初步或过期选择会阻断对应状态转换。
 
 输出沿“观察事实 → 失败假设 → 方法 → owner 产物 → 证据义务”解释选择，并受风险归一化、阶段、深度、负向规则、前提和 context cap 约束。方法选择是指导，不是证明或授权；完整研究、方法家庭和扩展治理见 [`docs/methodology-pool.md`](docs/methodology-pool.md)。
+
+委派前，根代理必须为一个明确 workload 调用 `route-agent`。角色只规定权限；模型与推理强度由任务画像在 spawn 时决定，角色 TOML 不固定型号：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py route-agent \
+  --role dev-flow-explorer --workload broad-mapping \
+  --signal large-context --signal oracle-challenge
+```
+
+返回 JSON 包含 default/policy/selected profile、`requested_model`、`requested_reasoning_effort`、`fork_turns` 和升级原因。P3 是 B/high 的有界深度，P4 是 F/medium 的任务宽度；两者同时需要时选择 P5。P6 只由明确的关键验收、不可逆或数据丢失信号触发；PX 只能显式指定并确认例外。运行时不能满足请求时必须记录 fallback 与实际可观察配置，不能静默假设请求已经生效。完整矩阵、任务路由和 receipt 契约见 [`multi-agent-v2-orchestration.md`](skills/dev-flow/references/multi-agent-v2-orchestration.md)。
 
 ## Source 与运行时边界
 
@@ -367,9 +377,9 @@ python3 evals/run_paired_evaluations.py \
 ```bash
 git rev-parse HEAD
 python3 tools/build_release.py build \
-  --root . --output dist --version 1.1.1 --commit FULL_COMMIT_SHA
+  --root . --output dist --version 1.1.2 --commit FULL_COMMIT_SHA
 python3 tools/build_release.py verify \
-  --artifact-dir dist --expected-version 1.1.1 --expected-commit FULL_COMMIT_SHA
+  --artifact-dir dist --expected-version 1.1.2 --expected-commit FULL_COMMIT_SHA
 ```
 
 `.github/workflows/release-candidate.yml` 只能手动运行并要求完整 `expected_sha`；它使用固定 SHA 的 Syft、GitHub attestation 和 artifact Actions，生成 SPDX 2.3 JSON、provenance/SBOM attestations、manifest 与 checksums，但没有发布 Release 的权限。新工作流只有进入默认分支后才能 dispatch，不能把 PR 通过误报成 provenance 已生成。
@@ -384,7 +394,7 @@ Marketplace 内的插件源使用当前快照相对路径 `.`；因此外层 `co
 - `MINOR`：向后兼容的新流程、命令、策略或能力；
 - `PATCH`：兼容的修复、文档和规则校正。
 
-源码与 Git tag 使用稳定版本（例如当前源码 `1.1.1`）；仅本地 Codex 开发重装时才临时追加 `+codex.<cachebuster>`，不把缓存破坏后缀发布为正式版本。源码版本不代表对应标签已经发布，发布状态以 Git tag/release 为准。RC 标签只证明候选身份，不等于稳定版发布。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+源码与 Git tag 使用稳定版本（例如当前源码 `1.1.2`）；仅本地 Codex 开发重装时才临时追加 `+codex.<cachebuster>`，不把缓存破坏后缀发布为正式版本。源码版本不代表对应标签已经发布，发布状态以 Git tag/release 为准。RC 标签只证明候选身份，不等于稳定版发布。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 参与和安全
 

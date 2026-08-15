@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "change_id": "dev-flow-1-1-2-agent-dispatch",
+  "status": "accepted",
+  "format": "governed",
+  "documents": {
+    "requirements": "requirements.md",
+    "design": "design.md",
+    "execution": "execution.md",
+    "verification": "verification.md"
+  },
+  "authority_binding": {
+    "schema_version": "1.0",
+    "change_id": "dev-flow-1-1-2-agent-dispatch",
+    "requirements": {
+      "path": "requirements.md",
+      "sha256": "sha256:879ca25c1bb47468143f8f5a8bd9798bfde978a55d4d04cbb6f5d559d8985e9f"
+    },
+    "design": {
+      "path": "design.md",
+      "sha256": "sha256:dcf2df3db09e53b6a45d4d02d70a763bbd38a05e3ca52f1c372d3e5939db859e"
+    },
+    "identifier_sets": {
+      "acceptance_criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8"],
+      "scope": ["SC-D1", "SC-D2", "SC-D3", "SC-I1", "SC-I2", "SC-L1", "SC-O1", "SC-P1", "SC-P2"],
+      "verification_obligations": ["VO-1", "VO-2", "VO-3", "VO-4", "VO-5", "VO-6", "VO-7", "VO-8"]
+    }
+  },
+  "traceability": {
+    "acceptance_criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8"],
+    "scope": ["SC-D1", "SC-D2", "SC-D3", "SC-I1", "SC-I2", "SC-L1", "SC-O1", "SC-P1", "SC-P2"],
+    "verification_obligations": ["VO-1", "VO-2", "VO-3", "VO-4", "VO-5", "VO-6", "VO-7", "VO-8"]
+  },
+  "tests": {
+    "black_box": {
+      "status": "passed",
+      "rationale": "Public CLI defaults, upgrades, invalid inputs, release identity, and installed behavior require executed outcome oracles.",
+      "evidence": ["12 frozen public routing cases and 405 strict repository tests passed on the accepted source candidate; exact defaults, upgrades, root no-delegation, role mismatch, PX and downgrade guards were observed at the public CLI boundary."]
+    },
+    "white_box": {
+      "status": "passed",
+      "rationale": "Registry graph, vector combination, exception guards, role neutrality, Windows portability, and version/digest surfaces require structural evidence.",
+      "evidence": ["Registry graph/vector/duplicate-reference controls, model-neutral roles, receipt contracts, 39 public contracts, 13-Skill validation, protected digests, compileall, JSON parsing, knowledge validation, and diff checks passed."]
+    }
+  },
+  "knowledge": {
+    "impact": "update",
+    "disposition": "promoted",
+    "rationale": "Deterministic child-agent dispatch becomes reusable current Dev Flow truth after implementation and verification.",
+    "promotion_links": ["../../project/dev-flow-governance.md"]
+  },
+  "related_changes": ["../dev-flow-1-1-1-method-enforcement/manifest.json", "../agent-assurance-expansion-v1-1/manifest.json"]
+}

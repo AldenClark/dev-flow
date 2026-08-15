@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.0",
+  "policy": "Task-relative child-agent dispatch. Roles own permissions; workloads and risk signals select capability, reasoning effort, and runtime request fields.",
+  "runtime": {
+    "minimum_codex": "0.147.0",
+    "default_fork_turns": "none",
+    "capabilities": {
+      "E": {"rank": 0, "model": "gpt-5.6-luna", "purpose": "efficient narrow and repeatable work"},
+      "B": {"rank": 1, "model": "gpt-5.6-terra", "purpose": "balanced bounded engineering work"},
+      "F": {"rank": 2, "model": "gpt-5.6-sol", "purpose": "frontier broad, ambiguous, or high-risk work"}
+    },
+    "efforts": {
+      "low": 0,
+      "medium": 1,
+      "high": 2,
+      "xhigh": 3,
+      "max": 4
+    }
+  },
+  "profiles": [
+    {"id": "P0", "capability": "E", "reasoning_effort": "low", "exception": false, "purpose": "exact lookup, fixed command, log filtering, or formatting"},
+    {"id": "P1", "capability": "E", "reasoning_effort": "medium", "exception": false, "purpose": "narrow research, structured summary, or deterministic mechanical change"},
+    {"id": "P2", "capability": "B", "reasoning_effort": "medium", "exception": false, "purpose": "ordinary exploration, implementation, or failure classification"},
+    {"id": "P3", "capability": "B", "reasoning_effort": "high", "exception": false, "purpose": "bounded causal depth, oracle challenge, or routine independent review"},
+    {"id": "P4", "capability": "F", "reasoning_effort": "medium", "exception": false, "purpose": "broad context or multi-step work with a clear outcome"},
+    {"id": "P5", "capability": "F", "reasoning_effort": "high", "exception": false, "purpose": "cross-component, public-contract, migration, concurrency, FFI, security, or complex review"},
+    {"id": "P6", "capability": "F", "reasoning_effort": "xhigh", "exception": false, "purpose": "critical adversarial acceptance, irreversibility, or data-loss risk"},
+    {"id": "PX", "capability": "F", "reasoning_effort": "max", "exception": true, "purpose": "explicitly acknowledged and evaluated exceptional work only"}
+  ],
+  "roles": [
+    "dev-flow-explorer",
+    "dev-flow-worker",
+    "dev-flow-test-runner",
+    "dev-flow-blue-reviewer",
+    "dev-flow-red-reviewer",
+    "root"
+  ],
+  "workloads": [
+    {"id": "exact-lookup", "roles": ["dev-flow-explorer"], "delegate": true, "default_profile": "P0", "purpose": "exact file, symbol, or call-site location"},
+    {"id": "docs-research", "roles": ["dev-flow-explorer"], "delegate": true, "default_profile": "P1", "purpose": "official documentation, version note, or API research"},
+    {"id": "broad-mapping", "roles": ["dev-flow-explorer"], "delegate": true, "default_profile": "P2", "purpose": "repository-wide impact or call-chain mapping"},
+    {"id": "causal-debugging", "roles": ["dev-flow-explorer"], "delegate": true, "default_profile": "P3", "purpose": "bounded causal diagnosis"},
+    {"id": "exact-verification", "roles": ["dev-flow-test-runner"], "delegate": true, "default_profile": "P0", "purpose": "execute an exact command and preserve its first result"},
+    {"id": "failure-triage", "roles": ["dev-flow-test-runner"], "delegate": true, "default_profile": "P2", "purpose": "classify logs, failures, or environment evidence"},
+    {"id": "mechanical-change", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P1", "purpose": "fully specified mechanical change with a deterministic oracle"},
+    {"id": "bounded-change", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P2", "purpose": "ordinary bounded bug fix or feature slice"},
+    {"id": "broad-multi-step", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P4", "purpose": "large-context multi-step work with a clear outcome"},
+    {"id": "cross-component-change", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P5", "purpose": "cross-component or high-risk contract change"},
+    {"id": "routine-review", "roles": ["dev-flow-blue-reviewer", "dev-flow-red-reviewer"], "delegate": true, "default_profile": "P3", "purpose": "routine independent integration or adversarial review"},
+    {"id": "high-risk-review", "roles": ["dev-flow-blue-reviewer", "dev-flow-red-reviewer"], "delegate": true, "default_profile": "P5", "purpose": "high-risk security, data, compatibility, or rollback review"},
+    {"id": "root-decision", "roles": ["root"], "delegate": false, "default_profile": null, "purpose": "requirement semantics, dependency choice, architecture adjudication, or final claim"}
+  ],
+  "signal_vocabulary": [
+    "ambiguity",
+    "causal-uncertainty",
+    "conflicting-evidence",
+    "cross-root",
+    "data-loss-risk",
+    "high-risk-acceptance",
+    "independent-review",
+    "irreversible",
+    "large-context",
+    "multi-step",
+    "nondeterminism",
+    "oracle-challenge"
+  ],
+  "upgrade_rules": [
+    {
+      "id": "bounded-depth",
+      "any_signal": ["causal-uncertainty", "independent-review", "nondeterminism", "oracle-challenge"],
+      "minimum_effort": "high",
+      "reason": "bounded work requires deeper causal, adversarial, or oracle reasoning"
+    },
+    {
+      "id": "broad-capability",
+      "any_signal": ["ambiguity", "conflicting-evidence", "cross-root", "large-context", "multi-step"],
+      "minimum_capability": "F",
+      "reason": "breadth or ambiguity requires frontier capability rather than effort alone"
+    },
+    {
+      "id": "critical-engineering-risk",
+      "any_risk": ["abi", "authorization", "concurrency", "data-deletion", "ffi", "migration", "persisted-data", "privacy", "protocol", "public-api", "regulated", "release", "rollback", "schema", "security", "unsafe"],
+      "minimum_capability": "F",
+      "minimum_effort": "high",
+      "reason": "critical engineering contracts require frontier capability and high checking depth"
+    },
+    {
+      "id": "critical-acceptance",
+      "any_signal": ["data-loss-risk", "high-risk-acceptance", "irreversible"],
+      "minimum_capability": "F",
+      "minimum_effort": "xhigh",
+      "reason": "critical acceptance or irreversibility requires explicit P6-class scrutiny"
+    }
+  ]
+}

@@ -5,7 +5,7 @@
 - Knowledge ID: `KT-DEV-FLOW-GOVERNANCE`
 - Owner: Dev Flow maintainers.
 - Review triggers: a lifecycle, capability-owner, packet schema, hook, knowledge-root, or acceptance-policy change.
-- Source anchors: the [plugin manifest](../../.codex-plugin/plugin.json), [capability registry](../../governance/capability-contracts.json), [orchestrator Skill](../../skills/dev-flow/SKILL.md), [packet implementation](../../skills/dev-flow/scripts/dev_flow.py), [methodology registry](../../governance/methodology-pool.json), [method selector](../../skills/dev-flow/scripts/methodology_system.py), [knowledge contract](../../skills/dev-flow/references/knowledge-system.md), and [contract-check entry point](../../evals/run_contract_checks.py).
+- Source anchors: the [plugin manifest](../../.codex-plugin/plugin.json), [capability registry](../../governance/capability-contracts.json), [orchestrator Skill](../../skills/dev-flow/SKILL.md), [packet implementation](../../skills/dev-flow/scripts/dev_flow.py), [agent dispatch registry](../../skills/dev-flow/references/agent-dispatch-profiles.json), [agent selector](../../skills/dev-flow/scripts/agent_dispatch.py), [methodology registry](../../governance/methodology-pool.json), [method selector](../../skills/dev-flow/scripts/methodology_system.py), [knowledge contract](../../skills/dev-flow/references/knowledge-system.md), and [contract-check entry point](../../evals/run_contract_checks.py).
 
 ## Current truth
 
@@ -35,11 +35,15 @@ All 55 engineering-context risks are covered directly or by 23 explicit methodol
 
 The registry validator, public `validate-methods`/`select-methods`/`record-methods` CLI, progressive playbooks, packet gates, and scenario contracts are part of the normal plugin and contract-check surfaces. Research provenance and adaptation limits are recorded in [the methodology pool guide](../methodology-pool.md); additions must bind a concrete failure class, positive and negative triggers, prerequisites, bounded steps and outputs, limits, fallback, owner, evidence obligation, sources, and a risk model rather than increasing a method count for its own sake.
 
+Multi-Agent V2 delegation now uses the deterministic `route-agent` contract before every child spawn. A versioned registry separates stable P0-P6/PX workload profiles from volatile runtime model slugs, keeps role TOMLs permission-only, and independently raises capability for breadth/ambiguity and reasoning effort for bounded depth. Invalid role/workload pairs, silent policy downgrades, and unacknowledged PX selection fail closed. Task briefs and execution ledgers retain policy/user/fallback selection source, requested and effective model/effort, fork, fallback, runtime observations, and final disposition. Root-owned semantics, dependency decisions, architecture adjudication, and final claims remain non-delegable.
+
 The [quality-kernel and knowledge overhaul](../changes/quality-kernel-continuity-knowledge-20260812/manifest.json) is accepted and promoted as the source history for these contracts.
 
 The [assurance-method reasoning layer](../changes/assurance-method-reasoning-layer/manifest.json) is the source history for the methodology registry, selection contract, progressive guidance, and its integration constraints. The [1.1 Agent-assurance expansion](../changes/agent-assurance-expansion-v1-1/manifest.json) records the additive AI coding/general-agent failure models, methods, compatibility obligations, and release boundary.
 
 The [1.1.1 method-enforcement and design-audit change](../changes/dev-flow-1-1-1-method-enforcement/manifest.json) records risk-vocabulary unification, governed lifecycle enforcement, the additional design/review methods, compatibility boundaries, and release delivery.
+
+The [1.1.2 agent-dispatch change](../changes/dev-flow-1-1-2-agent-dispatch/manifest.json) records the executable workload/profile matrix, orthogonal upgrade rules, cross-platform evidence, compatibility boundary, and release delivery.
 
 ## Limits
 

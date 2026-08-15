@@ -38,9 +38,9 @@
 
 ## Agent ledger
 
-| Agent/path | Task/role | Spawned | Soft/hard deadline | Last status/time | Native result | Durable report | Resource lease | Interrupts | Disposition/recovery |
-|---|---|---|---|---|---|---|---|---:|---|
-| root | T1/root | <time> | n/a | working; <time> | inline | not required | <paths and environments> | 0 | active |
+| Agent/path | Task/role | Dispatch profile/source | Requested model/effort/fork | Effective model/effort | Spawned | Soft/hard deadline | Last status/time | Native result | Duration/tokens/tools | Fallback | Durable report | Resource lease | Interrupts | Disposition/recovery |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
+| root | T1/root | root-only/user | parent-owned | parent-owned | <time> | n/a | working; <time> | inline | <observed or not-observed> | none | not required | <paths and environments> | 0 | active |
 
 Completion requires no delegated task in spawned, working, overdue, or interrupt-requested and a reconciled disposition for every row. Resident terminal thread count is not a completion oracle.
 

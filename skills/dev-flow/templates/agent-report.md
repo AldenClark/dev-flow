@@ -6,6 +6,7 @@ This is an optional durable projection when the task brief explicitly requests i
 - Owned scope respected: <yes or exact deviation>
 - Bound baseline recheck: <base commit/worktree, requirement revision/digest, design revision/digest, and whether each still matches>
 - Effective engineering context recheck: <instruction/profile/capability fingerprint and whether it still matches>
+- Dispatch receipt: <workload, selected profile, selection source, requested/effective model and reasoning effort, fork, fallback reason, duration, token/tool observations, and whether runtime substitution occurred>
 - Files and symbols read: <paths>
 - Files and symbols changed: <paths or none>
 - Commands and evidence: <exact command, root/environment, time, exit, artifact>

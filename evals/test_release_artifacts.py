@@ -30,8 +30,16 @@ def current_commit() -> str:
     return result.stdout.strip()
 
 
+def version_at_commit(commit: str) -> str:
+    result = run("git", "show", f"{commit}:.codex-plugin/plugin.json", cwd=ROOT)
+    if result.returncode != 0:
+        raise AssertionError(result.stderr)
+    return json.loads(result.stdout)["version"]
+
+
 class ReleaseArtifactTests(unittest.TestCase):
-    def build(self, output: Path, *, version: str = VERSION) -> subprocess.CompletedProcess[str]:
+    def build(self, output: Path, *, version: str | None = None) -> subprocess.CompletedProcess[str]:
+        commit = current_commit()
         return run(
             PYTHON,
             str(BUILDER),
@@ -41,12 +49,14 @@ class ReleaseArtifactTests(unittest.TestCase):
             "--output",
             str(output),
             "--version",
-            version,
+            version if version is not None else version_at_commit(commit),
             "--commit",
-            current_commit(),
+            commit,
         )
 
     def test_repeated_builds_are_byte_identical_and_verify(self) -> None:
+        commit = current_commit()
+        release_version = version_at_commit(commit)
         with tempfile.TemporaryDirectory() as temp:
             first = Path(temp) / "first"
             second = Path(temp) / "second"
@@ -66,19 +76,20 @@ class ReleaseArtifactTests(unittest.TestCase):
                 "--artifact-dir",
                 str(first),
                 "--expected-version",
-                VERSION,
+                release_version,
                 "--expected-commit",
-                current_commit(),
+                commit,
             )
             self.assertEqual(verify.returncode, 0, verify.stderr or verify.stdout)
             self.assertEqual(json.loads(verify.stdout)["status"], "valid")
 
     def test_corrupt_archive_is_rejected(self) -> None:
+        release_version = version_at_commit(current_commit())
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp) / "release"
             built = self.build(output)
             self.assertEqual(built.returncode, 0, built.stderr or built.stdout)
-            archive = output / f"dev-flow-{VERSION}.tar.gz"
+            archive = output / f"dev-flow-{release_version}.tar.gz"
             archive.write_bytes(archive.read_bytes() + b"corruption")
             verify = run(PYTHON, str(BUILDER), "verify", "--artifact-dir", str(output))
             self.assertEqual(verify.returncode, 2, verify.stderr or verify.stdout)
@@ -113,13 +124,14 @@ class ReleaseArtifactTests(unittest.TestCase):
             self.assertFalse(list(output.iterdir()))
 
     def test_checksums_can_be_finalized_with_sbom(self) -> None:
+        release_version = version_at_commit(current_commit())
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp) / "release"
             built = self.build(output)
             self.assertEqual(built.returncode, 0, built.stderr or built.stdout)
-            sbom_name = f"dev-flow-{VERSION}.spdx.json"
+            sbom_name = f"dev-flow-{release_version}.spdx.json"
             (output / sbom_name).write_text(
-                json.dumps({"spdxVersion": "SPDX-2.3", "name": f"dev-flow-{VERSION}"}) + "\n",
+                json.dumps({"spdxVersion": "SPDX-2.3", "name": f"dev-flow-{release_version}"}) + "\n",
                 encoding="utf-8",
             )
             checksums = run(
@@ -129,7 +141,7 @@ class ReleaseArtifactTests(unittest.TestCase):
                 "--artifact-dir",
                 str(output),
                 "--file",
-                f"dev-flow-{VERSION}.tar.gz",
+                f"dev-flow-{release_version}.tar.gz",
                 "--file",
                 "release-manifest.json",
                 "--file",
@@ -203,6 +215,10 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
         self.assertIn("validate-methods --root .", workflow)
         self.assertIn("validate-knowledge --root .", workflow)
         self.assertIn("doctor.py --plugin-root .", workflow)
+        self.assertIn("evals.test_agent_dispatch", workflow)
+        self.assertIn('PYTHONUTF8: "1"', workflow)
+        self.assertIn("PYTHONIOENCODING: utf-8", workflow)
+        self.assertNotIn("shell: bash", workflow)
         self.assertIn("Record environment", workflow)
         self.assertIn("permissions:\n  contents: read", workflow)
 
@@ -237,6 +253,7 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
             "validate-methods --root .",
             "validate-knowledge --root .",
             "doctor.py --plugin-root .",
+            "evals.test_agent_dispatch",
         )
         for token in required_tokens:
             self.assertIn(token, workflow)

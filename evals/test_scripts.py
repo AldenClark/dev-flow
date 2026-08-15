@@ -362,7 +362,9 @@ class PreflightTests(unittest.TestCase):
             write_config(config)
             result = run(PYTHON, str(FLOW), "preflight", "--version-output", "codex-cli 0.147.0", "--features-output-file", str(features), "--config", str(config), "--tool-surface-confirmed")
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
-            self.assertEqual(json.loads(result.stdout)["status"], "ready")
+            payload = json.loads(result.stdout)
+            self.assertEqual(payload["status"], "ready")
+            self.assertTrue(payload["capabilities"]["agent_dispatch"])
 
     def test_rejects_old_version(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

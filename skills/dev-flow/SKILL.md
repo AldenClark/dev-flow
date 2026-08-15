@@ -42,7 +42,7 @@ For multi-slice or governed work, read `references/orchestration.md`. Otherwise:
 
 Deep review is risk/intent-routed; root basic challenge is unconditional. Delivery readiness needs an explicit delivery action; release or rollback planning alone is not authority.
 
-Before delegation, follow `references/multi-agent-v2-orchestration.md`; bind baselines, exclusive paths/resources, test views, and stops; reconcile every child.
+Before delegation, follow `references/multi-agent-v2-orchestration.md`; run `route-agent`, bind baselines/ownership/tests/stops, and reconcile each child.
 
 Use `references/knowledge-system.md`: tracked truth says what is true, dossiers retain why/how, ignored packets recover runs. Promote only implemented, verified, reusable knowledge; exclude secrets, unnecessary raw/personal data, local paths, and logs.
 

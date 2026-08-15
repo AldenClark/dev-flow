@@ -28,6 +28,18 @@ ROUTE_REQUIRED_CASES = {
     "ROUTE-PRESERVE-UI-PUBLIC-CONTRACT",
     "ROUTE-MAINTAINER",
 }
+DISPATCH_REQUIRED_CASES = {
+    "DISPATCH-EXACT-LOOKUP",
+    "DISPATCH-BOUNDED-DEPTH",
+    "DISPATCH-BROAD-CAPABILITY",
+    "DISPATCH-BROAD-AND-DEEP",
+    "DISPATCH-CRITICAL-RISK",
+    "DISPATCH-CRITICAL-ACCEPTANCE",
+    "DISPATCH-ROOT-ONLY",
+    "DISPATCH-ROLE-MISMATCH",
+    "DISPATCH-PX-GUARD",
+    "DISPATCH-DOWNGRADE-GUARD",
+}
 
 
 def validate_routes(registered: set[str]) -> list[str]:
@@ -105,6 +117,57 @@ def validate_routes(registered: set[str]) -> list[str]:
         if "delivery-readiness" in positions and not explicit_delivery and task_type not in {"release-hotfix", "rollback"}:
             errors.append(f"{case_id}: delivery-readiness requires explicit delivery intent")
     return errors
+
+
+def validate_agent_dispatch() -> tuple[list[str], int]:
+    errors: list[str] = []
+    case_path = ROOT / "evals" / "agent-dispatch-routing-cases.json"
+    try:
+        payload = json.loads(case_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return [f"invalid agent dispatch cases: {exc}"], 0
+    if not isinstance(payload, dict) or set(payload) != {"schema_version", "cases"} or payload.get("schema_version") != "1.0":
+        return ["agent dispatch cases must use exact schema 1.0"], 0
+    cases = payload.get("cases")
+    if not isinstance(cases, list):
+        return ["agent dispatch cases must define a cases list"], 0
+    observed_ids = {case.get("id") for case in cases if isinstance(case, dict)}
+    missing = DISPATCH_REQUIRED_CASES - observed_ids
+    if missing:
+        errors.append(f"agent dispatch cases omit required boundaries: {sorted(missing)}")
+    flow = ROOT / "skills" / "dev-flow" / "scripts" / "dev-flow.py"
+    for case in cases:
+        if not isinstance(case, dict) or set(case) != {"id", "args", "exit", "expected"}:
+            errors.append("agent dispatch case must define id, args, exit, and expected")
+            continue
+        case_id = case["id"]
+        args = case["args"]
+        expected = case["expected"]
+        if not isinstance(case_id, str) or not case_id or not isinstance(args, list) or any(not isinstance(value, str) for value in args):
+            errors.append(f"{case_id}: invalid id or args")
+            continue
+        if not isinstance(case["exit"], int) or not isinstance(expected, dict):
+            errors.append(f"{case_id}: invalid exit or expected contract")
+            continue
+        completed = subprocess.run(
+            [sys.executable, str(flow), "route-agent", *args],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        try:
+            result = json.loads(completed.stdout)
+        except json.JSONDecodeError:
+            errors.append(f"{case_id}: dispatch router did not emit JSON")
+            continue
+        if completed.returncode != case["exit"]:
+            errors.append(f"{case_id}: expected exit {case['exit']}, observed {completed.returncode}")
+            continue
+        for key, value in expected.items():
+            if result.get(key) != value:
+                errors.append(f"{case_id}: expected {key}={value!r}, observed {result.get(key)!r}")
+    return errors, len(cases)
 
 
 def main() -> int:
@@ -206,6 +269,8 @@ def main() -> int:
     if "delivery-risk" in conditions.get("delivery-readiness", set()):
         errors.append("risk alone must not automatically route delivery-readiness")
     errors.extend(validate_routes(registered))
+    dispatch_errors, dispatch_cases = validate_agent_dispatch()
+    errors.extend(dispatch_errors)
     legacy = "engineering-" + "preferences"
     for path in ROOT.rglob("*"):
         if not path.is_file() or any(part in {".git", ".codex", "__pycache__"} for part in path.parts):
@@ -225,6 +290,7 @@ def main() -> int:
                 "skills": len(skills),
                 "description_characters": description_total,
                 "ordinary_static_bytes": ordinary_static_total,
+                "agent_dispatch_cases": dispatch_cases,
                 "errors": errors,
             },
             indent=2,

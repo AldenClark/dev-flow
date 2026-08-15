@@ -33,14 +33,14 @@ Use an absent or empty output directory. The builder refuses populated files, sy
 ```bash
 git rev-parse HEAD
 python3 tools/build_release.py build \
-  --root . --output dist-a --version 1.1.1 --commit FULL_COMMIT_SHA
+  --root . --output dist-a --version 1.1.2 --commit FULL_COMMIT_SHA
 python3 tools/build_release.py build \
-  --root . --output dist-b --version 1.1.1 --commit FULL_COMMIT_SHA
-cmp dist-a/dev-flow-1.1.1.tar.gz dist-b/dev-flow-1.1.1.tar.gz
+  --root . --output dist-b --version 1.1.2 --commit FULL_COMMIT_SHA
+cmp dist-a/dev-flow-1.1.2.tar.gz dist-b/dev-flow-1.1.2.tar.gz
 cmp dist-a/release-manifest.json dist-b/release-manifest.json
 cmp dist-a/SHA256SUMS dist-b/SHA256SUMS
 python3 tools/build_release.py verify \
-  --artifact-dir dist-a --expected-version 1.1.1 --expected-commit FULL_COMMIT_SHA
+  --artifact-dir dist-a --expected-version 1.1.2 --expected-commit FULL_COMMIT_SHA
 ```
 
 Determinism is asserted for the pinned release environment. Gzip/zlib implementations outside that environment are not claimed to be cross-version byte-identical; promotion always reuses the already attested bytes instead of rebuilding them.
@@ -51,7 +51,7 @@ After the workflow is present on the default branch, dispatch it against the exa
 
 ```bash
 gh workflow run release-candidate.yml \
-  --ref main -f version=1.1.1 -f expected_sha=FULL_COMMIT_SHA
+  --ref main -f version=1.1.2 -f expected_sha=FULL_COMMIT_SHA
 ```
 
 The workflow has `contents: read`, `id-token: write`, and `attestations: write` only. It does not have `contents: write` or Release publication permission. Anchore upload, release-asset, and dependency-snapshot behavior is disabled; the separately pinned upload Action retains the public candidate evidence for 30 days.
@@ -60,10 +60,10 @@ After downloading the workflow artifact, verify locally and against GitHub's tra
 
 ```bash
 python3 tools/build_release.py verify \
-  --artifact-dir dist --expected-version 1.1.1 --expected-commit FULL_COMMIT_SHA
-gh attestation verify dist/dev-flow-1.1.1.tar.gz \
+  --artifact-dir dist --expected-version 1.1.2 --expected-commit FULL_COMMIT_SHA
+gh attestation verify dist/dev-flow-1.1.2.tar.gz \
   --repo AldenClark/dev-flow
-gh attestation verify dist/dev-flow-1.1.1.tar.gz \
+gh attestation verify dist/dev-flow-1.1.2.tar.gz \
   --repo AldenClark/dev-flow \
   --predicate-type https://spdx.dev/Document/v2.3
 ```

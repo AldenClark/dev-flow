@@ -17,6 +17,10 @@ jobs:
     name: ${{ matrix.os }} / Python ${{ matrix.python }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: utf-8
+      PYTHONDONTWRITEBYTECODE: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -36,16 +40,20 @@ jobs:
         run: >-
           python -c "import json, os, platform, sys; print(json.dumps({'python': sys.version, 'platform': platform.platform(), 'machine': platform.machine(), 'runner_image': os.environ.get('ImageOS'), 'runner_version': os.environ.get('ImageVersion')}, sort_keys=True))"
 
+      - name: Validate cross-platform agent dispatch
+        run: python -W error::ResourceWarning -m unittest evals.test_agent_dispatch -v
+
       - name: Run behavioral tests
         run: python -W error::ResourceWarning -m unittest discover -s evals -v
 
       - name: Run structural contracts
         run: python evals/run_contract_checks.py
 
-      - name: Validate assurance methodology and project knowledge
-        run: |
-          python skills/dev-flow/scripts/dev-flow.py validate-methods --root .
-          python skills/dev-flow/scripts/dev-flow.py validate-knowledge --root .
+      - name: Validate assurance methodology
+        run: python skills/dev-flow/scripts/dev-flow.py validate-methods --root .
+
+      - name: Validate project knowledge
+        run: python skills/dev-flow/scripts/dev-flow.py validate-knowledge --root .
 
       - name: Validate plugin repository
         run: python skills/dev-flow/scripts/dev-flow.py check --plugin-root .
