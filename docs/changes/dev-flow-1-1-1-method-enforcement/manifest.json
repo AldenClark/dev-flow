@@ -32,7 +32,7 @@
     "verification_obligations": ["VO-1", "VO-2", "VO-3", "VO-4", "VO-5", "VO-6", "VO-7", "VO-8"]
   },
   "tests": {
-    "black_box": {"status": "passed", "rationale": "Public routing, selection, packet lifecycle, validators, strict repository behavior, immutable release identity, and primary installation passed their separate gates.", "evidence": ["398 strict repository tests passed in 73.782 seconds", "26 focused methodology contracts and 39 public repository contracts passed", "GitHub Actions run 31856032085 passed all six Linux, macOS, Windows and Python 3.11/3.14 cells before the final Oracle-row regression fix"]},
+    "black_box": {"status": "passed", "rationale": "Public routing, selection, packet lifecycle, validators, strict repository behavior, immutable release identity, and primary installation passed their separate gates.", "evidence": ["398 strict repository tests passed in 73.782 seconds", "26 focused methodology contracts and 39 public repository contracts passed", "GitHub Actions run 31856496279 passed Oracle-row source commit 3d929891f974db0e23e229b2acc80a90a45f4316 across all six Linux, macOS, Windows and Python 3.11/3.14 cells"]},
     "white_box": {"status": "passed", "rationale": "Registry graph, exact aliases, record/event/projection binding, coordinated tamper, compatibility, protected bytes, static budgets, and deterministic release bytes passed review and native validation.", "evidence": ["117 methods, 73 sources, 38 models, 55 engineering risks, and 23 exact aliases validated", "13-Skill maintainer validator reported 17,972 ordinary static bytes", "two v1.1.1 archives for e2212f0 were byte-identical with SHA-256 f7cd9727ce67cf0964883fd37622a8d5d6a2b08cffc5523c70088c32dbcfb483"]}
   },
   "knowledge": {
