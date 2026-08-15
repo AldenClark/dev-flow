@@ -2148,6 +2148,7 @@ class QualityKernelTests(unittest.TestCase):
             )
             self.assertEqual(ordinary_rebind.returncode, 2, ordinary_rebind.stderr or ordinary_rebind.stdout)
             self.assertIn("only premise-change or reconciliation", ordinary_rebind.stdout)
+
             missing_oid = run_flow(
                 "record-checkpoint",
                 packet,
@@ -2282,6 +2283,117 @@ class QualityKernelTests(unittest.TestCase):
             drift_payload = json.loads(drifted.stdout)
             self.assertEqual(drift_payload["status"], "blocked")
             self.assertIn("sealed checkpoint worktree drift", drifted.stdout)
+
+    def test_verifying_packet_can_return_to_implementing_for_explicit_reconciliation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            initialize_git_repository(root)
+            packet = initialize_quality_packet(root, "post-verification-reconciliation")
+            manifest, _ = bind_packet_authority_dossier(
+                root,
+                packet,
+                change_id="post-verification-reconciliation",
+            )
+            self.assertEqual(run_git(root, "add", "docs").returncode, 0)
+            self.assertEqual(run_git(root, "commit", "-qm", "add authority dossier").returncode, 0)
+            approve_and_implement(packet)
+            bound = run_flow(
+                "bind-knowledge",
+                packet,
+                "--impact",
+                "update",
+                "--rationale",
+                "The verified reusable project contract changes",
+                "--root",
+                root,
+                "--manifest",
+                "docs/changes/post-verification-reconciliation/manifest.json",
+            )
+            self.assertEqual(bound.returncode, 0, bound.stderr or bound.stdout)
+            record_preverification_checkpoint(packet)
+            verifying = run_flow("transition", packet, "verifying", "--note", "verify the frozen source")
+            self.assertEqual(verifying.returncode, 0, verifying.stderr or verifying.stdout)
+
+            value = json.loads(manifest.read_text(encoding="utf-8"))
+            value["knowledge"]["rationale"] = "Record post-verification delivery evidence"
+            manifest.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
+            self.assertEqual(run_git(root, "add", str(manifest.relative_to(root))).returncode, 0)
+            self.assertEqual(run_git(root, "commit", "-qm", "record delivery evidence").returncode, 0)
+            invalid = run_flow("validate-packet", packet)
+            self.assertEqual(invalid.returncode, 2, invalid.stderr or invalid.stdout)
+            self.assertIn("manifest digest drifted", invalid.stdout)
+            self.assertIn("repository HEAD drifted", invalid.stdout)
+
+            repairing = run_flow(
+                "transition",
+                packet,
+                "implementing",
+                "--note",
+                "Return to implementation only to reconcile reviewed delivery evidence",
+            )
+            self.assertEqual(repairing.returncode, 0, repairing.stderr or repairing.stdout)
+            rebound = run_flow(
+                "bind-knowledge",
+                packet,
+                "--impact",
+                "update",
+                "--rationale",
+                "The verified reusable project contract changes",
+                "--root",
+                root,
+                "--manifest",
+                "docs/changes/post-verification-reconciliation/manifest.json",
+            )
+            self.assertEqual(rebound.returncode, 0, rebound.stderr or rebound.stdout)
+            head = run_git(root, "rev-parse", "HEAD").stdout.strip()
+            reconciled = run_flow(
+                "record-checkpoint",
+                packet,
+                "--trigger",
+                "reconciliation",
+                "--objective",
+                "Adopt the reviewed post-verification evidence commit",
+                "--active-id",
+                "AC-1",
+                "--active-id",
+                "SC-D1",
+                "--last-evidence",
+                "The exact evidence-only commit and manifest bytes were reviewed",
+                "--next-action",
+                "Seal a new pre-verification checkpoint",
+                "--stop-condition",
+                "Stop on any further unreviewed drift",
+                "--repository-reconciliation",
+                "Reviewed the exact committed manifest-only delta",
+                "--accept-head",
+                f"{root.resolve()}={head}",
+            )
+            self.assertEqual(reconciled.returncode, 0, reconciled.stderr or reconciled.stdout)
+            record_preverification_checkpoint(packet)
+            reverified = run_flow("transition", packet, "verifying", "--note", "verify the reconciled source")
+            self.assertEqual(reverified.returncode, 0, reverified.stderr or reverified.stdout)
+            self.assertEqual(run_flow("validate-packet", packet).returncode, 0)
+
+        with tempfile.TemporaryDirectory() as temp:
+            packet = initialize_quality_packet(Path(temp), "non-repairable-verification-drift")
+            approve_and_implement(packet)
+            bind_none_and_checkpoint_for_verification(packet)
+            verifying = run_flow("transition", packet, "verifying", "--note", "verify the frozen source")
+            self.assertEqual(verifying.returncode, 0, verifying.stderr or verifying.stdout)
+            readiness_path = packet / "context-readiness.json"
+            readiness = json.loads(readiness_path.read_text(encoding="utf-8"))
+            readiness["fingerprint"] = "sha256:" + "2" * 64
+            readiness_path.write_text(json.dumps(readiness, indent=2) + "\n", encoding="utf-8")
+            blocked = run_flow(
+                "transition",
+                packet,
+                "implementing",
+                "--note",
+                "Attempt to return with unrelated integrity drift",
+            )
+            self.assertEqual(blocked.returncode, 2, blocked.stderr or blocked.stdout)
+            self.assertEqual(json.loads(blocked.stdout)["status"], "implementation-blocked")
+            self.assertIn("canonical projection fingerprint drifted", blocked.stdout)
 
     def test_repository_snapshot_treats_existing_dirty_bytes_as_baseline_and_hashes_content(self) -> None:
         with self.subTest(change="untracked-content"), tempfile.TemporaryDirectory() as temp:

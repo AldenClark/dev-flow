@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Fixed
 
 - Forced LF checkout for authority-bound change dossiers so exact requirement/design hashes validate on Windows CI and release-candidate runners as well as Linux and macOS.
+- Allowed a verifying quality packet to return to implementing only when its failures are limited to repository HEAD/worktree or bound knowledge-manifest drift, so reviewed post-verification delivery evidence can be rebound, explicitly reconciled, and sealed behind a new pre-verification checkpoint; unrelated integrity drift still blocks.
 
 ## [1.1.1] - 2026-08-15
 

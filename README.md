@@ -285,7 +285,7 @@ python3 skills/dev-flow/scripts/dev-flow.py resume-packet \
   .codex/dev-flow/console-redesign
 ```
 
-检查点同时绑定每个声明仓库根的身份、Git `HEAD` 与完整工作树摘要。实现中的开放切片允许正常编辑；`resume-packet` 会把这类变化报告为需复核，而不是伪装成已对齐。切片结束、委派、阶段切换和验证前属于封闭边界，之后出现的字节变化会阻断。`HEAD` 改变不能由普通 resume 静默接受：复核精确提交范围后，必须用 `--trigger reconciliation --repository-reconciliation <evidence> --accept-head <root>=<exact-oid>` 明确建立新基线。当前保守观察范围是整个声明根；非 Git 根会标记为不可机械观察，而不会虚报连续性。
+检查点同时绑定每个声明仓库根的身份、Git `HEAD` 与完整工作树摘要。实现中的开放切片允许正常编辑；`resume-packet` 会把这类变化报告为需复核，而不是伪装成已对齐。切片结束、委派、阶段切换和验证前属于封闭边界，之后出现的字节变化会阻断。`HEAD` 改变不能由普通 resume 静默接受：复核精确提交范围后，必须用 `--trigger reconciliation --repository-reconciliation <evidence> --accept-head <root>=<exact-oid>` 明确建立新基线。若 `verifying` 后仅出现已复核的仓库 HEAD/工作树或绑定知识清单漂移，可先退回 `implementing` 修复绑定，再显式 reconciliation 并重新冻结 `pre-verification`；任何其他完整性错误仍会阻断回退。当前保守观察范围是整个声明根；非 Git 根会标记为不可机械观察，而不会虚报连续性。
 
 项目知识按语义分为三层：`docs/project/` 保存当前真相，`docs/changes/<change-id>/` 保存可追溯变更档案，忽略的 `.codex/dev-flow/` 只保存本地恢复状态和原始证据。只有已经实现、重新验证、可跨任务复用且适合公开保留的结论才晋升到当前真相；日志、临时计划、凭据和敏感原文不晋升。
 

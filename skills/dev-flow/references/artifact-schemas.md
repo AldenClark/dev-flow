@@ -39,7 +39,7 @@ Each `AMB-n` records source, two or more surviving interpretations/evidence, mat
 
 ## Semantic continuity
 
-Quality-tagged implementing-or-later state requires a schema-1.1 `Continuity checkpoint`, projected into `packet.json` and `checkpoint-recorded`. Its fields are `Trigger`, requirement/design/context/repository baselines, `Repository reconciliation`, active objective/slice, last evidence, next action/stop, and drift review. Projection binds active AC/SC (plus pre-verification VO), ledger/body SHA-256, and time. Verification needs a fresh `pre-verification` checkpoint; later drift invalidates dependent evidence.
+Quality-tagged implementing+ states require a schema-1.1 checkpoint binding trigger, requirement/design/context/repository/reconciliation, active AC/SC/VO, objective/evidence/next/stop/drift, ledger hash, and time. Verification requires fresh `pre-verification`; later drift invalidates evidence.
 
 Triggers are event semantics:
 
@@ -47,6 +47,8 @@ Triggers are event semantics:
 - **SEALED:** `slice-end`, `delegation`, `phase-transition`, `pre-verification`, `final-claim`. These freeze the full-worktree premise; later deltas cannot inherit its evidence.
 
 `resume-packet` is the recovery entrypoint. OPEN deltas need evidence-bearing reconciliation before a boundary claim; SEALED deltas block. Git `HEAD` change needs explicit reconciliation to the exact root-qualified object ID; resume never adopts it. Repository identity change reopens the premise or needs a new packet.
+
+Only repository HEAD/worktree or knowledge-digest drift may move `verifying` back to `implementing`; rebind, reconcile exact OIDs, and reseal `pre-verification`. Other integrity errors block.
 
 Observation covers every declared root (including a declared Git subtree and populated submodules); staged, unstaged, and untracked child bytes enter the full digest. SC/path labels do not narrow it. Non-Git roots record `observable=false` and need external byte-stability evidence. Use event/risk boundaries, not timers/tool counts.
 

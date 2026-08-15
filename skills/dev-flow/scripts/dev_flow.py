@@ -2949,6 +2949,20 @@ def transition_packet(args: argparse.Namespace) -> int:
     continuity_record: dict[str, Any] | None = None
     if new == "implementing" and has_quality_kernel_contract(metadata.get("skill_version")):
         report, code = validate_packet_data(packet, state_override="implementing")
+        if code and old == "verifying":
+            repairable_prefixes = (
+                "repository HEAD drifted from the checkpoint:",
+                "repository worktree changed since the checkpoint:",
+            )
+            repairable_exact = {"packet.json: project-knowledge manifest digest drifted"}
+            unexpected = [
+                error
+                for error in report.get("errors", [])
+                if error not in repairable_exact
+                and not any(error.startswith(prefix) for prefix in repairable_prefixes)
+            ]
+            if report.get("errors") and not unexpected:
+                code = 0
         if code:
             report["status"] = "implementation-blocked"
             return emit(report, 2)
