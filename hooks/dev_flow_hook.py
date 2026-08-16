@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 import re
+import shlex
 import sys
 import time
 from pathlib import Path
@@ -22,9 +23,11 @@ from dependency_contracts import (  # noqa: E402
     DEPENDENCY_FILE_RE,
     action_reference_diff,
     action_reference_scan,
+    canonical_command,
+    is_immutable_package_materialization,
     looks_like_package_mutation,
     matches_dependency_request,
-    parse_package_command,
+    parse_package_commands,
 )
 
 SHELL_MUTATION_RE = re.compile(
@@ -37,6 +40,19 @@ SHELL_MUTATION_RE = re.compile(
     re.IGNORECASE,
 )
 TYPED_MUTATION_TOOLS = {"apply_patch", "Edit", "Write"}
+PACKET_MUTATION_COMMANDS = {
+    "archive-packet",
+    "bind-knowledge",
+    "deactivate-packet",
+    "record-ambiguity",
+    "record-approval",
+    "record-checkpoint",
+    "record-iteration",
+    "record-methods",
+    "resolve-ambiguity",
+    "transition",
+}
+SESSION_PACKET_TTL_SECONDS = 24 * 60 * 60
 DEPENDENCY_RE = re.compile(
     r"(?:Cargo\.toml|Cargo\.lock|package\.json|pnpm-lock\.yaml|package-lock\.json|yarn\.lock|"
     r"pyproject\.toml|requirements[^/\s]*\.txt|go\.mod|Gemfile|Podfile|Package\.swift|"
@@ -68,22 +84,41 @@ def output(payload: dict[str, Any]) -> None:
     print(json.dumps(payload, ensure_ascii=False))
 
 
+def packet_at_root(root: Path) -> Path | None:
+    flow = root / ".codex" / "dev-flow"
+    current = flow / "current"
+    if flow.is_symlink() or current.is_symlink() or not current.is_file():
+        return None
+    try:
+        change_id = current.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{2,80}", change_id):
+        return None
+    packet = (flow / change_id).resolve()
+    if packet.parent != flow.resolve() or packet.is_symlink() or not packet.is_dir():
+        return None
+    return packet
+
+
 def locate_packet(cwd: Path) -> Path | None:
     for root in (cwd, *cwd.parents):
         flow = root / ".codex" / "dev-flow"
         current = flow / "current"
         if flow.is_symlink() or current.is_symlink():
             continue
-        if not current.is_file():
-            continue
-        change_id = current.read_text(encoding="utf-8").strip()
-        if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{2,80}", change_id):
-            return None
-        packet = (flow / change_id).resolve()
-        if packet.parent != flow.resolve() or not packet.is_dir():
-            return None
-        return packet
+        if current.is_file():
+            return packet_at_root(root)
     return None
+
+
+def packet_is_current(packet: Path) -> bool:
+    resolved = packet.resolve()
+    if resolved.is_symlink() or not resolved.is_dir() or resolved.parent.name != "dev-flow":
+        return False
+    root = resolved.parent.parent.parent
+    current = packet_at_root(root)
+    return current is not None and current.resolve() == resolved
 
 
 def tool_text(event: dict[str, Any]) -> str:
@@ -174,10 +209,157 @@ def mutation_targets(event: dict[str, Any]) -> list[str]:
     return []
 
 
+def governance_packet_target(event: dict[str, Any], cwd: Path) -> tuple[Path | None, bool]:
+    if str(event.get("tool_name", "")) != "Bash":
+        return None, False
+    command = canonical_command(bash_command(event).strip())
+    if command is None:
+        return None, False
+    tokens = shlex.split(command)
+    if not tokens:
+        return None, False
+    executable = Path(tokens[0]).name.lower()
+    script_index = 1
+    if executable in {"py", "py.exe"} and len(tokens) > 1 and tokens[1] == "-3":
+        script_index = 2
+    elif not re.fullmatch(r"python(?:3(?:\.\d+)?)?(?:\.exe)?", executable):
+        return None, False
+    if len(tokens) <= script_index + 2:
+        return None, False
+    script = Path(tokens[script_index])
+    script = (script if script.is_absolute() else cwd / script).resolve()
+    if script not in {(SCRIPTS / "dev_flow.py").resolve(), (SCRIPTS / "dev-flow.py").resolve()}:
+        return None, False
+    if tokens[script_index + 1] not in PACKET_MUTATION_COMMANDS:
+        return None, False
+    target = Path(tokens[script_index + 2])
+    return (target if target.is_absolute() else cwd / target).resolve(), True
+
+
+def resolve_event_packet(event: dict[str, Any], cwd: Path) -> tuple[Path | None, str | None]:
+    targets = mutation_targets(event)
+    command_target, governance_command = governance_packet_target(event, cwd)
+    if governance_command:
+        if command_target is None or not packet_is_current(command_target):
+            return None, "DEV_FLOW_PACKET_TARGET_MISMATCH: governance command does not target the current active packet."
+        return command_target, None
+    if targets:
+        resolved_targets = [
+            (path if path.is_absolute() else cwd / path).resolve()
+            for value in targets
+            if (path := Path(value.strip()))
+        ]
+        packets = [locate_packet(target) for target in resolved_targets]
+        unique = {packet.resolve() for packet in packets if packet is not None}
+        if any(packet is None for packet in packets):
+            if unique or locate_packet(cwd) is not None:
+                return None, "DEV_FLOW_PACKET_TARGET_UNRELATED: every typed target must belong to one active packet."
+            return None, None
+        if len(unique) != 1:
+            return None, "DEV_FLOW_PACKET_TARGET_AMBIGUOUS: typed targets resolve to different active packets."
+        return next(iter(unique)), None
+    return None, None
+
+
+def plugin_data_root() -> Path:
+    return Path(os.environ.get("PLUGIN_DATA", Path.home() / ".codex" / "plugins" / "data" / "dev-flow"))
+
+
+def session_packet_marker(event: dict[str, Any]) -> Path | None:
+    session_id = event.get("session_id")
+    if not isinstance(session_id, str) or not session_id:
+        return None
+    digest = hashlib.sha256(session_id.encode("utf-8")).hexdigest()
+    return plugin_data_root() / "packet-sessions" / f"{digest}.json"
+
+
+def bind_session_packet(event: dict[str, Any], packet: Path) -> None:
+    marker = session_packet_marker(event)
+    if marker is None:
+        return
+    cwd = Path(str(event.get("cwd") or os.getcwd())).resolve()
+    try:
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        if marker.is_symlink():
+            return
+        marker.write_text(
+            json.dumps(
+                {
+                    "cwd_hash": hashlib.sha256(str(cwd).encode("utf-8")).hexdigest(),
+                    "packet_relative": os.path.relpath(packet.resolve(), cwd),
+                    "packet_hash": packet_identifier(packet),
+                    "bound_at": time.time(),
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
+def session_bound_packet(event: dict[str, Any]) -> Path | None:
+    marker = session_packet_marker(event)
+    if marker is None:
+        return None
+    cwd = Path(str(event.get("cwd") or os.getcwd())).resolve()
+    try:
+        if marker.is_symlink() or not marker.is_file():
+            return None
+        value = json.loads(marker.read_text(encoding="utf-8"))
+        bound_at = float(value.get("bound_at")) if isinstance(value, dict) else 0.0
+        age = time.time() - bound_at
+        cwd_hash = value.get("cwd_hash") if isinstance(value, dict) else None
+        packet_relative = value.get("packet_relative") if isinstance(value, dict) else None
+        packet_hash = value.get("packet_hash") if isinstance(value, dict) else None
+        relative = Path(packet_relative) if isinstance(packet_relative, str) else None
+        packet = (cwd / relative).resolve() if relative is not None and not relative.is_absolute() else None
+        if (
+            packet is None
+            or cwd_hash != hashlib.sha256(str(cwd).encode("utf-8")).hexdigest()
+            or age < -60
+            or age > SESSION_PACKET_TTL_SECONDS
+            or packet_hash != packet_identifier(packet)
+            or not packet_is_current(packet)
+        ):
+            marker.unlink(missing_ok=True)
+            return None
+        return packet.resolve()
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        try:
+            marker.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return None
+
+
+def is_plain_ripgrep_command(event: dict[str, Any]) -> bool:
+    """Recognize direct ripgrep searches without an executable preprocessor."""
+    if str(event.get("tool_name", "")) != "Bash":
+        return False
+    command = bash_command(event).strip()
+    if not command or any(character in command for character in "\n\r`$"):
+        return False
+    try:
+        lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|<>")
+        lexer.whitespace_split = True
+        lexer.commenters = ""
+        tokens = list(lexer)
+    except ValueError:
+        return False
+    if any(re.fullmatch(r"[;&|<>]+", token) for token in tokens):
+        return False
+    if not tokens or Path(tokens[0]).name.lower() not in {"rg", "ripgrep"}:
+        return False
+    return not any(token == "--pre" or token.startswith("--pre=") for token in tokens[1:])
+
+
 def event_is_mutation(event: dict[str, Any], text: str | None = None) -> bool:
     name = str(event.get("tool_name", ""))
     if name in TYPED_MUTATION_TOOLS:
         return True
+    if is_plain_ripgrep_command(event):
+        return False
     return name == "Bash" and bool(SHELL_MUTATION_RE.search(text if text is not None else tool_text(event)))
 
 
@@ -200,8 +382,10 @@ def relative_target(target: str, cwd: Path, root: Path) -> str | None:
 
 def package_command_requests(event: dict[str, Any], root: Path) -> tuple[list[dict[str, Any]], bool]:
     command = bash_command(event).strip()
-    parsed = parse_package_command(command)
-    if parsed is None:
+    if is_immutable_package_materialization(command):
+        return [], False
+    parsed_requests = parse_package_commands(command)
+    if parsed_requests is None:
         return [], looks_like_package_mutation(command)
     cwd = Path(str(event.get("cwd") or os.getcwd())).resolve()
     try:
@@ -211,9 +395,9 @@ def package_command_requests(event: dict[str, Any], root: Path) -> tuple[list[di
     prefix = "" if str(cwd_relative) == "." else cwd_relative.as_posix() + "/"
     manifest = (
         "Cargo.lock"
-        if parsed["ecosystem"] == "cargo" and parsed["operation"] == "update"
+        if parsed_requests[0]["ecosystem"] == "cargo" and parsed_requests[0]["operation"] == "update"
         else "Cargo.toml"
-        if parsed["ecosystem"] == "cargo"
+        if parsed_requests[0]["ecosystem"] == "cargo"
         else "package.json"
     )
     return [
@@ -221,6 +405,7 @@ def package_command_requests(event: dict[str, Any], root: Path) -> tuple[list[di
             **parsed,
             "file": prefix + manifest,
         }
+        for parsed in parsed_requests
     ], False
 
 
@@ -228,6 +413,8 @@ def dependency_requests(event: dict[str, Any], packet: Path, text: str) -> tuple
     root = packet.parents[2]
     name = str(event.get("tool_name", ""))
     if name == "Bash":
+        if governance_packet_target(event, Path(str(event.get("cwd") or os.getcwd())).resolve())[1]:
+            return [], False
         requests, unbindable = package_command_requests(event, root)
         if requests or unbindable:
             return requests, unbindable
@@ -324,10 +511,13 @@ def dependency_requests(event: dict[str, Any], packet: Path, text: str) -> tuple
 
 
 def mutation_is_packet_only(event: dict[str, Any], packet: Path) -> bool:
+    cwd = Path(str(event.get("cwd") or os.getcwd())).resolve()
+    command_target, governance_command = governance_packet_target(event, cwd)
+    if governance_command:
+        return command_target is not None and command_target.resolve() == packet.resolve()
     targets = mutation_targets(event)
     if not targets:
         return False
-    cwd = Path(str(event.get("cwd") or os.getcwd())).resolve()
     packet_root = packet.resolve()
     for target in targets:
         path = Path(target.strip())
@@ -360,6 +550,21 @@ def pre_tool(event: dict[str, Any], packet: Path) -> None:
     name = str(event.get("tool_name", ""))
     text = tool_text(event)
     metadata = packet_metadata(packet)
+    if name == "write_stdin":
+        if metadata.get("work_mode") == "governed" and agent_lifecycle_active(metadata):
+            output(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "deny",
+                        "permissionDecisionReason": (
+                            "DEV_FLOW_INTERACTIVE_SHELL_UNCLASSIFIABLE: interactive shell input cannot be "
+                            "classified safely while an active governed packet exists; use a new one-shot command."
+                        ),
+                    }
+                }
+            )
+        return
     if name == "Agent" and agent_lifecycle_active(metadata):
         briefs = [path for path in (packet / "briefs").glob("*.md") if not path.name.startswith("README.")]
         if not briefs:
@@ -882,15 +1087,35 @@ def main() -> int:
         event = json.load(sys.stdin)
     except json.JSONDecodeError:
         return 0
-    packet = locate_packet(Path(str(event.get("cwd") or os.getcwd())).resolve())
+    cwd = Path(str(event.get("cwd") or os.getcwd())).resolve()
+    hook = event.get("hook_event_name")
+    packet, resolution_error = resolve_event_packet(event, cwd)
+    if resolution_error:
+        if hook == "PreToolUse":
+            output(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "deny",
+                        "permissionDecisionReason": resolution_error,
+                    }
+                }
+            )
+        return 0
+    targetless = hook in {"Stop", "SubagentStart", "SubagentStop"} or str(event.get("tool_name", "")) == "write_stdin"
+    if packet is None and targetless:
+        packet = session_bound_packet(event)
     if packet is None:
-        if event.get("hook_event_name") == "SubagentStop":
+        packet = locate_packet(cwd)
+    if packet is None:
+        if hook == "SubagentStop":
             remove_agent_marker(event)
             output({})
-        elif event.get("hook_event_name") == "Stop":
+        elif hook == "Stop":
             output({})
         return 0
-    hook = event.get("hook_event_name")
+    if hook not in {"Stop", "SubagentStop"}:
+        bind_session_packet(event, packet)
     metadata = packet_metadata(packet)
     if hook in {"SubagentStart", "SubagentStop"} and not agent_lifecycle_active(metadata):
         if hook == "SubagentStop":

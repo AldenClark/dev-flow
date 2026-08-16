@@ -1423,6 +1423,7 @@ def codex_preflight(args: argparse.Namespace) -> int:
     capability_issues: list[str] = []
     warnings: list[str] = []
     dispatch_registry_ready = False
+    configured_ceiling: int | None = None
     binary = args.codex or shutil.which("codex")
     version_text = args.version_output
     features_text: str | None = None
@@ -1486,6 +1487,8 @@ def codex_preflight(args: argparse.Namespace) -> int:
             limit = agent_config.get("max_concurrent_threads_per_session")
             if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
                 capability_issues.append("config must set a positive [agents].max_concurrent_threads_per_session for delegation")
+            else:
+                configured_ceiling = limit
             if isinstance(feature_config.get("multi_agent_v2"), dict):
                 capability_issues.append("obsolete [features.multi_agent_v2] table is not supported")
         except (OSError, ValueError, tomllib.TOMLDecodeError) as exc:
@@ -1512,6 +1515,17 @@ def codex_preflight(args: argparse.Namespace) -> int:
                 "delegation": delegation_available,
                 "agent_dispatch": dispatch_registry_ready,
                 "governed_hooks": features.get("hooks") == "true",
+            },
+            "delegation_capacity": {
+                "configured_ceiling": configured_ceiling,
+                "configured_ceiling_is_effective_capacity": False,
+                "recommended_initial_active_children": 1 if delegation_available else 0,
+                "effective_active_children": None,
+                "effective_capacity_status": "not-observed",
+                "saturation_backoff": (
+                    "On HTTP 429 or scheduler saturation, stop new dispatches, reconcile active work, "
+                    "and reduce the session's observed active-child allowance by one before retrying unstarted work."
+                ),
             },
             "required_capability": "delegation" if args.require_delegation else "core-workflow",
             "errors": errors,

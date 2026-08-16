@@ -20,6 +20,16 @@ The limit controls child threads per root session; it does not include the root.
 
 Treat `3` as a capacity ceiling, not a target. Operationally start one child and keep no more than two children active for ordinary independent slices. Use three only when all slices are independent, briefs and ownership are complete, resource isolation is proven, and root synthesis capacity is reserved. Resident terminal threads may remain reusable; they do not consume active-execution budget merely by remaining visible.
 
+Separate three values in every scheduling decision:
+
+- configured ceiling: the TOML maximum, which proves only what the client permits;
+- recommended initial concurrency: one active child for a new or resumed session;
+- observed effective capacity: the highest concurrency completed without HTTP 429, scheduler saturation, or a rejected spawn in this session and service state.
+
+`preflight` reports the configured ceiling and initial recommendation but leaves effective capacity `not-observed`. Never infer service quota from the ceiling or from a previous session. Increase by at most one only after a completed, reconciled wave with no saturation signal and only when the task budget, ownership, and resources permit it.
+
+On HTTP 429, scheduler saturation, or a capacity-rejected spawn, stop new dispatches and preserve the first failure. Reconcile or wait for already active work, then set the session allowance to one fewer active child, with a minimum of one; retry only work that never started. Do not raise the allowance again until a later completed wave is stable, and do not rewrite the configured ceiling as though the transient observation changed configuration. Repeated saturation at one child blocks further delegation for the session and falls back to root execution or a later user-authorized retry.
+
 ## Root-only responsibilities
 
 The root owns authority and user communication, repository and requirement synthesis, task classification, approved design and scope, dependency decisions, task graph, file/resource ownership, integration, finding adjudication, fresh verification, and final claims. Children may gather evidence or critique artifacts but never replace these decisions.

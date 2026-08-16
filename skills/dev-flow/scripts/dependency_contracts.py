@@ -179,8 +179,42 @@ def _has_package_scope(tokens: list[str]) -> bool:
     )
 
 
-def parse_package_command(value: Any) -> dict[str, str | None] | None:
-    """Parse one deliberately narrow package mutation without executing it."""
+def is_immutable_package_materialization(value: Any) -> bool:
+    """Recognize lockfile-enforcing installs that cannot change the graph."""
+    command = canonical_command(value)
+    if command is None:
+        return False
+    tokens = shlex.split(command)
+    executable = _package_executable(tokens[0])
+    if len(tokens) < 2 or any(not token.startswith("-") for token in tokens[2:]):
+        return False
+    subcommand = tokens[1].lower()
+    flags = set(tokens[2:])
+    if executable == "npm":
+        return subcommand == "ci"
+    if executable == "pnpm":
+        return (
+            subcommand in {"install", "i"}
+            and bool(flags & {"--frozen-lockfile", "--frozen-lockfile=true"})
+            and not bool(
+                flags
+                & {
+                    "--frozen-lockfile=false",
+                    "--no-frozen-lockfile",
+                    "--fix-lockfile",
+                    "--lockfile-only",
+                }
+            )
+        )
+    if executable == "yarn":
+        return subcommand == "install" and bool(flags & {"--immutable", "--immutable=true"})
+    if executable == "bun":
+        return subcommand == "install" and bool(flags & {"--frozen-lockfile", "--frozen-lockfile=true"})
+    return False
+
+
+def parse_package_commands(value: Any) -> list[dict[str, str | None]] | None:
+    """Parse one exact package command into one request per package."""
     command = canonical_command(value)
     if command is None:
         return None
@@ -199,8 +233,6 @@ def parse_package_command(value: Any) -> dict[str, str | None] | None:
     arguments = tokens[verb_index + 1 :]
     if not arguments:
         return None
-    name: str
-    ref: str | None
     if executable == "cargo" and operation == "update":
         if len(arguments) < 4 or arguments[0] not in {"-p", "--package"} or arguments[2] != "--precise":
             return None
@@ -208,34 +240,50 @@ def parse_package_command(value: Any) -> dict[str, str | None] | None:
         tail = arguments[4:]
         if _has_package_scope(tail):
             return None
+        identities = [(name, ref)]
     else:
         if _has_package_scope(arguments):
             return None
-        identity = arguments[0]
-        tail = arguments[1:]
-        parsed = _package_spec(identity)
-        if operation in {"add", "update"}:
-            if parsed is None:
-                return None
-            name, ref = parsed
-        else:
-            if parsed is not None:
+        option_index = next((index for index, token in enumerate(arguments) if token.startswith("-")), len(arguments))
+        package_tokens = arguments[:option_index]
+        tail = arguments[option_index:]
+        if not package_tokens:
+            return None
+        identities: list[tuple[str, str | None]] = []
+        for identity in package_tokens:
+            parsed = _package_spec(identity)
+            if operation in {"add", "update"}:
+                if parsed is None:
+                    return None
                 name, ref = parsed
             else:
-                name, ref = identity, None
-    if not name or any(character.isspace() for character in name):
-        return None
+                if parsed is not None:
+                    name, ref = parsed
+                else:
+                    name, ref = identity, None
+            identities.append((name, ref))
     # Keep the grammar auditable: trailing options must be self-contained flags
-    # (`--flag` or `--flag=value`), never a second package or detached value.
+    # (`--flag` or `--flag=value`), never a detached value.
     if any(not token.startswith("-") for token in tail):
         return None
-    return {
-        "ecosystem": "cargo" if executable == "cargo" else "npm",
-        "name": name,
-        "ref": ref,
-        "operation": operation,
-        "command": command,
-    }
+    if any(not name or any(character.isspace() for character in name) for name, _ in identities):
+        return None
+    return [
+        {
+            "ecosystem": "cargo" if executable == "cargo" else "npm",
+            "name": name,
+            "ref": ref,
+            "operation": operation,
+            "command": command,
+        }
+        for name, ref in identities
+    ]
+
+
+def parse_package_command(value: Any) -> dict[str, str | None] | None:
+    """Parse a single-package mutation, preserving the original public helper."""
+    requests = parse_package_commands(value)
+    return requests[0] if requests is not None and len(requests) == 1 else None
 
 
 def _decode_yaml_double_quoted(value: str) -> str | None:
@@ -400,7 +448,16 @@ def validate_dependency_approval(record: Any) -> list[str]:
         ):
             errors.append("GitHub Action dependency files must be workflow YAML paths")
     elif ecosystem in {"cargo", "npm"}:
-        parsed_command = parse_package_command(command)
+        parsed_commands = parse_package_commands(command)
+        parsed_command = next(
+            (
+                request
+                for request in parsed_commands or []
+                if request["name"] == dependency.get("name")
+                and (request["ref"] is None or request["ref"] == dependency.get("ref"))
+            ),
+            None,
+        )
         if parsed_command is None:
             errors.append("package dependency command must be one supported canonical exact command")
         else:

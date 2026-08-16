@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-08-16
+
+### Added
+
+- Target-aware nested packet resolution with fresh session binding for targetless Stop and lifecycle events, including stable fail-closed reasons for mixed or unrelated targets.
+- Exact multi-package dependency requests, immutable npm/pnpm/yarn/bun materialization classification, and machine-readable delegation capacity output.
+
+### Fixed
+
+- Prevented Dev Flow's own packet CLI from recursively triggering package-mutation detection when descriptive approval arguments contain package commands.
+- Closed the interactive-shell governance bypass by hooking `write_stdin` and denying unclassifiable input while a governed packet is active.
+- Preserved single-package and removal approval compatibility while requiring every package in an exact multi-package command to have a matching approval.
+- Kept direct ripgrep searches read-only when their quoted pattern contains mutation keywords, while continuing to govern external preprocessors, pipelines, and redirections.
+
+### Changed
+
+- Distinguished configured agent ceilings from observed service capacity and specified conservative ramp-up plus HTTP 429/saturation backoff.
+- Advanced local source, workflow, release-candidate, attestation, and documentation surfaces to patch version `1.1.3` without publishing a remote tag or release.
+
 ## [1.1.2] - 2026-08-15
 
 ### Added
@@ -143,7 +162,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - Runtime markers no longer persist absolute packet paths, start/stop stay fail-open on marker storage or malformed data, and markers are removed whenever subagent stop is observed.
 - Runtime traces, plugin data, secrets, caches, and build outputs are excluded from source control.
 
-[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/AldenClark/dev-flow/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/AldenClark/dev-flow/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/AldenClark/dev-flow/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/AldenClark/dev-flow/compare/v1.0.2...v1.1.0

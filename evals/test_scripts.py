@@ -366,6 +366,41 @@ class PreflightTests(unittest.TestCase):
             self.assertEqual(payload["status"], "ready")
             self.assertTrue(payload["capabilities"]["agent_dispatch"])
 
+    def test_reports_configured_ceiling_without_claiming_effective_capacity(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            features = root / "features.txt"
+            config = root / "config.toml"
+            write_features(features)
+            write_config(config)
+            config.write_text(
+                config.read_text(encoding="utf-8").replace(
+                    "max_concurrent_threads_per_session = 3",
+                    "max_concurrent_threads_per_session = 6",
+                ),
+                encoding="utf-8",
+            )
+            result = run(
+                PYTHON,
+                str(FLOW),
+                "preflight",
+                "--version-output",
+                "codex-cli 0.147.0",
+                "--features-output-file",
+                str(features),
+                "--config",
+                str(config),
+                "--tool-surface-confirmed",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            capacity = json.loads(result.stdout)["delegation_capacity"]
+            self.assertEqual(capacity["configured_ceiling"], 6)
+            self.assertEqual(capacity["recommended_initial_active_children"], 1)
+            self.assertEqual(capacity["effective_active_children"], None)
+            self.assertEqual(capacity["effective_capacity_status"], "not-observed")
+            self.assertFalse(capacity["configured_ceiling_is_effective_capacity"])
+            self.assertIn("429", capacity["saturation_backoff"])
+
     def test_rejects_old_version(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -6731,6 +6766,281 @@ class RuntimeInstallerTests(unittest.TestCase):
 
 
 class HookTests(unittest.TestCase):
+    def invoke_pre_tool(
+        self,
+        cwd: Path,
+        tool_name: str,
+        tool_input: dict[str, object],
+        *,
+        session_id: str = "hook-test-session",
+        env_extra: dict[str, str] | None = None,
+    ) -> dict[str, object] | None:
+        env = os.environ.copy()
+        env["PLUGIN_ROOT"] = str(ROOT)
+        if env_extra:
+            env.update(env_extra)
+        event = {
+            "cwd": str(cwd),
+            "session_id": session_id,
+            "hook_event_name": "PreToolUse",
+            "tool_name": tool_name,
+            "tool_input": tool_input,
+        }
+        result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+        return json.loads(result.stdout) if result.stdout else None
+
+    def write_current_packet(
+        self,
+        root: Path,
+        change_id: str,
+        metadata: dict[str, object],
+    ) -> Path:
+        flow = root / ".codex" / "dev-flow"
+        packet = flow / change_id
+        packet.mkdir(parents=True)
+        (flow / "current").write_text(change_id + "\n", encoding="utf-8")
+        (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+        return packet
+
+    def test_typed_targets_select_deepest_packet_and_reject_mixed_roots(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            parent = Path(temp)
+            child = parent / "new"
+            child.mkdir()
+            self.write_current_packet(
+                parent,
+                "outer-change",
+                {"state": "implementing", "approvals": {"dependencies": []}},
+            )
+            inner = self.write_current_packet(
+                child,
+                "inner-change",
+                {"state": "implementing", "approvals": {"dependencies": []}},
+            )
+
+            child_only = self.invoke_pre_tool(
+                parent,
+                "apply_patch",
+                {
+                    "patch": f"*** Begin Patch\n*** Update File: {inner / 'requirements.md'}\n@@\n-old\n+new\n*** End Patch"
+                },
+            )
+            self.assertIsNone(child_only)
+
+            mixed = self.invoke_pre_tool(
+                parent,
+                "apply_patch",
+                {
+                    "patch": (
+                        f"*** Begin Patch\n*** Update File: {inner / 'requirements.md'}\n@@\n-old\n+new\n"
+                        f"*** Update File: {parent / '.codex/dev-flow/outer-change/requirements.md'}\n"
+                        "@@\n-old\n+new\n*** End Patch"
+                    )
+                },
+            )
+            decision = mixed["hookSpecificOutput"]
+            self.assertEqual(decision["permissionDecision"], "deny")
+            self.assertIn("DEV_FLOW_PACKET_TARGET_AMBIGUOUS", decision["permissionDecisionReason"])
+
+    def test_targetless_stop_uses_fresh_session_binding_but_not_stale_marker(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            parent = Path(temp)
+            child = parent / "new"
+            child.mkdir()
+            self.write_current_packet(
+                parent,
+                "outer-change",
+                {"schema_version": "2.0", "state": "implementing", "approvals": {"dependencies": []}},
+            )
+            inner = self.write_current_packet(
+                child,
+                "inner-change",
+                {"schema_version": "2.0", "state": "verifying", "approvals": {"dependencies": []}},
+            )
+            plugin_data = parent / "plugin-data"
+            env_extra = {"PLUGIN_DATA": str(plugin_data)}
+            session_id = "nested-session"
+
+            self.assertIsNone(
+                self.invoke_pre_tool(
+                    parent,
+                    "Write",
+                    {"file_path": str(inner / "notes.md"), "content": "packet note"},
+                    session_id=session_id,
+                    env_extra=env_extra,
+                )
+            )
+            event = {
+                "cwd": str(parent),
+                "session_id": session_id,
+                "hook_event_name": "Stop",
+                "last_assistant_message": "done",
+                "stop_hook_active": False,
+            }
+            env = os.environ.copy()
+            env.update({"PLUGIN_ROOT": str(ROOT), **env_extra})
+            fresh = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
+            self.assertIn("DEV_FLOW_COMPLETION_INVALID", json.loads(fresh.stdout)["systemMessage"])
+
+            marker = next((plugin_data / "packet-sessions").glob("*.json"))
+            marker_data = json.loads(marker.read_text(encoding="utf-8"))
+            self.assertNotIn(str(inner), marker.read_text(encoding="utf-8"))
+            self.assertNotIn("packet", marker_data)
+            marker_data["bound_at"] = 0
+            marker.write_text(json.dumps(marker_data), encoding="utf-8")
+            stale = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
+            self.assertEqual(json.loads(stale.stdout), {})
+
+    def test_exact_governance_cli_ignores_descriptive_package_command_text(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            packet = self.write_current_packet(
+                root,
+                "sample-change",
+                {"schema_version": "2.0", "state": "implementing", "approvals": {"dependencies": []}},
+            )
+            command = (
+                f"python3 {FLOW} record-approval {packet} dependencies --id DEP-1 --by owner "
+                "--note exact --dependency-command 'pnpm add alpha@1.0.0'"
+            )
+            self.assertIsNone(self.invoke_pre_tool(root, "Bash", {"command": command}))
+
+            other = packet.parent / "other-change"
+            other.mkdir()
+            (other / "packet.json").write_text("{}\n", encoding="utf-8")
+            wrong = self.invoke_pre_tool(
+                root,
+                "Bash",
+                {"command": command.replace(str(packet), str(other), 1)},
+            )
+            decision = wrong["hookSpecificOutput"]
+            self.assertEqual(decision["permissionDecision"], "deny")
+            self.assertIn("DEV_FLOW_PACKET_TARGET_MISMATCH", decision["permissionDecisionReason"])
+
+    def test_immutable_package_materialization_is_not_a_graph_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.write_current_packet(
+                root,
+                "sample-change",
+                {"state": "implementing", "approvals": {"dependencies": []}},
+            )
+            for command in (
+                "pnpm install --frozen-lockfile",
+                "npm ci",
+                "yarn install --immutable",
+                "bun install --frozen-lockfile",
+            ):
+                with self.subTest(command=command):
+                    self.assertIsNone(self.invoke_pre_tool(root, "Bash", {"command": command}))
+            for command in (
+                "pnpm install",
+                "pnpm install --no-frozen-lockfile",
+                "npm install",
+                "yarn install",
+                "bun install",
+            ):
+                with self.subTest(command=command):
+                    decision = self.invoke_pre_tool(root, "Bash", {"command": command})["hookSpecificOutput"]
+                    self.assertEqual(decision["permissionDecision"], "deny")
+
+    def test_multi_package_command_requires_every_exact_approval(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            command = "pnpm add alpha@1.0.0 beta@2.0.0"
+
+            def approval(identifier: str, name: str, version: str) -> dict[str, object]:
+                return {
+                    "id": identifier,
+                    "by": "owner",
+                    "at": "2026-08-16T00:00:00Z",
+                    "note": "exact package set",
+                    "dependency": {
+                        "ecosystem": "npm",
+                        "name": name,
+                        "version": version,
+                        "ref": version,
+                        "command": command,
+                        "files": ["package.json"],
+                        "operations": ["add"],
+                        "result_sha256": {},
+                    },
+                }
+
+            packet = self.write_current_packet(
+                root,
+                "sample-change",
+                {
+                    "state": "implementing",
+                    "approvals": {
+                        "dependencies": [
+                            approval("DEP-1", "alpha", "1.0.0"),
+                            approval("DEP-2", "beta", "2.0.0"),
+                        ]
+                    },
+                },
+            )
+            allowed = self.invoke_pre_tool(root, "Bash", {"command": command})
+            self.assertNotIn("permissionDecision", allowed["hookSpecificOutput"])
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            metadata["approvals"]["dependencies"].pop()
+            (packet / "packet.json").write_text(json.dumps(metadata), encoding="utf-8")
+            partial = self.invoke_pre_tool(root, "Bash", {"command": command})["hookSpecificOutput"]
+            self.assertEqual(partial["permissionDecision"], "deny")
+
+    def test_write_stdin_fails_closed_only_for_active_governed_packet(self) -> None:
+        hooks = json.loads((ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))
+        matchers = [entry.get("matcher", "") for entry in hooks["hooks"]["PreToolUse"]]
+        self.assertTrue(any("write_stdin" in matcher for matcher in matchers))
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            packet = self.write_current_packet(
+                root,
+                "sample-change",
+                {
+                    "schema_version": "2.0",
+                    "work_mode": "governed",
+                    "state": "implementing",
+                    "approvals": {"dependencies": []},
+                },
+            )
+            active = self.invoke_pre_tool(root, "write_stdin", {"session_id": 123, "chars": "apply_patch"})
+            decision = active["hookSpecificOutput"]
+            self.assertEqual(decision["permissionDecision"], "deny")
+            self.assertIn("DEV_FLOW_INTERACTIVE_SHELL_UNCLASSIFIABLE", decision["permissionDecisionReason"])
+
+            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
+            metadata["state"] = "accepted"
+            (packet / "packet.json").write_text(json.dumps(metadata), encoding="utf-8")
+            self.assertIsNone(self.invoke_pre_tool(root, "write_stdin", {"session_id": 123, "chars": "status"}))
+
+    def test_plain_ripgrep_query_text_is_read_only_but_preprocessor_is_not(self) -> None:
+        hook_globals = runpy.run_path(str(HOOK))
+        is_mutation = hook_globals["event_is_mutation"]
+
+        plain_search = {
+            "tool_name": "Bash",
+            "tool_input": {"command": 'rg -n "install|rm|touch" README.md'},
+        }
+        executable_preprocessor = {
+            "tool_name": "Bash",
+            "tool_input": {"command": "rg --pre 'touch generated.txt' install ."},
+        }
+        direct_mutation = {
+            "tool_name": "Bash",
+            "tool_input": {"command": "install source.txt destination.txt"},
+        }
+        piped_search = {
+            "tool_name": "Bash",
+            "tool_input": {"command": "rg install README.md | touch generated.txt"},
+        }
+
+        self.assertFalse(is_mutation(plain_search))
+        self.assertTrue(is_mutation(executable_preprocessor))
+        self.assertTrue(is_mutation(direct_mutation))
+        self.assertTrue(is_mutation(piped_search))
+
     def invoke_stop(
         self,
         root: Path,

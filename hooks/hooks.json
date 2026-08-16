@@ -30,7 +30,7 @@
         ]
       },
       {
-        "matcher": "Bash|apply_patch|Edit|Write|Agent",
+        "matcher": "Bash|apply_patch|Edit|Write|write_stdin|Agent",
         "hooks": [
           {
             "type": "command",

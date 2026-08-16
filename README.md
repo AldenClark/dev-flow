@@ -53,6 +53,8 @@ hooks = true
 max_concurrent_threads_per_session = 3
 ```
 
+这里的值只是客户端允许的子线程上限，不是服务端的实时容量。`preflight` 会把 configured ceiling、初始建议并发（默认 1）和尚未观测的 effective capacity 分开报告；遇到 HTTP 429 或调度饱和时停止新增派工、先对账在途任务，并把本会话并发许可减一后再重试尚未启动的工作。
+
 ## 安装
 
 发布与插件清单版本一致的标签后，可直接添加仓库内的 marketplace 并安装固定到该标签的插件。当前已发布稳定标签为 `v1.1.2`；只有对应标签已推送后，才应从 marketplace 安装该版本：
@@ -377,9 +379,9 @@ python3 evals/run_paired_evaluations.py \
 ```bash
 git rev-parse HEAD
 python3 tools/build_release.py build \
-  --root . --output dist --version 1.1.2 --commit FULL_COMMIT_SHA
+  --root . --output dist --version 1.1.3 --commit FULL_COMMIT_SHA
 python3 tools/build_release.py verify \
-  --artifact-dir dist --expected-version 1.1.2 --expected-commit FULL_COMMIT_SHA
+  --artifact-dir dist --expected-version 1.1.3 --expected-commit FULL_COMMIT_SHA
 ```
 
 `.github/workflows/release-candidate.yml` 只能手动运行并要求完整 `expected_sha`；它使用固定 SHA 的 Syft、GitHub attestation 和 artifact Actions，生成 SPDX 2.3 JSON、provenance/SBOM attestations、manifest 与 checksums，但没有发布 Release 的权限。新工作流只有进入默认分支后才能 dispatch，不能把 PR 通过误报成 provenance 已生成。
@@ -394,7 +396,7 @@ Marketplace 内的插件源使用当前快照相对路径 `.`；因此外层 `co
 - `MINOR`：向后兼容的新流程、命令、策略或能力；
 - `PATCH`：兼容的修复、文档和规则校正。
 
-源码与 Git tag 使用稳定版本（例如当前源码 `1.1.2`）；仅本地 Codex 开发重装时才临时追加 `+codex.<cachebuster>`，不把缓存破坏后缀发布为正式版本。源码版本不代表对应标签已经发布，发布状态以 Git tag/release 为准。RC 标签只证明候选身份，不等于稳定版发布。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+源码与 Git tag 使用稳定版本（例如当前源码 `1.1.3`）；仅本地 Codex 开发重装时才临时追加 `+codex.<cachebuster>`，不把缓存破坏后缀发布为正式版本。源码版本不代表对应标签已经发布，发布状态以 Git tag/release 为准。RC 标签只证明候选身份，不等于稳定版发布。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 参与和安全
 
