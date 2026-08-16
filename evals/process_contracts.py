@@ -161,6 +161,11 @@ def _terminate_owned_tree(process: subprocess.Popen[bytes], job: _WindowsJob, *,
         os.killpg(process.pid, selected_signal)
     except ProcessLookupError:
         pass
+    except PermissionError:
+        # Darwin may report EPERM after the session leader exits. Ignore only
+        # that terminal owner state so the remaining cleanup can proceed.
+        if process.poll() is None:
+            raise
 
 
 def _posix_detached_descendants(root_pid: int) -> set[int]:

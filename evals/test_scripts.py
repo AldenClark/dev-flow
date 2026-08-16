@@ -4474,6 +4474,33 @@ print(json.dumps(result))
             self.assertIn("timed out", blocked_input.error or "")
             self.assertLess(blocked_input.elapsed_seconds, 2)
 
+    @unittest.skipIf(os.name == "nt", "POSIX process groups are unavailable")
+    def test_posix_group_permission_error_is_ignored_only_after_owner_exit(self) -> None:
+        exited = mock.Mock(pid=12345)
+        exited.poll.return_value = 0
+        permission_error = PermissionError(1, "Operation not permitted")
+        with mock.patch.object(process_eval.os, "killpg", side_effect=permission_error):
+            process_eval._terminate_owned_tree(exited, mock.Mock(), force=False)
+        exited.poll.assert_called_once_with()
+
+        active = mock.Mock(pid=12345)
+        active.poll.return_value = None
+        with mock.patch.object(process_eval.os, "killpg", side_effect=permission_error):
+            with self.assertRaises(PermissionError):
+                process_eval._terminate_owned_tree(active, mock.Mock(), force=False)
+
+    @unittest.skipUnless(sys.platform == "darwin", "Darwin process-group semantics required")
+    def test_darwin_exited_session_leader_permission_error_is_terminal(self) -> None:
+        process = subprocess.Popen([PYTHON, "-c", "pass"], start_new_session=True)
+        try:
+            os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOWAIT)
+            process_eval._terminate_owned_tree(process, mock.Mock(), force=False)
+            self.assertEqual(process.poll(), 0)
+        finally:
+            if process.poll() is None:
+                process.kill()
+            process.wait()
+
     def test_owned_process_interrupt_terminates_the_owned_tree_before_stream_cleanup(self) -> None:
         class InterruptedProcess:
             pid = 12345
@@ -7107,6 +7134,8 @@ class HookTests(unittest.TestCase):
                         "DEV_FLOW_GOVERNANCE_COMMAND_INVALID",
                         hidden_decision["permissionDecisionReason"],
                     )
+                    if os.name == "nt":
+                        continue
                     wrapped_hidden = self.invoke_pre_tool(
                         root,
                         "Bash",
