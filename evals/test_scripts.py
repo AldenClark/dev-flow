@@ -7084,10 +7084,13 @@ class HookTests(unittest.TestCase):
                         wrapped_decision["permissionDecisionReason"],
                     )
 
-            for hidden_script in (
+            hidden_scripts = [
                 str(FLOW).replace("dev-flow.py", "dev-'flow.py'"),
-                str(FLOW).replace("dev-flow.py", r"dev\-flow.py"),
-            ):
+                str(FLOW).replace("dev-flow.py", 'dev-"flow.py"'),
+            ]
+            if os.name != "nt":
+                hidden_scripts.append(str(FLOW).replace("dev-flow.py", r"dev\-flow.py"))
+            for hidden_script in hidden_scripts:
                 with self.subTest(hidden_script=hidden_script):
                     hidden = self.invoke_pre_tool(
                         root,
@@ -7133,6 +7136,7 @@ class HookTests(unittest.TestCase):
     def test_windows_governance_tokenization_preserves_paths_before_validation(self) -> None:
         hook_globals = runpy.run_path(str(HOOK))
         governance_shell_tokens = hook_globals["governance_shell_tokens"]
+        tokens_contain_governance_shape = hook_globals["tokens_contain_governance_shape"]
         command = (
             r'python3 D:\a\dev-flow\dev-flow\skills\dev-flow\scripts\dev-flow.py '
             r'record-approval C:\Users\runneradmin\AppData\Local\Temp\packet dependencies '
@@ -7152,6 +7156,13 @@ class HookTests(unittest.TestCase):
             r"C:\Users\runneradmin\AppData\Local\Temp\packet",
         )
         self.assertEqual(tokens[-1], "pnpm add alpha@1.0.0")
+        quoted_tokens = governance_shell_tokens(
+            command.replace("dev-flow.py", "dev-'flow.py'", 1),
+            windows=True,
+        )
+        self.assertIsNotNone(quoted_tokens)
+        assert quoted_tokens is not None
+        self.assertTrue(tokens_contain_governance_shape(quoted_tokens))
         self.assertIsNone(governance_shell_tokens(command + "; pnpm add beta@2.0.0", windows=True))
         expanded = command.replace(
             r"D:\a\dev-flow\dev-flow\skills\dev-flow\scripts\dev-flow.py",

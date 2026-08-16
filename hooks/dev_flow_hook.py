@@ -295,7 +295,8 @@ def exact_governance_target(tokens: list[str], cwd: Path) -> Path | None:
 
 
 def governance_script_token(token: str) -> bool:
-    return token.replace("\\", "/").rsplit("/", 1)[-1].lower() in {
+    script_name = token.replace("\\", "/").rsplit("/", 1)[-1].lower()
+    return script_name.replace("'", "").replace('"', "") in {
         "dev-flow.py",
         "dev_flow.py",
     }
