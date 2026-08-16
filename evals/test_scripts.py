@@ -1709,7 +1709,7 @@ print(json.dumps({{"type": "turn.completed", "usage": {{"input_tokens": 5, "outp
             request = {"stage": "assembly", "draft_result": {"fixed": True}}
             timeout_seconds = 0.5
             writes_then_hangs = (
-                "import pathlib,time; "
+                "import json,pathlib,sys,time; json.load(sys.stdin); "
                 "pathlib.Path('model-result.json').write_text('{}'); time.sleep(1)"
             )
             unsafe, unsafe_attempts = paired_eval.run_program_with_infrastructure_retry(
@@ -1727,6 +1727,7 @@ print(json.dumps({{"type": "turn.completed", "usage": {{"input_tokens": 5, "outp
 
             no_output_then_succeeds = (
                 "import json,pathlib,sys,time; "
+                "json.load(sys.stdin); "
                 "pathlib.Path('nonce.txt').write_text(sys.argv[-1]); "
                 "time.sleep(1) if pathlib.Path.cwd().name == 'attempt-1' else print('{}')"
             )
@@ -4489,7 +4490,10 @@ print(json.dumps(result))
             with self.assertRaises(PermissionError):
                 process_eval._terminate_owned_tree(active, mock.Mock(), force=False)
 
-    @unittest.skipUnless(sys.platform == "darwin", "Darwin process-group semantics required")
+    @unittest.skipUnless(
+        sys.platform == "darwin" and hasattr(os, "waitid") and hasattr(os, "WNOWAIT"),
+        "Darwin waitid process-group semantics required",
+    )
     def test_darwin_exited_session_leader_permission_error_is_terminal(self) -> None:
         process = subprocess.Popen([PYTHON, "-c", "pass"], start_new_session=True)
         try:
