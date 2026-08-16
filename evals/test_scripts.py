@@ -9,6 +9,7 @@ import io
 import os
 import re
 import runpy
+import shlex
 import shutil
 import signal
 import subprocess
@@ -7017,7 +7018,7 @@ class HookTests(unittest.TestCase):
             )
             command = (
                 f"python3 {FLOW} record-approval {packet} dependencies --id DEP-1 --by owner "
-                "--note exact --dependency-command 'pnpm add alpha@1.0.0'"
+                "--note 'exact A & B; literal $value' --dependency-command 'pnpm add alpha@1.0.0'"
             )
             self.assertIsNone(self.invoke_pre_tool(root, "Bash", {"command": command}))
 
@@ -7033,17 +7034,115 @@ class HookTests(unittest.TestCase):
             self.assertEqual(decision["permissionDecision"], "deny")
             self.assertIn("DEV_FLOW_PACKET_TARGET_MISMATCH", decision["permissionDecisionReason"])
 
-    def test_windows_shell_tokenization_preserves_governance_paths(self) -> None:
+            compound = self.invoke_pre_tool(
+                root,
+                "Bash",
+                {"command": command.replace(str(packet), str(other), 1) + " && true"},
+            )
+            compound_decision = compound["hookSpecificOutput"]
+            self.assertEqual(compound_decision["permissionDecision"], "deny")
+            self.assertIn("DEV_FLOW_GOVERNANCE_COMMAND_INVALID", compound_decision["permissionDecisionReason"])
+
+            prefixed = self.invoke_pre_tool(
+                root,
+                "Bash",
+                {"command": "true && " + command.replace(str(packet), str(other), 1)},
+            )
+            prefixed_decision = prefixed["hookSpecificOutput"]
+            self.assertEqual(prefixed_decision["permissionDecision"], "deny")
+            self.assertIn("DEV_FLOW_GOVERNANCE_COMMAND_INVALID", prefixed_decision["permissionDecisionReason"])
+
+            expanded = self.invoke_pre_tool(
+                root,
+                "Bash",
+                {
+                    "command": command.replace(
+                        str(FLOW),
+                        '"$PLUGIN_ROOT/skills/dev-flow/scripts/dev-flow.py"',
+                        1,
+                    )
+                },
+            )
+            expanded_decision = expanded["hookSpecificOutput"]
+            self.assertEqual(expanded_decision["permissionDecision"], "deny")
+            self.assertIn("DEV_FLOW_GOVERNANCE_COMMAND_INVALID", expanded_decision["permissionDecisionReason"])
+
+            for wrapped_command in (
+                command.replace("python3 ", "python3 -B ", 1),
+                command.replace("python3 ", "python3 -- ", 1),
+                "sh -c " + shlex.quote(command.replace(str(packet), str(other), 1)),
+                "env -S " + shlex.quote(command.replace("python3 ", "python3 -B ", 1)),
+                'cmd /c "' + command.replace("python3 ", "python3 -B ", 1) + '"',
+                'pwsh -Command "' + command.replace("python3 ", "python3 -B ", 1) + '"',
+            ):
+                with self.subTest(wrapped_command=wrapped_command):
+                    wrapped = self.invoke_pre_tool(root, "Bash", {"command": wrapped_command})
+                    wrapped_decision = wrapped["hookSpecificOutput"]
+                    self.assertEqual(wrapped_decision["permissionDecision"], "deny")
+                    self.assertIn(
+                        "DEV_FLOW_GOVERNANCE_COMMAND_INVALID",
+                        wrapped_decision["permissionDecisionReason"],
+                    )
+
+            for hidden_script in (
+                str(FLOW).replace("dev-flow.py", "dev-'flow.py'"),
+                str(FLOW).replace("dev-flow.py", r"dev\-flow.py"),
+            ):
+                with self.subTest(hidden_script=hidden_script):
+                    hidden = self.invoke_pre_tool(
+                        root,
+                        "Bash",
+                        {
+                            "command": command.replace("python3 ", "python3 -B ", 1)
+                            .replace(str(FLOW), hidden_script, 1)
+                            .replace(str(packet), str(other), 1)
+                        },
+                    )
+                    hidden_decision = hidden["hookSpecificOutput"]
+                    self.assertEqual(hidden_decision["permissionDecision"], "deny")
+                    self.assertIn(
+                        "DEV_FLOW_GOVERNANCE_COMMAND_INVALID",
+                        hidden_decision["permissionDecisionReason"],
+                    )
+                    wrapped_hidden = self.invoke_pre_tool(
+                        root,
+                        "Bash",
+                        {
+                            "command": "env -S "
+                            + shlex.quote(
+                                command.replace("python3 ", "python3 -B ", 1)
+                                .replace(str(FLOW), hidden_script, 1)
+                                .replace(str(packet), str(other), 1)
+                            )
+                        },
+                    )
+                    wrapped_hidden_decision = wrapped_hidden["hookSpecificOutput"]
+                    self.assertEqual(wrapped_hidden_decision["permissionDecision"], "deny")
+                    self.assertIn(
+                        "DEV_FLOW_GOVERNANCE_COMMAND_INVALID",
+                        wrapped_hidden_decision["permissionDecisionReason"],
+                    )
+
+            literal_search = self.invoke_pre_tool(
+                root,
+                "Bash",
+                {"command": "rg 'dev-flow.py.*record-checkpoint' hooks evals"},
+            )
+            self.assertIsNone(literal_search)
+
+    def test_windows_governance_tokenization_preserves_paths_before_validation(self) -> None:
         hook_globals = runpy.run_path(str(HOOK))
-        shell_tokens = hook_globals["shell_tokens"]
+        governance_shell_tokens = hook_globals["governance_shell_tokens"]
         command = (
             r'python3 D:\a\dev-flow\dev-flow\skills\dev-flow\scripts\dev-flow.py '
             r'record-approval C:\Users\runneradmin\AppData\Local\Temp\packet dependencies '
             r'--dependency-command "pnpm add alpha@1.0.0"'
         )
 
-        tokens = shell_tokens(command, windows=True)
+        tokens = governance_shell_tokens(command, windows=True)
 
+        self.assertIsNotNone(tokens)
+        assert tokens is not None
         self.assertEqual(
             tokens[1],
             r"D:\a\dev-flow\dev-flow\skills\dev-flow\scripts\dev-flow.py",
@@ -7053,6 +7152,12 @@ class HookTests(unittest.TestCase):
             r"C:\Users\runneradmin\AppData\Local\Temp\packet",
         )
         self.assertEqual(tokens[-1], "pnpm add alpha@1.0.0")
+        self.assertIsNone(governance_shell_tokens(command + "; pnpm add beta@2.0.0", windows=True))
+        expanded = command.replace(
+            r"D:\a\dev-flow\dev-flow\skills\dev-flow\scripts\dev-flow.py",
+            r'"$env:PLUGIN_ROOT\skills\dev-flow\scripts\dev-flow.py"',
+        )
+        self.assertIsNone(governance_shell_tokens(expanded, windows=True))
 
     def test_immutable_package_materialization_is_not_a_graph_mutation(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

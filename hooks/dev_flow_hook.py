@@ -23,7 +23,6 @@ from dependency_contracts import (  # noqa: E402
     DEPENDENCY_FILE_RE,
     action_reference_diff,
     action_reference_scan,
-    canonical_command,
     is_immutable_package_materialization,
     looks_like_package_mutation,
     matches_dependency_request,
@@ -52,6 +51,14 @@ PACKET_MUTATION_COMMANDS = {
     "resolve-ambiguity",
     "transition",
 }
+SHELL_CONTROL_TOKEN_RE = re.compile(r"[;&|<>]+")
+GOVERNANCE_COMMAND_SHAPE_RE = re.compile(
+    rf"(?:dev[_-]flow\.py).*?\b(?:{'|'.join(sorted(PACKET_MUTATION_COMMANDS))})\b",
+    re.IGNORECASE | re.DOTALL,
+)
+GOVERNANCE_UNRELATED = "unrelated"
+GOVERNANCE_EXACT = "exact"
+GOVERNANCE_INVALID = "invalid"
 SESSION_PACKET_TTL_SECONDS = 24 * 60 * 60
 DEPENDENCY_RE = re.compile(
     r"(?:Cargo\.toml|Cargo\.lock|package\.json|pnpm-lock\.yaml|package-lock\.json|yarn\.lock|"
@@ -211,7 +218,10 @@ def mutation_targets(event: dict[str, Any]) -> list[str]:
 
 def shell_tokens(command: str, *, windows: bool | None = None) -> list[str]:
     windows = os.name == "nt" if windows is None else windows
-    tokens = shlex.split(command, posix=not windows)
+    lexer = shlex.shlex(command, posix=not windows, punctuation_chars=";&|<>")
+    lexer.whitespace_split = True
+    lexer.commenters = ""
+    tokens = list(lexer)
     if not windows:
         return tokens
     return [
@@ -222,37 +232,140 @@ def shell_tokens(command: str, *, windows: bool | None = None) -> list[str]:
     ]
 
 
-def governance_packet_target(event: dict[str, Any], cwd: Path) -> tuple[Path | None, bool]:
-    if str(event.get("tool_name", "")) != "Bash":
-        return None, False
-    command = canonical_command(bash_command(event).strip())
-    if command is None:
-        return None, False
-    tokens = shell_tokens(command)
-    if not tokens:
-        return None, False
+def has_shell_expansion(command: str, *, windows: bool) -> bool:
+    quote: str | None = None
+    index = 0
+    while index < len(command):
+        character = command[index]
+        if quote == "'":
+            if windows and character == "'" and index + 1 < len(command) and command[index + 1] == "'":
+                index += 2
+                continue
+            if character == "'":
+                quote = None
+        elif quote == '"':
+            if character == '"':
+                quote = None
+            elif character in {"$", "`"}:
+                return True
+            elif not windows and character == "\\":
+                index += 1
+        elif character in {"'", '"'}:
+            quote = character
+        elif character in {"$", "`"}:
+            return True
+        elif not windows and character == "\\":
+            index += 1
+        index += 1
+    return False
+
+
+def governance_shell_tokens(command: str, *, windows: bool | None = None) -> list[str] | None:
+    windows = os.name == "nt" if windows is None else windows
+    if not command.strip() or any(character in command for character in "\n\r"):
+        return None
+    try:
+        tokens = shell_tokens(command, windows=windows)
+    except ValueError:
+        return None
+    if has_shell_expansion(command, windows=windows) or any(
+        SHELL_CONTROL_TOKEN_RE.fullmatch(token) for token in tokens
+    ):
+        return None
+    return tokens or None
+
+
+def exact_governance_target(tokens: list[str], cwd: Path) -> Path | None:
     executable = Path(tokens[0]).name.lower()
     script_index = 1
     if executable in {"py", "py.exe"} and len(tokens) > 1 and tokens[1] == "-3":
         script_index = 2
     elif not re.fullmatch(r"python(?:3(?:\.\d+)?)?(?:\.exe)?", executable):
-        return None, False
+        return None
     if len(tokens) <= script_index + 2:
-        return None, False
+        return None
     script = Path(tokens[script_index])
-    script = (script if script.is_absolute() else cwd / script).resolve()
-    if script not in {(SCRIPTS / "dev_flow.py").resolve(), (SCRIPTS / "dev-flow.py").resolve()}:
-        return None, False
+    resolved_script = (script if script.is_absolute() else cwd / script).resolve()
+    if resolved_script not in {(SCRIPTS / "dev_flow.py").resolve(), (SCRIPTS / "dev-flow.py").resolve()}:
+        return None
     if tokens[script_index + 1] not in PACKET_MUTATION_COMMANDS:
-        return None, False
+        return None
     target = Path(tokens[script_index + 2])
-    return (target if target.is_absolute() else cwd / target).resolve(), True
+    return (target if target.is_absolute() else cwd / target).resolve()
+
+
+def governance_script_token(token: str) -> bool:
+    return token.replace("\\", "/").rsplit("/", 1)[-1].lower() in {
+        "dev-flow.py",
+        "dev_flow.py",
+    }
+
+
+def tokens_contain_governance_shape(tokens: list[str], *, depth: int = 0) -> bool:
+    for index, token in enumerate(tokens):
+        if governance_script_token(token) and any(
+            candidate in PACKET_MUTATION_COMMANDS for candidate in tokens[index + 1 :]
+        ):
+            return True
+
+    if depth >= 2:
+        return False
+    for index, token in enumerate(tokens[:-2]):
+        executable = token.replace("\\", "/").rsplit("/", 1)[-1].lower()
+        option = tokens[index + 1]
+        payload: str | None = None
+        windows_payload = False
+        if executable in {"bash", "dash", "ksh", "sh", "zsh"}:
+            if option.startswith("-") and "c" in option[1:]:
+                payload = tokens[index + 2]
+        elif executable in {"env", "env.exe"} and option == "-S":
+            payload = tokens[index + 2]
+        elif executable in {"cmd", "cmd.exe"} and option.lower() in {"/c", "/k"}:
+            payload = tokens[index + 2]
+            windows_payload = True
+        elif executable in {"powershell", "powershell.exe", "pwsh", "pwsh.exe"} and option.lower() in {
+            "-c",
+            "-command",
+        }:
+            payload = tokens[index + 2]
+            windows_payload = True
+        if payload is None:
+            continue
+        try:
+            nested_tokens = shell_tokens(payload, windows=windows_payload)
+        except ValueError:
+            continue
+        if tokens_contain_governance_shape(nested_tokens, depth=depth + 1):
+            return True
+    return False
+
+
+def governance_packet_target(event: dict[str, Any], cwd: Path) -> tuple[Path | None, str]:
+    if str(event.get("tool_name", "")) != "Bash":
+        return None, GOVERNANCE_UNRELATED
+    command = bash_command(event).strip()
+    command_tokens = governance_shell_tokens(command)
+    if command_tokens is not None and (target := exact_governance_target(command_tokens, cwd)) is not None:
+        return target, GOVERNANCE_EXACT
+    if is_plain_ripgrep_command(event):
+        return None, GOVERNANCE_UNRELATED
+    try:
+        normalized_tokens = shell_tokens(command)
+    except ValueError:
+        normalized_tokens = None
+    if normalized_tokens is not None and tokens_contain_governance_shape(normalized_tokens):
+        return None, GOVERNANCE_INVALID
+    if GOVERNANCE_COMMAND_SHAPE_RE.search(command):
+        return None, GOVERNANCE_INVALID
+    return None, GOVERNANCE_UNRELATED
 
 
 def resolve_event_packet(event: dict[str, Any], cwd: Path) -> tuple[Path | None, str | None]:
     targets = mutation_targets(event)
-    command_target, governance_command = governance_packet_target(event, cwd)
-    if governance_command:
+    command_target, governance_kind = governance_packet_target(event, cwd)
+    if governance_kind == GOVERNANCE_INVALID:
+        return None, "DEV_FLOW_GOVERNANCE_COMMAND_INVALID: governance mutation must be one exact shell command."
+    if governance_kind == GOVERNANCE_EXACT:
         if command_target is None or not packet_is_current(command_target):
             return None, "DEV_FLOW_PACKET_TARGET_MISMATCH: governance command does not target the current active packet."
         return command_target, None
@@ -426,7 +539,7 @@ def dependency_requests(event: dict[str, Any], packet: Path, text: str) -> tuple
     root = packet.parents[2]
     name = str(event.get("tool_name", ""))
     if name == "Bash":
-        if governance_packet_target(event, Path(str(event.get("cwd") or os.getcwd())).resolve())[1]:
+        if governance_packet_target(event, Path(str(event.get("cwd") or os.getcwd())).resolve())[1] != GOVERNANCE_UNRELATED:
             return [], False
         requests, unbindable = package_command_requests(event, root)
         if requests or unbindable:
@@ -525,9 +638,13 @@ def dependency_requests(event: dict[str, Any], packet: Path, text: str) -> tuple
 
 def mutation_is_packet_only(event: dict[str, Any], packet: Path) -> bool:
     cwd = Path(str(event.get("cwd") or os.getcwd())).resolve()
-    command_target, governance_command = governance_packet_target(event, cwd)
-    if governance_command:
-        return command_target is not None and command_target.resolve() == packet.resolve()
+    command_target, governance_kind = governance_packet_target(event, cwd)
+    if governance_kind != GOVERNANCE_UNRELATED:
+        return (
+            governance_kind == GOVERNANCE_EXACT
+            and command_target is not None
+            and command_target.resolve() == packet.resolve()
+        )
     targets = mutation_targets(event)
     if not targets:
         return False

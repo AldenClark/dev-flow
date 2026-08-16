@@ -13,7 +13,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
-- Preserved Windows path separators while recognizing Dev Flow's own governance CLI so exact packet mutations do not fall through to unrelated immutable-ledger validation.
+- Preserved Windows path separators and quoted literal arguments before validating Dev Flow's own governance CLI, while failing closed on interpreter options, wrappers, expansions, and compound shell commands so packet mutations cannot bypass target or immutable-ledger validation.
 - Prevented Dev Flow's own packet CLI from recursively triggering package-mutation detection when descriptive approval arguments contain package commands.
 - Closed the interactive-shell governance bypass by hooking `write_stdin` and denying unclassifiable input while a governed packet is active.
 - Preserved single-package and removal approval compatibility while requiring every package in an exact multi-package command to have a matching approval.
