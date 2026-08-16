@@ -95,6 +95,7 @@ class QualityPracticesContractTests(unittest.TestCase):
             "skills/dev-flow/references/multi-agent-v2-orchestration.md"
         )
         brief = read("skills/dev-flow/templates/task-brief.md")
+        execution = read("skills/dev-flow/templates/execution.md")
         report = read("skills/dev-flow/templates/agent-report.md")
 
         for term in (
@@ -102,11 +103,27 @@ class QualityPracticesContractTests(unittest.TestCase):
             "requirement and design revisions/digests",
             "effective instruction/profile/capability fingerprint",
             "`AC/SC/VO` IDs",
-            "exclusive paths/symbols/environments",
+            "exclusive files/symbols/environments and read/write sets",
             "separately derived black-box and white-box obligations",
             "must stop and return drift",
             "root independently rechecks",
             "Terminal child status is coordination evidence only",
+            "governed active-child ceiling",
+            "ordinary soft limit",
+            "observed productive capacity",
+            "rolling ready frontier",
+            "critical-path",
+            "shared-disjoint-files",
+            "Declared sibling changes",
+            "combined cohort as one candidate",
+            "isolated-worktree",
+            "lease_epoch",
+            "integration queue",
+            "terminal-but-unreconciled",
+            "proposed | blocked | ready -> cancelled -> reconciled",
+            "no approved in-scope task in `proposed`, `blocked`",
+            "spawned | working -> draining",
+            "1`, `2`, `4`, and `6`",
         ):
             self.assertIn(term, orchestration)
 
@@ -120,8 +137,27 @@ class QualityPracticesContractTests(unittest.TestCase):
             "Resource lease and teardown",
             "no delivery authority",
             "engineering-context fingerprint",
+            "Task graph and state",
+            "Parallelization fit and grain",
+            "Cohort and ready frontier",
+            "Attempt, lease, and cancellation",
+            "Writer isolation and owned scope",
+            "Integration contract",
+            "proposed/blocked/ready/spawned/working/draining/overdue/interrupt-requested/terminal/orphan-suspected/cancelled/reconciled",
         ):
             self.assertIn(term, brief)
+
+        for term in (
+            "Scheduler snapshot",
+            "terminal-but-unreconciled",
+            "Productive evidence",
+            "Integration queue",
+            "Sibling deltas outside a child's write set are expected",
+            "attempt / epoch",
+            "Completion order is not merge order",
+            "no approved in-scope task in proposed, blocked",
+        ):
+            self.assertIn(term, execution)
 
         for term in (
             "Bound baseline recheck",

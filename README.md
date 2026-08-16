@@ -23,7 +23,7 @@ Dev Flow 是一套面向 Codex 的中立、可组合、证据驱动工程工作�
 - 使用 `direct`（无工作包）、`traced`（三个核心状态文件）和 `governed`（完整治理记录）三级工作模式；
 - 按 Rust 后端、Web、Apple/Android/Windows 客户端、FFI、CLI/TUI 等项目形态组织验证；
 - 新依赖必须先比较候选方案、影响与维护成本，并取得明确批准；
-- 只把边界清晰的独立工作交给子代理，通常同时运行 1–2 个；以确定性的 P0-P6/PX 画像按任务宽度、推理深度与风险选择子代理模型/effort，根代理按 deadline、resource lease 和 disposition 完成综合、复核与最终验收；
+- 只把边界清晰、可独立验收的工作交给子代理；按任务形状从 1/2/3 起步并在净收益证据支持时逐槽扩到最多 6 个，以确定性的 P0-P6/PX 画像按任务宽度、推理深度与风险选择子代理模型/effort，根代理按 deadline、resource lease 和 disposition 完成综合、复核与最终验收；
 - 管控浏览器、模拟器、设备、虚拟机、容器和服务等测试资源；
 - 在需求、设计、实施、验证和最终 diff 上执行基本蓝/红质疑；对治理风险再路由独立深度审查；
 - 通过 `$company-data-security` 为 Codex、ChatGPT Work 和普通 Chat 提供同一 C0-C4 数据处理原则，并在受支持的 Codex 本地 Prompt/工具路径上增加高置信 Secret 检查和输出脱敏；
@@ -50,17 +50,21 @@ multi_agent_v2 = true
 hooks = true
 
 [agents]
-max_concurrent_threads_per_session = 3
+max_concurrent_threads_per_session = 6
 ```
 
-这里的值只是客户端允许的子线程上限，不是服务端的实时容量。`preflight` 会把 configured ceiling、初始建议并发（默认 1）和尚未观测的 effective capacity 分开报告；遇到 HTTP 429 或调度饱和时停止新增派工、先对账在途任务，并把本会话并发许可减一后再重试尚未启动的工作。
+这里的值只是客户端允许的子线程上限，不是服务端实时容量或速度承诺。Dev Flow 的治理上限为 6、常规软上限为 3；不确定/强耦合任务从 1 开始，隔离实现从 2 开始，只读广度任务可从 3 开始。4–6 个活跃子代理每次只增加一个槽位，并且必须同时证明 ready 任务、路径/资源隔离、root 对账余量和已接纳结果的净收益。`preflight` 会把 configured ceiling、governed ceiling、task-shaped start、runtime capacity 和 productive capacity 分开报告。
+
+大型任务按上下文边界和“可独立验收的结果”拆成滚动 ready frontier：只有前置结果已由 root 接纳、基线/接口冻结、lease 可用、oracle 完整且 root 有整合余量的任务才是 ready；调度优先关键路径和低 slack，而不是按文件数平均切块。共享工作树中同一文件只能有一个 writer；独立 worktree 仍必须隔离数据库、端口、构建目录和外部资源。共享 manifest、lockfile、schema、migration 和生成物默认由单一 integration owner 串行求解或重生。
+
+扩容判断看 accepted critical-path progress、首轮验收、root reconciliation backlog、冲突、返工及 token/tool 成本，而不只看 429。`interrupt` 不等于 writer 已停止或 lease 已释放；重试必须增加 attempt/lease epoch，迟到结果不能自动集成。Dev Flow 用相同冻结任务的 `1/2/4/6` 对照证据决定哪些任务类型适合更高默认并发，不以代理利用率或派工数量作为生产力。
 
 ## 安装
 
-发布与插件清单版本一致的标签后，可直接添加仓库内的 marketplace 并安装固定到该标签的插件。当前已发布稳定标签为 `v1.1.2`；只有对应标签已推送后，才应从 marketplace 安装该版本：
+发布与插件清单版本一致的标签后，可直接添加仓库内的 marketplace 并安装固定到该标签的插件。当前已发布稳定标签为 `v1.1.3`；只有对应标签已推送后，才应从 marketplace 安装该版本：
 
 ```bash
-codex plugin marketplace add AldenClark/dev-flow --ref v1.1.2
+codex plugin marketplace add AldenClark/dev-flow --ref v1.1.3
 codex plugin add dev-flow@dev-flow
 ```
 

@@ -105,7 +105,7 @@ def write_features(path: Path) -> None:
 
 def write_config(path: Path, *, correct: bool = True) -> None:
     if correct:
-        text = "[features]\nmulti_agent = true\nmulti_agent_v2 = true\nhooks = true\n\n[agents]\nmax_concurrent_threads_per_session = 3\n"
+        text = "[features]\nmulti_agent = true\nmulti_agent_v2 = true\nhooks = true\n\n[agents]\nmax_concurrent_threads_per_session = 6\n"
     else:
         text = "[features]\nmulti_agent = true\nhooks = true\n\n[features.multi_agent_v2]\nenabled = true\nmax_concurrent_threads_per_session = 4\n"
     path.write_text(text, encoding="utf-8")
@@ -373,10 +373,120 @@ class PreflightTests(unittest.TestCase):
             config = root / "config.toml"
             write_features(features)
             write_config(config)
+            result = run(
+                PYTHON,
+                str(FLOW),
+                "preflight",
+                "--version-output",
+                "codex-cli 0.147.0",
+                "--features-output-file",
+                str(features),
+                "--config",
+                str(config),
+                "--tool-surface-confirmed",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            capacity = json.loads(result.stdout)["delegation_capacity"]
+            self.assertEqual(capacity["configured_ceiling"], 6)
+            self.assertEqual(capacity["governed_active_child_ceiling"], 6)
+            self.assertEqual(capacity["ordinary_active_child_soft_limit"], 3)
+            self.assertEqual(capacity["recommended_initial_active_children"], 1)
+            self.assertFalse(capacity["recommended_initial_active_children_is_task_shaped"])
+            self.assertEqual(
+                capacity["initial_active_child_profiles"],
+                {
+                    "uncertain_or_tightly_coupled": 1,
+                    "isolated_implementation": 2,
+                    "read_only_breadth": 3,
+                },
+            )
+            self.assertEqual(capacity["recommended_ramp_step"], 1)
+            self.assertEqual(capacity["effective_active_children"], None)
+            self.assertEqual(capacity["effective_capacity_status"], "not-observed")
+            self.assertEqual(capacity["productive_active_children"], None)
+            self.assertEqual(capacity["productive_capacity_status"], "not-observed")
+            self.assertFalse(capacity["configured_ceiling_is_effective_capacity"])
+            self.assertIn("root reconciliation capacity", capacity["admission_policy"])
+            self.assertIn("429", capacity["saturation_backoff"])
+
+    def test_caps_governed_concurrency_without_rewriting_client_config(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            features = root / "features.txt"
+            config = root / "config.toml"
+            write_features(features)
+            write_config(config)
             config.write_text(
                 config.read_text(encoding="utf-8").replace(
-                    "max_concurrent_threads_per_session = 3",
                     "max_concurrent_threads_per_session = 6",
+                    "max_concurrent_threads_per_session = 9",
+                ),
+                encoding="utf-8",
+            )
+            result = run(
+                PYTHON,
+                str(FLOW),
+                "preflight",
+                "--version-output",
+                "codex-cli 0.147.0",
+                "--features-output-file",
+                str(features),
+                "--config",
+                str(config),
+                "--tool-surface-confirmed",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            payload = json.loads(result.stdout)
+            capacity = payload["delegation_capacity"]
+            self.assertEqual(capacity["configured_ceiling"], 9)
+            self.assertEqual(capacity["governed_active_child_ceiling"], 6)
+            self.assertEqual(capacity["ordinary_active_child_soft_limit"], 3)
+            self.assertEqual(capacity["recommended_initial_active_children"], 1)
+            self.assertTrue(any("governed active-child ceiling 6" in item for item in payload["warnings"]))
+
+    def test_skip_config_does_not_invent_governed_or_starting_capacity(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            features = Path(temp) / "features.txt"
+            write_features(features)
+            result = run(
+                PYTHON,
+                str(FLOW),
+                "preflight",
+                "--version-output",
+                "codex-cli 0.147.0",
+                "--features-output-file",
+                str(features),
+                "--skip-config",
+                "--tool-surface-confirmed",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            capacity = json.loads(result.stdout)["delegation_capacity"]
+            self.assertEqual(capacity["configured_ceiling"], None)
+            self.assertEqual(capacity["governed_active_child_ceiling"], None)
+            self.assertEqual(capacity["ordinary_active_child_soft_limit"], None)
+            self.assertEqual(capacity["recommended_initial_active_children"], None)
+            self.assertFalse(capacity["recommended_initial_active_children_is_task_shaped"])
+            self.assertEqual(
+                capacity["initial_active_child_profiles"],
+                {
+                    "uncertain_or_tightly_coupled": None,
+                    "isolated_implementation": None,
+                    "read_only_breadth": None,
+                },
+            )
+            self.assertEqual(capacity["recommended_ramp_step"], None)
+
+    def test_task_shaped_profiles_never_exceed_a_smaller_client_ceiling(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            features = root / "features.txt"
+            config = root / "config.toml"
+            write_features(features)
+            write_config(config)
+            config.write_text(
+                config.read_text(encoding="utf-8").replace(
+                    "max_concurrent_threads_per_session = 6",
+                    "max_concurrent_threads_per_session = 1",
                 ),
                 encoding="utf-8",
             )
@@ -394,12 +504,17 @@ class PreflightTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
             capacity = json.loads(result.stdout)["delegation_capacity"]
-            self.assertEqual(capacity["configured_ceiling"], 6)
+            self.assertEqual(capacity["governed_active_child_ceiling"], 1)
+            self.assertEqual(capacity["ordinary_active_child_soft_limit"], 1)
             self.assertEqual(capacity["recommended_initial_active_children"], 1)
-            self.assertEqual(capacity["effective_active_children"], None)
-            self.assertEqual(capacity["effective_capacity_status"], "not-observed")
-            self.assertFalse(capacity["configured_ceiling_is_effective_capacity"])
-            self.assertIn("429", capacity["saturation_backoff"])
+            self.assertEqual(
+                capacity["initial_active_child_profiles"],
+                {
+                    "uncertain_or_tightly_coupled": 1,
+                    "isolated_implementation": 1,
+                    "read_only_breadth": 1,
+                },
+            )
 
     def test_rejects_old_version(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -8800,6 +8915,8 @@ class RepositoryContractTests(unittest.TestCase):
         brief = (ROOT / "skills" / "dev-flow" / "templates" / "task-brief.md").read_text(encoding="utf-8")
         for token in (
             "spawned -> working -> terminal -> reconciled",
+            "proposed | blocked | ready -> cancelled -> reconciled",
+            "spawned | working -> draining",
             "orphan-suspected",
             "wait_agent",
             "at most one interrupt",
@@ -8810,7 +8927,14 @@ class RepositoryContractTests(unittest.TestCase):
             self.assertIn(token, orchestration)
         for token in ("Soft/hard deadline", "Native result", "Durable report", "Resource lease", "Disposition/recovery"):
             self.assertIn(token, execution)
-        for token in ("soft observation deadline", "hard stop deadline", "Native result", "Durable report", "must not block native stop"):
+        for token in (
+            "soft observation deadline",
+            "hard stop deadline",
+            "Native result",
+            "Durable report",
+            "must not block native stop",
+            "proposed/blocked/ready/spawned/working/draining/overdue/interrupt-requested/terminal/orphan-suspected/cancelled/reconciled",
+        ):
             self.assertIn(token, brief)
 
         for config in AGENT_CONFIGS.glob("*.toml"):

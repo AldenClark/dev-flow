@@ -33,6 +33,11 @@ from path_contracts import PathContractError, atomic_write_text, contained_path
 
 
 MIN_CODEX = (0, 147, 0)
+GOVERNED_MAX_ACTIVE_CHILDREN = 6
+DEFAULT_INITIAL_ACTIVE_CHILDREN = 2
+READ_ONLY_BREADTH_INITIAL_ACTIVE_CHILDREN = 3
+ORDINARY_ACTIVE_CHILD_SOFT_LIMIT = 3
+DEFAULT_CAPACITY_RAMP_STEP = 1
 SCHEMA_VERSION = "2.0"
 SUPPORTED_SCHEMA_VERSIONS = {"1.0", "1.1", "1.2", "2.0"}
 READINESS_SCHEMA_VERSIONS = {"1.1", "1.2", "2.0"}
@@ -1489,6 +1494,12 @@ def codex_preflight(args: argparse.Namespace) -> int:
                 capability_issues.append("config must set a positive [agents].max_concurrent_threads_per_session for delegation")
             else:
                 configured_ceiling = limit
+                if limit > GOVERNED_MAX_ACTIVE_CHILDREN:
+                    warnings.append(
+                        f"configured agent ceiling {limit} exceeds the governed active-child ceiling "
+                        f"{GOVERNED_MAX_ACTIVE_CHILDREN}; Dev Flow will schedule at most "
+                        f"{GOVERNED_MAX_ACTIVE_CHILDREN} active children"
+                    )
             if isinstance(feature_config.get("multi_agent_v2"), dict):
                 capability_issues.append("obsolete [features.multi_agent_v2] table is not supported")
         except (OSError, ValueError, tomllib.TOMLDecodeError) as exc:
@@ -1502,6 +1513,47 @@ def codex_preflight(args: argparse.Namespace) -> int:
         warnings.extend(capability_issues)
     delegation_available = not capability_issues
     status = "blocked" if errors else "ready" if delegation_available else "degraded"
+    governed_ceiling = (
+        min(configured_ceiling, GOVERNED_MAX_ACTIVE_CHILDREN)
+        if configured_ceiling is not None
+        else None
+    )
+    if delegation_available and governed_ceiling is not None:
+        ordinary_soft_limit: int | None = min(
+            governed_ceiling,
+            ORDINARY_ACTIVE_CHILD_SOFT_LIMIT,
+        )
+        recommended_initial: int | None = min(governed_ceiling, 1)
+        initial_profiles: dict[str, int | None] = {
+            "uncertain_or_tightly_coupled": min(governed_ceiling, 1),
+            "isolated_implementation": min(
+                governed_ceiling,
+                DEFAULT_INITIAL_ACTIVE_CHILDREN,
+            ),
+            "read_only_breadth": min(
+                governed_ceiling,
+                READ_ONLY_BREADTH_INITIAL_ACTIVE_CHILDREN,
+            ),
+        }
+        ramp_step: int | None = DEFAULT_CAPACITY_RAMP_STEP
+    elif delegation_available:
+        ordinary_soft_limit = None
+        recommended_initial = None
+        initial_profiles = {
+            "uncertain_or_tightly_coupled": None,
+            "isolated_implementation": None,
+            "read_only_breadth": None,
+        }
+        ramp_step = None
+    else:
+        ordinary_soft_limit = 0
+        recommended_initial = 0
+        initial_profiles = {
+            "uncertain_or_tightly_coupled": 0,
+            "isolated_implementation": 0,
+            "read_only_breadth": 0,
+        }
+        ramp_step = 0
 
     return emit(
         {
@@ -1519,12 +1571,26 @@ def codex_preflight(args: argparse.Namespace) -> int:
             "delegation_capacity": {
                 "configured_ceiling": configured_ceiling,
                 "configured_ceiling_is_effective_capacity": False,
-                "recommended_initial_active_children": 1 if delegation_available else 0,
+                "governed_active_child_ceiling": governed_ceiling,
+                "ordinary_active_child_soft_limit": ordinary_soft_limit,
+                "recommended_initial_active_children": recommended_initial,
+                "recommended_initial_active_children_is_task_shaped": False,
+                "initial_active_child_profiles": initial_profiles,
+                "recommended_ramp_step": ramp_step,
                 "effective_active_children": None,
                 "effective_capacity_status": "not-observed",
+                "productive_active_children": None,
+                "productive_capacity_status": "not-observed",
+                "admission_policy": (
+                    "Bound active children by configured/governed ceilings, ready-task width, isolated "
+                    "ownership and resource slots, and root reconciliation capacity; expand one slot "
+                    "only after accepted critical-path progress without growing integration backlog, "
+                    "conflicts, rework, or disproportionate cost."
+                ),
                 "saturation_backoff": (
                     "On HTTP 429 or scheduler saturation, stop new dispatches, reconcile active work, "
-                    "and reduce the session's observed active-child allowance by one before retrying unstarted work."
+                    "and reduce the session's observed active-child allowance by at least one before "
+                    "retrying unstarted work. Pause admission while terminal results await reconciliation."
                 ),
             },
             "required_capability": "delegation" if args.require_delegation else "core-workflow",

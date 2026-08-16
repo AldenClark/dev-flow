@@ -2,8 +2,11 @@
 
 - Deliverable: <one bounded output>
 - Repository root: <repository-roots>
-- Base commit and worktree binding: <immutable base commit, worktree identity/path, initial dirty-state accounting, and recheck method>
-- Dependencies: <upstream and downstream task IDs>
+- Base commit and worktree binding: <immutable base commit, worktree identity/path, initial dirty-state accounting, declared sibling cohort deltas that are not drift, and recheck method>
+- Task graph and state: <task_id, proposed/blocked/ready/spawned/working/draining/overdue/interrupt-requested/terminal/orphan-suspected/cancelled/reconciled status, predecessor IDs, join type, downstream unlocks, and relative criticality/slack>
+- Parallelization fit and grain: <context partition, independent outcome/oracle, expected critical-path saving, low/medium/high briefing/context/join/rework cost, and coalescing reason if net gain is unclear>
+- Cohort and ready frontier: <frontier/cohort ID, sibling task IDs and declared write sets, root reconciliation capacity, known concurrent dirty paths, and serialized paths/resources>
+- Attempt, lease, and cancellation: <attempt_id, lease_epoch, task intent digest, cancellation/drain condition, and stale-result disposition>
 - Dispatch profile: <workload, default/policy/selected Px, E/B/F capability, and upgrade reasons from route-agent>
 - Selection source: <policy, explicit profile, user, or fallback>
 - Requested model: <spawn-time model slug, or user-owned explicit value>
@@ -15,7 +18,8 @@
 - Applicable instruction IDs and product/UX constraints: <INS IDs, UI impact, protected flows, and approved design evidence>
 - Requirement and design baseline: <approved requirement revision/digest, approved design revision/digest, applicable AMB IDs, resolutions, affected IDs, and user-owned semantics the child must not reinterpret>
 - Collaboration boundary: <decisions already approved, questions the root owns, and drift trigger>
-- Owned paths, symbols, and environments: <exclusive boundary; no writes outside it>
+- Writer isolation and owned scope: <shared-disjoint-files, isolated-worktree, or read-only-frozen-bytes; exclusive files, symbols, environments, read/write sets, and no writes outside them>
+- Integration contract: <isolated patch/commit candidate or frozen shared-cohort candidate, base/digest, interface revision, predecessor candidates, root-owned integration order, required post-integration checks, and rebase/conflict invalidation rule>
 - Acceptance, scope, and verification IDs: <AC, SC, and VO IDs>
 - Approved decisions: <decision IDs and non-goals>
 - Allowed actions: <read, edit, test, or external boundaries>
@@ -26,7 +30,7 @@
 - Verification: <exact narrow, module/smoke, and broader commands; environment, oracle, and instruction or UX evidence produced>
 - Slice closeout: <complete diff, generated/dependency metadata, secrets, comments/docs, test-oracle, format/typecheck/lint, smoke, and commit-ready audit; report only, no delivery authority>
 - Spawned at and deadlines: <timestamp, soft observation deadline, and hard stop deadline>
-- Resource lease and teardown: <owned resource, isolation, release or transfer rule>
+- Resource lease and teardown: <owned resource and namespace, isolation proof, quiescence observation, release or transfer rule; interrupt alone does not release a writer lease>
 - Native result: required bounded final result returned to root with outcome, evidence, limitations, and recommended disposition
 - Durable report: <not required, or why required and exact packet/reports/task-id.md path>; absence must not block native stop
 - Stop conditions: competing requirement interpretations; changed base/worktree, requirement/design revision or digest, engineering-context fingerprint, AC/SC/VO mapping, ownership, or resource lease; dependency need, scope drift, missing environment, unsafe action, or three failed attempts

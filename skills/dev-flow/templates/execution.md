@@ -4,9 +4,21 @@
 
 - Instruction mapping: <INS IDs assigned to tasks and their stop or verification effects>
 
-| Task | Depends on | Owner | Scope IDs and paths | Acceptance | Verification | Status |
+| Task | Depends on / join | Priority / unlocks | Owner / lease | Context and read/write scope | Acceptance / oracle | Status / readiness evidence |
 |---|---|---|---|---|---|---|
-| T1 | none | root | SC-D1; <paths> | AC-1 | VO-1 | pending |
+| T1 | none / all | critical / <task IDs> | root / epoch 1 | SC-D1; <paths> | AC-1 / VO-1 | ready; <contracts, baseline, leases, and root capacity> |
+
+Ready means every predecessor is root-accepted, relevant contracts and baseline are frozen, ownership and resource leases are available, the oracle is complete, and root reconciliation capacity is available. Terminal child status alone does not unlock successors.
+
+For `shared-disjoint-files`, declare every sibling write set before spawn. Sibling deltas outside a child's write set are expected; overlap or undeclared writes drain the cohort. Freeze one combined cohort candidate only after every writer is quiescent. For `isolated-worktree`, keep one candidate per task/attempt.
+
+## Scheduler snapshot
+
+- Capacity: <configured ceiling; governed ceiling 6; ordinary soft limit 3; observed runtime capacity; observed productive capacity>
+- Current admission: <active children; terminal-but-unreconciled count and oldest age; integration queue; root capacity; hold/expand/reduce ruling>
+- Task-shaped start: <1 uncertain/coupled, 2 isolated implementation, or up to 3 read-only breadth; reason>
+- Productive evidence: <accepted critical-path progress, first-pass acceptance, conflicts, repair rounds, reconciliation time, and token/tool cost when exposed>
+- Next ready priority: <lowest slack/longest remaining critical path, downstream unlocks, lease availability, and admission ruling>
 
 ## Progress ledger
 
@@ -38,11 +50,19 @@
 
 ## Agent ledger
 
-| Agent/path | Task/role | Dispatch profile/source | Requested model/effort/fork | Effective model/effort | Spawned | Soft/hard deadline | Last status/time | Native result | Duration/tokens/tools | Fallback | Durable report | Resource lease | Interrupts | Disposition/recovery |
+| Agent/path | Task/attempt/lease epoch / role | Dispatch profile/source | Requested model/effort/fork | Effective model/effort | Spawned | Soft/hard deadline | Last status/time | Native result | Duration/tokens/tools | Fallback | Durable report | Resource lease | Interrupts | Disposition/recovery |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
-| root | T1/root | root-only/user | parent-owned | parent-owned | <time> | n/a | working; <time> | inline | <observed or not-observed> | none | not required | <paths and environments> | 0 | active |
+| root | T1/A1/E1 / root | root-only/user | parent-owned | parent-owned | <time> | n/a | working; <time> | inline | <observed or not-observed> | none | not required | <paths and environments> | 0 | active |
 
-Completion requires no delegated task in spawned, working, overdue, or interrupt-requested and a reconciled disposition for every row. Resident terminal thread count is not a completion oracle.
+Completion requires no approved in-scope task in proposed, blocked, ready, spawned, working, draining, overdue, or interrupt-requested and a reconciled disposition for every task row. Deferral requires explicit scope authority. Resident terminal thread count is not a completion oracle.
+
+## Integration queue
+
+| Candidate | Isolation / task or cohort / attempt / epoch | Base and patch/commit/frozen-worktree digest | Declared / actual writes | Interface and predecessors | Required checks | Status / ruling |
+|---|---|---|---|---|---|---|
+| IC-1 | isolated-worktree / T1 / A1 / E1 | <base> / <digest> | <paths> / <paths> | <revision> / none | <focused and contract checks> | pending |
+
+The root applies isolated candidates in dependency order to the current integration head. A shared cohort is already materialized, so the root freezes and verifies its combined bytes rather than reapplying child changes. Completion order is not merge order; rebase, conflict repair, shared-output regeneration, or final-byte change creates a new digest and invalidates stale review or test evidence.
 
 ## Decisions and drift
 

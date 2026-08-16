@@ -17,7 +17,7 @@ Evaluate behavior without prescribing a specific implementation answer.
 - Defines direct, indirect, conditional, protected, out-of-scope, and delivery scope.
 - Stops before introducing a new dependency and produces a comparative decision card.
 - Uses standard library/existing dependencies/local implementation/new dependency in that decision order while excluding unsafe do-it-yourself domains.
-- Uses single-agent execution by default; when delegation is available and justified, uses Multi-Agent V2, one-to-two ordinary active children, bounded briefs/deadlines/leases, exclusive ownership, and independent root verification.
+- Uses single-agent execution for tightly coupled work; when delegation is available and justified, uses Multi-Agent V2 with a governed six-child ceiling, an ordinary soft limit of three, task-shaped starts, one-slot productive-capacity admission, critical-path ready-frontier scheduling, independently verifiable tasks, bounded briefs/deadlines/leases, exclusive writer/integration ownership, root backpressure, and independent root verification.
 - Treats native child finals as primary and file reports as optional projections; wait timeout is not death, missing report cannot block stop, and every delegated task reaches an explicit reconciled disposition without requiring resident thread count to return to one.
 - Scales ceremony down for simple work and up for migration, security, protocol, FFI, and compatibility.
 - Tracks test resources and reports `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, and `WAIVED` honestly.

@@ -13,22 +13,24 @@ multi_agent_v2 = true
 hooks = true
 
 [agents]
-max_concurrent_threads_per_session = 3
+max_concurrent_threads_per_session = 6
 ```
 
 The limit controls child threads per root session; it does not include the root. Do not use the obsolete `[features.multi_agent_v2]` table or legacy depth/thread keys.
 
-Treat `3` as a capacity ceiling, not a target. Operationally start one child and keep no more than two children active for ordinary independent slices. Use three only when all slices are independent, briefs and ownership are complete, resource isolation is proven, and root synthesis capacity is reserved. Resident terminal threads may remain reusable; they do not consume active-execution budget merely by remaining visible.
+Treat `6` as the governed active-child ceiling, not a target. Use one child for an uncertain, resumed, dirty, or tightly coupled session; start two for isolated implementation; start up to three for breadth-first read-only work. Three is the ordinary soft limit. Admit a fourth through sixth child one slot at a time only when the ready frontier, isolation, root reconciliation capacity, and accepted-result evidence justify it. Resident terminal threads may remain reusable; they do not consume active-execution budget merely by remaining visible.
 
-Separate three values in every scheduling decision:
+Separate five values in every scheduling decision:
 
 - configured ceiling: the TOML maximum, which proves only what the client permits;
-- recommended initial concurrency: one active child for a new or resumed session;
-- observed effective capacity: the highest concurrency completed without HTTP 429, scheduler saturation, or a rejected spawn in this session and service state.
+- governed active-child ceiling: the smaller of the configured ceiling and six;
+- task-shaped initial concurrency: one for uncertain or coupled work, two for isolated implementation, and up to three for read-only breadth;
+- observed runtime capacity: the highest concurrency admitted without HTTP 429, scheduler saturation, or a rejected spawn in this session and service state;
+- observed productive capacity: the highest concurrency that improved accepted critical-path progress without growing root reconciliation backlog, conflicts, rework, or disproportionate token/tool cost.
 
-`preflight` reports the configured ceiling and initial recommendation but leaves effective capacity `not-observed`. Never infer service quota from the ceiling or from a previous session. Increase by at most one only after a completed, reconciled wave with no saturation signal and only when the task budget, ownership, and resources permit it.
+`preflight` reports configured and governed ceilings, the ordinary soft limit, a conservative task-agnostic legacy start of one, task-shaped starting profiles, and a one-slot admission step, but leaves runtime and productive capacity `not-observed`. Consumers that know the task shape use the profiles; the legacy scalar never substitutes the isolated-write value. When configuration is skipped or unavailable, governed and starting capacities remain `null`; never substitute the policy ceiling for an unobserved client limit. Never infer runtime or productive capacity from configuration or a previous session. Effective concurrency is bounded by the configured and governed ceilings, ready-task width, isolated ownership/resource slots, and root reconciliation capacity. Increase one slot after accepted progress with no growing integration queue; hold or reduce when another child does not shorten the critical path or worsens acceptance, rework, conflicts, or cost.
 
-On HTTP 429, scheduler saturation, or a capacity-rejected spawn, stop new dispatches and preserve the first failure. Reconcile or wait for already active work, then set the session allowance to one fewer active child, with a minimum of one; retry only work that never started. Do not raise the allowance again until a later completed wave is stable, and do not rewrite the configured ceiling as though the transient observation changed configuration. Repeated saturation at one child blocks further delegation for the session and falls back to root execution or a later user-authorized retry.
+On HTTP 429, scheduler saturation, or a capacity-rejected spawn, stop new dispatches and preserve the first failure. Reconcile or wait for already active work, then reduce the session allowance by at least one, with a minimum of one; retry only work that never started. When terminal-but-unreconciled results accumulate, pause admission even if runtime slots remain. Do not raise the allowance again until later accepted work proves stable, and do not rewrite the configured ceiling as though transient observations changed configuration. Repeated saturation at one child blocks further delegation for the session and falls back to root execution or a later user-authorized retry.
 
 ## Root-only responsibilities
 
@@ -39,12 +41,24 @@ The root owns authority and user communication, repository and requirement synth
 | Task | Default child budget | Typical delegation |
 |---|---:|---|
 | Micro | 0 | none |
-| Routine or spike | 0-1 | focused scan, test, or isolated implementation |
-| Bug fix or dependency change | 0-2 | independent cause trace, implementation, or verification |
-| Large feature/refactor, migration, security, release | 0-3 | disjoint implementation, environment test, clean blue/red review |
-| Read-only audit or rollback | 0-2 | independent evidence or adversarial review |
+| Routine or spike | 0-2 | focused scan, test, or isolated implementation |
+| Bug fix or dependency change | 0-3 | independent cause trace, isolated implementation, or verification |
+| Large feature/refactor, migration, security, release | 0-6 | disjoint implementation, environment test, clean blue/red review |
+| Read-only audit or rollback | 0-6 | independent evidence or adversarial review; three is the ordinary start |
 
 Use fewer agents whenever work is ordered, tightly coupled, shares mutable resources, or depends on continuous user judgment. Risk modifiers raise evidence depth, not automatic agent count.
+
+## Task graph, decomposition, and rolling dispatch
+
+Decompose a large slice by context boundary and independently verifiable outcome, not by arbitrary file counts, equal-sized chunks, or planner/implementer/tester stages. Keep a feature, its focused tests, and the context needed to verify it with one worker unless a frozen black-box boundary makes independent verification useful. Each task records `task_id`, outcome, predecessors, join, downstream unlocks or relative slack, context partition, read/write sets, owner and lease, primary oracle, integration point, cancellation condition, attempt, and disposition.
+
+A task is ready only when every predecessor is root-accepted, the relevant contracts and baseline are frozen, its ownership and resource leases are available, its oracle is complete, and the root has reconciliation capacity. Prioritize low-slack or critical-path work, then tasks that unlock the most downstream work; duration estimates are heuristics, not proof of an optimal schedule. Terminal child status does not make a successor ready.
+
+Schedule the dependency graph as a rolling ready frontier. Dispatch up to the current productive allowance, keep blocked or ordered tasks out of the frontier, and fill a released slot without waiting for unrelated siblings only while integration backpressure remains clear. Reconcile a terminal task before its result unlocks successors or its paths/resources are reused. A disjoint ready task may start while another result is being integrated when root synthesis capacity remains available.
+
+Delegate only when expected critical-path saving exceeds briefing, duplicated-context, reconciliation, merge/test, and expected conflict/repair cost. Use relative `low/medium/high` estimates when timing data is absent. Coalesce adjacent tasks when they share mutable context or cannot be accepted independently, or when coordination cost approaches useful execution work. Fine-grained means independently acceptable, not merely small.
+
+Pipeline different byte generations where contracts are stable: workers may implement the current frontier while reviewers inspect previously frozen bytes and a test-runner owns an isolated environment. Treat `all` as the default implementation join; reserve `first-valid` or `adjudicated-ensemble` for bounded read-only or idempotent work with an explicit oracle. Never review moving bytes, expose an implementer's expected findings to an independent reviewer, or count duplicate derivations as additional implementation progress.
 
 ## Role isolation
 
@@ -93,7 +107,7 @@ An explicit user model/effort request has host-level precedence. Still compute a
 
 ## Dispatch contract
 
-Create a task brief from `templates/task-brief.md` before every spawn. Bind the `route-agent` result, one deliverable and dependency edges to the exact repository root, base commit and worktree, current requirement and design revisions/digests, effective instruction/profile/capability fingerprint, applicable `AMB-n` dispositions, and `AC/SC/VO` IDs. Include user-owned semantics the child must not reinterpret, approved decisions/non-goals, exclusive paths/symbols/environments, resource lease, allowed/forbidden actions, separately derived black-box and white-box obligations, exact verification command/oracle, soft and hard deadlines, native-result route, optional durable-report requirement, and stop conditions.
+Create a task brief from `templates/task-brief.md` before every spawn. Bind the `route-agent` result, one deliverable and dependency edges to the exact repository root, base commit and worktree, current requirement and design revisions/digests, effective instruction/profile/capability fingerprint, applicable `AMB-n` dispositions, and `AC/SC/VO` IDs. Include user-owned semantics the child must not reinterpret, approved decisions/non-goals, isolation mode, exclusive files/symbols/environments and read/write sets, resource lease, allowed/forbidden actions, separately derived black-box and white-box obligations, exact verification command/oracle, soft and hard deadlines, native-result route, optional durable-report requirement, and stop conditions. In a shared checkout, exclusive symbols never weaken the one-writer-per-file rule.
 
 The child must stop and return drift when the base/worktree, requirement/design baseline, effective engineering context, ownership boundary, resource lease, or `AC/SC/VO` mapping no longer matches. It must not reinterpret semantics, expand scope, add a dependency, or convert a commit-ready checkpoint into staging, commit, push, PR, or delivery authority.
 
@@ -105,7 +119,15 @@ Do not reveal the implementer's expected findings to an independent reviewer. A 
 
 ## Ownership and coordination
 
-Assign exclusive write ownership. Serialize manifests, lockfiles, schemas, migrations, generated code, snapshots, release metadata, shared simulators, databases, ports, and build directories unless isolation is proven.
+Assign one isolation mode to every delegated task:
+
+- `shared-disjoint-files`: tasks share a checkout, so each file has exactly one writer and every sibling write set is declared in the cohort before spawn; symbol-level ownership does not permit concurrent edits to the same file. Declared sibling changes outside a child's write set are expected cohort deltas rather than baseline drift, but any overlap or undeclared path drains the cohort. Individual child bytes are already materialized and are never treated as patches to apply later; after all writers are quiescent, the root freezes and reconciles the combined cohort as one candidate;
+- `isolated-worktree`: the checkout and index are isolated, but ports, databases, build directories, caches, external services, and secrets still require separate namespaces or leases;
+- `read-only-frozen-bytes`: reviewers or explorers bind an exact immutable target and write no product bytes.
+
+Each writer records `task_id`, `attempt_id`, monotonically increasing `lease_epoch`, base commit/worktree, allowed and forbidden write sets, resource namespaces, and integration order. Its terminal result reports actual touched paths, diff or commit digest, generated artifacts, checks, and unreleased resources. Serialize manifests, lockfiles, schemas, migrations, generated code, snapshots, release metadata, shared simulators, databases, ports, and build directories unless isolation is proven. Prefer workers changing source-of-truth inputs and a single integration owner regenerating or resolving shared outputs after integration.
+
+Use one root-owned integration queue. Completion order never decides integration order. An isolated-worktree result becomes an individual patch/commit candidate; a shared-disjoint-files cohort becomes one combined candidate only after every cohort writer is quiescent and the root freezes the materialized worktree. Bind each candidate to its base, task/cohort attempts and lease epochs, patch/commit or frozen-worktree digest, declared and actual write sets, interface revision, predecessor candidates, required checks, and disposition. Apply isolated candidates in dependency order to the current integration head; for a materialized cohort, verify the frozen combined bytes without pretending to reapply its child changes. Rerun affected focused and contract checks, and bind review/test evidence to the resulting exact bytes. Rebase, conflict repair, or regeneration creates a new candidate digest and invalidates stale downstream evidence.
 
 Use `send_message` to steer running work, `followup_task` for a bounded revision by an idle worker, `interrupt_agent` for drift or unsafe action, `list_agents` to audit tree/capacity, and minute-scale `wait_agent` calls without busy polling. A `wait_agent` timeout means only that no mailbox update arrived within that observation window; it is not evidence of death, loss, or permission to duplicate the task.
 
@@ -114,21 +136,30 @@ Use `send_message` to steer running work, `followup_task` for a bounded revision
 Track each delegated task, not just each visible thread, through the normal state machine:
 
 ```text
+proposed -> blocked | ready
+proposed | blocked | ready -> cancelled -> reconciled
+ready -> spawned
 spawned -> working -> terminal -> reconciled
                     ^             |
 working -> overdue -> interrupt-requested
                          |
                          +-> terminal | orphan-suspected -> reconciled
+spawned | working -> draining -> terminal | orphan-suspected -> reconciled
 ```
 
 Record agent path/id, role/task, dispatch profile/source, requested and effective model/effort, fork, fallback reason, spawn time, deadlines, last status, native result, duration/token/tool observations when exposed, optional report, resource lease, interrupts, final disposition, and recovery evidence in `execution.md`.
 
 - At a soft deadline, inspect `list_agents`, retained native output, repository state, and resource ownership; then wait again or steer. Do not redispatch only because the child is quiet.
 - At the declared hard deadline, inspect once more and request at most one interrupt for that task. Interruption stops active work but may intentionally leave a reusable resident thread.
-- After the interrupt response, classify the task as terminal or `orphan-suspected`, recover only evidence that can be verified, release or transfer its leases, and record an honest disposition. Never start a duplicate while the original can still mutate the same scope or resource.
-- Completion requires no delegated task in `spawned`, `working`, `overdue`, or `interrupt-requested`, and every ledger row reconciled as accepted, revised, rejected, cancelled, or orphan-suspected. The visible thread count does not need to return to one.
+- An interrupt request is not proof that a writer is quiescent. Revoke or transfer a lease only after terminal acknowledgement, observed quiescence, or quarantine that makes further writes unable to affect the integration target. A retry keeps `task_id`, increments `attempt_id` and `lease_epoch`, and rejects late stale-epoch results from automatic integration.
+- After the interrupt response, classify the task as terminal or `orphan-suspected`, recover only evidence that can be verified, release or transfer its leases, and record an honest disposition. Cancel or drain descendants when an accepted predecessor or frozen premise becomes invalid. Never start a duplicate while the original can still mutate the same scope or resource.
+- Completion requires no approved in-scope task in `proposed`, `blocked`, `ready`, `spawned`, `working`, `draining`, `overdue`, or `interrupt-requested`, and every task row reconciled as accepted, revised, rejected, cancelled, deferred by explicit scope authority, or orphan-suspected. The visible thread count does not need to return to one.
 
-Use stable observability definitions from packet/session evidence: `DEV_FLOW_AGENT_MARKER_UNAVAILABLE` per child start, `DEV_FLOW_AGENT_REPORT_MISSING` per active child stop, orphan-suspected tasks per dispatch, duplicate dispatches to a still-owned slice, and delegation efficiency as accepted results divided by dispatched tasks. These are diagnostic signals, not targets to game.
+Use stable observability definitions from packet/session evidence: `DEV_FLOW_AGENT_MARKER_UNAVAILABLE` per child start, `DEV_FLOW_AGENT_REPORT_MISSING` per active child stop, orphan-suspected tasks per dispatch, duplicate dispatches to a still-owned slice, and delegation efficiency as accepted results divided by dispatched tasks. Also observe end-to-end makespan, critical-path completion, accepted results per wall-clock, first-pass acceptance, terminal-but-unreconciled queue age, root reconciliation/integration time, conflicts, repair rounds, cancellations, and token/tool cost when exposed. These are diagnostic signals, not targets to game; raw agent utilization or task count is not productivity.
+
+For a critical-path straggler, first steer, narrow, or split the remaining work. Speculative duplication is exceptional and only allowed for read-only or idempotent work with a deterministic oracle, isolated resources, and an explicit cap; first accepted result wins and the other attempt is cancelled. Never duplicate a writer that still owns a mutable scope.
+
+Before making four through six children ordinary for a task class, forward-test the same frozen representative DAG at `1`, `2`, `4`, and `6` with the same model/effort and resource policy. Compare makespan, critical-path time, accepted results, root reconciliation time, first-pass acceptance, conflicts, rework, cancellations, and token/tool cost. Promote a higher default only for task classes where the evidence shows net benefit.
 
 ## Result adjudication and repair
 

@@ -20,6 +20,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- Raised the governed Multi-Agent V2 ceiling from three to six active children while keeping three as the ordinary soft limit; added task-shaped starts, one-slot productive-capacity admission, critical-path ready-frontier scheduling, root backpressure, writer/integration/lease contracts, and `1/2/4/6` forward-evaluation guidance.
 - Distinguished configured agent ceilings from observed service capacity and specified conservative ramp-up plus HTTP 429/saturation backoff.
 - Advanced local source, workflow, release-candidate, attestation, and documentation surfaces to patch version `1.1.3` without publishing a remote tag or release.
 
