@@ -209,13 +209,26 @@ def mutation_targets(event: dict[str, Any]) -> list[str]:
     return []
 
 
+def shell_tokens(command: str, *, windows: bool | None = None) -> list[str]:
+    windows = os.name == "nt" if windows is None else windows
+    tokens = shlex.split(command, posix=not windows)
+    if not windows:
+        return tokens
+    return [
+        token[1:-1]
+        if len(token) >= 2 and token[0] == token[-1] and token[0] in {"'", '"'}
+        else token
+        for token in tokens
+    ]
+
+
 def governance_packet_target(event: dict[str, Any], cwd: Path) -> tuple[Path | None, bool]:
     if str(event.get("tool_name", "")) != "Bash":
         return None, False
     command = canonical_command(bash_command(event).strip())
     if command is None:
         return None, False
-    tokens = shlex.split(command)
+    tokens = shell_tokens(command)
     if not tokens:
         return None, False
     executable = Path(tokens[0]).name.lower()

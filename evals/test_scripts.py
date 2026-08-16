@@ -7033,6 +7033,27 @@ class HookTests(unittest.TestCase):
             self.assertEqual(decision["permissionDecision"], "deny")
             self.assertIn("DEV_FLOW_PACKET_TARGET_MISMATCH", decision["permissionDecisionReason"])
 
+    def test_windows_shell_tokenization_preserves_governance_paths(self) -> None:
+        hook_globals = runpy.run_path(str(HOOK))
+        shell_tokens = hook_globals["shell_tokens"]
+        command = (
+            r'python3 D:\a\dev-flow\dev-flow\skills\dev-flow\scripts\dev-flow.py '
+            r'record-approval C:\Users\runneradmin\AppData\Local\Temp\packet dependencies '
+            r'--dependency-command "pnpm add alpha@1.0.0"'
+        )
+
+        tokens = shell_tokens(command, windows=True)
+
+        self.assertEqual(
+            tokens[1],
+            r"D:\a\dev-flow\dev-flow\skills\dev-flow\scripts\dev-flow.py",
+        )
+        self.assertEqual(
+            tokens[3],
+            r"C:\Users\runneradmin\AppData\Local\Temp\packet",
+        )
+        self.assertEqual(tokens[-1], "pnpm add alpha@1.0.0")
+
     def test_immutable_package_materialization_is_not_a_graph_mutation(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
