@@ -13,8 +13,8 @@ Manage preference assets without turning current code frequency, installed Skill
 
 - Consumes: repository context plus the target layer, owner, scope, and authority.
 - Owns: profile lifecycle, resolution, conflicts, promotion/retirement/waiver, and concise projection.
-- Stops: before a write without owner approval or at an unresolved applicable must-level conflict.
-- Hands off: the effective snapshot to the control plane and other decision owners; it never makes their decisions.
+- Stops: before a write that the request does not authorize or at an unresolved applicable must-level conflict.
+- Hands off: an effective snapshot to task and repository consumers when they need one; it never makes their decisions.
 
 ## Procedure
 
@@ -22,7 +22,7 @@ Manage preference assets without turning current code frequency, installed Skill
 2. Establish the target layer, owner, scope, authority, and canonical facts. Keep personal values out of shared project files.
 3. Extract candidates from manifests, CI, scripts, ADRs, source, and existing instructions. Label each `observed`, `inferred`, or `owner-input-required`.
 4. Propose minimal, separate changes for `AGENTS.md`, `.dev-flow/preferences.toml`, profiles, or decision records. Never infer a team-wide rule or public compatibility promise from frequency alone.
-5. Require approval before writing or replacing any instruction/profile asset. Use `scripts/profile-tool.py` without `--write` for review-first proposals.
+5. Treat an explicit create/change/promote/retire/waive request from the authorized owner as write authority. Otherwise use `scripts/profile-tool.py` without `--write` for a review-first proposal; do not ask twice for the same authorized action.
 6. Validate and resolve the full affected layer stack and requested personal/team/CI modes; run the clean-profile invariance checks in `Resolution modes`. Applicable `must` conflicts require an authorized decision; missing optional layers degrade safely.
 7. Explain winners, shadowed entries, conflicts, exceptions, source hashes, mismatches, and recheck triggers.
 8. Promote only from trial evidence and owner approval; retire without erasing history.
@@ -41,7 +41,7 @@ python3 scripts/profile-tool.py agents-projection --root <repo>
 python3 scripts/profile-tool.py suppress --fingerprint <sha256> --owner <owner> --reason <reason> --tier T1 --output <repo>/.dev-flow/suppressions.json
 ```
 
-Add `--write` only after the user approves the shown artifact. Promotion, retirement, suppression, and waiver commands are also review-first by default.
+Add `--write` when the current request already authorizes that exact profile action or after the owner approves the shown artifact. Promotion, retirement, suppression, and waiver remain review-first when the request did not already authorize them.
 
 ## Boundaries
 

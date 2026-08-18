@@ -17,31 +17,37 @@
       "id": "DISPATCH-ORDINARY-WORKER",
       "args": ["--role", "dev-flow-worker", "--workload", "bounded-change"],
       "exit": 0,
-      "expected": {"delegate": true, "selected_profile": "P2", "requested_model": "gpt-5.6-terra", "requested_reasoning_effort": "medium"}
+      "expected": {"delegate": true, "selected_profile": "P2", "requested_model": "gpt-5.6-luna", "requested_reasoning_effort": "high"}
     },
     {
       "id": "DISPATCH-BOUNDED-DEPTH",
       "args": ["--role", "dev-flow-explorer", "--workload", "broad-mapping", "--signal", "oracle-challenge"],
       "exit": 0,
-      "expected": {"delegate": true, "selected_profile": "P3", "requested_model": "gpt-5.6-terra", "requested_reasoning_effort": "high"}
+      "expected": {"delegate": true, "selected_profile": "P4", "requested_model": "gpt-5.6-terra", "requested_reasoning_effort": "high"}
     },
     {
       "id": "DISPATCH-BROAD-CAPABILITY",
       "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--signal", "large-context"],
       "exit": 0,
-      "expected": {"delegate": true, "selected_profile": "P4", "requested_model": "gpt-5.6-sol", "requested_reasoning_effort": "medium"}
+      "expected": {"delegate": true, "selected_profile": "P4", "requested_model": "gpt-5.6-terra", "requested_reasoning_effort": "high"}
     },
     {
       "id": "DISPATCH-BROAD-AND-DEEP",
       "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--signal", "large-context", "--signal", "oracle-challenge"],
       "exit": 0,
-      "expected": {"delegate": true, "selected_profile": "P5", "requested_model": "gpt-5.6-sol", "requested_reasoning_effort": "high"}
+      "expected": {"delegate": true, "selected_profile": "P4", "requested_model": "gpt-5.6-terra", "requested_reasoning_effort": "high"}
     },
     {
       "id": "DISPATCH-CRITICAL-RISK",
       "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--risk", "concurrency"],
       "exit": 0,
       "expected": {"delegate": true, "selected_profile": "P5", "requested_model": "gpt-5.6-sol", "requested_reasoning_effort": "high"}
+    },
+    {
+      "id": "DISPATCH-CONTAINED-STRUCTURED-RISK",
+      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--risk", "concurrency", "--signal", "closed-scope", "--signal", "confirmed-semantics", "--signal", "deterministic-oracle"],
+      "exit": 0,
+      "expected": {"delegate": true, "selected_profile": "P2", "requested_model": "gpt-5.6-luna", "requested_reasoning_effort": "high"}
     },
     {
       "id": "DISPATCH-CRITICAL-ACCEPTANCE",

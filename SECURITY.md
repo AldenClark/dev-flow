@@ -12,7 +12,7 @@ Include the affected version, minimal reproduction, expected impact, and any kno
 
 ## Trust boundary
 
-This plugin runs local hooks only after the user explicitly trusts their exact definitions. The Dev Flow lifecycle handler activates only for a repository with an explicit `.codex/dev-flow/current` pointer. The independent data-security handler runs on documented `UserPromptSubmit`, `PreToolUse`, and `PostToolUse` paths wherever the trusted plugin is active; it performs bounded in-memory inspection/redaction and intentionally retains no raw finding, mapping, payload log, credential, or transcript.
+This plugin runs local Hooks only after the user explicitly trusts their exact definitions. Dev Flow 2.0 has no process, lifecycle, command-authorization, or packet Hook. The independent data-security handler runs on documented `UserPromptSubmit`, `PreToolUse`, and `PostToolUse` paths wherever the trusted plugin is active; it performs bounded in-memory inspection/redaction and intentionally retains no raw finding, mapping, payload log, credential, or transcript.
 
 The plugin has no MCP server, network integration, authentication flow, credential requirement, or endpoint/network egress interceptor. Hosted and specialized tool paths can be outside local Hook coverage, and a `PostToolUse` Hook cannot undo side effects that already occurred. Work and ordinary Chat instruction templates are guidance, not deterministic pre-send controls.
 

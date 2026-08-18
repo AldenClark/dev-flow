@@ -1,4 +1,6 @@
-# Dev Flow state contract
+# Legacy Packet State Contract
+
+> Dev Flow 2.0 compatibility note: these schemas document historical packet formats and explicit legacy CLI operations. Direct and managed 2.0 work do not create or consume these artifacts, and an active legacy packet cannot govern new work.
 
 `<repo>/.codex/dev-flow/<change-id>/` is ignored recovery/evidence state; tracked knowledge is separate (see `knowledge-system.md`). New packets use capability-tagged schema 2.0. Older or untagged packets keep their original contract; never upgrade them silently.
 
@@ -65,7 +67,7 @@ Governed files split the same chain:
 
 Before verifying, `knowledge_manifest` is mandatory: `none` binds only rationale; `add|update|deprecate` binds root, dossier `manifest.json`, and SHA-256. Structural validation must pass. Acceptance also needs terminal dossier status/disposition.
 
-Only root writes core packet state and owns claims. Child briefs/results bind baselines and ownership; terminal child state is not root completion. `current` activates hooks, not history. `deactivate-packet` removes only a matching terminal regular-file pointer and preserves the packet.
+Only root writes core packet state and owns claims. Child briefs/results bind baselines and ownership; terminal child state is not root completion. In 1.x, `current` activated process Hooks; Dev Flow 2.0 no longer registers those Hooks and treats the pointer only as explicit legacy CLI state. `deactivate-packet` removes only a matching terminal regular-file pointer and preserves the packet.
 
 ## Identifiers and evidence
 
@@ -81,4 +83,4 @@ Schema 2.0 binds each `DEP-n` identity, command/ref, files, operations, and resu
 
 Optional preference/readiness files keep v1 shape. Quality readiness adds a validator-recomputed canonical fingerprint over all governed fields; an old self-reported fingerprint cannot preserve changed tier/outcome/route/coverage. Checkpoints need non-blocked readiness. Accepted state cannot retain blocked/checkpoint readiness or preferences.
 
-Validate after approval, resume/compaction, material implementation/repair waves, pre-verification, and final claim. Use CLI mutators so ledger and projection stay consistent. Before a successful final: `validate-packet`, terminal transition, then matching `deactivate-packet`; preserve newer packets on runtime mismatch, and treat Stop as advisory.
+When explicitly maintaining a legacy packet, validate after approval, resume/compaction, material implementation/repair waves, pre-verification, and final claim. Use CLI mutators so ledger and projection stay consistent. Terminal transition and matching `deactivate-packet` are explicit compatibility operations; Dev Flow 2.0 has no Stop Hook. Preserve newer packets on runtime mismatch.

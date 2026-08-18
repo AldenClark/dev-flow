@@ -9,7 +9,6 @@ import io
 import os
 import re
 import runpy
-import shlex
 import shutil
 import signal
 import subprocess
@@ -24,7 +23,6 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "dev-flow" / "scripts"
 FLOW = SCRIPTS / "dev-flow.py"
-HOOK = ROOT / "hooks" / "dev_flow_hook.py"
 PYTHON = sys.executable
 AGENT_CONFIGS = ROOT / "skills" / "dev-flow" / "assets" / "agent-configs"
 PAIRED_RUNNER = ROOT / "evals" / "run_paired_evaluations.py"
@@ -101,12 +99,21 @@ def write_fake_codex(root: Path, source: str) -> Path:
 
 
 def write_features(path: Path) -> None:
-    path.write_text("multi_agent stable true\nmulti_agent_v2 stable true\nhooks stable true\n", encoding="utf-8")
+    path.write_text(
+        "multi_agent stable true\n"
+        "multi_agent_v2 stable false\n"
+        "hooks stable true\n"
+        "goals stable true\n"
+        "browser_use stable true\n"
+        "computer_use stable true\n"
+        "apps stable true\n",
+        encoding="utf-8",
+    )
 
 
 def write_config(path: Path, *, correct: bool = True) -> None:
     if correct:
-        text = "[features]\nmulti_agent = true\nmulti_agent_v2 = true\nhooks = true\n\n[agents]\nmax_concurrent_threads_per_session = 6\n"
+        text = "[features]\nmulti_agent = true\nhooks = true\n\n[agents]\nmax_concurrent_threads_per_session = 6\n"
     else:
         text = "[features]\nmulti_agent = true\nhooks = true\n\n[features.multi_agent_v2]\nenabled = true\nmax_concurrent_threads_per_session = 4\n"
     path.write_text(text, encoding="utf-8")
@@ -361,11 +368,39 @@ class PreflightTests(unittest.TestCase):
             config = root / "config.toml"
             write_features(features)
             write_config(config)
-            result = run(PYTHON, str(FLOW), "preflight", "--version-output", "codex-cli 0.147.0", "--features-output-file", str(features), "--config", str(config), "--tool-surface-confirmed")
+            result = run(
+                PYTHON,
+                str(FLOW),
+                "preflight",
+                "--version-output",
+                "codex-cli 0.147.0",
+                "--features-output-file",
+                str(features),
+                "--config",
+                str(config),
+                "--effective-capability",
+                "delegation",
+                "--effective-capability",
+                "goal-bridge",
+                "--effective-capability",
+                "browser-or-device",
+                "--effective-capability",
+                "external-context",
+            )
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
             payload = json.loads(result.stdout)
             self.assertEqual(payload["status"], "ready")
             self.assertTrue(payload["capabilities"]["agent_dispatch"])
+            self.assertTrue(payload["capabilities"]["goal_bridge"])
+            self.assertTrue(payload["capabilities"]["browser_or_device"])
+            self.assertTrue(payload["capabilities"]["external_context"])
+            self.assertEqual(
+                payload["capability_observation"]["authority"],
+                "effective current-turn callable surface",
+            )
+            self.assertFalse(payload["capability_observation"]["feature_flags_are_capability_evidence"])
+            self.assertEqual(payload["interaction_contract"]["required_mode"], "Default")
+            self.assertFalse(payload["interaction_contract"]["plan_mode_allowed"])
 
     def test_reports_configured_ceiling_without_claiming_effective_capacity(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -528,16 +563,30 @@ class PreflightTests(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("below delegation-tested", result.stdout)
 
-    def test_rejects_obsolete_config_shape(self) -> None:
+    def test_ignores_obsolete_v2_table_when_current_surface_is_ready(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             features = root / "features.txt"
             config = root / "config.toml"
             write_features(features)
             write_config(config, correct=False)
-            result = run(PYTHON, str(FLOW), "preflight", "--version-output", "codex-cli 0.147.0", "--features-output-file", str(features), "--config", str(config), "--require-delegation")
-            self.assertEqual(result.returncode, 2)
-            self.assertIn("obsolete", result.stdout)
+            result = run(
+                PYTHON,
+                str(FLOW),
+                "preflight",
+                "--version-output",
+                "codex-cli 0.147.0",
+                "--features-output-file",
+                str(features),
+                "--config",
+                str(config),
+                "--tool-surface-confirmed",
+                "--require-delegation",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            payload = json.loads(result.stdout)
+            self.assertEqual(payload["status"], "ready")
+            self.assertTrue(any("obsolete" in item for item in payload["warnings"]))
 
     def test_core_workflow_degrades_without_delegation_capabilities(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -562,6 +611,71 @@ class PreflightTests(unittest.TestCase):
             self.assertEqual(payload["status"], "degraded")
             self.assertTrue(payload["capabilities"]["core_workflow"])
             self.assertFalse(payload["capabilities"]["delegation"])
+
+    def test_optional_native_adapters_can_be_absent_without_blocking_delegation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            features = root / "features.txt"
+            config = root / "config.toml"
+            features.write_text(
+                "multi_agent stable true\n"
+                "multi_agent_v2 stable false\n"
+                "hooks stable false\n"
+                "goals stable false\n"
+                "browser_use stable false\n"
+                "computer_use stable false\n"
+                "apps stable false\n",
+                encoding="utf-8",
+            )
+            write_config(config)
+            result = run(
+                PYTHON,
+                str(FLOW),
+                "preflight",
+                "--version-output",
+                "codex-cli 0.147.0",
+                "--features-output-file",
+                str(features),
+                "--config",
+                str(config),
+                "--tool-surface-confirmed",
+                "--require-delegation",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            payload = json.loads(result.stdout)
+            self.assertEqual(payload["status"], "ready")
+            self.assertTrue(payload["capabilities"]["delegation"])
+            self.assertIsNone(payload["capabilities"]["goal_bridge"])
+            self.assertIsNone(payload["capabilities"]["browser_or_device"])
+            self.assertIsNone(payload["capabilities"]["external_context"])
+            self.assertTrue(any("hook automation" in item for item in payload["warnings"]))
+
+    def test_feature_flags_do_not_invent_current_turn_native_capabilities(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            features = root / "features.txt"
+            config = root / "config.toml"
+            write_features(features)
+            write_config(config)
+            result = run(
+                PYTHON,
+                str(FLOW),
+                "preflight",
+                "--version-output",
+                "codex-cli 0.147.0",
+                "--features-output-file",
+                str(features),
+                "--config",
+                str(config),
+                "--tool-surface-confirmed",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            payload = json.loads(result.stdout)
+            self.assertTrue(payload["capabilities"]["delegation"])
+            self.assertIsNone(payload["capabilities"]["goal_bridge"])
+            self.assertIsNone(payload["capabilities"]["browser_or_device"])
+            self.assertIsNone(payload["capabilities"]["external_context"])
+            self.assertEqual(payload["capability_observation"]["observed"], ["delegation"])
 
     def test_malformed_config_shapes_degrade_without_traceback(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -6523,7 +6637,7 @@ Local only. No residual implementation risk remains.
             self.assertEqual(micro_material_meta["collaboration_profile"], "co-design")
             self.assertEqual(micro_material_meta["work_mode"], "governed")
 
-    def test_explicit_work_mode_cannot_downgrade_risk_or_material_ui(self) -> None:
+    def test_legacy_packet_mode_and_v2_risk_overlays_remain_separate(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             security = run(
@@ -6552,10 +6666,15 @@ Local only. No residual implementation risk remains.
                 "--ui-impact",
                 "material",
                 "--work-mode",
-                "traced",
+                "direct",
             )
-            self.assertEqual(material.returncode, 2)
-            self.assertIn("material UI impact requires governed", material.stdout)
+            self.assertEqual(material.returncode, 0, material.stderr or material.stdout)
+            material_payload = json.loads(material.stdout)
+            self.assertEqual(material_payload["work_mode"], "direct")
+            self.assertEqual(
+                [item["overlay"] for item in material_payload["risk_overlays"]],
+                ["ui-product"],
+            )
 
             privacy = run(
                 PYTHON,
@@ -6568,8 +6687,30 @@ Local only. No residual implementation risk remains.
             )
             self.assertEqual(privacy.returncode, 0, privacy.stderr or privacy.stdout)
             privacy_payload = json.loads(privacy.stdout)
-            self.assertEqual(privacy_payload["work_mode"], "governed")
-            self.assertIn("change-review", [item["skill"] for item in privacy_payload["routes"]])
+            self.assertEqual(privacy_payload["work_mode"], "direct")
+            self.assertEqual(
+                [item["overlay"] for item in privacy_payload["risk_overlays"]],
+                ["security"],
+            )
+            self.assertNotIn("change-review", [item["skill"] for item in privacy_payload["routes"]])
+
+            material_privacy = run(
+                PYTHON,
+                str(FLOW),
+                "route-task",
+                "--task-type",
+                "routine",
+                "--risk",
+                "privacy",
+                "--need",
+                "review",
+            )
+            self.assertEqual(material_privacy.returncode, 0, material_privacy.stderr or material_privacy.stdout)
+            material_privacy_payload = json.loads(material_privacy.stdout)
+            self.assertIn(
+                "change-review",
+                [item["skill"] for item in material_privacy_payload["routes"]],
+            )
 
     def test_unknown_risk_token_is_rejected_instead_of_silently_underclassified(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -6910,1273 +7051,6 @@ class RuntimeInstallerTests(unittest.TestCase):
             result = run(PYTHON, str(FLOW), "install-runtime", "--destination", str(destination), "--force")
             self.assertEqual(result.returncode, 2, result.stderr or result.stdout)
             self.assertEqual(outside.read_text(encoding="utf-8"), "outside config\n")
-
-
-class HookTests(unittest.TestCase):
-    def invoke_pre_tool(
-        self,
-        cwd: Path,
-        tool_name: str,
-        tool_input: dict[str, object],
-        *,
-        session_id: str = "hook-test-session",
-        env_extra: dict[str, str] | None = None,
-    ) -> dict[str, object] | None:
-        env = os.environ.copy()
-        env["PLUGIN_ROOT"] = str(ROOT)
-        if env_extra:
-            env.update(env_extra)
-        event = {
-            "cwd": str(cwd),
-            "session_id": session_id,
-            "hook_event_name": "PreToolUse",
-            "tool_name": tool_name,
-            "tool_input": tool_input,
-        }
-        result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
-        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
-        return json.loads(result.stdout) if result.stdout else None
-
-    def write_current_packet(
-        self,
-        root: Path,
-        change_id: str,
-        metadata: dict[str, object],
-    ) -> Path:
-        flow = root / ".codex" / "dev-flow"
-        packet = flow / change_id
-        packet.mkdir(parents=True)
-        (flow / "current").write_text(change_id + "\n", encoding="utf-8")
-        (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
-        return packet
-
-    def test_typed_targets_select_deepest_packet_and_reject_mixed_roots(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            parent = Path(temp)
-            child = parent / "new"
-            child.mkdir()
-            self.write_current_packet(
-                parent,
-                "outer-change",
-                {"state": "implementing", "approvals": {"dependencies": []}},
-            )
-            inner = self.write_current_packet(
-                child,
-                "inner-change",
-                {"state": "implementing", "approvals": {"dependencies": []}},
-            )
-
-            child_only = self.invoke_pre_tool(
-                parent,
-                "apply_patch",
-                {
-                    "patch": f"*** Begin Patch\n*** Update File: {inner / 'requirements.md'}\n@@\n-old\n+new\n*** End Patch"
-                },
-            )
-            self.assertIsNone(child_only)
-
-            mixed = self.invoke_pre_tool(
-                parent,
-                "apply_patch",
-                {
-                    "patch": (
-                        f"*** Begin Patch\n*** Update File: {inner / 'requirements.md'}\n@@\n-old\n+new\n"
-                        f"*** Update File: {parent / '.codex/dev-flow/outer-change/requirements.md'}\n"
-                        "@@\n-old\n+new\n*** End Patch"
-                    )
-                },
-            )
-            decision = mixed["hookSpecificOutput"]
-            self.assertEqual(decision["permissionDecision"], "deny")
-            self.assertIn("DEV_FLOW_PACKET_TARGET_AMBIGUOUS", decision["permissionDecisionReason"])
-
-    def test_targetless_stop_uses_fresh_session_binding_but_not_stale_marker(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            parent = Path(temp)
-            child = parent / "new"
-            child.mkdir()
-            self.write_current_packet(
-                parent,
-                "outer-change",
-                {"schema_version": "2.0", "state": "implementing", "approvals": {"dependencies": []}},
-            )
-            inner = self.write_current_packet(
-                child,
-                "inner-change",
-                {"schema_version": "2.0", "state": "verifying", "approvals": {"dependencies": []}},
-            )
-            plugin_data = parent / "plugin-data"
-            env_extra = {"PLUGIN_DATA": str(plugin_data)}
-            session_id = "nested-session"
-
-            self.assertIsNone(
-                self.invoke_pre_tool(
-                    parent,
-                    "Write",
-                    {"file_path": str(inner / "notes.md"), "content": "packet note"},
-                    session_id=session_id,
-                    env_extra=env_extra,
-                )
-            )
-            event = {
-                "cwd": str(parent),
-                "session_id": session_id,
-                "hook_event_name": "Stop",
-                "last_assistant_message": "done",
-                "stop_hook_active": False,
-            }
-            env = os.environ.copy()
-            env.update({"PLUGIN_ROOT": str(ROOT), **env_extra})
-            fresh = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
-            self.assertIn("DEV_FLOW_COMPLETION_INVALID", json.loads(fresh.stdout)["systemMessage"])
-
-            marker = next((plugin_data / "packet-sessions").glob("*.json"))
-            marker_data = json.loads(marker.read_text(encoding="utf-8"))
-            self.assertNotIn(str(inner), marker.read_text(encoding="utf-8"))
-            self.assertNotIn("packet", marker_data)
-            marker_data["bound_at"] = 0
-            marker.write_text(json.dumps(marker_data), encoding="utf-8")
-            stale = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
-            self.assertEqual(json.loads(stale.stdout), {})
-
-    def test_exact_governance_cli_ignores_descriptive_package_command_text(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            packet = self.write_current_packet(
-                root,
-                "sample-change",
-                {"schema_version": "2.0", "state": "implementing", "approvals": {"dependencies": []}},
-            )
-            command = (
-                f"python3 {FLOW} record-approval {packet} dependencies --id DEP-1 --by owner "
-                "--note 'exact A & B; literal $value' --dependency-command 'pnpm add alpha@1.0.0'"
-            )
-            self.assertIsNone(self.invoke_pre_tool(root, "Bash", {"command": command}))
-
-            other = packet.parent / "other-change"
-            other.mkdir()
-            (other / "packet.json").write_text("{}\n", encoding="utf-8")
-            wrong = self.invoke_pre_tool(
-                root,
-                "Bash",
-                {"command": command.replace(str(packet), str(other), 1)},
-            )
-            decision = wrong["hookSpecificOutput"]
-            self.assertEqual(decision["permissionDecision"], "deny")
-            self.assertIn("DEV_FLOW_PACKET_TARGET_MISMATCH", decision["permissionDecisionReason"])
-
-            compound = self.invoke_pre_tool(
-                root,
-                "Bash",
-                {"command": command.replace(str(packet), str(other), 1) + " && true"},
-            )
-            compound_decision = compound["hookSpecificOutput"]
-            self.assertEqual(compound_decision["permissionDecision"], "deny")
-            self.assertIn("DEV_FLOW_GOVERNANCE_COMMAND_INVALID", compound_decision["permissionDecisionReason"])
-
-            prefixed = self.invoke_pre_tool(
-                root,
-                "Bash",
-                {"command": "true && " + command.replace(str(packet), str(other), 1)},
-            )
-            prefixed_decision = prefixed["hookSpecificOutput"]
-            self.assertEqual(prefixed_decision["permissionDecision"], "deny")
-            self.assertIn("DEV_FLOW_GOVERNANCE_COMMAND_INVALID", prefixed_decision["permissionDecisionReason"])
-
-            expanded = self.invoke_pre_tool(
-                root,
-                "Bash",
-                {
-                    "command": command.replace(
-                        str(FLOW),
-                        '"$PLUGIN_ROOT/skills/dev-flow/scripts/dev-flow.py"',
-                        1,
-                    )
-                },
-            )
-            expanded_decision = expanded["hookSpecificOutput"]
-            self.assertEqual(expanded_decision["permissionDecision"], "deny")
-            self.assertIn("DEV_FLOW_GOVERNANCE_COMMAND_INVALID", expanded_decision["permissionDecisionReason"])
-
-            for wrapped_command in (
-                command.replace("python3 ", "python3 -B ", 1),
-                command.replace("python3 ", "python3 -- ", 1),
-                "sh -c " + shlex.quote(command.replace(str(packet), str(other), 1)),
-                "env -S " + shlex.quote(command.replace("python3 ", "python3 -B ", 1)),
-                'cmd /c "' + command.replace("python3 ", "python3 -B ", 1) + '"',
-                'pwsh -Command "' + command.replace("python3 ", "python3 -B ", 1) + '"',
-            ):
-                with self.subTest(wrapped_command=wrapped_command):
-                    wrapped = self.invoke_pre_tool(root, "Bash", {"command": wrapped_command})
-                    wrapped_decision = wrapped["hookSpecificOutput"]
-                    self.assertEqual(wrapped_decision["permissionDecision"], "deny")
-                    self.assertIn(
-                        "DEV_FLOW_GOVERNANCE_COMMAND_INVALID",
-                        wrapped_decision["permissionDecisionReason"],
-                    )
-
-            hidden_scripts = [
-                str(FLOW).replace("dev-flow.py", "dev-'flow.py'"),
-                str(FLOW).replace("dev-flow.py", 'dev-"flow.py"'),
-            ]
-            if os.name != "nt":
-                hidden_scripts.append(str(FLOW).replace("dev-flow.py", r"dev\-flow.py"))
-            for hidden_script in hidden_scripts:
-                with self.subTest(hidden_script=hidden_script):
-                    hidden = self.invoke_pre_tool(
-                        root,
-                        "Bash",
-                        {
-                            "command": command.replace("python3 ", "python3 -B ", 1)
-                            .replace(str(FLOW), hidden_script, 1)
-                            .replace(str(packet), str(other), 1)
-                        },
-                    )
-                    hidden_decision = hidden["hookSpecificOutput"]
-                    self.assertEqual(hidden_decision["permissionDecision"], "deny")
-                    self.assertIn(
-                        "DEV_FLOW_GOVERNANCE_COMMAND_INVALID",
-                        hidden_decision["permissionDecisionReason"],
-                    )
-                    if os.name == "nt":
-                        continue
-                    wrapped_hidden = self.invoke_pre_tool(
-                        root,
-                        "Bash",
-                        {
-                            "command": "env -S "
-                            + shlex.quote(
-                                command.replace("python3 ", "python3 -B ", 1)
-                                .replace(str(FLOW), hidden_script, 1)
-                                .replace(str(packet), str(other), 1)
-                            )
-                        },
-                    )
-                    wrapped_hidden_decision = wrapped_hidden["hookSpecificOutput"]
-                    self.assertEqual(wrapped_hidden_decision["permissionDecision"], "deny")
-                    self.assertIn(
-                        "DEV_FLOW_GOVERNANCE_COMMAND_INVALID",
-                        wrapped_hidden_decision["permissionDecisionReason"],
-                    )
-
-            literal_search = self.invoke_pre_tool(
-                root,
-                "Bash",
-                {"command": "rg 'dev-flow.py.*record-checkpoint' hooks evals"},
-            )
-            self.assertIsNone(literal_search)
-
-    def test_windows_governance_tokenization_preserves_paths_before_validation(self) -> None:
-        hook_globals = runpy.run_path(str(HOOK))
-        governance_shell_tokens = hook_globals["governance_shell_tokens"]
-        tokens_contain_governance_shape = hook_globals["tokens_contain_governance_shape"]
-        command = (
-            r'python3 D:\a\dev-flow\dev-flow\skills\dev-flow\scripts\dev-flow.py '
-            r'record-approval C:\Users\runneradmin\AppData\Local\Temp\packet dependencies '
-            r'--dependency-command "pnpm add alpha@1.0.0"'
-        )
-
-        tokens = governance_shell_tokens(command, windows=True)
-
-        self.assertIsNotNone(tokens)
-        assert tokens is not None
-        self.assertEqual(
-            tokens[1],
-            r"D:\a\dev-flow\dev-flow\skills\dev-flow\scripts\dev-flow.py",
-        )
-        self.assertEqual(
-            tokens[3],
-            r"C:\Users\runneradmin\AppData\Local\Temp\packet",
-        )
-        self.assertEqual(tokens[-1], "pnpm add alpha@1.0.0")
-        quoted_tokens = governance_shell_tokens(
-            command.replace("dev-flow.py", "dev-'flow.py'", 1),
-            windows=True,
-        )
-        self.assertIsNotNone(quoted_tokens)
-        assert quoted_tokens is not None
-        self.assertTrue(tokens_contain_governance_shape(quoted_tokens))
-        self.assertIsNone(governance_shell_tokens(command + "; pnpm add beta@2.0.0", windows=True))
-        expanded = command.replace(
-            r"D:\a\dev-flow\dev-flow\skills\dev-flow\scripts\dev-flow.py",
-            r'"$env:PLUGIN_ROOT\skills\dev-flow\scripts\dev-flow.py"',
-        )
-        self.assertIsNone(governance_shell_tokens(expanded, windows=True))
-
-    def test_immutable_package_materialization_is_not_a_graph_mutation(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            self.write_current_packet(
-                root,
-                "sample-change",
-                {"state": "implementing", "approvals": {"dependencies": []}},
-            )
-            for command in (
-                "pnpm install --frozen-lockfile",
-                "npm ci",
-                "yarn install --immutable",
-                "bun install --frozen-lockfile",
-            ):
-                with self.subTest(command=command):
-                    self.assertIsNone(self.invoke_pre_tool(root, "Bash", {"command": command}))
-            for command in (
-                "pnpm install",
-                "pnpm install --no-frozen-lockfile",
-                "npm install",
-                "yarn install",
-                "bun install",
-            ):
-                with self.subTest(command=command):
-                    decision = self.invoke_pre_tool(root, "Bash", {"command": command})["hookSpecificOutput"]
-                    self.assertEqual(decision["permissionDecision"], "deny")
-
-    def test_multi_package_command_requires_every_exact_approval(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            command = "pnpm add alpha@1.0.0 beta@2.0.0"
-
-            def approval(identifier: str, name: str, version: str) -> dict[str, object]:
-                return {
-                    "id": identifier,
-                    "by": "owner",
-                    "at": "2026-08-16T00:00:00Z",
-                    "note": "exact package set",
-                    "dependency": {
-                        "ecosystem": "npm",
-                        "name": name,
-                        "version": version,
-                        "ref": version,
-                        "command": command,
-                        "files": ["package.json"],
-                        "operations": ["add"],
-                        "result_sha256": {},
-                    },
-                }
-
-            packet = self.write_current_packet(
-                root,
-                "sample-change",
-                {
-                    "state": "implementing",
-                    "approvals": {
-                        "dependencies": [
-                            approval("DEP-1", "alpha", "1.0.0"),
-                            approval("DEP-2", "beta", "2.0.0"),
-                        ]
-                    },
-                },
-            )
-            allowed = self.invoke_pre_tool(root, "Bash", {"command": command})
-            self.assertNotIn("permissionDecision", allowed["hookSpecificOutput"])
-            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
-            metadata["approvals"]["dependencies"].pop()
-            (packet / "packet.json").write_text(json.dumps(metadata), encoding="utf-8")
-            partial = self.invoke_pre_tool(root, "Bash", {"command": command})["hookSpecificOutput"]
-            self.assertEqual(partial["permissionDecision"], "deny")
-
-    def test_write_stdin_fails_closed_only_for_active_governed_packet(self) -> None:
-        hooks = json.loads((ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))
-        matchers = [entry.get("matcher", "") for entry in hooks["hooks"]["PreToolUse"]]
-        self.assertTrue(any("write_stdin" in matcher for matcher in matchers))
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            packet = self.write_current_packet(
-                root,
-                "sample-change",
-                {
-                    "schema_version": "2.0",
-                    "work_mode": "governed",
-                    "state": "implementing",
-                    "approvals": {"dependencies": []},
-                },
-            )
-            active = self.invoke_pre_tool(root, "write_stdin", {"session_id": 123, "chars": "apply_patch"})
-            decision = active["hookSpecificOutput"]
-            self.assertEqual(decision["permissionDecision"], "deny")
-            self.assertIn("DEV_FLOW_INTERACTIVE_SHELL_UNCLASSIFIABLE", decision["permissionDecisionReason"])
-
-            metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
-            metadata["state"] = "accepted"
-            (packet / "packet.json").write_text(json.dumps(metadata), encoding="utf-8")
-            self.assertIsNone(self.invoke_pre_tool(root, "write_stdin", {"session_id": 123, "chars": "status"}))
-
-    def test_plain_ripgrep_query_text_is_read_only_but_preprocessor_is_not(self) -> None:
-        hook_globals = runpy.run_path(str(HOOK))
-        is_mutation = hook_globals["event_is_mutation"]
-
-        plain_search = {
-            "tool_name": "Bash",
-            "tool_input": {"command": 'rg -n "install|rm|touch" README.md'},
-        }
-        executable_preprocessor = {
-            "tool_name": "Bash",
-            "tool_input": {"command": "rg --pre 'touch generated.txt' install ."},
-        }
-        direct_mutation = {
-            "tool_name": "Bash",
-            "tool_input": {"command": "install source.txt destination.txt"},
-        }
-        piped_search = {
-            "tool_name": "Bash",
-            "tool_input": {"command": "rg install README.md | touch generated.txt"},
-        }
-
-        self.assertFalse(is_mutation(plain_search))
-        self.assertTrue(is_mutation(executable_preprocessor))
-        self.assertTrue(is_mutation(direct_mutation))
-        self.assertTrue(is_mutation(piped_search))
-
-    def invoke_stop(
-        self,
-        root: Path,
-        message: str = "Task completed.",
-        plugin_root: Path = ROOT,
-    ) -> dict[str, object]:
-        env = os.environ.copy()
-        env["PLUGIN_ROOT"] = str(plugin_root)
-        event = {
-            "cwd": str(root),
-            "hook_event_name": "Stop",
-            "last_assistant_message": message,
-            "stop_hook_active": False,
-        }
-        result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
-        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
-        return json.loads(result.stdout)
-
-    def write_stop_packet(self, root: Path, metadata: dict[str, object]) -> Path:
-        flow = root / ".codex" / "dev-flow"
-        packet = flow / "sample-change"
-        packet.mkdir(parents=True)
-        (flow / "current").write_text("sample-change\n", encoding="utf-8")
-        (packet / "packet.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
-        return packet
-
-    def test_stop_reports_runtime_mismatch_without_blocking(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            self.write_stop_packet(
-                root,
-                {
-                    "schema_version": "999.0",
-                    "skill_version": "999.0.0+future-capability-v1",
-                    "state": "verifying",
-                },
-            )
-
-            payload = self.invoke_stop(root)
-            self.assertNotIn("decision", payload)
-            self.assertIn("DEV_FLOW_RUNTIME_MISMATCH", payload["systemMessage"])
-            self.assertIn("newer Dev Flow runtime", payload["systemMessage"])
-            self.assertNotIn("Repair the active packet", payload["systemMessage"])
-
-    def test_stop_reports_newer_producer_on_supported_schema_without_blocking(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            self.write_stop_packet(
-                root,
-                {
-                    "schema_version": "2.0",
-                    "skill_version": "999.0.0+quality-kernel-v1",
-                    "state": "verifying",
-                },
-            )
-
-            payload = self.invoke_stop(root)
-            self.assertNotIn("decision", payload)
-            self.assertIn("DEV_FLOW_RUNTIME_MISMATCH", payload["systemMessage"])
-            self.assertIn("producer", payload["systemMessage"])
-
-    def test_stop_reports_same_runtime_invalid_packet_without_blocking(self) -> None:
-        for state in ("verifying", "accepted"):
-            with self.subTest(state=state), tempfile.TemporaryDirectory() as temp:
-                root = Path(temp)
-                plugin_version = json.loads(
-                    (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
-                )["version"]
-                self.write_stop_packet(
-                    root,
-                    {
-                        "schema_version": "2.0",
-                        "skill_version": f"{plugin_version}+change-set-transition-v1.quality-kernel-v1",
-                        "state": state,
-                    },
-                )
-
-                payload = self.invoke_stop(root)
-                self.assertNotIn("decision", payload)
-                self.assertIn("DEV_FLOW_COMPLETION_INVALID", payload["systemMessage"])
-                self.assertIn("resume the task", payload["systemMessage"])
-
-    def test_stop_ignores_completion_words_outside_completion_states(self) -> None:
-        for message in ("Task completed.", "任务已完成。"):
-            with self.subTest(message=message), tempfile.TemporaryDirectory() as temp:
-                root = Path(temp)
-                self.write_stop_packet(root, {"schema_version": "2.0", "state": "implementing"})
-                self.assertEqual(self.invoke_stop(root, message), {})
-
-    def test_stop_does_not_treat_malformed_producer_version_as_runtime_mismatch(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            self.write_stop_packet(
-                root,
-                {
-                    "schema_version": "2.0",
-                    "skill_version": "future-version",
-                    "state": "verifying",
-                },
-            )
-
-            payload = self.invoke_stop(root)
-            self.assertNotIn("decision", payload)
-            self.assertIn("DEV_FLOW_COMPLETION_INVALID", payload["systemMessage"])
-            self.assertNotIn("DEV_FLOW_RUNTIME_MISMATCH", payload["systemMessage"])
-
-    def test_stop_does_not_treat_malformed_schema_as_runtime_mismatch(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            plugin_version = json.loads(
-                (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
-            )["version"]
-            self.write_stop_packet(
-                root,
-                {
-                    "schema_version": "future-schema",
-                    "skill_version": plugin_version,
-                    "state": "verifying",
-                },
-            )
-
-            payload = self.invoke_stop(root)
-            self.assertNotIn("decision", payload)
-            self.assertIn("DEV_FLOW_COMPLETION_INVALID", payload["systemMessage"])
-            self.assertNotIn("DEV_FLOW_RUNTIME_MISMATCH", payload["systemMessage"])
-
-    def test_stop_keeps_malformed_and_oversized_metadata_inside_advisory_boundary(self) -> None:
-        plugin_version = json.loads(
-            (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
-        )["version"]
-        inert_cases = (
-            {"schema_version": "2.0", "skill_version": plugin_version, "state": ["verifying"]},
-            {"schema_version": "2.0", "skill_version": plugin_version},
-        )
-        for metadata in inert_cases:
-            with self.subTest(inert_metadata=metadata), tempfile.TemporaryDirectory() as temp:
-                root = Path(temp)
-                self.write_stop_packet(root, metadata)
-                self.assertEqual(self.invoke_stop(root), {})
-
-        diagnostic_cases = (
-            {"schema_version": ["2.0"], "skill_version": plugin_version, "state": "verifying"},
-            {"schema_version": "9" * 5000 + ".0", "skill_version": plugin_version, "state": "verifying"},
-            {"schema_version": "2.0", "skill_version": "9" * 5000 + ".0.0", "state": "verifying"},
-            {"schema_version": "1٢.0", "skill_version": plugin_version, "state": "verifying"},
-        )
-        for metadata in diagnostic_cases:
-            with self.subTest(metadata_field_types={key: type(value).__name__ for key, value in metadata.items()}):
-                with tempfile.TemporaryDirectory() as temp:
-                    root = Path(temp)
-                    self.write_stop_packet(root, metadata)
-                    payload = self.invoke_stop(root)
-                    self.assertNotIn("decision", payload)
-                    self.assertIn("DEV_FLOW_COMPLETION_INVALID", payload["systemMessage"])
-
-    def test_stop_version_parser_accepts_semver_prerelease_and_build_metadata(self) -> None:
-        hook_globals = runpy.run_path(str(HOOK))
-        parse = hook_globals["semantic_version"]
-        newer = hook_globals["semantic_version_is_newer"]
-        rc1 = parse("1.2.3-rc.1+build.7")
-        rc2 = parse("1.2.3-rc.2+other-build")
-        final = parse("1.2.3")
-        self.assertEqual(rc1, (1, 2, 3, ("rc", "1")))
-        self.assertTrue(newer(rc2, rc1))
-        self.assertTrue(newer(final, rc2))
-        self.assertFalse(newer(parse("1.2.3+build.8"), final))
-        for malformed in (
-            "future-version",
-            "999.0.0-.",
-            "999.0.0+.",
-            "999.0.0-01",
-            "999.0.0-rc..1",
-            "1٢.0.0",
-        ):
-            with self.subTest(malformed=malformed):
-                self.assertIsNone(parse(malformed))
-
-    def test_stop_normalizes_untrusted_validator_error_shapes(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            fake_plugin = root / "fake-plugin"
-            validator_path = fake_plugin / "skills" / "dev-flow" / "scripts" / "dev_flow.py"
-            validator_path.parent.mkdir(parents=True)
-            validator_path.write_text(
-                "SUPPORTED_SCHEMA_VERSIONS = {'2.0'}\n"
-                "def plugin_version():\n"
-                "    return '1.0.0'\n"
-                "def validate_packet_data(packet):\n"
-                "    return {'errors': None}, 2\n",
-                encoding="utf-8",
-            )
-            self.write_stop_packet(
-                root,
-                {"schema_version": "2.0", "skill_version": "1.0.0", "state": "verifying"},
-            )
-
-            payload = self.invoke_stop(root, plugin_root=fake_plugin)
-            self.assertNotIn("decision", payload)
-            self.assertIn("DEV_FLOW_COMPLETION_INVALID", payload["systemMessage"])
-            self.assertIn("validator returned no structured errors", payload["systemMessage"])
-
-    def test_stop_is_silent_for_valid_supported_packet(self) -> None:
-        for state in ("verifying", "accepted"):
-            with self.subTest(state=state), tempfile.TemporaryDirectory() as temp:
-                root = Path(temp)
-                flow = root / ".codex" / "dev-flow"
-                packet = flow / "sample-change"
-                (flow / "current").parent.mkdir(parents=True)
-                (flow / "current").write_text("sample-change\n", encoding="utf-8")
-                write_valid_packet(packet, state=state, schema_version="1.0")
-
-                self.assertEqual(self.invoke_stop(root), {})
-
-    def test_public_close_contract_validates_and_deactivates_before_final(self) -> None:
-        skill = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
-        schema = (ROOT / "skills" / "dev-flow" / "references" / "artifact-schemas.md").read_text(
-            encoding="utf-8"
-        )
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        for text in (skill, schema, readme):
-            self.assertIn("validate-packet", text)
-            self.assertIn("deactivate-packet", text)
-        self.assertRegex(
-            skill,
-            r"(?s)Before the successful final.*`validate-packet`.*terminal transition.*`deactivate-packet`.*Stop Hook is advisory",
-        )
-        self.assertRegex(
-            schema,
-            r"(?s)Before a successful final:.*`validate-packet`.*terminal transition.*`deactivate-packet`.*Stop as advisory",
-        )
-        self.assertRegex(
-            readme,
-            r"执行 `validate-packet`.*`transition \.\.\. accepted`.*`deactivate-packet`.*最后才发送成功回复",
-        )
-
-    def test_blocking_states_fail_closed_for_every_bash_command(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            flow = root / ".codex" / "dev-flow"
-            packet = flow / "sample-change"
-            packet.mkdir(parents=True)
-            (flow / "current").write_text("sample-change\n", encoding="utf-8")
-            (packet / "packet.json").write_text(
-                json.dumps(
-                    {
-                        "schema_version": "2.0",
-                        "state": "implementing",
-                        "ambiguities": [{"id": "AMB-1", "status": "open", "materiality": "material"}],
-                        "approvals": {"dependencies": []},
-                    }
-                ),
-                encoding="utf-8",
-            )
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-            commands = (
-                "python3 -c 'from pathlib import Path; Path(\"x\").write_text(\"x\")'",
-                "git checkout -- src/app.py",
-                "git reset -- src/app.py",
-                "git clean -f src/app.py",
-                "powershell -Command Set-Content src/app.py changed",
-                "./ordinary-script.sh",
-                "git status --short",
-            )
-            for command in commands:
-                with self.subTest(command=command):
-                    event = {
-                        "cwd": str(root),
-                        "hook_event_name": "PreToolUse",
-                        "tool_name": "Bash",
-                        "tool_input": {"command": command},
-                    }
-                    result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
-                    self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
-                    payload = json.loads(result.stdout)["hookSpecificOutput"]
-                    self.assertEqual(payload["permissionDecision"], "deny")
-                    self.assertIn("AMB-1", payload["permissionDecisionReason"])
-
-    def test_dependency_approval_matches_exact_command_identity(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            flow = root / ".codex" / "dev-flow"
-            packet = flow / "sample-change"
-            packet.mkdir(parents=True)
-            (flow / "current").write_text("sample-change\n", encoding="utf-8")
-            approval = {
-                "id": "DEP-1",
-                "by": "owner",
-                "at": "2026-08-10T00:00:00Z",
-                "note": "exact crate",
-                "dependency": {
-                    "ecosystem": "cargo",
-                    "name": "approved-crate",
-                    "version": "1.2.3",
-                    "ref": "1.2.3",
-                    "command": "cargo add approved-crate@1.2.3",
-                    "files": ["Cargo.toml", "Cargo.lock"],
-                    "operations": ["add"],
-                    "result_sha256": {},
-                },
-            }
-            (packet / "packet.json").write_text(
-                json.dumps({"state": "implementing", "approvals": {"dependencies": [approval]}}),
-                encoding="utf-8",
-            )
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-
-            def invoke(command: str) -> dict[str, object]:
-                event = {
-                    "cwd": str(root),
-                    "hook_event_name": "PreToolUse",
-                    "tool_name": "Bash",
-                    "tool_input": {"command": command},
-                }
-                result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
-                self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
-                return json.loads(result.stdout)["hookSpecificOutput"]
-
-            allowed = invoke("cargo add approved-crate@1.2.3")
-            self.assertNotIn("permissionDecision", allowed)
-            self.assertIn("exact diff", allowed["additionalContext"])
-            for command in (
-                "cargo add different-crate@1.2.3",
-                "cargo add approved-crate",
-                "cargo add approved-crate@1.2.3 --features=extra",
-                "cargo.exe add approved-crate@1.2.3",
-                "cargo +stable add approved-crate@1.2.3",
-                "cargo --manifest-path=other/Cargo.toml add approved-crate@1.2.3",
-                "cargo add approved-crate@1.2.3 --manifest-path=other/Cargo.toml",
-                "cargo add approved-crate@1.2.3 --package=member",
-                "cargo add approved-crate@1.2.3 -p member",
-                "cargo update -p approved-crate --precise 1.2.4",
-                "cargo update -p approved-crate --precise 1.2.4 --workspace",
-                "cargo remove approved-crate",
-                "npm install other@1.2.3",
-                "npm --prefix other install approved-crate@1.2.3",
-                "npm --workspace=app install approved-crate@1.2.3",
-                "npm.cmd install approved-crate@1.2.3",
-                "npm install approved-crate@1.2.3 -w=app",
-                "npm install approved-crate@1.2.3 --workspace app",
-                "pnpm --filter app add approved-crate@1.2.3",
-                "pnpm -C other add approved-crate@1.2.3",
-                "yarn workspace app add approved-crate@1.2.3",
-                "sh -c 'npm install approved-crate@1.2.3'",
-                "bash -lc 'cargo add approved-crate@1.2.3'",
-                "npm uninstall approved-crate",
-            ):
-                with self.subTest(command=command):
-                    self.assertEqual(invoke(command)["permissionDecision"], "deny")
-
-            for command, operation, ref, file in (
-                ("cargo update -p approved-crate --precise 1.2.4", "update", "1.2.4", "Cargo.lock"),
-                ("cargo remove approved-crate", "remove", "1.2.3", "Cargo.toml"),
-            ):
-                with self.subTest(approved_command=command):
-                    scoped = approval["dependency"]
-                    scoped.update({
-                        "version": ref,
-                        "ref": ref,
-                        "command": command,
-                        "files": [file],
-                        "operations": [operation],
-                    })
-                    (packet / "packet.json").write_text(
-                        json.dumps({"state": "implementing", "approvals": {"dependencies": [approval]}}),
-                        encoding="utf-8",
-                    )
-                    self.assertNotIn("permissionDecision", invoke(command))
-
-            scoped = approval["dependency"]
-            scoped.update({
-                "version": "1.2.3",
-                "ref": "1.2.3",
-                "command": "cargo add approved-crate@1.2.3 --manifest-path=other/Cargo.toml",
-                "files": ["Cargo.toml"],
-                "operations": ["add"],
-            })
-            (packet / "packet.json").write_text(
-                json.dumps({"state": "implementing", "approvals": {"dependencies": [approval]}}),
-                encoding="utf-8",
-            )
-            self.assertEqual(
-                invoke("cargo add approved-crate@1.2.3 --manifest-path=other/Cargo.toml")["permissionDecision"],
-                "deny",
-            )
-
-    def test_dependency_approval_does_not_unlock_unbindable_manifest_edit(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            flow = root / ".codex" / "dev-flow"
-            packet = flow / "sample-change"
-            packet.mkdir(parents=True)
-            (flow / "current").write_text("sample-change\n", encoding="utf-8")
-            approval = {
-                "id": "DEP-1",
-                "dependency": {
-                    "ecosystem": "cargo",
-                    "name": "approved-crate",
-                    "version": "1.2.3",
-                    "ref": "1.2.3",
-                    "command": "cargo add approved-crate@1.2.3",
-                    "files": ["Cargo.toml"],
-                    "operations": ["add"],
-                    "result_sha256": {},
-                },
-            }
-            (packet / "packet.json").write_text(
-                json.dumps({"state": "implementing", "approvals": {"dependencies": [approval]}}),
-                encoding="utf-8",
-            )
-            event = {
-                "cwd": str(root),
-                "hook_event_name": "PreToolUse",
-                "tool_name": "Write",
-                "tool_input": {"file_path": str(root / "Cargo.toml"), "content": "different = '9'"},
-            }
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-            result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
-            self.assertEqual(json.loads(result.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
-
-    def test_github_action_request_requires_exact_path_name_and_ref(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            flow = root / ".codex" / "dev-flow"
-            packet = flow / "sample-change"
-            packet.mkdir(parents=True)
-            (flow / "current").write_text("sample-change\n", encoding="utf-8")
-            ref = "a" * 40
-            approval = {
-                "id": "DEP-1",
-                "dependency": {
-                    "ecosystem": "github-actions",
-                    "name": "owner/action",
-                    "version": "1.0.0",
-                    "ref": ref,
-                    "command": None,
-                    "files": [".github/workflows/release.yml"],
-                    "operations": ["add"],
-                    "result_sha256": {},
-                },
-            }
-            (packet / "packet.json").write_text(
-                json.dumps({"state": "implementing", "approvals": {"dependencies": [approval]}}),
-                encoding="utf-8",
-            )
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-
-            def invoke(action_ref: str) -> dict[str, object]:
-                event = {
-                    "cwd": str(root),
-                    "hook_event_name": "PreToolUse",
-                    "tool_name": "apply_patch",
-                    "tool_input": {
-                        "patch": "*** Begin Patch\n*** Add File: .github/workflows/release.yml\n+steps:\n+  - uses: owner/action@"
-                        + action_ref
-                        + "\n*** End Patch"
-                    },
-                }
-                result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
-                self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
-                return json.loads(result.stdout)["hookSpecificOutput"]
-
-            self.assertNotIn("permissionDecision", invoke(ref))
-            self.assertEqual(invoke("b" * 40)["permissionDecision"], "deny")
-
-            approval["dependency"]["name"] = "owner/action/subpath"
-            (packet / "packet.json").write_text(
-                json.dumps({"state": "implementing", "approvals": {"dependencies": [approval]}}),
-                encoding="utf-8",
-            )
-            event = {
-                "cwd": str(root),
-                "hook_event_name": "PreToolUse",
-                "tool_name": "apply_patch",
-                "tool_input": {
-                    "patch": "*** Begin Patch\n*** Add File: .github/workflows/release.yml\n+steps:\n+  - uses: owner/action/subpath@"
-                    + ref
-                    + "\n*** End Patch"
-                },
-            }
-            subpath = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
-            self.assertNotIn("permissionDecision", json.loads(subpath.stdout)["hookSpecificOutput"])
-
-            workflow = root / ".github" / "workflows" / "release.yml"
-            workflow.parent.mkdir(parents=True)
-            workflow.write_text(f"steps:\n  - uses: owner/action/subpath@{ref}\n", encoding="utf-8")
-            removal_event = {
-                "cwd": str(root),
-                "hook_event_name": "PreToolUse",
-                "tool_name": "apply_patch",
-                "tool_input": {
-                    "patch": "*** Begin Patch\n*** Update File: .github/workflows/release.yml\n@@\n-  - uses: owner/action/subpath@"
-                    + ref
-                    + "\n*** End Patch"
-                },
-            }
-            denied_removal = run(PYTHON, str(HOOK), stdin=json.dumps(removal_event), env=env)
-            self.assertEqual(json.loads(denied_removal.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
-            approval["dependency"]["operations"] = ["remove"]
-            (packet / "packet.json").write_text(
-                json.dumps({"state": "implementing", "approvals": {"dependencies": [approval]}}),
-                encoding="utf-8",
-            )
-            approved_removal = run(PYTHON, str(HOOK), stdin=json.dumps(removal_event), env=env)
-            self.assertNotIn("permissionDecision", json.loads(approved_removal.stdout)["hookSpecificOutput"])
-
-            approval["dependency"]["operations"] = ["add"]
-            yaml_entries = (
-                '"uses": owner/action/subpath@' + ref,
-                "'uses': owner/action/subpath@" + ref,
-                "uses : owner/action/subpath@" + ref,
-                "{ name: test, uses: owner/action/subpath@" + ref + " }",
-                '"u\\u0073es": owner/action/subpath@' + ref,
-                '"u\\x73es": "owner\\/action/subpath@' + ref + '"',
-                '"\\U00000075ses": docker://example.invalid/tool@' + ref,
-            )
-            for entry in yaml_entries:
-                with self.subTest(yaml_entry=entry):
-                    (packet / "packet.json").write_text(
-                        json.dumps({"state": "implementing", "approvals": {"dependencies": []}}),
-                        encoding="utf-8",
-                    )
-                    variant_event = {
-                        "cwd": str(root),
-                        "hook_event_name": "PreToolUse",
-                        "tool_name": "apply_patch",
-                        "tool_input": {
-                            "patch": "*** Begin Patch\n*** Add File: .github/workflows/other.yml\n+steps:\n+  - "
-                            + entry
-                            + "\n*** End Patch"
-                        },
-                    }
-                    variant = run(PYTHON, str(HOOK), stdin=json.dumps(variant_event), env=env)
-                    self.assertEqual(json.loads(variant.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
-
-    def test_typed_write_and_edit_events_are_governed_mutations(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            flow = root / ".codex" / "dev-flow"
-            packet = flow / "sample-change"
-            packet.mkdir(parents=True)
-            (flow / "current").write_text("sample-change\n", encoding="utf-8")
-            (packet / "packet.json").write_text(
-                json.dumps(
-                    {
-                        "schema_version": "2.0",
-                        "state": "implementing",
-                        "ambiguities": [{"id": "AMB-1", "status": "open", "materiality": "material"}],
-                        "approvals": {"dependencies": []},
-                    }
-                ),
-                encoding="utf-8",
-            )
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-            for tool_name in ("Write", "Edit"):
-                with self.subTest(tool_name=tool_name):
-                    event = {
-                        "cwd": str(root),
-                        "hook_event_name": "PreToolUse",
-                        "tool_name": tool_name,
-                        "tool_input": {"file_path": str(root / "src" / "app.py"), "content": "updated"},
-                    }
-                    result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
-                    self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
-                    self.assertEqual(json.loads(result.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
-
-            packet_event = {
-                "cwd": str(root),
-                "hook_event_name": "PreToolUse",
-                "tool_name": "Write",
-                "tool_input": {"file_path": str(packet / "requirements.md"), "content": "packet repair"},
-            }
-            allowed = run(PYTHON, str(HOOK), stdin=json.dumps(packet_event), env=env)
-            self.assertEqual(allowed.stdout, "")
-
-    def test_blocks_unapproved_manifest_mutation(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            flow = root / ".codex" / "dev-flow"
-            packet = flow / "sample-change"
-            packet.mkdir(parents=True)
-            (flow / "current").write_text("sample-change\n", encoding="utf-8")
-            (packet / "packet.json").write_text(json.dumps({"approvals": {"dependencies": []}}), encoding="utf-8")
-            event = {
-                "cwd": str(root),
-                "hook_event_name": "PreToolUse",
-                "tool_name": "Bash",
-                "tool_input": {"command": "cargo add serde"}
-            }
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-            result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
-            self.assertEqual(result.returncode, 0)
-            payload = json.loads(result.stdout)
-            self.assertEqual(payload["hookSpecificOutput"]["permissionDecision"], "deny")
-
-    def test_dependency_gate_uses_mutation_target_not_document_body(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            flow = root / ".codex" / "dev-flow"
-            packet = flow / "sample-change"
-            packet.mkdir(parents=True)
-            (flow / "current").write_text("sample-change\n", encoding="utf-8")
-            (packet / "packet.json").write_text(
-                json.dumps({"state": "implementing", "approvals": {"dependencies": []}}),
-                encoding="utf-8",
-            )
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-            documentation = {
-                "cwd": str(root),
-                "hook_event_name": "PreToolUse",
-                "tool_name": "Write",
-                "tool_input": {"file_path": str(root / "README.md"), "content": "Document Cargo.toml without changing it."},
-            }
-            allowed = run(PYTHON, str(HOOK), stdin=json.dumps(documentation), env=env)
-            self.assertEqual(allowed.stdout, "")
-            manifest = {
-                **documentation,
-                "tool_input": {"file_path": str(root / "Cargo.toml"), "content": "[dependencies]"},
-            }
-            blocked = run(PYTHON, str(HOOK), stdin=json.dumps(manifest), env=env)
-            self.assertEqual(json.loads(blocked.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
-
-    def test_open_material_ambiguity_blocks_product_mutation_but_allows_packet_update(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            flow = root / ".codex" / "dev-flow"
-            packet = flow / "sample-change"
-            packet.mkdir(parents=True)
-            (flow / "current").write_text("sample-change\n", encoding="utf-8")
-            (packet / "packet.json").write_text(
-                json.dumps({
-                    "schema_version": "1.2",
-                    "state": "implementing",
-                    "ambiguities": [{"id": "AMB-1", "status": "open", "materiality": "material"}],
-                    "approvals": {"dependencies": []},
-                }),
-                encoding="utf-8",
-            )
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-            product_event = {
-                "cwd": str(root),
-                "hook_event_name": "PreToolUse",
-                "tool_name": "apply_patch",
-                "tool_input": {"patch": "*** Begin Patch\n*** Update File: src/app.py\n@@\n-old\n+new\n*** End Patch"},
-            }
-            blocked = run(PYTHON, str(HOOK), stdin=json.dumps(product_event), env=env)
-            self.assertEqual(blocked.returncode, 0, blocked.stderr or blocked.stdout)
-            self.assertEqual(json.loads(blocked.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
-            self.assertIn("AMB-1", blocked.stdout)
-
-            packet_event = {
-                **product_event,
-                "tool_input": {
-                    "patch": f"*** Begin Patch\n*** Update File: {packet / 'requirements.md'}\n@@\n-old\n+new\n*** End Patch"
-                },
-            }
-            allowed = run(PYTHON, str(HOOK), stdin=json.dumps(packet_event), env=env)
-            self.assertEqual(allowed.returncode, 0, allowed.stderr or allowed.stdout)
-            self.assertEqual(allowed.stdout, "")
-
-    def test_blocked_readiness_blocks_product_mutation_but_allows_packet_repair(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            flow = root / ".codex" / "dev-flow"
-            packet = flow / "sample-change"
-            packet.mkdir(parents=True)
-            (flow / "current").write_text("sample-change\n", encoding="utf-8")
-            (packet / "packet.json").write_text(json.dumps({"state": "implementing", "approvals": {"dependencies": []}}), encoding="utf-8")
-            (packet / "context-readiness.json").write_text(json.dumps({"outcome": "blocked"}), encoding="utf-8")
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-            event = {"cwd": str(root), "hook_event_name": "PreToolUse", "tool_name": "apply_patch", "tool_input": {"patch": "*** Begin Patch\n*** Update File: src/app.py\n@@\n-old\n+new\n*** End Patch"}}
-            blocked = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
-            self.assertEqual(json.loads(blocked.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
-            repair = {**event, "tool_input": {"patch": f"*** Begin Patch\n*** Update File: {packet / 'context-readiness.json'}\n@@\n-old\n+new\n*** End Patch"}}
-            allowed = run(PYTHON, str(HOOK), stdin=json.dumps(repair), env=env)
-            self.assertEqual(allowed.stdout, "")
-
-    def test_missing_readiness_is_advisory_for_risk_bearing_work(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            flow = root / ".codex" / "dev-flow"
-            packet = flow / "sample-change"
-            packet.mkdir(parents=True)
-            (flow / "current").write_text("sample-change\n", encoding="utf-8")
-            (packet / "packet.json").write_text(json.dumps({"state": "implementing", "risk_modifiers": ["security"], "approvals": {"dependencies": []}}), encoding="utf-8")
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-            event = {"cwd": str(root), "hook_event_name": "PreToolUse", "tool_name": "apply_patch", "tool_input": {"patch": "*** Begin Patch\n*** Update File: src/app.py\n@@\n-old\n+new\n*** End Patch"}}
-            result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
-            payload = json.loads(result.stdout)["hookSpecificOutput"]
-            self.assertNotIn("permissionDecision", payload)
-            self.assertIn("absence alone is advisory", payload["additionalContext"])
-
-    def test_subagent_missing_report_is_advisory_and_cleans_marker(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            flow = root / ".codex" / "dev-flow"
-            packet = flow / "sample-change"
-            reports = packet / "reports"
-            reports.mkdir(parents=True)
-            (flow / "current").write_text("sample-change\n", encoding="utf-8")
-            (packet / "packet.json").write_text(json.dumps({"state": "implementing", "approvals": {"dependencies": []}}), encoding="utf-8")
-            stale = reports / "old.md"
-            stale.write_text("old report\n", encoding="utf-8")
-            old_time = time.time() - 10
-            os.utime(stale, (old_time, old_time))
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-            env["PLUGIN_DATA"] = str(root / "plugin-data")
-            common = {"cwd": str(root), "session_id": "session", "agent_id": "agent", "agent_type": "dev-flow-worker"}
-            start = run(PYTHON, str(HOOK), stdin=json.dumps({**common, "hook_event_name": "SubagentStart"}), env=env)
-            self.assertEqual(start.returncode, 0)
-            markers = list((root / "plugin-data" / "agent-runs").glob("*.json"))
-            self.assertEqual(len(markers), 1)
-            marker_text = markers[0].read_text(encoding="utf-8")
-            self.assertNotIn(str(packet), marker_text)
-            self.assertIn("packet_hash", marker_text)
-            stop_event = {**common, "hook_event_name": "SubagentStop", "stop_hook_active": False}
-            missing = run(PYTHON, str(HOOK), stdin=json.dumps(stop_event), env=env)
-            payload = json.loads(missing.stdout)
-            self.assertNotIn("decision", payload)
-            self.assertIn("DEV_FLOW_AGENT_REPORT_MISSING", payload["hookSpecificOutput"]["additionalContext"])
-            self.assertIn("do not redispatch", payload["hookSpecificOutput"]["additionalContext"])
-            self.assertFalse(markers[0].exists())
-
-    def test_subagent_fresh_optional_report_cleans_marker_without_advisory(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            flow = root / ".codex" / "dev-flow"
-            packet = flow / "sample-change"
-            reports = packet / "reports"
-            reports.mkdir(parents=True)
-            (flow / "current").write_text("sample-change\n", encoding="utf-8")
-            (packet / "packet.json").write_text(json.dumps({"state": "verifying", "approvals": {"dependencies": []}}), encoding="utf-8")
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-            env["PLUGIN_DATA"] = str(root / "plugin-data")
-            common = {"cwd": str(root), "session_id": "session", "agent_id": "agent", "agent_type": "dev-flow-worker"}
-            start = run(PYTHON, str(HOOK), stdin=json.dumps({**common, "hook_event_name": "SubagentStart"}), env=env)
-            self.assertEqual(start.returncode, 0)
-            markers = list((root / "plugin-data" / "agent-runs").glob("*.json"))
-            self.assertEqual(len(markers), 1)
-            (reports / "agent.md").write_text("fresh report\n", encoding="utf-8")
-            stop_event = {**common, "hook_event_name": "SubagentStop", "stop_hook_active": False}
-            present = run(PYTHON, str(HOOK), stdin=json.dumps(stop_event), env=env)
-            self.assertEqual(json.loads(present.stdout), {})
-            self.assertFalse(markers[0].exists())
-
-    def test_subagent_start_is_fail_open_when_marker_storage_is_unavailable(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            flow = root / ".codex" / "dev-flow"
-            packet = flow / "sample-change"
-            packet.mkdir(parents=True)
-            (flow / "current").write_text("sample-change\n", encoding="utf-8")
-            (packet / "packet.json").write_text(json.dumps({"state": "implementing", "approvals": {"dependencies": []}}), encoding="utf-8")
-            unavailable = root / "plugin-data-file"
-            unavailable.write_text("not a directory\n", encoding="utf-8")
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-            env["PLUGIN_DATA"] = str(unavailable)
-            event = {"cwd": str(root), "session_id": "session", "agent_id": "agent", "hook_event_name": "SubagentStart"}
-
-            result = run(PYTHON, str(HOOK), stdin=json.dumps(event), env=env)
-            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
-            payload = json.loads(result.stdout)["hookSpecificOutput"]
-            self.assertIn("DEV_FLOW_AGENT_MARKER_UNAVAILABLE", payload["additionalContext"])
-            self.assertIn("return a bounded native final result", payload["additionalContext"])
-
-    def test_subagent_stop_is_fail_open_for_non_object_marker_json(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            flow = root / ".codex" / "dev-flow"
-            packet = flow / "sample-change"
-            (packet / "reports").mkdir(parents=True)
-            (flow / "current").write_text("sample-change\n", encoding="utf-8")
-            (packet / "packet.json").write_text(json.dumps({"state": "implementing", "approvals": {"dependencies": []}}), encoding="utf-8")
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-            env["PLUGIN_DATA"] = str(root / "plugin-data")
-            common = {"cwd": str(root), "session_id": "session", "agent_id": "agent"}
-            start = run(PYTHON, str(HOOK), stdin=json.dumps({**common, "hook_event_name": "SubagentStart"}), env=env)
-            self.assertEqual(start.returncode, 0)
-            marker = next((root / "plugin-data" / "agent-runs").glob("*.json"))
-            marker.write_text("[]\n", encoding="utf-8")
-
-            stop = run(PYTHON, str(HOOK), stdin=json.dumps({**common, "hook_event_name": "SubagentStop"}), env=env)
-            self.assertEqual(stop.returncode, 0, stop.stderr or stop.stdout)
-            payload = json.loads(stop.stdout)
-            self.assertIn("DEV_FLOW_AGENT_REPORT_MISSING", payload["hookSpecificOutput"]["additionalContext"])
-            self.assertFalse(marker.exists())
-
-    def test_terminal_and_blocked_packets_are_inert_for_agent_lifecycle(self) -> None:
-        for state in ("accepted", "archived", "blocked"):
-            with self.subTest(state=state), tempfile.TemporaryDirectory() as temp:
-                root = Path(temp)
-                flow = root / ".codex" / "dev-flow"
-                packet = flow / "sample-change"
-                packet.mkdir(parents=True)
-                (flow / "current").write_text("sample-change\n", encoding="utf-8")
-                (packet / "packet.json").write_text(json.dumps({"state": state, "approvals": {"dependencies": []}}), encoding="utf-8")
-                env = os.environ.copy()
-                env["PLUGIN_ROOT"] = str(ROOT)
-                env["PLUGIN_DATA"] = str(root / "plugin-data")
-                common = {"cwd": str(root), "session_id": "session", "agent_id": "agent"}
-
-                start = run(PYTHON, str(HOOK), stdin=json.dumps({**common, "hook_event_name": "SubagentStart"}), env=env)
-                self.assertEqual(start.returncode, 0)
-                self.assertEqual(start.stdout, "")
-                self.assertFalse((root / "plugin-data" / "agent-runs").exists())
-
-                stop = run(PYTHON, str(HOOK), stdin=json.dumps({**common, "hook_event_name": "SubagentStop"}), env=env)
-                self.assertEqual(json.loads(stop.stdout), {})
-
-                agent_call = run(
-                    PYTHON,
-                    str(HOOK),
-                    stdin=json.dumps({"cwd": str(root), "hook_event_name": "PreToolUse", "tool_name": "Agent", "tool_input": {}}),
-                    env=env,
-                )
-                self.assertEqual(agent_call.stdout, "")
-
-    def test_subagent_stop_cleans_marker_after_packet_deactivation(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            flow = root / ".codex" / "dev-flow"
-            packet = flow / "sample-change"
-            (packet / "reports").mkdir(parents=True)
-            current = flow / "current"
-            current.write_text("sample-change\n", encoding="utf-8")
-            (packet / "packet.json").write_text(json.dumps({"state": "implementing", "approvals": {"dependencies": []}}), encoding="utf-8")
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-            env["PLUGIN_DATA"] = str(root / "plugin-data")
-            common = {"cwd": str(root), "session_id": "session", "agent_id": "agent"}
-            start = run(PYTHON, str(HOOK), stdin=json.dumps({**common, "hook_event_name": "SubagentStart"}), env=env)
-            self.assertEqual(start.returncode, 0)
-            marker = next((root / "plugin-data" / "agent-runs").glob("*.json"))
-
-            current.unlink()
-            stop = run(PYTHON, str(HOOK), stdin=json.dumps({**common, "hook_event_name": "SubagentStop"}), env=env)
-            self.assertEqual(json.loads(stop.stdout), {})
-            self.assertFalse(marker.exists())
 
 
 class PreferenceAuditTests(unittest.TestCase):
@@ -8542,9 +7416,9 @@ class RepositoryContractTests(unittest.TestCase):
             ROOT / "skills" / "verification" / "references" / "test-strategy.md"
         ).read_text(encoding="utf-8")
         for control_plane_boundary in (
-            "control plane owns operational approval",
-            "secret routing",
-            "waivers",
+            "implementation does not imply commit, push, publish, deploy",
+            "Irreversible",
+            "explicit delivery boundaries",
         ):
             self.assertIn(control_plane_boundary, dev_flow)
         self.assertIn("Requirements Design owns product meaning and semantic answer records", interaction)
@@ -8553,382 +7427,59 @@ class RepositoryContractTests(unittest.TestCase):
             "Default-mode control, waiver state, and post-interaction continuation are owned by Dev Flow",
             interaction,
         )
-        self.assertIn("A behavior or interaction claim never doubles as proof", verification)
-        self.assertIn("Emit a separate verification-owned test cell", verification)
-        self.assertIn("create a separate verification-owned test cell", test_strategy)
-        self.assertIn("`NOT RUN` status", test_strategy)
-        self.assertIn("contrasts available and unavailable paths", test_strategy)
+        self.assertIn("A configured test is not executed evidence", verification)
+        self.assertIn("the test name, code, command, and result are usually enough", test_strategy)
+        self.assertIn("Do not create IDs, digests, approval records", interaction)
+        self.assertIn("explicit as `NOT RUN`", test_strategy)
+        self.assertIn("evidence for one side never proves the other", test_strategy)
 
-    def test_release_quality_contracts_are_top_level_and_actionable(self) -> None:
-        def section(text: str, heading: str) -> str:
-            marker = f"## {heading}\n"
-            body = text.split(marker, 1)[1]
-            return body.split("\n## ", 1)[0]
-
-        architecture = (ROOT / "skills" / "architecture-decisions" / "SKILL.md").read_text(encoding="utf-8")
-        architecture_policy = (
-            ROOT / "skills" / "architecture-decisions" / "references" / "neutral-engineering-policy.md"
-        ).read_text(encoding="utf-8")
+    def test_release_tiers_and_proportional_quality_contracts_are_actionable(self) -> None:
         devflow = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
-        repo_context = (ROOT / "skills" / "repo-context" / "SKILL.md").read_text(encoding="utf-8")
-        requirements = (ROOT / "skills" / "requirements-design" / "SKILL.md").read_text(encoding="utf-8")
-        verification = (ROOT / "skills" / "verification" / "SKILL.md").read_text(encoding="utf-8")
-        test_strategy = (
-            ROOT / "skills" / "verification" / "references" / "test-strategy.md"
+        architecture = (
+            ROOT / "skills" / "architecture-decisions" / "SKILL.md"
         ).read_text(encoding="utf-8")
-        change_review = (ROOT / "skills" / "change-review" / "SKILL.md").read_text(encoding="utf-8")
-        authorization_privacy = (
-            ROOT / "skills" / "change-review" / "references" / "authorization-privacy.md"
+        dependency = (
+            ROOT / "skills" / "dependency-decisions" / "SKILL.md"
         ).read_text(encoding="utf-8")
-        review_protocol = (
-            ROOT / "skills" / "change-review" / "references" / "review-protocol.md"
+        verification = (
+            ROOT / "skills" / "verification" / "SKILL.md"
         ).read_text(encoding="utf-8")
-        dependency = (ROOT / "skills" / "dependency-decisions" / "SKILL.md").read_text(encoding="utf-8")
-        delivery = (ROOT / "skills" / "delivery-readiness" / "SKILL.md").read_text(encoding="utf-8")
-        delivery_contract = (
-            ROOT / "skills" / "delivery-readiness" / "references" / "readiness-contract.md"
+        change_review = (
+            ROOT / "skills" / "change-review" / "SKILL.md"
         ).read_text(encoding="utf-8")
-        product_ux = (ROOT / "skills" / "product-ux-discovery" / "SKILL.md").read_text(encoding="utf-8")
-        profile_contract = (
-            ROOT / "skills" / "manage-engineering-profiles" / "references" / "profile-contract.md"
+        delivery = (
+            ROOT / "skills" / "delivery-readiness" / "SKILL.md"
         ).read_text(encoding="utf-8")
-        orchestration = (ROOT / "skills" / "dev-flow" / "references" / "orchestration.md").read_text(
-            encoding="utf-8"
-        )
-        eqac_contract = json.loads(
-            (ROOT / "evals" / "contracts" / "rust-backend.json").read_text(encoding="utf-8")
-        )
+        releasing = (ROOT / "docs" / "releasing.md").read_text(encoding="utf-8")
 
-        self.assertIn(
-            "consume the smallest repo-context-admitted specialist evidence per affected consumer",
-            section(architecture, "Procedure").casefold(),
-        )
-        self.assertIn(
-            "route selection is not review execution",
-            section(architecture, "Procedure"),
-        )
-        devflow_execute = section(devflow, "Execute")
-        for bugfix_invariant in (
-            "current and protected behavior",
-            "reproduce the cause",
-            "a failing focused regression",
-            "scope",
+        for tier in ("R1 standard", "R2 runtime", "R3 artifact/security", "R4 model-semantic"):
+            self.assertIn(tier, releasing)
+        for release_contract in (
+            "Run the full semantic suite once for an exact commit SHA",
+            "affected focused compatibility cells",
+            "immutable release artifact",
+            "Publication, tag creation, push, release creation, and installation",
+            "A missing hosted, device, signing, account, deployment, or public-network result is `NOT RUN`",
+            "does not rerun semantic CI",
         ):
-            self.assertIn(bugfix_invariant, devflow_execute)
-        context_procedure = section(repo_context, "Procedure")
-        self.assertIn("Record consequential rules as stable `INS-n` with source, scope, authority", context_procedure)
-        self.assertIn("Review both sides of FFI: layout, ownership, errors, panic containment", architecture_policy)
-        self.assertIn(
-            "Separate ABI versioning from compatibility migration/rollback/removal.",
-            section(architecture, "Procedure"),
-        )
-        self.assertIn(
-            "require and consume a repo-context-owned discovery record",
-            architecture_policy,
-        )
-        self.assertIn(
-            "For FFI, keep representation, callback lifecycle, and compatibility evolution separate.",
-            section(architecture, "Procedure"),
-        )
-        self.assertIn(
-            "Never detach callback producers across teardown.",
-            architecture_policy,
-        )
-        self.assertIn(
-            "Record separate `architecture.decision.v1` items when choices, protected behaviors, or recheck triggers can change independently; each item includes evidence, applicability, tradeoffs, exceptions, consequences, tests, and recheck triggers.",
-            section(architecture, "Procedure"),
-        )
-        ffi_contract_counts = {
-            "ffi-mobile.json": (8, 57),
-            "ffi-ownership-error.json": (13, 53),
-            "ffi-lifecycle-packaging.json": (8, 44),
-        }
-        ffi_pair_ids = {
-            "ffi-mobile.json": "PAIR-CROSS-LANGUAGE",
-            "ffi-ownership-error.json": "PAIR-FFI-OWNERSHIP-ERROR",
-            "ffi-lifecycle-packaging.json": "PAIR-FFI-LIFECYCLE-PACKAGING",
-        }
-        kind_registry = json.loads(
-            (ROOT / "governance" / "claim-kinds.json").read_text(encoding="utf-8")
-        )
-        kind_owners = {item["id"]: item["owner"] for item in kind_registry["kinds"]}
-        development_config = json.loads(
-            (ROOT / "evals" / "paired-evaluations.json").read_text(encoding="utf-8")
-        )
-        for contract_name, (expected_units, expected_facets) in ffi_contract_counts.items():
-            ffi_contract = json.loads(
-                (ROOT / "evals" / "contracts" / contract_name).read_text(encoding="utf-8")
-            )
-            work_units = ffi_contract["work_units"]
-            facets = [
-                {
-                    **facet,
-                    "owner": unit["owner"],
-                    "criticality": unit["criticality"],
-                    "route_kinds": [route["kind"] for route in unit["claim_routes"]],
-                }
-                for unit in work_units
-                for facet in unit["facets"]
-            ]
-            self.assertEqual(ffi_contract["schema_version"], "2.2")
-            self.assertEqual(len(work_units), expected_units)
-            self.assertEqual(len(facets), expected_facets)
-            self.assertLessEqual(len(facets), 64)
-            self.assertEqual(
-                {item["id"] for item in facets},
-                {f"OB-{index}" for index in range(1, expected_facets + 1)},
-            )
-            self.assertTrue(
-                all(
-                    set(unit)
-                    == {"id", "owner", "claim_routes", "criticality", "protected_behavior", "facets"}
-                    and all(
-                        set(route) == {"kind"} and kind_owners[route["kind"]] == unit["owner"]
-                        for route in unit["claim_routes"]
-                    )
-                    and all(set(facet) == {"id", "action"} for facet in unit["facets"])
-                    for unit in work_units
-                )
-            )
-            routes = [
-                item
-                for item in facets
-                if item["owner"] == "architecture-decisions"
-                and "architecture-decisions.decision" in item["route_kinds"]
-                and "route" in item["action"].casefold()
-            ]
-            self.assertEqual(len(routes), 3)
-            self.assertTrue(all(item["criticality"] == "required" for item in routes))
-            self.assertTrue(any("Rust-Swift" in item["action"] for item in routes))
-            self.assertTrue(any("Rust-Kotlin" in item["action"] for item in routes))
-            self.assertTrue(any("independent FFI review" in item["action"] for item in routes))
-            discovery = [
-                item
-                for item in facets
-                if item["owner"] == "repo-context"
-                and "repo-context.analysis" in item["route_kinds"]
-                and "inventory" in item["action"].casefold()
-            ]
-            self.assertEqual(len(discovery), 9)
-            self.assertTrue(all(item["criticality"] == "required" for item in discovery))
-            review_actions = "\n".join(
-                item["action"] for item in facets if item["owner"] == "change-review"
-            ).casefold()
-            self.assertTrue(
-                all(
-                    term in review_actions
-                    for term in (
-                        "approved diff",
-                        "generated artifacts",
-                        "changed-file",
-                        "raw verification",
-                        "swift consumer",
-                        "kotlin consumer",
-                        "abi",
-                        "lifecycle",
-                        "packaging",
-                        "mixed-version",
-                        "rollback",
-                    )
-                )
-            )
-            ffi_pair = next(
-                item for item in development_config["pairs"] if item["id"] == ffi_pair_ids[contract_name]
-            )
-            self.assertIn("repo-context", ffi_pair["capabilities"])
-            self.assertEqual(ffi_pair["capability_context"]["repo-context"], [])
-            fixture = (ROOT / "evals" / ffi_pair["fixture"]).read_text(encoding="utf-8")
-            self.assertNotIn("A good first attempt", fixture)
+            self.assertIn(release_contract, releasing)
 
-        acceptance_config = json.loads(
-            (ROOT / "evals" / "paired-evaluations-acceptance.json").read_text(encoding="utf-8")
-        )
-        acceptance_ffi = json.loads(
-            (ROOT / "evals" / "cases" / "acceptance-ffi.json").read_text(encoding="utf-8")
-        )
-        acceptance_pairs = [
-            item for item in acceptance_config["pairs"] if item["category"] == "CAT-FFI"
-        ]
-        self.assertGreaterEqual(
-            len(acceptance_pairs),
-            acceptance_config["release_plan"]["minimum_cases_per_category"],
-        )
-        self.assertTrue(
-            all(
-                {"repo-context", "architecture-decisions", "verification", "change-review"}
-                .issubset(set(item["capabilities"]))
-                for item in acceptance_pairs
-            )
-        )
-        for case in acceptance_ffi["cases"]:
-            case_units = case["work_units"]
-            case_facets = [
-                {
-                    **facet,
-                    "owner": unit["owner"],
-                    "route_kinds": [route["kind"] for route in unit["claim_routes"]],
-                }
-                for unit in case_units
-                for facet in unit["facets"]
-            ]
-            self.assertEqual(
-                {item["owner"] for item in case_units},
-                {"repo-context", "architecture-decisions", "verification", "change-review"},
-            )
-            self.assertEqual(
-                len(
-                    [
-                        item
-                        for item in case_facets
-                        if "architecture-decisions.decision" in item["route_kinds"]
-                        and "route" in item["action"].casefold()
-                    ]
-                ),
-                3,
-            )
-            self.assertTrue(
-                any(
-                    "repo-context.analysis" in item["route_kinds"]
-                    and "inventory" in item["action"].casefold()
-                    for item in case_facets
-                )
-            )
-            self.assertTrue(
-                any(
-                    item["owner"] == "change-review"
-                    and set(item["route_kinds"])
-                    & {"change-review.analysis", "change-review.limitation"}
-                    and "evidence" in item["action"].casefold()
-                    for item in case_facets
-                )
-            )
-        self.assertIn(
-            "When late material ambiguity changes the baseline, record an `AMB-n`, stop affected work, return the content-bound packet to `awaiting-approval`, increment the revision, preserve approval history, obtain the user disposition, and create fresh digest-bound Requirement Ready and design approvals.",
-            section(requirements, "Procedure"),
-        )
-        self.assertIn(
-            "Detailed matrices and cell rules live in `references/test-strategy.md`.",
-            section(verification, "EQAC rule"),
-        )
-        self.assertIn(
-            "Inventory the applicable call, data, error, consumer, artifact, version, loading, and runtime paths.",
-            section(repo_context, "Procedure"),
-        )
-        self.assertIn(
-            "Freeze the approved revision/digest, AC/SC/VO set, base/diff, changed-file and generated-artifact accounting, and raw verification evidence.",
-            section(change_review, "Procedure"),
-        )
-        self.assertIn(
-            "For cross-language changes, trace every consumer and generated-artifact causal path.",
-            review_protocol,
-        )
-        self.assertIn(
-            "Preserve applicable independently variable axes or prerequisites; umbrella labels do not replace them.",
-            section(change_review, "Procedure"),
-        )
-        self.assertIn(
-            "A post-change review names the approved diff, generated artifacts, complete changed-file list",
-            review_protocol,
-        )
-        self.assertIn(
-            "For overload, cover bounded admission, capacity, rejection/backpressure, retry amplification, and recovery.",
-            test_strategy,
-        )
-        auth_review = section(change_review, "Procedure")
-        self.assertIn("Authorization/privacy review:", auth_review)
-        self.assertIn(
-            "Only when the approved task or diff contains an authorization or privacy boundary, read `references/authorization-privacy.md`; otherwise do not load, mention, or apply that checklist.",
-            auth_review,
-        )
-        self.assertNotIn("explicitly account for all five groups", change_review)
-        self.assertIn(
-            "Before returning an authorization-boundary review, explicitly account for all five groups: (1) the full actor-to-log path; (2) positive and missing, stale, confused, and cross-tenant identities; (3) stable non-enumerating errors, audit events, and credential or personal-data redaction; (4) relevant limits, malformed input, retry, cancellation, and rollback effects; and (5) for each verified finding, severity, affected contract, causal proof, and focused remediation.",
-            section(authorization_privacy, "Authorization completion gate"),
-        )
-        self.assertIn(
-            "For concurrency findings, require controlled scheduling or bounded repeated evidence, retain protected ordinary behavior tests, and omit unrelated specialist checklists.",
-            section(review_protocol, "Evaluation"),
-        )
-        self.assertEqual(
-            [
-                facet["action"]
-                for unit in eqac_contract["work_units"]
-                for facet in unit["facets"]
-            ],
-            [
-                "inspect job lifecycle, shutdown, persistence, capacity, and existing verification before choosing oracles",
-                "define bounded admission, overload or backpressure, retry, deduplication, cancellation, collision, and restart recovery checks",
-                "create deterministic or bounded repeated tests for claim exclusivity, retry limits, restart recovery, and drain behavior",
-                "run Rust static, focused unit, integration, restart, drain, and resource evidence as applicable",
-                "record exact commands and outcomes while preserving failed, flaky, blocked, and not-run gates",
-            ],
-        )
-        self.assertIn(
-            "Complete safe research and an actionable plan before any approval boundary. An explicit implementation request authorizes its exact existing-dependency removal or routine update as task intent; when repository evidence resolves the identity, command, files, and result bytes without a material choice, bind that original request into the exact machine-readable approval record instead of asking for the same intent again. Stop before mutation when exact binding is impossible or mismatched. This never authorizes an addition, material feature or risk expansion, a different dependency/operation/scope, or mutation during analysis-only or read-only work.",
-            section(dependency, "Procedure"),
-        )
-        self.assertIn(
-            "Removal: establish a pre-change graph; search source, tests, examples, build scripts, generated inputs/outputs, features, platform targets, and downstream consumers; run and preserve applicable default/minimal/all-feature builds and affected tests, generated consistency, platform, and consumer cells; remove through native tooling without hand-editing the lockfile; repeat the same matrix; inspect graph/lockfile integrity, advisories, and licenses; clean only proven-dead features/configuration/generated/build/documentation surfaces; and record rollback plus every `NOT RUN` environment or consumer.",
-            section(dependency, "Procedure"),
-        )
-        self.assertIn(
-            "For release artifacts, freeze source commit, version, configuration, release target, artifact set, signing identity, observation owner, and rollback owner; compare SHA-256 from two clean builds; verify contents, version, and commit; require a non-empty standards-format SBOM and provenance bound to the final digest; verify the signature; then keep tag and Draft prerelease actions separately authorized.",
-            section(delivery, "Procedure"),
-        )
-        self.assertIn(
-            "Failed, flaky, blocked, not-run, mismatched, or unsigned required release cells block tag and release-ready claims; retain their status and first evidence.",
-            section(delivery, "Procedure"),
-        )
-        self.assertIn(
-            "Before returning an RC or release plan, explicitly account for: first-failure packet; a separate executed check and evidence row for each of stale/wrong subjects, nondeterminism, post-build mutation, and upload substitution, including intended-local versus uploaded asset name/size/digest; causal repair in a distinct attempt; two clean builds and manifest/identity checks; completion of tamper and mismatched-pair rejection before generating any fresh signature; only then fresh signature generation and verification; local-snapshot versus remote-tag/target-platform evidence; lifecycle ownership/cleanup; and every `NOT RUN` cell.",
-            section(delivery, "Procedure"),
-        )
-        release_gate = section(delivery_contract, "Release completion gate")
-        self.assertIn(
-            "Preserve the first failure as an immutable packet: archive and manifest digests, commit, configuration, toolchain, builder, environment, SBOM/provenance/signature subjects, uploaded-asset identity, logs, and receipts.",
-            release_gate,
-        )
-        self.assertIn(
-            "Execute and retain a separate evidence row for each of stale or wrong subjects, nondeterministic builds, post-build mutation, and upload substitution; for upload substitution compare intended-local and uploaded asset name, size, and digest. A general root-cause investigation or aggregate binding check does not satisfy these four cells; fix the causal builder or binding and create a distinct controlled attempt instead of editing metadata or overwriting evidence.",
-            release_gate,
-        )
-        self.assertIn(
-            "For the new attempt, compare two clean builds and verify archive manifest/contents/version/commit; complete tamper and mismatched-pair rejection before generating any fresh signature; only after those negative checks pass, generate and verify a fresh signature. Remote immutable-tag resolution and Draft Release remain later separately authorized gates.",
-            release_gate,
-        )
-        self.assertIn(
-            "Lifecycle evidence uses a temporary isolated profile; freezes prior and RC tag/source/version/expected bytes; covers install, upgrade, rollback, re-upgrade, uninstall, modified-file ownership, process/profile/credential cleanup, retained receipts, and a target-platform matrix. A local snapshot proves only local behavior; remote-tag and unrun target cells remain `NOT RUN`.",
-            release_gate,
-        )
-        self.assertIn(
-            "Before returning a user-facing plan, explicitly inspect current source/rendered states, semantic/event/data/state ownership, routes/navigation, design system/assets, browser projects, and freshest product truth; if unavailable, make this the first `NOT RUN` action.",
-            section(product_ux, "Procedure"),
-        )
-        self.assertIn(
-            "Before returning a material UI plan, confirm it covers relevant states plus semantics, keyboard/focus, names/status, confirmation, motion/scaling, responsive behavior, and rendered/manual evidence; mark inapplicable items with a reason.",
-            section(product_ux, "Procedure"),
-        )
-        profile_modes = section(profile_contract, "Resolution modes")
-        self.assertIn(
-            "Resolve three modes explicitly: `personal-interactive` may read the known personal directory plus declared repository/task sources; `team-reproducible` and `ci` must exclude personal directories, environment-derived personal values, and credentials, and use only the public baseline plus declared repository/task sources.",
-            profile_modes,
-        )
-        self.assertIn(
-            "For `team-reproducible` and `ci`, run the resolver from clean isolated profile homes with deliberately different personal profiles; require identical effective bytes and fingerprints, and prove shared artifacts contain no personal paths, hashes, values, or credentials.",
-            profile_modes,
-        )
-        self.assertIn(
-            "Record source hashes, winners, shadowed entries, conflicts, unresolved material choices, fingerprints, exact commands/environments/outcomes, and every `NOT RUN` cell; an explicit work mode may raise but never lower evidence-derived risk or shared controls.",
-            profile_modes,
-        )
-        self.assertIn(
-            "Verification names representative viewport, input, browser/platform, accessibility, and every recovery transition; missing rendered or physical cells remain `NOT RUN`.",
-            section(product_ux, "Procedure"),
-        )
-        self.assertIn(
-            "Bugfix: inspect applicable instructions, causal path, tests, logs, and analogues; separate fact, inference, and unknown; bind direct, protected, and out-of-scope behavior; reproduce the failure and, when practical, prove a focused regression fails before the fix; then rerun the protected and nearby paths.",
-            section(orchestration, "Task routing"),
-        )
+        for proportional_contract in (
+            "An overlay adds only its relevant controls",
+            "Load only specialists that own real decisions or evidence",
+            "smallest coherent slice",
+        ):
+            self.assertIn(proportional_contract, devflow)
+        self.assertIn("Record a concise ADR or managed-work decision only when", architecture)
+        self.assertIn("Run affected behavior", dependency)
+        self.assertIn("Use the narrowest evidence that can falsify", verification)
+        self.assertIn("ordinary changes do not require ceremonial blue/red reports", change_review)
+        self.assertIn("Do not replay a complete maximum gate set", delivery)
+
+        self.assertIn("freeze the exact source commit, version, target", delivery)
+        self.assertIn("checksums, SBOM/provenance/signature", delivery)
+        self.assertIn("Local checks do not prove hosted CI", delivery)
+        self.assertIn("No packet closeout", delivery)
 
     def test_ffi_mobile_work_unit_merge_preserves_facet_contract(self) -> None:
         contract = json.loads(
@@ -9084,33 +7635,23 @@ class RepositoryContractTests(unittest.TestCase):
         execution = (ROOT / "skills" / "dev-flow" / "templates" / "execution.md").read_text(encoding="utf-8")
         brief = (ROOT / "skills" / "dev-flow" / "templates" / "task-brief.md").read_text(encoding="utf-8")
         for token in (
-            "spawned -> working -> terminal -> reconciled",
-            "proposed | blocked | ready -> cancelled -> reconciled",
-            "spawned | working -> draining",
-            "orphan-suspected",
-            "wait_agent",
-            "at most one interrupt",
-            "visible thread count does not need to return to one",
-            "DEV_FLOW_AGENT_MARKER_UNAVAILABLE",
-            "DEV_FLOW_AGENT_REPORT_MISSING",
+            "objective and expected outcome",
+            "relevant business/repository context",
+            "owned paths or an explicit read-only boundary",
+            "allowed verification and resource limits",
+            "stop conditions",
+            "expected return",
+            "root reconciles returned work against the current Git state",
+            "reruns affected checks",
+            "A child final is a report",
         ):
             self.assertIn(token, orchestration)
-        for token in ("Soft/hard deadline", "Native result", "Durable report", "Resource lease", "Disposition/recovery"):
-            self.assertIn(token, execution)
-        for token in (
-            "soft observation deadline",
-            "hard stop deadline",
-            "Native result",
-            "Durable report",
-            "must not block native stop",
-            "proposed/blocked/ready/spawned/working/draining/overdue/interrupt-requested/terminal/orphan-suspected/cancelled/reconciled",
-        ):
-            self.assertIn(token, brief)
+        for token in ("packet IDs", "AC/SC/VO mappings", "context fingerprints", "lease epochs"):
+            self.assertIn(token, orchestration)
 
-        for config in AGENT_CONFIGS.glob("*.toml"):
-            content = config.read_text(encoding="utf-8")
-            self.assertIn("native final", content, config.name)
-            self.assertIn("must not delay stop", content, config.name)
+        # The 1.x packet templates remain compatibility data, not active 2.0 gates.
+        self.assertTrue(execution)
+        self.assertTrue(brief)
 
     def test_contract_and_plugin_checks(self) -> None:
         contracts = run(PYTHON, str(ROOT / "evals" / "run_contract_checks.py"))

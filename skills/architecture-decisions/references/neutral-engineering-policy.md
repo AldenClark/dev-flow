@@ -1,71 +1,60 @@
 # Neutral engineering policy
 
-These are portable preferences among correct options. They do not override explicit user authority, safety/law, approved requirements/design, observed repository/runtime contracts, or valid existing conventions.
+These are portable preferences among correct options. They do not override explicit user authority, safety or law, observed repository/runtime contracts, or valid existing conventions.
 
 ## Evidence and change discipline
 
 - Inspect the actual root, manifests, toolchain, nearby implementation, tests, runtime, and call path before deciding.
-- Separate fact, inference, resolved preference, volatile ecosystem evidence, and recommendation.
+- Separate observed fact, inference, recommendation, and unavailable evidence.
 - Make the smallest coherent change and avoid opportunistic refactors.
-- Remove dead code created by the in-scope change; add compatibility layers only for an identified consumer and removal condition.
+- Remove dead code created by the change; add compatibility layers only for an identified consumer and removal condition.
 
-## Coherent slices and commit readiness
+## Coherent slices
 
-- Freeze the approved requirement/design baseline, affected surface, acceptance/scope/verification IDs, and current worktree before each implementation slice.
-- Keep related production code, black-box and white-box tests, documentation, and comments in the same coherent slice when they express one behavior.
-- Add or adjust focused tests with the implementation; run the narrow oracle early, then the affected module suite and a representative smoke path at integration points.
-- Before calling a slice commit-ready, inspect the complete diff, user-owned changes, generated/dependency metadata, secrets, tests and oracle validity, comments and documentation, formatter/typecheck/lint results, and relevant smoke evidence.
-- A commit-ready result is a checkpoint and a prompt to the user. It never authorizes staging, committing, pushing, opening a PR, or any later delivery action.
+- Re-read current product intent, design decisions, affected surface, and worktree before a meaningful implementation slice.
+- Keep related production code, focused tests, maintained documentation, and comments aligned when they express one behavior.
+- Run the narrow oracle early, then the affected module suite and a representative integration path when relevant.
+- Before calling a slice complete, inspect the final diff, user-owned changes, generated/dependency metadata, secrets, tests and oracle validity, comments/docs, and affected native checks.
+- Completion evidence never authorizes stage, commit, push, PR, release, or deployment.
 
 ## Native idiom and abstraction
 
 - Select by language, framework/version, artifact role, boundary, ownership, and call path.
-- Prefer domain and protocol names over generic enterprise suffixes.
-- A suffix or type name alone is never a violation; verify semantics and impact.
-- Prefer a little clear duplication over an unstable abstraction.
-- Introduce an abstraction for a stable concept, real variation axis, ownership boundary, public extension, valuable test seam, or repeated behavior.
-- Avoid vague `Helper`, `Utils`, `Base`, `Abstract`, or `Manager` unless the name represents a precise domain responsibility.
+- Prefer domain and protocol names over generic enterprise suffixes; names alone are never violations.
+- Prefer clear local duplication over an unstable abstraction.
+- Introduce an abstraction for a stable concept, real variation axis, ownership boundary, public extension, valuable test boundary, or repeated behavior.
 
-## Types and APIs
+## Types, failures, and resources
 
-- Use strong types, enums/discriminated unions, explicit capabilities, validated constructors, and exhaustive state handling.
-- Validate untrusted input once at the boundary and move typed values inward.
-- Name boundary records by role: request, response, event, row, wire message, or FFI record.
-- Keep public surfaces small and version persistent/wire formats when compatibility matters.
-
-## Failure and resources
-
+- Use strong types, explicit capabilities, validated constructors, and exhaustive state handling where they reduce invalid states.
+- Validate untrusted input at the boundary and move typed values inward.
 - Use typed/matchable errors at library/domain boundaries and add operational context at application boundaries.
-- Never branch on error strings or expose sensitive internals.
-- Reserve panic/fatal failure for programmer error or proven invariant.
-- Prefer structured concurrency, explicit task/resource owners, cancellation, join paths, deadlines, bounded queues, and named overload policy.
-- Make acquisition, handoff, shutdown, drain, callback quiescence, and cleanup observable and testable.
+- Prefer structured concurrency, explicit resource owners, cancellation and join paths, deadlines, bounded queues, and named overload behavior.
+- Make acquisition, handoff, shutdown, drain, callback quiescence, and cleanup observable when the system owns such resources.
 
 ## Dependencies and performance
 
-- Prefer platform/standard library, existing approved capability, bounded local implementation, then approved external dependency.
-- Treat graph, features, build/runtime cost, native code, license, advisories, portability, migration, and removal as API cost.
-- Establish an idiomatic baseline and representative workload before SIMD, unsafe fast paths, lock-free structures, custom allocators, GPU, zero-copy formats, or complex caching.
-- State hardware, build profile, data distribution, variance, and regression threshold; preserve portable fallback when applicable.
+- Prefer platform/standard library, an existing capability, a bounded local implementation, then an external dependency.
+- Treat features, graph, build/runtime cost, native code, license, advisories, portability, migration, and removal as dependency cost.
+- Establish an idiomatic baseline and representative workload before advanced performance mechanisms.
+- Record hardware, build profile, workload, variance, and correctness guard only when making a performance claim.
 
 ## Testing, documentation, and observability
 
-- For every non-trivial behavior change, separately derive black-box tests from approved external behavior and white-box tests from the changed implementation; implement and run each applicable perspective, and give a concrete change-specific reason for any `N/A`.
-- Treat experience-based, exploratory, adversarial, and red-team tests as a third perspective that supplements but never replaces black-box or white-box accountability.
-- Test behavior, contracts, risks, state transitions, failures, limits, cancellation, and compatibility rather than implementation trivia or a coverage percentage target.
-- Review test oracles and failure sensitivity; passing tests that would remain green when protected behavior is broken are evidence gaps.
-- Use property/model/fuzz/sanitizer/concurrency methods when the invariant/state space warrants them.
-- Add comments in an appropriate amount where they preserve why, invariants, safety/privacy, compatibility/protocol constraints, concurrency/lifecycle/resource ownership, non-obvious performance tradeoffs, workaround/removal conditions, or public API contracts, limits, and errors.
-- Avoid comments that narrate obvious code, preserve commented-out code, speculate about unsupported defensive cases, hide a poor abstraction, or leave a `TODO` without an owner plus a tracking reference or removal trigger. Update or remove stale comments with the code.
-- Document public contracts, operational limits, migration/rollback, and unsafe/FFI safety contracts.
-- Emit structured actionable telemetry without secrets or unbounded-cardinality labels.
+- Select black-box, white-box, property, differential, exploratory, or adversarial views only where they add distinct failure sensitivity.
+- Test behavior, contracts, risks, states, failures, limits, cancellation, and compatibility rather than implementation trivia or a coverage target.
+- Challenge high-risk or easy-to-fake oracles with a practical negative control.
+- Add comments where they preserve why, invariants, safety/privacy, compatibility, ownership/lifecycle, non-obvious trade-offs, workaround removal, or public limits.
+- Avoid comments that narrate obvious code, preserve dead code, hide a poor abstraction, or leave an unowned `TODO`.
+- Document maintained public contracts, operational limits, migration/rollback, and unsafe/FFI safety contracts.
+- Emit actionable telemetry without secrets or unbounded-cardinality labels.
 
 ## Security, unsafe, and FFI
 
 - Never invent cryptographic primitives or protocols.
 - Isolate unsafe code and document its adjacent safety contract.
-- Review both sides of FFI: layout, ownership, errors, panic containment, threading, cancellation, callback teardown, ABI evolution, symbols, packaging, and platform lifecycle.
-- Before cross-language design, require and consume a repo-context-owned discovery record for exports, generated bindings, handwritten consumers, package artifacts, support ranges, deployed versions, and native loading paths; if absent, record a context gap. Reference that upstream claim without relabeling discovery as architecture evidence. Preserve mixed-version migration and rollback, allocator symmetry, leak evidence, and boundary-isolation tests.
-- Never detach callback producers across teardown. Bind cancellation to an owner, join/drain in-flight work to a documented quiescence point, reject late generations, and only then release foreign state.
-- For Apple/Android mobile FFI, keep Xcode Test Plan and xcresult evidence separate from Android API/ABI matrices and CheckJNI; keep simulator/emulator evidence separate from physical-device loading, lifecycle, packaging, and architecture gates.
+- For FFI, inspect both sides: layout, ownership, errors, panic containment, threading, cancellation, callback teardown, ABI evolution, symbols, packaging, platform lifecycle, generated bindings, consumers, and supported versions.
+- Keep representation, ownership/callback lifetime, and compatibility evolution as separate decisions.
+- Do not detach callback producers across teardown; cancel, drain to a defined quiescence point, reject late generations, then release foreign state.
+- Keep simulator/emulator evidence separate from physical-device loading, lifecycle, packaging, and architecture evidence.
 - Never log secrets, credentials, personal data, or full sensitive payloads.

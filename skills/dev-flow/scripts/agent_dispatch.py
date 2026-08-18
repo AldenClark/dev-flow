@@ -143,14 +143,31 @@ def validate_registry(registry: Any) -> dict[str, Any]:
         raise DispatchContractError("signal_vocabulary must be a unique non-empty string list")
     rules = _unique_records(registry.get("upgrade_rules"), field="id", label="upgrade_rules")
     for rule_id, rule in rules.items():
-        allowed = {"id", "any_risk", "any_signal", "minimum_capability", "minimum_effort", "reason"}
+        allowed = {
+            "id",
+            "any_risk",
+            "any_signal",
+            "unless_all_signals",
+            "minimum_capability",
+            "minimum_effort",
+            "reason",
+        }
         if not set(rule).issubset(allowed) or not _nonempty(rule.get("reason")):
             raise DispatchContractError(f"upgrade rule {rule_id} has invalid fields")
         risk_values = rule.get("any_risk", [])
         signal_values = rule.get("any_signal", [])
-        if not isinstance(risk_values, list) or not isinstance(signal_values, list):
+        suppressing_signals = rule.get("unless_all_signals", [])
+        if (
+            not isinstance(risk_values, list)
+            or not isinstance(signal_values, list)
+            or not isinstance(suppressing_signals, list)
+        ):
             raise DispatchContractError(f"upgrade rule {rule_id} conditions must be lists")
-        if len(risk_values) != len(set(risk_values)) or len(signal_values) != len(set(signal_values)):
+        if (
+            len(risk_values) != len(set(risk_values))
+            or len(signal_values) != len(set(signal_values))
+            or len(suppressing_signals) != len(set(suppressing_signals))
+        ):
             raise DispatchContractError(f"upgrade rule {rule_id} conditions must be unique")
         if not risk_values and not signal_values:
             raise DispatchContractError(f"upgrade rule {rule_id} requires a condition")
@@ -158,6 +175,8 @@ def validate_registry(registry: Any) -> dict[str, Any]:
             raise DispatchContractError(f"upgrade rule {rule_id} contains an unknown risk")
         if any(value not in signals for value in signal_values):
             raise DispatchContractError(f"upgrade rule {rule_id} contains an unknown signal")
+        if any(value not in signals for value in suppressing_signals):
+            raise DispatchContractError(f"upgrade rule {rule_id} contains an unknown suppressing signal")
         if "minimum_capability" in rule and rule["minimum_capability"] not in capabilities:
             raise DispatchContractError(f"upgrade rule {rule_id} has an unknown capability")
         if "minimum_effort" in rule and rule["minimum_effort"] not in efforts:
@@ -269,6 +288,17 @@ def route_agent(
         matched_signals = sorted(signal_set & set(rule.get("any_signal", [])))
         if not matched_risks and not matched_signals:
             continue
+        suppressing_signals = set(rule.get("unless_all_signals", []))
+        if suppressing_signals and suppressing_signals.issubset(signal_set):
+            reasons.append(
+                {
+                    "id": f"{rule['id']}-contained",
+                    "reason": "closed semantics, scope, and oracle contain this structured execution risk",
+                    "matched_risks": matched_risks,
+                    "matched_signals": sorted(suppressing_signals),
+                }
+            )
+            continue
         if "minimum_capability" in rule:
             minimum_capability = max(
                 minimum_capability,
@@ -331,5 +361,5 @@ def route_agent(
         "risks": sorted(risk_set),
         "signals": sorted(signal_set),
         "upgrade_reasons": reasons,
-        "runtime_fallback": "record the fallback reason and observed effective pair; inherit platform or parent selection only when safe",
+        "runtime_fallback": "if unavailable, state the observed fallback in the current task result; inherit platform or parent selection only when safe",
     }

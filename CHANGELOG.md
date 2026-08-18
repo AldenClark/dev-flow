@@ -4,6 +4,106 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2.0.0-beta.3] - 2026-08-18
+
+### Added
+
+- U1–U5 requirement-understanding classification, with a detailed technology-neutral U1 result and a hard Default-mode confirmation stop before technical design.
+- An active specialist/method/review/model capability spine driven by repository facts, confirmed requirements, risks, failures, current diff exposure, and the effective Codex surface.
+- Dynamic Rust, Axum, Serde, SQLx, Swift concurrency, Java/Spring, React, FFI, security, accessibility, and verification capability routing with qualified fallbacks.
+- Codex-native adapter guidance for AGENTS health, native review, explicit Goals, worktree isolation, UI/device evidence, and a four-field external-context note.
+- `flow-metrics` as deterministic and semantic-observation Flow Activation Coverage with positive and negative branch fixtures, no effect measurement, and no aggregate score.
+- A 0.2–2.0 historical capability disposition distinguishing retained engineering capability from retired default ceremony.
+
+### Changed
+
+- Reactivated the 117-method pool at high-leverage failure mechanisms: the route now returns up to three actual methods or exact missing prerequisites and fallbacks, while ordinary work remains quiet.
+- Added compact runtime routing, ranked method output by direct risk/signal relevance, embedded bounded method steps, and kept the lower-level selector maintainer-only so method activation cannot expand into a full-pool study.
+- Kept explicit design/architecture audits on review/U5 intent, prevented recursive review-of-review delegation, and made material architecture-risk reviews load their owning architecture Skill without acquiring a U1 confirmation stop.
+- Moved closed, confirmed, deterministically verifiable child work to Luna P0–P2; Terra owns ordinary causal/judgment work and Sol owns open or consequential engineering boundaries.
+- Updated Codex preflight to require current-turn observation for delegation, Goals, browser/device, and external-context capabilities, treat obsolete `multi_agent_v2` as compatibility residue, and keep absent optional adapters non-blocking.
+- Expanded deterministic activation coverage to all six intents, all overlay families, ambiguous defects, plugin-prefixed specialists and fallbacks, P0-P6 plus root-only routing, knowledge disposition, and native-adapter boundaries; semantic cases now evaluate preserved first-attempt observations.
+- Corrected the active requirements prompt, review-trigger documentation, lifecycle evidence claims, rollback tag, active-profile installation wording, and data-security version example.
+- Reframed R4 as semantic activation validation rather than repeated-trial effect scoring; the large 1.x paired-evaluation harness remains compatibility/research-only.
+- Corrected published-version documentation to the remotely verifiable `v1.1.2`; 1.1.3 remains untagged source history.
+
+### Verification
+
+- Local final-source verification passed 437 tests, 39 structural contracts, the 13-Skill/12,909-byte actual default-context gate, 117 methods/73 sources/38 risk models, legacy knowledge, plugin and focused Skill validation, data-security doctor, compilation, and diff checks.
+- Six high-fidelity activation scenarios and focused reruns covered U1 clarification and confirmation stops, an established bug, managed continuity, high-risk FFI review, and a Luna-low mechanical change. The FFI pilot exposed and then closed lower-level selector misuse, design/review intent confusion, and recursive review routing.
+- No commit, hosted CI, tag, release, Marketplace publication, active-profile installation, deployment, or business acceptance is implied.
+
+## [2.0.0-beta.2] - 2026-08-16
+
+### Added
+
+- Six orthogonal task intents (`research`, `diagnose`, `design`, `change`, `review`, and `delivery`) with legacy `research-audit` and `read-only-audit` normalized to read-only review.
+- Explicit direct-work knowledge dispositions for maintained current truth and concise repository-native change notes when durable product or engineering knowledge would otherwise be lost.
+- A lightweight `change-record.md` template and `docs/change-notes/<slug>.md` fallback that do not create lifecycle state.
+
+### Changed
+
+- Separated task intent, continuity mode, risk overlays, and knowledge impact so a critical but bounded change can remain direct while still receiving relevant engineering controls and durable documentation.
+- Extended `select-methods` to accept the same intent vocabulary as task routing; method choice remains bounded and non-persisted.
+- Made managed workstreams supersede separate change notes, preventing duplicate status and history documents.
+- Reduced the compatibility CI lane to behavior that is genuinely platform-sensitive.
+- Made the compatibility CI matrix conditional on runtime, host, installer, bundled-agent, or compatibility-test paths while keeping semantic CI unconditional.
+- Replaced packet-era active capability outputs and digest-bound consumption rules with owned 2.0 outcomes, repository facts, and native evidence.
+- Stopped generic security, authentication, authorization, privacy, secrets, and untrusted-input labels from routing architecture review unless a material architecture boundary is present or explicitly requested.
+
+### Removed
+
+- The Dev Flow process Hook and its command parsing, packet discovery, lifecycle enforcement, approval checks, agent markers, and completion interception.
+- Retired Hook test suites and compatibility-lane Hook execution. The independent data-security Hook remains enabled and separately tested.
+
+### Verification
+
+- Local final-source verification passed 408 tests without retired Hook skips, 39 structural contracts, the 13-Skill/10,738-byte actual default-context gate, legacy method and knowledge validation, plugin validation, data-security doctor, Skill validation, compilation, and diff checks.
+- Beta.2 source remains local and unpublished. Commit, hosted CI, model evaluation, tag, release, Marketplace publication, installation, deployment, and business acceptance require separate evidence and authority.
+
+## [2.0.0-beta.1] - 2026-08-16
+
+### Added
+
+- A finalized design constitution that keeps the complete engineering capability plane while removing universal proof ceremony.
+- Conditional `requirements.md` support for managed work whose complex or cross-team semantics need a durable repository source.
+- Scope, acceptance, protected-behavior, current-status, and update fields in the default human-agent workstream templates.
+
+### Changed
+
+- Promoted the locally converged source from alpha to beta after restoring proactive zero-artifact risk calibration, P0-P6 dispatch, bounded assurance methods, and decision-triggered independent review.
+- Standardized managed continuity as a 2+N document model: `implementation.md` and `progress.md` by default, with requirements, design, and decisions added only for their distinct positive triggers.
+- Clarified that legacy packet-oriented templates and commands are compatibility surfaces only and never instructions for direct or managed 2.0 work.
+- Replaced 1.x digest, fingerprint, acceptance-ID, lease, and receipt requirements in bundled agent roles and long-running/multi-agent guidance with current-source checks, explicit ownership, repository progress, and native evidence.
+
+### Verification
+
+- Beta source remains local and unpublished. Commit, hosted CI, tag, release, Marketplace publication, installation, deployment, and business acceptance require separate evidence and authority.
+
+## [2.0.0-alpha.1] - 2026-08-16
+
+### Added
+
+- Repository-tracked managed workstreams with concise implementation/progress and conditional design/decision documents.
+- A zero-artifact quality calibration, hidden-risk rechecks, required P0-P6 routing for actual child dispatch, and bounded non-persisted method activation at high-leverage engineering boundaries.
+- A smaller managed-work minimum of `implementation.md` plus `progress.md`; design and decision documents are now conditional on real trade-offs and durable decisions.
+- Orthogonal security, migration, external-system, release, irreversible, and UI/product risk overlays.
+- R1-R4 release tiers, a single semantic CI lane, focused compatibility lanes, and an artifact-only release-candidate workflow.
+
+### Changed
+
+- Made packet-free `direct` the default for ordinary persistent work and selected `managed` only for real continuity or coordination needs.
+- Simplified task-facing Skills around decisions and native evidence instead of mandatory IDs, digests, ledgers, method records, and fixed review artifacts.
+- Rewrote active discovery, requirements, UX, architecture, dependency, debugging, verification, review, delivery, and knowledge references so deeper guidance cannot reactivate 1.x ceremony.
+- Reduced the Dev Flow Hook to deterministic broad-destruction denial and external-action confirmation on Bash pre-use; secret controls remain independent.
+- Made methodology selection optional research and marked packet/artifact schemas as legacy compatibility material.
+
+### Compatibility
+
+- Retained explicit schema 1.0-2.0 packet validation, archive, lifecycle, methodology, and knowledge commands for existing history.
+- Active legacy packets are inert for 2.0 search, edits, tests, package management, interactive input, agent lifecycle, and completion.
+- This source version is an unpublished preview: no tag, release, Marketplace installation, or deployment is implied.
+
 ## [1.1.3] - 2026-08-16
 
 ### Added
@@ -164,8 +264,10 @@ All notable changes to this project are documented here. The format follows [Kee
 - Runtime markers no longer persist absolute packet paths, start/stop stay fail-open on marker storage or malformed data, and markers are removed whenever subagent stop is observed.
 - Runtime traces, plugin data, secrets, caches, and build outputs are excluded from source control.
 
-[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v1.1.3...HEAD
-[1.1.3]: https://github.com/AldenClark/dev-flow/compare/v1.1.2...v1.1.3
+[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v1.1.2...HEAD
+[2.0.0-beta.3]: https://github.com/AldenClark/dev-flow/compare/v1.1.2...HEAD
+[2.0.0-beta.2]: https://github.com/AldenClark/dev-flow/compare/v1.1.2...HEAD
+[2.0.0-beta.1]: https://github.com/AldenClark/dev-flow/compare/v1.1.2...HEAD
 [1.1.2]: https://github.com/AldenClark/dev-flow/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/AldenClark/dev-flow/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/AldenClark/dev-flow/compare/v1.0.2...v1.1.0

@@ -10,7 +10,7 @@ Adopt `quality-kernel-v1` for newly created persistent-mutation packets: a compa
 
 - The [plugin manifest](../../../.codex-plugin/plugin.json) exposes the Skill tree as a Codex plugin.
 - The [capability registry](../../../governance/capability-contracts.json) is the machine-readable ownership and routing inventory.
-- The [orchestrator Skill](../../../skills/dev-flow/SKILL.md), [lifecycle implementation](../../../skills/dev-flow/scripts/dev_flow.py), and [hook](../../../hooks/dev_flow_hook.py) jointly implement process guidance, durable packet state, and early mutation guards.
+- The [orchestrator Skill](../../../skills/dev-flow/SKILL.md), [lifecycle implementation](../../../skills/dev-flow/scripts/dev_flow.py), and [historical hook](https://github.com/AldenClark/dev-flow/blob/46ab9e0/hooks/dev_flow_hook.py) jointly implement process guidance, durable packet state, and early mutation guards.
 - The [contract-check runner](../../../evals/run_contract_checks.py) and focused unit suites are the repository's native verification surfaces.
 - Runtime packets are repository-local and ignored; tracked documentation must not depend on raw local logs to remain understandable.
 

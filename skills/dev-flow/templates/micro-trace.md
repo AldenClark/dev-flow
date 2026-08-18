@@ -1,5 +1,7 @@
 # Micro change trace: <change-id>
 
+> Legacy packet compatibility template. Direct 2.0 work creates no Dev Flow artifact.
+
 ## Authority and repository facts
 
 - Objective: <objective>

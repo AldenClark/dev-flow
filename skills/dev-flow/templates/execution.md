@@ -1,5 +1,7 @@
 # Change execution: <change-id>
 
+> Legacy packet compatibility template. Direct and managed 2.0 work uses repository implementation/progress documents without this ledger.
+
 ## Task graph
 
 - Instruction mapping: <INS IDs assigned to tasks and their stop or verification effects>

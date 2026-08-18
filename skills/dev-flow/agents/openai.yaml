@@ -1,4 +1,4 @@
 interface:
   display_name: "Dev Flow"
-  short_description: "Orchestrate a neutral engineering workbench"
-  default_prompt: "Use $dev-flow to establish repository context and effective profiles, route only the focused Skills this task needs, preserve user authority, and close with fresh acceptance evidence."
+  short_description: "Route repository work by intent, continuity, risk, and knowledge"
+  default_prompt: "Use $dev-flow to identify task intent, choose direct or managed continuity, preserve only durable repository knowledge, add relevant risk controls, and close with native evidence and honest limits."

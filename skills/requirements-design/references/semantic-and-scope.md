@@ -1,61 +1,51 @@
-# Semantic requirements, approval, and scope
+# Semantic requirements and scope
 
-## Collaboration profiles
+Use this reference when several plausible product meanings, compatibility directions, or scope boundaries survive repository investigation. The purpose is shared understanding, not a requirements database.
 
-- `execute`: requirements are explicit and repository facts resolve the implementation safely; do not add ceremonial approval gates.
-- `checkpointed`: Codex leads discovery and design, pausing only for material user-owned decisions.
-- `co-design`: product/architecture direction has several valid outcomes and is shaped with the user before implementation.
+## Collaboration
 
-UI impact and collaboration mode are independent. Use `none`, `preserve`, or `material` for UI; material UI requires UX Ready.
+- Execute directly when product meaning is clear and repository facts resolve implementation.
+- Pause for the user only when a surviving choice changes business behavior, public contract, scope, irreversible consequences, dependency choice, or external authority.
+- Co-design when several valid product directions remain. Material UI does not require a named approval artifact when intent is already explicit.
 
-Interaction surface and collaboration profile are also independent. Keep every profile in Default mode and use `user-interaction.md` to route bounded choices, open discussion, approvals, secrets, unavailable tools, and cancellations.
+## Understanding depth
+
+Classify from the semantic decision Codex must make, not the user's noun:
+
+- `U1 semantic creation/change`: new or changed product behavior, public contract, authorization, data lifecycle, user flow, external integration, migration semantics, or an unresolved defect expectation. Publish a detailed understanding and stop for confirmation before technical design.
+- `U2 structural adjustment`: behavior-preserving refactor, dependency/configuration/performance work, internal interface change, or another engineering adjustment. Stop only when a user-owned behavior, compatibility, or operational meaning can change.
+- `U3 defect correction`: current behavior is wrong and expected/protected behavior is established by repository evidence or a clear request. Diagnose and repair without a confirmation stop; upgrade to U1 when plausible product meanings survive.
+- `U4 mechanical`: exact spelling, formatting, replacement, generated synchronization, or another deterministic edit. Proceed directly.
+- `U5 read-only`: research, review, and delivery assessment, including an explicit review of a proposed design or architecture. Clarify only a material target/scope ambiguity; do not reclassify the task as U1 merely because the reviewed subject would change semantics if later implemented.
+
+An original request may explicitly waive U1 reconfirmation when it names an already accepted requirement source or directs Codex to proceed without another stop. Do not infer a waiver from urgency or silence.
 
 ## Requirement model
 
-Maintain an ordered truth chain: sanitized original source; each AI-understood revision; repository evidence; user corrections/decisions; and the current requirement truth that supersedes earlier interpretations. Capture actor/caller, trigger/preconditions, input/trust boundary, validation, output/state, errors, cancellation, retry, timeout, recovery, authorization/privacy, compatibility/migration, performance/resources, observability/support, acceptance, non-goals, and bounded assumptions.
+Describe the actor, trigger, preconditions, inputs and trust boundary, observable outcome/state, important failures, cancellation/retry/timeout, recovery, authorization/privacy, compatibility, performance/resource limits, observability/support, non-goals, and bounded assumptions that actually matter.
 
-Use stable IDs:
+Use repository-native issue or requirement IDs when the project already relies on them. Dev Flow does not create AC/SC/VO/AMB identifiers, revisions, or digests for 2.0 work.
 
-- `AC-n`: observable acceptance;
-- `AMB-n`: surviving semantic ambiguity;
-- `SC-D/I/C/P/O/Ln`: direct, indirect, conditional, protected, out-of-scope, delivery scope;
-- `VO-n`: verification obligation;
-- `DEP-n`: separately approved dependency choice.
+For a U1 confirmation result, present the relevant subset under clear human-readable headings: goal/problem; current behavior and evidence; users/triggers/scenarios; intended observable behavior and important state/failure/recovery; in/out scope; protected behavior and constraints; acceptance behavior/examples; confirmed facts, user decisions, bounded assumptions, and remaining unknowns; durable knowledge impact. State explicitly that this is requirements understanding rather than technical design.
+
+Use example mapping or a decision table for interacting business rules, state-transition scenarios for lifecycle behavior, a user journey/service blueprint for cross-participant flows, a trust-boundary/threat view for permissions and untrusted input, and a compatibility matrix for multi-version/public-contract work when the method changes the requirement meaning. Keep the method bounded and omit its process trace from the result.
 
 ## Ambiguity ownership
 
-Create an ambiguity only when at least two plausible interpretations survive repository investigation and the choice changes behavior, data, public contract, security, compatibility, architecture, scope, dependency, risk, or acceptance.
+An ambiguity is material only when at least two plausible interpretations survive evidence gathering and lead to meaningfully different outcomes. Resolve repository facts yourself. Make low-risk reversible assumptions visible and continue. Ask the user for final product or authority semantics.
 
-Record summary, source, interpretations, evidence, materiality, owner, affected IDs, recommendation, status, and eventual resolution/evidence. Owners are:
+When a durable decision changes, update the managed design or repository-native record before dependent implementation continues. Conversation is enough for decisions that will not matter after the current task.
 
-- Codex for repository-resolvable facts;
-- user for final material requirement/product/authority semantics.
+## Design and scope
 
-Low-risk assumptions must be evidence-backed, visible, reversible, and outside protected boundaries. A worker or reviewer cannot resolve user-owned semantics. Requirement Ready means semantic closure: no unhandled material/high-risk ambiguity and every remaining assumption explicitly disposed. It does not mean unknowable future facts have disappeared.
+A useful design record contains current facts, intended outcome and non-goals, credible alternatives, selected behavior, constraints, important failures, compatibility, rollout/rollback, verification intent, and open material decisions.
 
-After each material answer or correction, update the durable baseline before downstream work continues. Questions are batched only for cognitive clarity (normally one-to-three); repeat rounds when needed and never optimize interaction count.
+Scope should cover the intended implementation plus affected callers, consumers, generated outputs, tests, docs, configuration, packaging, telemetry, and migration surfaces. Name protected behavior and tempting exclusions when they reduce drift. Treat commit, push, PR, tag, release, migration execution, deploy, and external communication as separate delivery authority.
 
-## Design record
+Classify late discovery as covered impact, implementation defect, design defect, evidence gap, unrelated opportunity, material scope expansion, or renewed product ambiguity. Reopen only the affected decision; do not invalidate unrelated completed work or create a new workflow state.
 
-Include current evidence, requirement delta, applicable preferences, product/scope alternatives and tradeoffs, selected observable behavior, acceptance, constraints, compatibility intent, migration/rollout/rollback outcomes, operations/docs/testing obligations, unresolved risks, approval, and links to separately owned architecture or dependency artifacts when routed.
+## Decision boundary
 
-The record may constrain architecture through approved behavior, compatibility, safety, performance, or operational requirements, but it does not select technical control/data flow, state ownership, concurrency/lifecycle mechanics, or an external capability. Those remain owned by `architecture-decisions` and `dependency-decisions`.
+An explicit user answer or implementation request is sufficient authority for the product decision it names. It does not authorize a different dependency, destructive action, or external delivery. Record rationale in the repository only when future maintainers need it; do not create approval receipts or hash-bind prose.
 
-Do not hide high-impact choices in tasks. A dependency approval names the exact option and impact; design approval does not imply delivery.
-
-## Complete scope
-
-- Direct: intentionally changed files/modules/APIs/data/UI/jobs/artifacts.
-- Indirect: callers, consumers, generated outputs, tests, docs, config, packaging, metrics, deployment.
-- Conditional: activated only when named discovery/test evidence proves necessary.
-- Protected: behavior/contracts/data/platforms/files that must remain unchanged.
-- Out of scope: tempting adjacent refactors or product changes.
-- Delivery: edit, commit, push, PR, tag, release, migration, deploy, or message authority.
-
-Classify late discovery before mutation as covered scope, conditional activation, implementation defect, design defect, evidence gap, unrelated opportunity, material scope expansion, or requirement ambiguity.
-
-## Content-bound approval
-
-For readiness-capable packet schemas, compute the requirement digest from the current requirements artifact. Requirement Ready and design approval record revision, digest, approver, time, and note. A later material/high-risk ambiguity invalidates affected approval and returns work to `awaiting-approval`; preserve old approval as history.
-
-Do not reopen for implementation defects, evidence gaps, or unrelated opportunities. Reopen only the affected semantic baseline and downstream tasks.
+For U1, the initial implementation request authorizes investigation and requirement drafting but not entry into technical design until the detailed understanding is confirmed, unless the request explicitly waives reconfirmation. After confirmation, continue through design and already-authorized local implementation without a second mandatory approval; stop again only for a new material user-owned decision or another authority boundary.

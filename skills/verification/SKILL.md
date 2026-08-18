@@ -1,36 +1,26 @@
 ---
 name: verification
-description: Derive risk-based oracles, run native checks, control environments and resources, and record fresh compatibility, security, performance, or accessibility evidence.
+description: Derive risk-based oracles, run native checks, control environments and resources, and report fresh compatibility, security, performance, accessibility, and runtime evidence.
 ---
 
 # Verification
 
-For environment choices, waivers, or manual authority, remain in Default mode and follow `../requirements-design/references/user-interaction.md`.
-
-## Responsibility contract
-
-- Consumes: verification obligations, final relevant bytes, decisions, and environment authority.
-- Owns: risk-based oracles, commands, resources, evidence, and status.
-- Stops: at missing authority, unsafe shared resources, or an unresolved first failure.
-- Hands off: causal failures to debugging, evidence to review/delivery, and results to the control plane.
+Use the narrowest evidence that can falsify the changed behavior, then broaden only across affected risks.
 
 ## Procedure
 
-1. Map each `VO-n` to changed behavior, states/errors, contracts, and risks.
-2. For every non-trivial behavior change, derive black-box and white-box obligations separately; run each applicable view or give a concrete change-specific `N/A` reason. Experience/red-team is a third view, never a substitute. Read `references/test-strategy.md`.
-3. Challenge whether each new/changed test would fail when protected behavior breaks; record a practical negative control or cross-oracle.
-4. Run native narrow/cheap controls before broad/environment-heavy ones. Read `references/test-environments.md` before controlled resources.
-5. Preserve first failures and flakes; retries and waivers never become `PASSED`.
-6. Read `references/evidence-contract.md` before retaining artifacts. Emit the plan/results with technique accountability, exact evidence, oracle challenge, freshness, and limits.
+1. Map changed behavior, failure states, contracts, and risks to observable oracles.
+2. Run the smallest relevant reproducer or focused test first, followed by affected module, integration, compatibility, security, UI, performance, or migration checks.
+3. Use black-box, white-box, property, differential, manual, or adversarial views where they add distinct failure sensitivity. Do not require each view or a prose `N/A` for every ordinary change.
+4. Challenge whether changed tests would fail if protected behavior regressed. Use a practical negative control for high-risk or easy-to-fake oracles.
+5. Preserve the first failure and diagnose it before retrying. A retry does not turn a flake into `PASSED`.
+6. Bind conclusions to final relevant bytes, environment, platform/device/account, and affected compatibility direction.
+7. Report `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, and `WAIVED` distinctly, with concise commands/results and evidence limits.
 
-## EQAC rule
-
-Run native controls first; specialist review never proves a command. Mark incomplete automation as a qualified manual/contextual oracle or waiver.
-
-A behavior or interaction claim never doubles as proof. Emit a separate verification-owned test cell for each falsifiable evidence family; umbrella labels never substitute. Green is insufficient until failure sensitivity is reviewed. Detailed matrices and cell rules live in `references/test-strategy.md`.
+Read `references/test-strategy.md` for non-trivial strategy, `references/test-environments.md` before shared or controlled resources, and `references/evidence-contract.md` before retaining artifacts.
 
 ## Boundaries
 
-- Do not modify product code during an independent test-runner assignment.
-- Do not retain unnecessary sensitive or bulk artifacts.
-- Keep `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, and `WAIVED` distinct.
+- A configured test is not executed evidence and a green test does not prove an unobserved runtime or delivery environment.
+- Do not modify product code during an explicitly independent test-runner assignment.
+- Do not retain unnecessary sensitive payloads, bulk logs, or generated ledgers.

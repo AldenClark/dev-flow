@@ -1,5 +1,7 @@
 # Task brief: <change-id> / <task-id>
 
+> Legacy packet compatibility template. Direct and managed 2.0 delegation uses the concise brief in `multi-agent-v2-orchestration.md`.
+
 - Deliverable: <one bounded output>
 - Repository root: <repository-roots>
 - Base commit and worktree binding: <immutable base commit, worktree identity/path, initial dirty-state accounting, declared sibling cohort deltas that are not drift, and recheck method>

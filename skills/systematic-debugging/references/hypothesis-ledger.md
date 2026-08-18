@@ -1,41 +1,33 @@
 # Hypothesis-led debugging
 
-## Reproduction record
+Use a scratch table for a complex or long-running incident when several causes remain plausible. Ordinary bugs do not need a persisted diagnosis artifact.
 
-Capture exact symptom, expected/actual result, environment, versions/configuration, input/fixture, frequency, first known good/bad state, logs/trace/stack, and destructive/privacy constraints. If reproduction is unavailable, state the missing evidence and add observability rather than guessing.
+## Reproduction
 
-## Ledger
+Capture the exact symptom, expected and actual result, relevant environment/configuration, input, reliability, first known good/bad state, and useful logs or traces. If reproduction is unavailable, state the limitation and add the smallest useful observation point instead of guessing.
 
-For each hypothesis record:
+## Competing hypotheses
+
+For each live hypothesis, note:
 
 - causal claim and earliest predicted bad state;
 - supporting and contradicting facts;
 - smallest experiment that distinguishes it;
 - expected observation if true and false;
-- exact command/environment/result;
-- status: open, supported, rejected, environmental, or superseded.
+- observed result and current disposition.
 
-Prefer one variable per experiment. Trace data and ownership across boundaries; the last visible failure is often not the first incorrect transition.
+Keep this in local scratch space unless the causal analysis itself will help future maintainers. Prefer one changed variable per experiment and trace backward across boundaries.
 
 ## Flakes and concurrency
 
-Repeat the identical cell only enough to classify deterministic failure, product race, test race, environment contamination, resource collision, timeout, or infrastructure outage. Preserve the first failure. Do not count a later retry as passing evidence for the original cell.
+Repeat an identical check only enough to distinguish a deterministic failure, product race, test race, environment contamination, resource collision, timeout, or infrastructure outage. Preserve the first failure; a later pass does not erase it.
 
-For concurrent or distributed paths, inspect ownership, cancellation, ordering, idempotency, deadlines, retry/backoff, duplicate delivery, queue bounds, locks across suspension, slow consumers, shutdown/drain, leases, and crash recovery.
+For concurrent or distributed paths, inspect ownership, cancellation, ordering, idempotency, deadlines, retry/backoff, duplicates, queue bounds, locks across suspension, slow consumers, shutdown/drain, and crash recovery as applicable.
 
 ## Root cause and correction
 
-A root-cause claim names the violated invariant, earliest wrong state, causal path, and why competing hypotheses no longer fit. A correction must restore the invariant rather than mask its terminal symptom.
+A root-cause claim identifies the violated invariant, earliest wrong state, causal path, and why credible alternatives no longer fit. Correct the invariant rather than masking the terminal symptom.
 
-When practical, demonstrate red-green:
+When practical, show a focused oracle fail before the correction and pass after it, then run nearby regressions. If this is unsafe or impossible, use another discriminating oracle and state the limitation.
 
-1. add or identify an oracle that fails on the defect;
-2. run it against the broken state or a safe reversed change;
-3. apply the root-cause correction;
-4. rerun the oracle and nearby regression scope.
-
-If red-green is unsafe or impossible, record the alternative evidence.
-
-## Breaker
-
-After three failed hypotheses or repair attempts, stop patching. Reassess reproduction, causal model, architecture, environment, and oracle. Reopen the design or ask for the missing authority/fact when the evidence requires it.
+After repeated failed hypotheses or repairs, stop layering changes and reassess the reproducer, causal model, architecture, environment, and oracle. There is no fixed attempt count; the stop signal is lack of new information or growing collateral risk.

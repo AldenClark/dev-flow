@@ -1,32 +1,28 @@
 # Test environment orchestration
 
-## Resource ledger
+Use this reference for shared, stateful, expensive, physical, credentialed, or externally visible test environments. A normal isolated unit test needs no resource record.
 
-Record each browser/profile, simulator/emulator/device, VM, container/service, port, database, filesystem fixture, credential, cache, build directory, network route, or shared external system with owner, isolation key, configuration, lease, reset, teardown, and leak check.
+## Ownership and isolation
 
-Never run concurrent writers against a shared mutable environment unless isolation is proven. Serialize physical devices, named simulators, fixed ports, shared databases, release credentials, signing/notarization, and other exclusive resources.
+- Give each concurrent writer an isolated browser profile, simulator/device, VM/container, port, database/schema, filesystem fixture, cache, build directory, or external sandbox.
+- Serialize a resource when isolation is not proven, especially physical devices, fixed ports, shared databases, signing/notarization, release credentials, and production-like external systems.
+- Resolve who owns teardown before starting a long-lived or shared resource.
 
-## Controlled waves
+## Controlled run
 
-1. Validate configuration and prerequisite versions.
-2. Allocate isolated temporary state through a safe platform primitive.
-3. Start the narrowest service/environment and wait on an observable readiness condition.
-4. Run the exact cell; preserve first failures before retry or repair.
-5. Capture the minimum artifact and redact it.
-6. Tear down even on failure; verify ports, processes, containers, mounts, profiles, devices, and credentials are released.
+1. Check the relevant configuration and prerequisites.
+2. Allocate temporary state through a safe platform primitive.
+3. Start the narrowest environment and wait on an observable readiness condition.
+4. Run the focused check; preserve a first failure before retry or repair.
+5. Capture only the artifact needed for the oracle and redact it.
+6. Tear down on success or failure and confirm important resources were released.
 
-## Browser and frontend
+Record detailed configuration, isolation key, reset, and cleanup only when another participant must coordinate the same resource or reproduce the result.
 
-Record browser engine/version, viewport, input mode, locale/time zone, reduced-motion/color preferences, fixture/account, server/build, console/network errors, screenshots/traces, keyboard/focus, and axe/manual accessibility cells. A DOM/unit pass does not prove rendered behavior.
+## Environment-specific evidence
 
-## Apple and Android
+- Browser/UI: distinguish engine/version, viewport, input mode, server/build, console/network errors, keyboard/focus, accessibility, and screenshot/trace evidence that matter to the claim.
+- Apple/Android: distinguish simulator/emulator from physical device, toolchain, architecture, signing/entitlements, install/launch, permissions, lifecycle, logs, and packaged consumer.
+- Services/data: use explicit endpoints/storage/configuration, readiness, schema/seed identity, timeouts, and shutdown. Exercise restart, partial failure, duplicates, rollback, or mixed versions only where the changed behavior depends on them.
 
-Record OS/device/simulator, CPU architecture, toolchain, signing/entitlements, build configuration, install/launch, permissions, lifecycle/background state, logs, and packaged consumer. Keep simulator/emulator and physical-device evidence separate; do not report an unrun device cell as passed.
-
-## Services and persistence
-
-Use explicit host/port/storage/configuration, readiness checks, schema/seed identity, timeouts, and shutdown. Test restart, partial failure, duplicate delivery, rollback, and mixed-version order when required. Never point destructive tests at production or user data.
-
-## Flakes
-
-Repeat an identical cell, not a subtly repaired environment. Classify product race, test race, resource collision, timeout, contamination, or infrastructure. Quarantine only with owner, policy, retained signal, issue/removal condition, and explicit acceptance.
+Never point destructive tests at production or user data. Classify contradictory identical attempts as flaky; quarantine only with a real owner and removal condition.

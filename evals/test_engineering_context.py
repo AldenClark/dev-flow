@@ -1140,7 +1140,7 @@ class RoutingTests(unittest.TestCase):
                 self.assertTrue(set(case["required"]) <= routes)
                 self.assertFalse(set(case["forbidden"]) & routes)
 
-    def test_evidence_driven_reroute_escalates_before_mutation(self) -> None:
+    def test_risk_reroute_adds_specialists_without_changing_continuity_mode(self) -> None:
         initial = run(sys.executable, str(FLOW), "route-task", "--task-type", "routine")
         discovered = run(
             sys.executable,
@@ -1157,70 +1157,46 @@ class RoutingTests(unittest.TestCase):
         discovered_payload = json.loads(discovered.stdout)
         initial_routes = {item["skill"] for item in initial_payload["routes"]}
         discovered_routes = {item["skill"] for item in discovered_payload["routes"]}
-        self.assertEqual(initial_payload["work_mode"], "traced")
-        self.assertEqual(discovered_payload["work_mode"], "governed")
-        self.assertIn("requirements-design", initial_routes)
-        self.assertTrue({"architecture-decisions", "change-review"} <= discovered_routes - initial_routes)
+        self.assertEqual(initial_payload["work_mode"], "direct")
+        self.assertEqual(discovered_payload["work_mode"], "direct")
+        self.assertNotIn("requirements-design", initial_routes)
+        self.assertEqual(discovered_routes - initial_routes, {"architecture-decisions"})
         control_plane = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn("Treat routing as provisional", control_plane)
-        self.assertIn("record the delta before mutation", control_plane)
+        self.assertIn("Risk overlays", control_plane)
+        self.assertIn("An overlay adds only its relevant controls", control_plane)
+        self.assertIn("quality-calibration.md", control_plane)
         lifecycle = (
             ROOT / "skills" / "dev-flow" / "references" / "core-lifecycle.md"
         ).read_text(encoding="utf-8")
-        self.assertIn("never downgrade a user-declared risk", lifecycle)
+        self.assertIn("Escalation adds the specific missing control", lifecycle)
 
-    def test_core_workflows_bind_owner_artifacts_before_proof_or_review(self) -> None:
+    def test_routing_fixture_covers_specialist_owners_without_artifact_protocol(self) -> None:
         routing = json.loads(
             (ROOT / "evals" / "skill-routing-cases.json").read_text(encoding="utf-8")
         )
-        registry = json.loads(
-            (ROOT / "governance" / "capability-contracts.json").read_text(
-                encoding="utf-8"
-            )
-        )
-        capabilities = {item["skill"]: item for item in registry["capabilities"]}
-        output_owners = {
-            output: item["skill"]
-            for item in registry["capabilities"]
-            for output in item["primary_outputs"]
-        }
-        workflows = {
-            case["id"]: case
+        self.assertEqual(routing["schema_version"], "2.0")
+        self.assertTrue(all("workflow" not in case for case in routing["cases"]))
+        expected = {
+            skill
             for case in routing["cases"]
-            if "workflow" in case
+            for skill in case["expected"]
         }
-        self.assertEqual(
-            set(workflows),
-            {"ROUTE-BUGFIX", "ROUTE-FFI-BUGFIX", "ROUTE-PUBLIC-CONTRACT"},
+        self.assertTrue(
+            {
+                "repo-context",
+                "requirements-design",
+                "product-ux-discovery",
+                "architecture-decisions",
+                "systematic-debugging",
+                "dependency-decisions",
+                "verification",
+                "change-review",
+                "delivery-readiness",
+            }
+            <= expected
         )
-        for case_id, case in workflows.items():
-            with self.subTest(case=case_id):
-                flow = case["workflow"]["artifact_flow"]
-                flow_skills = [item["skill"] for item in flow]
-                flow_outputs = [item["output"] for item in flow]
-                self.assertEqual(
-                    [skill for skill in flow_skills if skill != "dev-flow"],
-                    case["expected"],
-                )
-                self.assertEqual(case["workflow"]["final_evidence"], flow_outputs[-1])
-                for item in flow:
-                    self.assertEqual(output_owners[item["output"]], item["skill"])
-                    self.assertIn(item["output"], capabilities[item["skill"]]["primary_outputs"])
-                verification_index = flow_skills.index("verification")
-                self.assertEqual(flow_outputs.count("change-set.v1"), 1)
-                self.assertEqual(flow_skills[verification_index - 1], "dev-flow")
-                self.assertEqual(flow_outputs[verification_index - 1], "change-set.v1")
-                for boundary in case["workflow"]["forbidden_backfill"]:
-                    owner = output_owners[boundary["output"]]
-                    consumer = boundary["consumer"]
-                    self.assertNotEqual(owner, consumer)
-                    self.assertLess(flow_skills.index(owner), flow_skills.index(consumer))
-                if "change-review" in flow_skills:
-                    review_inputs = capabilities["change-review"]["consumes"]
-                    self.assertIn("owner decisions", review_inputs)
-                    self.assertIn("raw verification evidence when available", review_inputs)
 
 
 if __name__ == "__main__":

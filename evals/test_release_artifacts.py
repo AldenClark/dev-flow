@@ -186,6 +186,30 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
         )
         self.assertIn(f"当前源码 `{VERSION}`", readme)
 
+    def test_release_identity_and_lifecycle_claims_match_exercised_evidence(self) -> None:
+        attestation = json.loads(
+            (ROOT / "skills" / "company-data-security" / "assets" / "surface-attestation.example.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(attestation["codex"]["plugin_version"], VERSION)
+
+        implementation = (ROOT / "docs" / "workstreams" / "dev-flow-2.0" / "implementation.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("isolated fresh-install/idempotence/uninstall smoke", implementation)
+        self.assertNotIn("isolated install/upgrade/rollback", implementation)
+
+        design = (ROOT / "docs" / "workstreams" / "dev-flow-2.0" / "design.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("last remotely verifiable stable tag (`v1.1.2`)", design)
+        self.assertIn("1.1.3 source history is not an immutable release tag", design)
+
+        releasing = (ROOT / "docs" / "releasing.md").read_text(encoding="utf-8")
+        self.assertIn("prior-version upgrade, rollback, re-upgrade", releasing)
+        self.assertIn("remain `NOT RUN` until exercised", releasing)
+
     def test_workflow_run_scalars_do_not_embed_mapping_tokens_unquoted(self) -> None:
         workflows = ROOT / ".github" / "workflows"
         for path in sorted((*workflows.glob("*.yml"), *workflows.glob("*.yaml"))):
@@ -207,11 +231,23 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
         plugin = next(item for item in marketplace["plugins"] if item["name"] == "dev-flow")
         self.assertEqual(plugin["source"], {"source": "local", "path": "."})
 
-    def test_ci_uses_explicit_six_cell_matrix_and_strict_warnings(self) -> None:
+    def test_ci_runs_semantics_once_and_focuses_compatibility_matrix(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-        self.assertIn("os: [ubuntu-24.04, macos-15, windows-2025]", workflow)
-        self.assertIn('python: ["3.11", "3.14"]', workflow)
-        self.assertIn("python -W error::ResourceWarning -m unittest discover -s evals -v", workflow)
+        self.assertIn("  semantic:", workflow)
+        self.assertIn("  change-scope:", workflow)
+        self.assertIn("  compatibility:", workflow)
+        self.assertIn("fetch-depth: 0", workflow)
+        self.assertIn("python3 tools/ci_change_scope.py", workflow)
+        self.assertIn("needs: change-scope", workflow)
+        self.assertIn("if: needs.change-scope.outputs.compatibility == 'true'", workflow)
+        self.assertEqual(workflow.count("python -W error::ResourceWarning -m unittest discover -s evals -v"), 1)
+        self.assertIn("os: ubuntu-24.04", workflow)
+        self.assertIn("os: macos-15", workflow)
+        self.assertIn("os: windows-2025", workflow)
+        self.assertIn('python: "3.11"', workflow)
+        self.assertIn('python: "3.14"', workflow)
+        self.assertNotIn("evals.test_dev_flow_v2.MinimalHookTests", workflow)
+        self.assertIn("evals.test_scripts.RuntimeInstallerTests", workflow)
         self.assertIn("validate-methods --root .", workflow)
         self.assertIn("validate-knowledge --root .", workflow)
         self.assertIn("doctor.py --plugin-root .", workflow)
@@ -250,10 +286,8 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
             "overwrite: false",
             "git fetch --no-tags --depth=1 origin \"$GITHUB_REF\"",
             "python3 -c \"import sys; assert sys.version_info >= (3, 11)",
-            "validate-methods --root .",
-            "validate-knowledge --root .",
-            "doctor.py --plugin-root .",
-            "evals.test_agent_dispatch",
+            "tools/build_release.py build",
+            "tools/build_release.py verify",
         )
         for token in required_tokens:
             self.assertIn(token, workflow)
@@ -264,6 +298,10 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
         self.assertNotIn("softprops/action-gh-release", workflow)
         self.assertNotIn("actions/checkout@", workflow)
         self.assertNotIn("actions/setup-python@", workflow)
+        self.assertNotIn("unittest discover", workflow)
+        self.assertNotIn("run_contract_checks.py", workflow)
+        self.assertNotIn("validate-methods", workflow)
+        self.assertNotIn("validate-knowledge", workflow)
 
 
 if __name__ == "__main__":

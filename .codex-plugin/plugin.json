@@ -1,7 +1,7 @@
 {
   "name": "dev-flow",
-  "version": "1.1.3",
-  "description": "A neutral, composable, evidence-driven Codex engineering workbench with layered profiles, context readiness, quality coverage, and focused Skills.",
+  "version": "2.0.0-beta.3",
+  "description": "A repository-first Codex development flow with Default-mode requirement confirmation, proportional continuity, proactive engineering capability activation, and native evidence.",
   "author": {
     "name": "Dev Flow Contributors",
     "url": "https://github.com/AldenClark/dev-flow"
@@ -14,16 +14,16 @@
     "multi-agent",
     "development-workflow",
     "software-engineering",
-    "traceability",
-    "engineering-profiles",
-    "context-readiness",
+    "repository-knowledge",
+    "developer-experience",
+    "risk-based-verification",
     "quality-assurance"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Dev Flow",
-    "shortDescription": "Composable evidence-driven engineering workbench for Codex.",
-    "longDescription": "Orchestrates repository context, layered engineering profiles, task-relative context and quality readiness, requirement/design approval, product discovery, architecture and dependency decisions, debugging, verification, independent review, and delivery readiness through focused progressively loaded Skills.",
+    "shortDescription": "Repository-first, proportionate development workflow for Codex.",
+    "longDescription": "Separates task intent, continuity, risk, and knowledge impact; defaults ordinary work to a packet-free direct path; and keeps long-running design and progress in the owning repository.",
     "developerName": "Dev Flow Contributors",
     "category": "Developer Tools",
     "capabilities": [
@@ -32,8 +32,8 @@
     ],
     "defaultPrompt": [
       "Inspect this repository and implement my request with Dev Flow.",
-      "Diagnose and fix this bug with traceable verification evidence.",
-      "Assess this repository's engineering context and quality coverage before implementation."
+      "Diagnose and fix this bug with focused native verification.",
+      "Design and implement this long-running change with repository-tracked requirements, design, and progress."
     ]
   }
 }

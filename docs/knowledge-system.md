@@ -1,46 +1,34 @@
-# Durable project knowledge
+# Repository knowledge in Dev Flow 2.0
 
-Dev Flow separates durable knowledge by meaning instead of treating one packet directory as a universal document store.
+Durable business and engineering knowledge belongs in the repository that owns the change. Dev Flow uses normal docs-as-code and Git history; it does not create a parallel authoritative knowledge database.
 
-| Plane | Default | Answers | Retention |
+## Three useful forms
+
+| Form | Purpose | Typical location | Maintenance |
 |---|---|---|---|
-| Current project truth | `docs/project/` | What is true now? | Updated in place; Git retains history |
-| Change dossier | `docs/changes/<change-id>/` | Why and how did this change happen? | Accepted records are stable history |
-| Runtime evidence | `.codex/dev-flow/` | How can this interrupted run recover and prove its work? | Local and ignored; never implicitly published |
+| Current truth | Architecture, contracts, runbooks, module behavior, operating limits | Repository-native docs such as `docs/architecture` or `docs/project` | Update when truth changes; Git retains history |
+| Direct change record | Durable behavior or rationale without an adequate existing home | Repository convention or `docs/change-notes/<slug>.md` | Create only when it adds knowledge not already preserved elsewhere |
+| Workstream knowledge | Outcome, design trade-offs, implementation slices, current progress, durable decisions | Repository convention or `docs/workstreams/<slug>/` | Update at meaningful design/slice/blocker/handoff/closure events |
 
-Existing repository conventions take precedence. If none exists, the defaults above provide a small interoperable structure. `.dev-flow/knowledge.json` can declare alternate repository-relative `project_root` and `changes_root` paths; callers may also supply explicit relative roots.
+Existing repository conventions take precedence. When none exists, a managed workstream uses `implementation.md` and `progress.md`, adds `requirements.md` only when complex or cross-team semantics lack another durable source, adds `design.md` only for real trade-offs, and adds `decisions.md` only for durable decisions without an ADR home.
 
-## Tracked current truth
+## What to keep
 
-`catalog.json` maps each stable `KT-*` identifier to exactly one current document. Current documents link back to the catalog and prefer source anchors over duplicated generated facts. Accepted architecture decisions are superseded rather than rewritten.
+- business outcome, non-goals, current facts, trade-offs, and selected design;
+- coherent implementation slices, dependencies/order, current state, blockers, and next step;
+- compatibility, failure, rollout/rollback, and operational decisions future maintainers need;
+- concise links to authoritative code, schemas, ADRs, runbooks, issues, tests, CI, or artifacts.
 
-## Tracked change dossiers
+Do not copy command transcripts, bulk logs, hashes, source schemas, test output, agent activity, temporary paths, or generated evidence into prose. Code, Git, tests, CI, runtime systems, and release artifacts own technical facts.
 
-Small changes use one `change.md`; governed work uses the exact split `requirements.md`, `design.md`, `execution.md`, and `verification.md`. Every retained file in either tracked plane is declared; an undeclared file fails validation instead of becoming an unreviewed evidence side channel. Both formats use `manifest.json` to record:
+## Review and retention
 
-- change ID, lifecycle status, and document paths;
-- AC, SC, and VO identity sets;
-- for new dossiers, an `authority_binding` over the exact requirement/design bytes and the exact AC/SC/VO sets;
-- separate black-box and white-box test status, rationale, and evidence;
-- project-knowledge impact and final disposition;
-- promotion links to cataloged current documents and links to related change manifests.
+Review knowledge with the code it explains. Replace stale current-state text and rely on Git for chronology. Supersede durable decisions rather than erasing their rationale. Remove or archive a workstream when it no longer helps maintenance, according to the repository's own convention.
 
-Create the dossier early enough to preserve the original request, clarified requirement, user decisions, design, progress, drift rulings, and evidence. Once accepted, change history should not be silently rewritten; use an explicit erratum or follow-up dossier.
+Direct work creates no Dev Flow continuity document, but it must update current-truth documentation when the change makes architecture, contracts, runbooks, product behavior, or operational limits stale. Add one light change record only when a material product rule, public contract, persistent-data rule, security/authorization behavior, recovery procedure, cross-boundary invariant, or non-obvious rationale would otherwise be lost. Do not duplicate an issue, changelog, ADR, code, tests, or maintained documentation.
 
-New templates opt in to `authority_binding`. It names the same change ID, binds `requirements` and `design` to their declared document paths and `sha256:<64 lowercase hex>` digests, and repeats the exact identifier sets for comparison with `traceability`. In a governed dossier, requirements may define only authoritative `AC-*`; design may define only authoritative `SC-*` and `VO-*`. Every stable ID has one normative definition across those two files, so a wrong-role or cross-file duplicate definition fails even after its file digest is refreshed. A single dossier intentionally uses the same `change.md` for both roles and may define all three families there, once each. Freeze the authority document set before calculating its digests. A later byte edit, missing or duplicate declaration, renamed ID, path substitution, or set divergence fails validation. Existing dossiers without this field remain readable and are not automatically migrated; once the field is declared, an incomplete binding fails closed.
+Never persist credentials, private keys, personal data, confidential payloads, or unnecessary user wording. Keep runtime evidence in ignored or temporary storage with appropriate access and retention.
 
-## Promotion and privacy
+## Legacy compatibility
 
-Promotion is intentional, not automatic. Only implemented, freshly verified, reusable conclusions belong in current truth. Temporary plans, raw command output, logs, and local recovery checkpoints stay in the dossier or ignored runtime state as appropriate.
-
-Never persist credentials, private keys, personal data, or sensitive raw payloads in tracked knowledge. Retain a sanitized conclusion and, when authorized, a reference to the secure system that owns the evidence.
-
-## Structural check
-
-The standard-library-only validator reports `valid` or `invalid` and concrete structural errors:
-
-```bash
-python3 skills/dev-flow/scripts/knowledge_system.py --repo-root /path/to/repository
-```
-
-It rejects root escape, symlink escape, a missing repository-local ignore rule for `.codex/dev-flow`, stale declared authority bytes or ID sets, unresolved placeholders, obvious machine-local absolute paths, common secret-like values, broken links/backlinks, missing knowledge disposition, and missing black-box/white-box accounting. In a linked Git worktree it asks Git for the repository-owned `info/exclude` path rather than assuming `.git` is a directory. It deliberately does not score document prose or infer semantic quality. Templates live under `skills/dev-flow/templates/knowledge/`.
+`docs/project`, `docs/changes`, `catalog.json`, manifests, authority bindings, and the `validate-knowledge` CLI remain supported for repositories that already contain Dev Flow 1.x knowledge dossiers. They are historical compatibility surfaces, not the default for new 2.0 work. Existing dossiers are not automatically migrated or deleted, and their validators cannot block unrelated 2.0 implementation.

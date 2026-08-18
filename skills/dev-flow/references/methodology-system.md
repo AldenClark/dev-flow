@@ -1,104 +1,83 @@
-# Assurance Method System
+# Bounded assurance-method research
 
-This layer answers a different question from Skill routing:
+The method pool is an advisory reasoning aid. Direct and managed work never record, bind, or validate methods as lifecycle gates, but high-leverage risk signals should actively prompt a bounded method check when the owning specialist does not already provide a clear procedure.
 
-- routing chooses the decision owner;
-- method selection chooses a proportionate way to reason about an observed failure class;
-- verification decides whether the resulting claim has failure-sensitive evidence.
+Use normal repository practices and the owning specialist Skill first. At a strong signal below, actively match a method: use the specialist's established procedure when sufficient, otherwise query this pool when naming a method is likely to change the analysis, design, experiment, or oracle enough to justify its context and maintenance cost.
 
-Method names never authorize actions, decide product meaning, or prove a claim.
+Strong signals are migration or mixed-version data, FFI/ABI/unsafe ownership, concurrency or nondeterminism, security/privacy/authorization, public API or protocol compatibility, irreversible/data-loss exposure, conflicting evidence, oracle challenge, repeated failed hypotheses, interacting business rules, or state/cross-participant requirement flows. A signal requires a bounded method disposition, not necessarily a CLI call or record, when the established specialist method is already clear.
 
-## Risk-to-method reasoning chain
+## Bounded study
 
-Use this chain after `repo-context` and repeat it at every lifecycle/risk/premise change:
+1. State the observed facts and the specific failure mechanism, not a broad topic label.
+2. Identify the decision or evidence that a method could improve.
+3. Check prerequisites honestly and select the smallest useful method or stack.
+4. Select at most one-to-three methods and apply only the bounded steps that can change the decision; route resulting design, test, or finding to its normal repository owner.
+5. Record a durable result only when a future maintainer needs the rationale. Do not persist a selection merely to prove the tool was used.
+6. Stop using the method when it is not producing decision value.
 
-1. Record observed facts: phase, task type, canonical risks, failure signals, and genuinely available prerequisites.
-2. State the failure mechanism, not just a topic label: identity collapse, feature composition, temporal starvation, abstract-behavior drift, weak oracle, unsafe control, rollout blindness, and so on.
-3. Select the smallest method stack that can expose or control that failure.
-4. Route each method's artifact to its registered owner. Requirements owns meaning; architecture owns structural models; verification owns oracles/evidence; review owns independent findings; delivery owns release authority.
-5. Keep missing prerequisites unresolved. Apply the method's fallback and write `NOT RUN` for any absent tool, model, environment, domain expert, real user, or live system.
-6. Close only the claim that the executed artifact and evidence support.
+Method names never authorize actions, decide product meaning, or prove a claim. Missing tools, models, environments, domain experts, users, or live systems remain explicit limitations.
 
-The machine-readable authority is `governance/methodology-pool.json`. Run:
+## Ordinary task entry
+
+Ordinary Dev Flow tasks use the integrated public route, which translates observed task signals into the maintained method vocabulary and resolves the methodology source from the installed Skill:
+
+```text
+python3 skills/dev-flow/scripts/dev-flow.py route-task \
+  --intent design \
+  --risk ffi \
+  --method-signal multi-version-coexistence \
+  --method-prerequisite repository-facts \
+  --method-prerequisite requirement-baseline \
+  --compact
+```
+
+Use only prerequisites actually established in repository or user evidence. One bounded selection is enough for the current decision. A blocked method means use its fallback or state the limitation; it is not a reason to broaden research or load the method catalog.
+
+## Maintainer CLI
+
+The machine-readable pool is `governance/methodology-pool.json`. The lower-level selector is for pool maintenance or an explicit methodology study, not the ordinary runtime entry:
 
 ```text
 python3 skills/dev-flow/scripts/dev_flow.py validate-methods
 python3 skills/dev-flow/scripts/dev_flow.py select-methods \
   --phase design \
-  --task-type migration \
+  --intent change \
   --risk public-api \
-  --signal cross-boundary-identity \
   --signal multi-version-coexistence \
   --available repository-facts \
-  --available requirement-baseline \
   --available representative-examples \
   --depth deep
 ```
 
-For a governed schema-2 packet, use the packet-bound command instead of leaving the result in terminal output:
+Its `--root` identifies the Dev Flow methodology source repository, never the target product repository. A standalone selection is advisory, ephemeral, and non-persisted. It is not a workstream artifact, approval, checkpoint, or verification result. Persist only a resulting durable design decision, test strategy, or finding when a future maintainer needs it.
 
-```text
-python3 skills/dev-flow/scripts/dev_flow.py record-methods .codex/dev-flow/<change-id> \
-  --phase design \
-  --signal cross-language-boundary \
-  --available repository-facts \
-  --available requirement-baseline \
-  --available boundary-inventory \
-  --available consumer-toolchain \
-  --depth deep
-```
+`record-methods` remains only for explicit maintenance of an existing legacy packet whose schema already requires that record. Do not invoke it for 2.0 direct or managed work.
 
-Packet creation writes a preliminary design selection automatically. It is intentionally insufficient for approval because later repository facts, requirements, design bytes, signals, and prerequisites can change the result. Record a non-preliminary `design` selection before approval, `verification` after entering implementation and before verification, and `review` after entering verification and before acceptance. Each record is event-projected into `method-selection.json`, rendered into `method-selection.md`, bound to requirement/design bytes and the registry digest, and maps every selected owner to an existing packet artifact.
+## Depth and context
 
-Do not pass a prerequisite because it would produce a nicer answer. `--available` means current evidence demonstrates that prerequisite.
+`starter` covers low-cost foundations. `deep` admits additional model, interaction, adversarial, and evidence-strengthening methods. `formal` admits specialist formal or safety methods only when the concrete failure mechanism, prerequisites, and consequences justify the cost.
 
-## Depth and context budget
-
-`starter` selects cheap foundations and directly applicable low-cost methods. `deep` adds model-, interaction-, adversarial-, Agent-control-, and evidence-strengthening methods. `formal` permits specialist methods such as Alloy, TLA+, Event-B, semantic mutation, refinement proof, STPA, Cleanroom, N-version programming, symbolic execution, theorem proving, HTN planning, conformal risk control, and contract-net allocation.
-
-Formal depth is not a quality badge. It requires an explicit failure signal, applicable lifecycle phase, prerequisites, and consequences that justify model/proof cost. A low-risk routine task must not select formal methods merely because it is large or unfamiliar.
-
-The default cap is part of the safety contract. If applicable methods exceed it, name the residual failure class before increasing `--max-methods`. Never load all pool entries into working context.
+Formal depth is not a quality badge. Never load the full pool into working context. If the bounded result is not better than ordinary specialist reasoning, stop and use the simpler path.
 
 ## Reading a selection
 
-`method.selection.v1` contains:
+`method.selection.v1` reports:
 
-- `reasoning_model`: matched observations and weighted model thresholds;
-- `foundation`: the phase's always-needed discipline;
-- `stacks`: observation → failure hypothesis → candidate method → evidence obligation;
-- `selected_methods`: bounded cards with owner, steps, output, evidence, limitation, fallback, and sources;
-- `blocked_methods`: missing prerequisites and safe fallbacks;
-- `excluded_methods`: depth, negative-trigger, or context-cap exclusions;
-- `unresolved`: conditions that prevent a complete assurance claim.
+- matched observations and failure hypotheses;
+- selected methods and their owners, limits, prerequisites, and evidence obligations;
+- blocked methods and safe fallbacks;
+- exclusions caused by depth, negative triggers, or the context cap;
+- unresolved conditions that limit the claim.
 
-Standalone and legacy schema-1 selections remain advisory and are recorded in existing design/execution/test artifacts. New governed schema-2 packets advertise the additive `method-selection-v1` capability and fail lifecycle gates when the required phase selection is missing, preliminary, stale, or no longer covers packet risks. Older packets are never upgraded into the contract by mutable metadata alone.
+Treat this output as research guidance. The actual code, design decision, test, review finding, or release evidence remains authoritative.
 
-## Novice-use protocol
+## Legacy compatibility
 
-The human user does not need to name a methodology. Explain each selected method in four sentences:
-
-1. “The likely failure is …”
-2. “We will use … because it can expose/control that failure.”
-3. “It will produce …, owned by …”
-4. “It will not prove …; if prerequisite … is unavailable, we will … instead.”
-
-Use `record-methods` for governed packets. Use `templates/method-selection.md` only for standalone or legacy work that does not carry the packet capability.
-
-## Reselection and stops
-
-Reselect on phase, risk, premise, requirement, architecture, oracle, or verification-failure drift. Do not retain a method simply because work was already invested in it.
-
-Stop the affected slice when:
-
-- the signal requires user-owned semantics;
-- a new dependency/tool is necessary but unapproved;
-- a formal/safety/privacy/security method lacks qualified/domain ownership;
-- external, destructive, delivery, or production action lacks authority;
-- the selected oracle cannot distinguish the target defect;
-- model-to-code or evidence-to-claim correspondence is unresolved.
+Legacy packet schemas and explicit CLI commands remain readable and validatable. Their historical phase-selection, event projection, digest binding, and approval rules apply only when a user deliberately operates that packet. They never activate from 2.0 routing, workstream documents, Hooks, or ordinary Skill use.
 
 ## Progressive references
+
+Read only the family relevant to the explicit study:
 
 - Discovery and requirements: `methods-discovery-requirements.md`
 - Architecture and formal reasoning: `methods-architecture-formal.md`
@@ -107,5 +86,3 @@ Stop the affected slice when:
 - Verification, review, and assurance: `methods-verification-assurance.md`
 - Delivery, operations, and AI agents: `methods-delivery-agent.md`
 - Agent control, safety, memory, coordination, and evaluation: `methods-agent-control-evaluation.md`
-
-Read only the family selected for the active slice.

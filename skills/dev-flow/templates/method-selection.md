@@ -1,5 +1,7 @@
 # Assurance method selection
 
+> Legacy packet compatibility template. Direct and managed 2.0 method selection is bounded and non-persisted.
+
 - Selection schema: `method.selection.v1`
 - Lifecycle phase:
 - Task type:

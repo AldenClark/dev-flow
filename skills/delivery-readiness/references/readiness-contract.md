@@ -1,43 +1,35 @@
 # Acceptance and delivery readiness
 
+Use this reference for releases, migrations, deployments, signing, publication, or another high-consequence delivery. Select evidence from the changed surface and exact requested action.
+
 ## Claim states
 
-- `implemented`: the code/artifact exists.
-- `verified`: named fresh evidence supports the claim in stated environments.
-- `accepted`: all required criteria and gates for the agreed local delivery profile are satisfied.
-- `release-ready`: all required compatibility, security, migration, packaging, signing, rollback, and target-environment gates are satisfied.
-- `delivered`: the specifically authorized commit/push/PR/tag/release/deploy/message action completed and was checked.
+- `implemented`: the requested change exists in the working tree.
+- `verified`: fresh named evidence supports it in stated environments.
+- `accepted`: agreed local/business criteria are satisfied.
+- `release-ready`: applicable artifact, compatibility, security, migration, rollback, and target gates are satisfied.
+- `delivered`: the specifically authorized external action completed and its result was checked.
 
 Never collapse these states.
 
-## Acceptance trace
+## Readiness
 
-Map each AC/SC/VO ID to implementation paths, exact command/manual evidence, status, and limitation. Requirements are not proven merely because tests pass; tests are not proven because code exists. Validate the packet, re-read approved artifacts and final diff, and rerun stale evidence.
+1. Resolve all real Git roots, current diff, generated/dependency changes, version sources, user-owned unrelated changes, and the exact delivery target.
+2. Select the applicable release tier or equivalent repository-native policy. Do not run a maximum gate set simply because it exists.
+3. Confirm focused and affected evidence is fresh for final bytes. Keep failed, flaky, blocked, not-run, and waived gates visible.
+4. For compatibility or migration, cover only relevant reader/writer, client/server, platform, data, ordering, resumability, observation, restore/rollback, and cleanup directions.
+5. Freeze exact source commit, version, configuration, artifact names, and intended target before constructing or publishing immutable artifacts.
 
-Account for every changed, generated, moved, and deleted file. Classify user-owned unrelated modifications and do not include or revert them without authority.
+## Artifact integrity
 
-## Release completion gate
+For an artifact/security change, verify archive contents, manifest/version/commit, non-empty SBOM, checksums, provenance or signature as applicable, and rejection of the concrete tamper/substitution failures the builder can expose. Two clean builds are useful when reproducibility is claimed; they are not mandatory for unrelated documentation or Skill prose changes.
 
-Preserve the first failure as an immutable packet: archive and manifest digests, commit, configuration, toolchain, builder, environment, SBOM/provenance/signature subjects, uploaded-asset identity, logs, and receipts.
+Use isolated temporary profiles for installer/runtime lifecycle checks. Test fresh install/uninstall for runtime changes; add upgrade, rollback, re-upgrade, modified-file ownership, credentials, and target-platform cells only when compatibility or lifecycle behavior changed.
 
-Execute and retain a separate evidence row for each of stale or wrong subjects, nondeterministic builds, post-build mutation, and upload substitution; for upload substitution compare intended-local and uploaded asset name, size, and digest. A general root-cause investigation or aggregate binding check does not satisfy these four cells; fix the causal builder or binding and create a distinct controlled attempt instead of editing metadata or overwriting evidence.
+A local snapshot does not prove remote tag resolution, hosted CI, signing service, target platform, deployment, or public distribution. Keep each unrun real-world gate as `NOT RUN`.
 
-For the new attempt, compare two clean builds and verify archive manifest/contents/version/commit; complete tamper and mismatched-pair rejection before generating any fresh signature; only after those negative checks pass, generate and verify a fresh signature. Remote immutable-tag resolution and Draft Release remain later separately authorized gates.
+## Authority and result
 
-Lifecycle evidence uses a temporary isolated profile; freezes prior and RC tag/source/version/expected bytes; covers install, upgrade, rollback, re-upgrade, uninstall, modified-file ownership, process/profile/credential cleanup, retained receipts, and a target-platform matrix. A local snapshot proves only local behavior; remote-tag and unrun target cells remain `NOT RUN`.
+Local edit, stage, commit, fetch, merge/rebase, push, PR, tag, release, publish, migration execution, deploy, marketplace update, installation, and external message are separate actions. Perform only the authorized action and verify its external result.
 
-## Compatibility, migration, and rollback
-
-Record supported versions/targets, forward/backward reader/writer or client/server directions, deployment order, coexistence, data conversion, resumability/idempotency, observation, rollback trigger, executable rollback path, last-known-good state, backup/restore, irreversible consequences, cleanup, and reapplication path.
-
-Missing required migration, protocol, persisted-data, security, FFI, signing, packaging, physical-device, or production-target evidence prevents the corresponding full acceptance/release claim. `WAIVED` remains a visible omission.
-
-## Delivery authorities
-
-Treat separately: local edit, stage, commit, fetch, merge/rebase, push, PR, tag, publish, data migration, deploy, marketplace update, and external message. A user request for implementation or verification does not grant the others.
-
-Before any authorized delivery, resolve all real Git roots, branch/upstream/divergence, exact files, generated content, versions, credentials, release target, observation, and rollback owner. Verify the resulting commit/remote/PR/tag/artifact/runtime state afterward.
-
-## Final report
-
-Lead with actual outcome. State implemented scope and important decisions, dependency approvals/exceptions, fresh evidence and counts, compatibility environments by status, residual risks/gates, changed-file accounting, and exact delivery actions performed or not performed.
+Lead the final report with the narrowest supported outcome. Include material decisions, fresh evidence, residual risk, and unrun gates; do not produce a packet closeout, acceptance trace, evidence-row ledger, or immutable failure packet.

@@ -1,5 +1,5 @@
 {
-  "description": "Traceability guardrails plus bounded local confidentiality checks for supported Codex paths.",
+  "description": "Bounded local detection and redaction of high-confidence secrets on supported Codex Hook surfaces.",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -28,19 +28,6 @@
             "additionalContextLimit": 400
           }
         ]
-      },
-      {
-        "matcher": "Bash|apply_patch|Edit|Write|write_stdin|Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$PLUGIN_ROOT/hooks/dev_flow_hook.py\"",
-            "commandWindows": "py -3 \"%PLUGIN_ROOT%\\hooks\\dev_flow_hook.py\"",
-            "timeout": 10,
-            "statusMessage": "Checking Dev Flow gates",
-            "additionalContextLimit": 900
-          }
-        ]
       }
     ],
     "PostToolUse": [
@@ -54,58 +41,6 @@
             "timeout": 5,
             "statusMessage": "Redacting sensitive tool output",
             "additionalContextLimit": 1600
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|apply_patch|Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$PLUGIN_ROOT/hooks/dev_flow_hook.py\"",
-            "commandWindows": "py -3 \"%PLUGIN_ROOT%\\hooks\\dev_flow_hook.py\"",
-            "timeout": 10,
-            "statusMessage": "Checking trace updates",
-            "additionalContextLimit": 900
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$PLUGIN_ROOT/hooks/dev_flow_hook.py\"",
-            "commandWindows": "py -3 \"%PLUGIN_ROOT%\\hooks\\dev_flow_hook.py\"",
-            "timeout": 10,
-            "additionalContextLimit": 900
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$PLUGIN_ROOT/hooks/dev_flow_hook.py\"",
-            "commandWindows": "py -3 \"%PLUGIN_ROOT%\\hooks\\dev_flow_hook.py\"",
-            "timeout": 10,
-            "statusMessage": "Checking agent report contract"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$PLUGIN_ROOT/hooks/dev_flow_hook.py\"",
-            "commandWindows": "py -3 \"%PLUGIN_ROOT%\\hooks\\dev_flow_hook.py\"",
-            "timeout": 20,
-            "statusMessage": "Validating traceable completion"
           }
         ]
       }

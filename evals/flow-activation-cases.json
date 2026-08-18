@@ -1,0 +1,188 @@
+{
+  "schema_version": "1.0",
+  "purpose": "Flow Activation Coverage: expected branch entry and negative-trigger restraint without effect scoring.",
+  "cases": [
+    {
+      "id": "FLOW-U1-STOPS-BEFORE-DESIGN",
+      "command": ["route-task", "--intent", "change", "--requirement-class", "semantic-change"],
+      "expect": {
+        "requirement_understanding.confirmation": "required",
+        "requirement_understanding.design_allowed": false,
+        "requirement_understanding.next_action": "publish-detailed-understanding-and-stop"
+      },
+      "contains": {"routes": "requirements-design"},
+      "excludes": {"routes": "architecture-decisions"}
+    },
+    {
+      "id": "FLOW-U1-CONFIRMATION-RESUMES",
+      "command": ["route-task", "--intent", "change", "--requirement-class", "semantic-change", "--understanding-confirmed"],
+      "expect": {
+        "requirement_understanding.confirmation": "confirmed",
+        "requirement_understanding.design_allowed": true,
+        "requirement_understanding.next_action": "continue"
+      }
+    },
+    {
+      "id": "FLOW-ESTABLISHED-BUG-DIAGNOSES-WITHOUT-CONFIRMATION",
+      "command": ["route-task", "--intent", "diagnose", "--requirement-class", "defect-correction"],
+      "expect": {"requirement_understanding.confirmation": "not-required"},
+      "contains": {"routes": "systematic-debugging"}
+    },
+    {
+      "id": "FLOW-MECHANICAL-WORK-STAYS-QUIET",
+      "command": ["route-task", "--intent", "change", "--requirement-class", "mechanical"],
+      "expect": {
+        "work_mode": "direct",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.independent_review.required": false
+      },
+      "excludes": {"routes": "requirements-design", "capability_activation.specialist.matches": "quality.rust.correctness"}
+    },
+    {
+      "id": "FLOW-MANAGED-CONTINUITY-CREATES-TWO-CORE-DOCS",
+      "command": ["route-task", "--intent", "change", "--multi-session"],
+      "expect": {"work_mode": "managed", "continuity.documents_required": true},
+      "contains": {"continuity.artifacts": "implementation.md"}
+    },
+    {
+      "id": "FLOW-RUST-AXUM-AND-ASYNC-SPECIALISTS",
+      "command": ["route-task", "--intent", "change", "--repo-fact", "language=rust", "--repo-fact", "framework=axum", "--risk", "concurrency", "--effective-skill", "rust-code-review", "--effective-skill", "tokio-async-code-review", "--effective-skill", "axum-code-review"],
+      "contains": {
+        "capability_activation.specialist.matches": [
+          "quality.rust.correctness",
+          "quality.rust.async",
+          "quality.rust.axum"
+        ]
+      }
+    },
+    {
+      "id": "FLOW-FFI-ACTIVATES-BOUNDED-METHOD",
+      "command": ["route-task", "--intent", "change", "--risk", "ffi", "--method-signal", "multi-version-coexistence"],
+      "expect": {"capability_activation.method.active_match_required": true},
+      "contains": {"capability_activation.method.reasons": "risk:ffi"}
+    },
+    {
+      "id": "FLOW-MATERIAL-EXPOSURE-ACTIVATES-REVIEW",
+      "command": ["route-task", "--intent", "change", "--risk", "security", "--material-exposure"],
+      "expect": {"capability_activation.independent_review.required": true},
+      "contains": {"routes": "change-review"},
+      "excludes": {"routes": "architecture-decisions"}
+    },
+    {
+      "id": "FLOW-P0-LUNA-EXACT",
+      "command": ["route-agent", "--role", "dev-flow-explorer", "--workload", "exact-lookup"],
+      "expect": {"selected_profile": "P0", "requested_model": "gpt-5.6-luna", "requested_reasoning_effort": "low"}
+    },
+    {
+      "id": "FLOW-P2-LUNA-CONTAINED-STRUCTURED-WORK",
+      "command": ["route-agent", "--role", "dev-flow-worker", "--workload", "bounded-change", "--risk", "concurrency", "--signal", "closed-scope", "--signal", "confirmed-semantics", "--signal", "deterministic-oracle"],
+      "expect": {"selected_profile": "P2", "requested_model": "gpt-5.6-luna", "requested_reasoning_effort": "high"}
+    },
+    {
+      "id": "FLOW-P4-TERRA-JUDGMENT",
+      "command": ["route-agent", "--role", "dev-flow-explorer", "--workload", "broad-mapping", "--signal", "oracle-challenge"],
+      "expect": {"selected_profile": "P4", "requested_model": "gpt-5.6-terra", "requested_reasoning_effort": "high"}
+    },
+    {
+      "id": "FLOW-P5-SOL-CRITICAL-BOUNDARY",
+      "command": ["route-agent", "--role", "dev-flow-worker", "--workload", "bounded-change", "--risk", "authorization"],
+      "expect": {"selected_profile": "P5", "requested_model": "gpt-5.6-sol", "requested_reasoning_effort": "high"}
+    },
+    {
+      "id": "FLOW-P6-SOL-IRREVERSIBLE-ACCEPTANCE",
+      "command": ["route-agent", "--role", "dev-flow-red-reviewer", "--workload", "high-risk-review", "--signal", "irreversible"],
+      "expect": {"selected_profile": "P6", "requested_model": "gpt-5.6-sol", "requested_reasoning_effort": "xhigh"}
+    },
+    {
+      "id": "FLOW-DELIVERY-IS-READ-ONLY-UNTIL-AUTHORIZED",
+      "command": ["route-task", "--intent", "delivery"],
+      "expect": {"mutation_intent": "none"},
+      "contains": {"routes": "delivery-readiness"}
+    },
+    {
+      "id": "FLOW-RESEARCH-COLLECTS-FACTS-WITHOUT-REVIEW",
+      "command": ["route-task", "--intent", "research"],
+      "expect": {"mutation_intent": "none", "requirement_understanding.class": "read-only"},
+      "excludes": {"routes": ["change-review", "requirements-design"]}
+    },
+    {
+      "id": "FLOW-DESIGN-STOPS-ON-UNCONFIRMED-SEMANTICS",
+      "command": ["route-task", "--intent", "design", "--requirement-class", "semantic-change"],
+      "expect": {"mutation_intent": "none", "requirement_understanding.design_allowed": false},
+      "contains": {"routes": "requirements-design"},
+      "excludes": {"routes": "architecture-decisions"}
+    },
+    {
+      "id": "FLOW-REVIEW-OWNS-VERIFIED-READ-ONLY-JUDGMENT",
+      "command": ["route-task", "--intent", "review"],
+      "expect": {"mutation_intent": "none", "capability_activation.independent_review.required": false},
+      "contains": {"routes": ["verification", "change-review"]}
+    },
+    {
+      "id": "FLOW-AMBIGUOUS-DEFECT-UPGRADES-TO-U1",
+      "command": ["route-task", "--intent", "diagnose", "--requirement-class", "defect-correction", "--ambiguity"],
+      "expect": {
+        "requirement_understanding.class": "semantic-change",
+        "requirement_understanding.confirmation": "required",
+        "requirement_understanding.design_allowed": false
+      },
+      "contains": {"routes": ["requirements-design", "systematic-debugging"]}
+    },
+    {
+      "id": "FLOW-OVERLAYS-COMPOSE-WITHOUT-REVIEW-CEREMONY",
+      "command": ["route-task", "--intent", "change", "--risk", "privacy", "--risk", "migration", "--risk", "release", "--risk", "data-deletion", "--ui-impact", "material", "--overlay", "external-system", "--overlay", "irreversible", "--compact"],
+      "contains": {"risk_overlays": ["security", "migration", "external-system", "release", "irreversible", "ui-product"]},
+      "excludes": {"routes": "change-review"}
+    },
+    {
+      "id": "FLOW-GENERIC-SECURITY-KEEPS-REVIEW-AND-ARCHITECTURE-QUIET",
+      "command": ["route-task", "--intent", "change", "--risk", "security"],
+      "expect": {"capability_activation.independent_review.required": false},
+      "excludes": {"routes": ["architecture-decisions", "change-review"]}
+    },
+    {
+      "id": "FLOW-PLUGIN-PREFIXED-SPECIALIST-NAME-MATCHES",
+      "command": ["route-task", "--intent", "change", "--repo-fact", "language=rust", "--effective-skill", "review-rust:rust-code-review"],
+      "contains": {"capability_activation.specialist.matches": ["quality.rust.correctness", "rust-code-review", "effective-skill"]}
+    },
+    {
+      "id": "FLOW-MISSING-SPECIALIST-USES-QUALIFIED-FALLBACK",
+      "command": ["route-task", "--intent", "change", "--repo-fact", "language=rust"],
+      "contains": {"capability_activation.specialist.matches": ["quality.rust.correctness", "qualified-fallback", "qualified-rust-reviewer"]}
+    },
+    {
+      "id": "FLOW-P1-LUNA-MECHANICAL",
+      "command": ["route-agent", "--role", "dev-flow-worker", "--workload", "mechanical-change"],
+      "expect": {"selected_profile": "P1", "requested_model": "gpt-5.6-luna", "requested_reasoning_effort": "medium"}
+    },
+    {
+      "id": "FLOW-P3-TERRA-ORDINARY-MULTI-STEP",
+      "command": ["route-agent", "--role", "dev-flow-worker", "--workload", "broad-multi-step"],
+      "expect": {"selected_profile": "P3", "requested_model": "gpt-5.6-terra", "requested_reasoning_effort": "medium"}
+    },
+    {
+      "id": "FLOW-ROOT-DECISIONS-ARE-NOT-DELEGATED",
+      "command": ["route-agent", "--role", "root", "--workload", "root-decision"],
+      "expect": {"delegate": false, "selected_profile": null, "requested_model": null}
+    },
+    {
+      "id": "FLOW-KNOWLEDGE-UPDATES-CURRENT-TRUTH-WITHOUT-RECORD",
+      "command": ["route-task", "--intent", "change", "--knowledge-impact", "current-truth"],
+      "contains": {"knowledge.disposition": "current-truth"},
+      "excludes": {"knowledge.disposition": "change-record"}
+    },
+    {
+      "id": "FLOW-NATIVE-ADAPTERS-REQUIRE-CURRENT-TURN-OBSERVATION",
+      "command": ["preflight", "--version-output", "codex-cli 0.147.0", "--features-output-file", "evals/fixtures/codex-features-current.txt", "--skip-config", "--effective-capability", "delegation", "--effective-capability", "goal-bridge", "--effective-capability", "browser-or-device", "--effective-capability", "external-context"],
+      "expect": {
+        "capabilities.delegation": true,
+        "capabilities.goal_bridge": true,
+        "capabilities.browser_or_device": true,
+        "capabilities.external_context": true,
+        "interaction_contract.required_mode": "Default",
+        "interaction_contract.plan_mode_allowed": false,
+        "capability_observation.feature_flags_are_capability_evidence": false
+      }
+    }
+  ]
+}

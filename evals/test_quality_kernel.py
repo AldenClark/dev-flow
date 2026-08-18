@@ -20,7 +20,6 @@ from evals.test_scripts import write_valid_packet
 
 ROOT = Path(__file__).resolve().parents[1]
 FLOW = ROOT / "skills" / "dev-flow" / "scripts" / "dev_flow.py"
-HOOK = ROOT / "hooks" / "dev_flow_hook.py"
 
 
 def run_flow(*args: object) -> subprocess.CompletedProcess[str]:
@@ -856,31 +855,6 @@ class QualityKernelTests(unittest.TestCase):
                 self.assertEqual(missing.returncode, 2, missing.stderr or missing.stdout)
                 self.assertIn("missing its immutable creation contract", missing.stdout)
 
-                if omitted_field == "knowledge_manifest":
-                    event = {
-                        "cwd": str(root),
-                        "hook_event_name": "PreToolUse",
-                        "tool_name": "apply_patch",
-                        "tool_input": {
-                            "patch": "*** Begin Patch\n*** Update File: product.py\n@@\n-old\n+new\n*** End Patch"
-                        },
-                    }
-                    env = os.environ.copy()
-                    env["PLUGIN_ROOT"] = str(ROOT)
-                    denied = subprocess.run(
-                        [sys.executable, str(HOOK)],
-                        cwd=ROOT,
-                        check=False,
-                        capture_output=True,
-                        text=True,
-                        input=json.dumps(event),
-                        env=env,
-                    )
-                    self.assertEqual(
-                        json.loads(denied.stdout)["hookSpecificOutput"]["permissionDecision"],
-                        "deny",
-                    )
-
         with tempfile.TemporaryDirectory() as temp:
             packet = initialize_quality_packet(Path(temp), "contract-only-downgrade")
             metadata = json.loads((packet / "packet.json").read_text(encoding="utf-8"))
@@ -922,38 +896,6 @@ class QualityKernelTests(unittest.TestCase):
             invalid = run_flow("validate-packet", packet)
             self.assertEqual(invalid.returncode, 2, invalid.stderr or invalid.stdout)
             self.assertIn("quality-shaped packet", invalid.stdout)
-
-    def test_hook_rejects_schema_downgrade_of_immutable_quality_packet(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            packet = initialize_quality_packet(root, "schema-downgrade")
-            approve_and_implement(packet)
-            metadata_path = packet / "packet.json"
-            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-            metadata["schema_version"] = "1.2"
-            metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
-            event = {
-                "cwd": str(root),
-                "hook_event_name": "PreToolUse",
-                "tool_name": "apply_patch",
-                "tool_input": {
-                    "patch": "*** Begin Patch\n*** Update File: product.py\n@@\n-old\n+new\n*** End Patch"
-                },
-            }
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-            denied = subprocess.run(
-                [sys.executable, str(HOOK)],
-                cwd=ROOT,
-                check=False,
-                capture_output=True,
-                text=True,
-                input=json.dumps(event),
-                env=env,
-            )
-            decision = json.loads(denied.stdout)["hookSpecificOutput"]
-            self.assertEqual(decision["permissionDecision"], "deny")
-            self.assertIn("requires packet schema 2.0", decision["permissionDecisionReason"])
 
     def test_schema_independent_quality_provenance_rejects_each_residual_surface(self) -> None:
         event_base: dict[str, object] = {
@@ -1032,7 +974,7 @@ class QualityKernelTests(unittest.TestCase):
                 self.assertEqual(invalid.returncode, 2, invalid.stderr or invalid.stdout)
                 self.assertIn("quality provenance", invalid.stdout)
 
-    def test_cross_schema_combined_downgrade_is_rejected_by_packet_and_real_hook(self) -> None:
+    def test_cross_schema_combined_downgrade_is_rejected_by_packet(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             packet = initialize_quality_packet(root, "combined-downgrade")
@@ -1050,29 +992,6 @@ class QualityKernelTests(unittest.TestCase):
             invalid = run_flow("validate-packet", packet)
             self.assertEqual(invalid.returncode, 2, invalid.stderr or invalid.stdout)
             self.assertIn("quality provenance", invalid.stdout)
-
-            event = {
-                "cwd": str(root),
-                "hook_event_name": "PreToolUse",
-                "tool_name": "apply_patch",
-                "tool_input": {
-                    "patch": "*** Begin Patch\n*** Update File: product.py\n@@\n-old\n+new\n*** End Patch"
-                },
-            }
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-            denied = subprocess.run(
-                [sys.executable, str(HOOK)],
-                cwd=ROOT,
-                check=False,
-                capture_output=True,
-                text=True,
-                input=json.dumps(event),
-                env=env,
-            )
-            decision = json.loads(denied.stdout)["hookSpecificOutput"]
-            self.assertEqual(decision["permissionDecision"], "deny")
-            self.assertIn("quality provenance", decision["permissionDecisionReason"])
 
     def test_packets_without_quality_residue_keep_legacy_compatibility(self) -> None:
         for label, version in (
@@ -1107,29 +1026,6 @@ class QualityKernelTests(unittest.TestCase):
             invalid = run_flow("validate-packet", packet)
             self.assertEqual(invalid.returncode, 2, invalid.stderr or invalid.stdout)
             self.assertIn("read-only-audit cannot declare persistent mutation", invalid.stdout)
-
-            event = {
-                "cwd": str(Path(temp)),
-                "hook_event_name": "PreToolUse",
-                "tool_name": "apply_patch",
-                "tool_input": {
-                    "patch": "*** Begin Patch\n*** Update File: product.py\n@@\n-old\n+new\n*** End Patch"
-                },
-            }
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-            denied = subprocess.run(
-                [sys.executable, str(HOOK)],
-                cwd=ROOT,
-                check=False,
-                capture_output=True,
-                text=True,
-                input=json.dumps(event),
-                env=env,
-            )
-            decision = json.loads(denied.stdout)["hookSpecificOutput"]
-            self.assertEqual(decision["permissionDecision"], "deny")
-            self.assertIn("immutable creation authority", decision["permissionDecisionReason"])
 
     def test_creation_classification_and_authority_envelope_are_exact(self) -> None:
         with tempfile.TemporaryDirectory() as temp, tempfile.TemporaryDirectory() as other_temp:
@@ -1402,15 +1298,15 @@ class QualityKernelTests(unittest.TestCase):
             self.assertEqual(invalid_time.returncode, 2, invalid_time.stderr or invalid_time.stdout)
             self.assertIn("event timestamps must be nondecreasing", invalid_time.stdout)
 
-    def test_persistent_routing_cannot_remove_the_quality_kernel(self) -> None:
+    def test_direct_routing_keeps_the_minimum_quality_spine(self) -> None:
         routed = run_flow("route-task", "--task-type", "routine", "--mutation", "persistent")
         self.assertEqual(routed.returncode, 0, routed.stderr or routed.stdout)
         payload = json.loads(routed.stdout)
-        self.assertTrue(payload["quality_kernel"]["always_loaded"])
         skills = [item["skill"] for item in payload["routes"]]
-        self.assertEqual(skills[0], "repo-context")
-        self.assertIn("requirements-design", skills)
-        self.assertIn("verification", skills)
+        self.assertEqual(payload["work_mode"], "direct")
+        self.assertEqual(skills, ["repo-context", "verification"])
+        self.assertFalse(payload["continuity"]["documents_required"])
+        self.assertIn("legacy-packets", payload["excluded"])
 
     def test_persistent_micro_is_traced_and_nonmutating_micro_can_be_direct(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -1640,72 +1536,6 @@ class QualityKernelTests(unittest.TestCase):
             drift = run_flow("validate-packet", packet)
             self.assertEqual(drift.returncode, 2)
             self.assertIn("design changed after its content-bound approval", drift.stdout)
-
-    def test_hook_rehydrates_before_mutation_and_blocks_stale_or_verifying_state(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            packet = initialize_quality_packet(root, "hook-recovery")
-            approve_and_implement(packet)
-            event = {
-                "cwd": str(root),
-                "hook_event_name": "PreToolUse",
-                "tool_name": "apply_patch",
-                "tool_input": {
-                    "patch": "*** Begin Patch\n*** Update File: src/app.py\n@@\n-old\n+new\n*** End Patch"
-                },
-            }
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-
-            hydrated = subprocess.run(
-                [sys.executable, str(HOOK)],
-                cwd=ROOT,
-                check=False,
-                capture_output=True,
-                text=True,
-                input=json.dumps(event),
-                env=env,
-            )
-            self.assertEqual(hydrated.returncode, 0, hydrated.stderr or hydrated.stdout)
-            output = json.loads(hydrated.stdout)["hookSpecificOutput"]
-            self.assertNotIn("permissionDecision", output)
-            self.assertIn("DEV_FLOW_RECOVERY", output["additionalContext"])
-            self.assertIn("Stop on baseline", output["additionalContext"])
-
-            readiness = json.loads((packet / "context-readiness.json").read_text(encoding="utf-8"))
-            readiness["fingerprint"] = "sha256:" + "3" * 64
-            (packet / "context-readiness.json").write_text(json.dumps(readiness) + "\n", encoding="utf-8")
-            stale = subprocess.run(
-                [sys.executable, str(HOOK)],
-                cwd=ROOT,
-                check=False,
-                capture_output=True,
-                text=True,
-                input=json.dumps(event),
-                env=env,
-            )
-            self.assertEqual(
-                json.loads(stale.stdout)["hookSpecificOutput"]["permissionDecision"],
-                "deny",
-            )
-
-            readiness["fingerprint"] = "sha256:" + "1" * 64
-            (packet / "context-readiness.json").write_text(json.dumps(readiness) + "\n", encoding="utf-8")
-            bind_none_and_checkpoint_for_verification(packet)
-            verifying = run_flow("transition", packet, "verifying", "--note", "enter verifying")
-            self.assertEqual(verifying.returncode, 0, verifying.stderr or verifying.stdout)
-            frozen = subprocess.run(
-                [sys.executable, str(HOOK)],
-                cwd=ROOT,
-                check=False,
-                capture_output=True,
-                text=True,
-                input=json.dumps(event),
-                env=env,
-            )
-            frozen_output = json.loads(frozen.stdout)["hookSpecificOutput"]
-            self.assertEqual(frozen_output["permissionDecision"], "deny")
-            self.assertIn("implementing state", frozen_output["permissionDecisionReason"])
 
     def test_material_knowledge_binding_uses_validated_tracked_dossier_and_digest(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -2089,7 +1919,7 @@ class QualityKernelTests(unittest.TestCase):
             valid = run_flow("validate-packet", packet)
             self.assertEqual(valid.returncode, 0, valid.stderr or valid.stdout)
 
-    def test_resume_and_hook_detect_repository_baseline_drift(self) -> None:
+    def test_resume_detects_repository_baseline_drift(self) -> None:
         with self.subTest(drift="head"), tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             initialize_git_repository(root)
@@ -2101,27 +1931,6 @@ class QualityKernelTests(unittest.TestCase):
             resumed = run_flow("resume-packet", packet)
             self.assertEqual(resumed.returncode, 2, resumed.stderr or resumed.stdout)
             self.assertIn("repository HEAD drifted", resumed.stdout)
-
-            event = {
-                "cwd": str(root),
-                "hook_event_name": "PreToolUse",
-                "tool_name": "apply_patch",
-                "tool_input": {"patch": "*** Begin Patch\n*** Update File: tracked.txt\n@@\n-old\n+new\n*** End Patch"},
-            }
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(ROOT)
-            hooked = subprocess.run(
-                [sys.executable, str(HOOK)],
-                cwd=ROOT,
-                check=False,
-                capture_output=True,
-                text=True,
-                input=json.dumps(event),
-                env=env,
-            )
-            hook_output = json.loads(hooked.stdout)["hookSpecificOutput"]
-            self.assertEqual(hook_output["permissionDecision"], "deny")
-            self.assertIn("repository HEAD drifted", hook_output["permissionDecisionReason"])
 
             head = run_git(root, "rev-parse", "HEAD").stdout.strip()
             ordinary_rebind = run_flow(
@@ -2455,45 +2264,7 @@ class QualityKernelTests(unittest.TestCase):
             self.assertTrue(any("not mechanically observable" in warning for warning in payload["warnings"]))
             self.assertFalse(payload["checkpoint"]["repository_snapshot"][0]["observable"])
 
-    def test_pretool_mutation_uses_identity_fast_path_and_templates_match_checkpoint_fields(self) -> None:
-        with tempfile.TemporaryDirectory() as temp, tempfile.TemporaryDirectory() as tools_temp:
-            root = Path(temp)
-            initialize_git_repository(root)
-            packet = initialize_quality_packet(root, "hook-fast-path")
-            approve_and_implement(packet)
-            log = Path(tools_temp) / "git.log"
-            env = os.environ.copy()
-            env.update(
-                {
-                    "PLUGIN_ROOT": str(ROOT),
-                    # Git's native tracing works on POSIX and Windows without a
-                    # shell-specific launcher in PATH.
-                    "GIT_TRACE": str(log),
-                }
-            )
-            event = {
-                "cwd": str(root),
-                "hook_event_name": "PreToolUse",
-                "tool_name": "apply_patch",
-                "tool_input": {"patch": "*** Begin Patch\n*** Update File: tracked.txt\n@@\n-old\n+new\n*** End Patch"},
-            }
-            hooked = subprocess.run(
-                [sys.executable, str(HOOK)],
-                cwd=ROOT,
-                check=False,
-                capture_output=True,
-                text=True,
-                input=json.dumps(event),
-                env=env,
-            )
-            self.assertEqual(hooked.returncode, 0, hooked.stderr or hooked.stdout)
-            output = json.loads(hooked.stdout)["hookSpecificOutput"]
-            self.assertNotIn("permissionDecision", output)
-            commands = log.read_text(encoding="utf-8")
-            self.assertIn("rev-parse --show-toplevel", commands)
-            self.assertIn("rev-parse --verify HEAD", commands)
-            self.assertNotRegex(commands, r"\bgit(?:\.exe)? (?:status|diff|ls-files)\b")
-
+    def test_legacy_templates_match_checkpoint_fields(self) -> None:
         source = ast.parse(FLOW.read_text(encoding="utf-8"))
         fields: tuple[str, ...] | None = None
         for node in source.body:

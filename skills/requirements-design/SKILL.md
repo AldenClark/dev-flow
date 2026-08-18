@@ -1,41 +1,30 @@
 ---
 name: requirements-design
-description: Resolve material requirement ambiguity and bind outcomes, constraints, scope, compatibility, rollback, verification, and approval before consequential changes.
+description: Clarify and confirm product semantics before design. Use for new or changed behavior, public contracts, permissions, data lifecycle, user flows, integrations, migrations, or ambiguous bugs.
 ---
 
 # Requirements and Design
 
-Own user-visible semantics and the content-bound approval baseline. The goal is semantic closure, not fewer questions: continue focused interaction until no material ambiguity remains, while making every revision recoverable.
-
-At every user-owned checkpoint, remain in Default mode and follow `references/user-interaction.md`; prefer the native `request_user_input` tool when the effective host surface exposes it.
-
-## Responsibility contract
-
-- Consumes: fresh repository context and the product/UX contract when applicable.
-- Owns: user-visible semantics, acceptance, scope, compatibility intent, and content-bound approval.
-- Stops: at open material ambiguity, stale approval digest, or missing user disposition.
-- Hands off: structure to architecture, external capability to dependency, and a ready baseline to the control plane.
+Own product meaning and scope. The goal is enough shared understanding to make the next implementation slice correct, not a complete requirements database or approval system.
 
 ## Procedure
 
-1. Consume fresh repository/context evidence. Preserve a sanitized original request or secure pointer, then write the first complete AI-understood requirement revision before asking.
-2. Normalize actor, trigger, preconditions, inputs, trust boundary, output, state transition, failures, cancellation, retry, timeout, recovery, authorization, privacy, compatibility, performance, and operations.
-3. Record observable `AC-n` criteria and explicit non-goals. Avoid prescribing implementation unless it is an approved constraint.
-4. For every surviving material interpretation, record `AMB-n`: source, at least two evidenced meanings, materiality, owner, affected AC/SC/VO, recommendation, blocked slice, creation revision, and status.
-5. Codex owns repository facts; the user owns material semantics. Ask one-to-three decision-changing questions per round, explain outcome impacts and an evidence-backed recommendation, then immediately persist the answer/correction and next requirement revision. Repeat as needed; do not pursue literal zero unknowns or invent questions for a count target.
-6. Compare viable product/scope options against repository facts and applicable resolved preferences. Record observable failure behavior, compatibility intent, rollout/rollback outcomes, cleanup expectations, and `VO-n` obligations; link separately owned architecture and dependency decisions when routed.
-7. Define direct, indirect, conditional, protected, out-of-scope, and delivery scopes with stable `SC-*` IDs.
-8. Requirement Ready means no open material/high-risk ambiguity, observable ACs, explicit non-goals, and visible evidence-backed reversible low-risk assumptions. Bind it and the repository-grounded design to current digests. When late material ambiguity changes the baseline, record an `AMB-n`, stop affected work, return the content-bound packet to `awaiting-approval`, increment the revision, preserve approval history, obtain the user disposition, and create fresh digest-bound Requirement Ready and design approvals.
+1. Read current repository, product, issue, test, and relevant external evidence before asking questions. Resolve repository facts yourself.
+2. Classify understanding depth: U1 semantic creation/change, U2 structural adjustment, U3 defect correction, U4 mechanical edit, or U5 read-only work. Read `references/semantic-and-scope.md` for the classifier.
+3. Build a technology-neutral model of the actor, problem/goal, trigger, scenarios, observable outcome/state, failures/recovery, compatibility, protected behavior, in/out scope, acceptance behavior, facts, user decisions, bounded assumptions, and material unknowns that actually apply.
+4. Use a bounded discovery method when complex rules, states, journeys, trust boundaries, or mixed versions need it. Produce the resulting business meaning, not a methodology transcript.
+5. Ask only when surviving interpretations materially change behavior, contract, scope, irreversible consequence, or external authority. Group one to three decision-changing questions and explain the recommendation.
+6. For U1, after material questions are resolved, publish the complete requirement-understanding result, explicitly state that technical design and implementation have not started, and end the turn for user confirmation. A correction requires a complete revised result and another stop. Proceed only after explicit confirmation or an explicit waiver in the request.
+7. For U2, stop only when product/compatibility/operational semantics can change. For U3, state expected and protected behavior and proceed without the confirmation stop when evidence establishes them; upgrade to U1 when they remain open. U4 and U5 never acquire a confirmation ceremony merely because Dev Flow is active.
+8. For managed work, put complex or cross-team semantics in the repository's requirement source when the request or issue is insufficient. Put technical trade-offs in `design.md` only after semantic confirmation and only when a real design decision exists.
+9. Define verification intent as observable behavior. Leave exact technical oracles to `verification` and structural choices to their owning specialists.
 
-Read `references/semantic-and-scope.md` for ambiguity ownership, collaboration modes, scope, drift, and approval rules. Read `references/user-interaction.md` before asking a material question or requesting approval.
-
-## Output contract
-
-Produce `requirements.baseline.v1` and `design.record.v1` containing the sanitized source, ordered understanding/correction chain, current truth, revision/digests, AC/AMB/SC/VO, evidence, alternatives, failure/compatibility/rollback/testing intent, approved constraints, linked owner decisions, approval, and reopen triggers.
+Always stay in Default mode. Read `references/user-interaction.md` before a material question or U1 confirmation checkpoint.
 
 ## Boundaries
 
-- Do not hide material product choices inside implementation tasks.
-- Do not select technical architecture, control/data flow, ownership mechanics, or an external capability inside the requirement artifact; route those decisions and bind their returned artifacts as constraints.
-- Do not ask the user to rediscover code, manifests, or runtime facts.
-- Do not treat approval of design as dependency, delivery, or deployment authority.
+- Do not require AC/SC/VO identifiers, digests, approval records, or packet revisions unless the repository's own regulated process requires them.
+- Do not ask the user to resolve repository facts.
+- Do not start technical design or product-code mutation before required U1 confirmation.
+- Do not force a question, requirements file, or confirmation stop for an established defect or mechanical edit.
+- Design agreement does not authorize dependencies, commit, delivery, deployment, or destructive actions.

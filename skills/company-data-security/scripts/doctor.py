@@ -18,7 +18,6 @@ PROTOCOL_SOURCE = "https://learn.chatgpt.com/docs/hooks"
 PROTOCOL_CHECKED_AT = "2026-08-14"
 BASELINE_PATH = "skills/company-data-security/references/control-baseline.json"
 PROTECTED_PATHS = (
-    "hooks/hooks.json",
     "hooks/data_security_hook.py",
     "skills/company-data-security/SKILL.md",
     "skills/company-data-security/agents/openai.yaml",
@@ -27,7 +26,6 @@ PROTECTED_PATHS = (
     "skills/company-data-security/assets/codex-agents-baseline.md",
     "skills/company-data-security/assets/chatgpt-work-instructions.md",
     "skills/company-data-security/assets/ordinary-chat-instructions.md",
-    "skills/company-data-security/assets/surface-attestation.example.json",
     "skills/company-data-security/scripts/data_security.py",
     "skills/company-data-security/scripts/doctor.py",
 )
@@ -131,6 +129,8 @@ def _integrity_checks(root: Path) -> list[Check]:
 
 
 def _hook_checks(root: Path) -> list[Check]:
+    # hooks.json is shared plugin composition. Validate this Skill's three exact
+    # semantic registrations instead of byte-attesting unrelated Hook changes.
     try:
         config = _read_json(root / "hooks" / "hooks.json")
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError):

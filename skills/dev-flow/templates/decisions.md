@@ -1,5 +1,7 @@
 # Decision record: <change-id>
 
+> Legacy packet compatibility template. Direct and managed 2.0 work uses the repository's ADR convention or `templates/workstream/decisions.md`.
+
 ## Decision ledger
 
 | ID | Context and evidence | Decision | Alternatives | Consequences | Status |

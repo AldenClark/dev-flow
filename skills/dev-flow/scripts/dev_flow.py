@@ -21,6 +21,7 @@ from typing import Any, Iterable
 
 import agent_dispatch
 import engineering_context
+import flow_metrics
 import knowledge_system
 import methodology_system
 from dependency_contracts import (
@@ -43,6 +44,41 @@ SUPPORTED_SCHEMA_VERSIONS = {"1.0", "1.1", "1.2", "2.0"}
 READINESS_SCHEMA_VERSIONS = {"1.1", "1.2", "2.0"}
 CONTENT_BOUND_SCHEMA_VERSIONS = {"1.2", "2.0"}
 WORK_MODES = {"direct", "traced", "governed"}
+EXECUTION_MODES = {"direct", "managed"}
+TASK_INTENTS = {"research", "diagnose", "design", "change", "review", "delivery"}
+LEGACY_INTENT_ALIASES = {"research-audit": "review"}
+ACCEPTED_TASK_INTENTS = TASK_INTENTS | set(LEGACY_INTENT_ALIASES)
+LEGACY_TASK_INTENTS = {
+    "micro": "change",
+    "routine": "change",
+    "bugfix": "change",
+    "large-feature": "change",
+    "large-refactor": "change",
+    "migration": "change",
+    "security": "change",
+    "performance": "change",
+    "release-hotfix": "delivery",
+    "read-only-audit": "review",
+    "spike": "design",
+    "dependency-change": "change",
+    "rollback": "delivery",
+}
+INTENT_METHOD_TASK_TYPES = {
+    "research": "spike",
+    "diagnose": "bugfix",
+    "design": "routine",
+    "change": "routine",
+    "review": "read-only-audit",
+    "delivery": "release-hotfix",
+}
+ROUTE_KNOWLEDGE_IMPACTS = {"none", "current-truth", "change-record"}
+REQUIREMENT_CLASSES = {
+    "semantic-change",
+    "structural-adjustment",
+    "defect-correction",
+    "mechanical",
+    "read-only",
+}
 COLLABORATION_PROFILES = {"execute", "checkpointed", "co-design"}
 UI_IMPACTS = {"none", "preserve", "material"}
 READINESS_APPROVAL_IDS = {"requirements": "REQ-READY", "ux": "UX-READY"}
@@ -108,14 +144,11 @@ REQUIREMENTS_ROUTING_RISKS = {
 ARCHITECTURE_ROUTING_RISKS = {
     "abi",
     "architecture",
-    "authentication",
-    "authorization",
     "backpressure",
     "cancellation",
     "compatibility",
     "concurrency",
     "distributed-state",
-    "entitlement",
     "ffi",
     "idempotency",
     "memory",
@@ -125,19 +158,61 @@ ARCHITECTURE_ROUTING_RISKS = {
     "performance",
     "persisted-data",
     "platform-lifecycle",
-    "privacy",
     "protocol",
     "public-api",
     "recovery",
     "resource-limits",
     "schema",
-    "secrets",
-    "security",
     "unsafe",
-    "untrusted-input",
     "version-compatibility",
 }
 DIAGNOSIS_ROUTING_RISKS = {"flaky-baseline", "incomplete-reproduction"}
+METHOD_ACTIVATION_RISKS = {
+    "abi",
+    "authorization",
+    "concurrency",
+    "data-deletion",
+    "distributed-state",
+    "ffi",
+    "migration",
+    "ordering",
+    "persisted-data",
+    "privacy",
+    "protocol",
+    "public-api",
+    "regulated",
+    "rollback",
+    "schema",
+    "security",
+    "unsafe",
+    "version-compatibility",
+}
+METHOD_ACTIVATION_SIGNALS = {
+    "complex-rules",
+    "conflicting-evidence",
+    "cross-participant-flow",
+    "multi-version-coexistence",
+    "oracle-challenge",
+    "repeated-failure",
+    "state-lifecycle",
+    "trust-boundary",
+}
+METHOD_SIGNAL_TRANSLATIONS = {
+    "complex-rules": "interacting-features",
+    "conflicting-evidence": "ambiguity",
+    "cross-participant-flow": "multi-user-state",
+    "multi-version-coexistence": "multi-version-coexistence",
+    "oracle-challenge": "weak-oracle",
+    "repeated-failure": "debugging-unknown-cause",
+    "state-lifecycle": "protocol-state",
+    "trust-boundary": "cross-boundary-identity",
+}
+CAPABILITY_REGISTRY = (
+    Path(__file__).resolve().parents[2]
+    / "dev-flow-maintainer"
+    / "references"
+    / "capability-registry.json"
+)
 ITERATION_KINDS = {"hypothesis", "repair"}
 ITERATION_OUTCOMES = {"failed", "succeeded", "reassessed"}
 ITERATION_OWNERS = {
@@ -428,7 +503,7 @@ STATUS_WORDS = {"PASSED", "FAILED", "FLAKY", "BLOCKED", "NOT RUN", "WAIVED"}
 TEST_MATRIX_CELL_RE = re.compile(r"TM-[1-9][0-9]*(?:[A-Z][A-Z0-9]*)?")
 TEST_MATRIX_REQUIRED_WORDS = {"yes", "no"}
 VERSION_RE = re.compile(r"(?:codex-cli\s+)?(\d+)\.(\d+)\.(\d+)(?:[-+][^\s]+)?")
-FEATURE_RE = re.compile(r"^(multi_agent(?:_v2)?|hooks)\s+\S+\s+(true|false)\s*$", re.MULTILINE)
+FEATURE_RE = re.compile(r"^([a-z][a-z0-9_]*)\s+\S+\s+(true|false)\s*$", re.MULTILINE)
 
 
 def documentation_family(profile: Any) -> str | None:
@@ -462,6 +537,381 @@ def select_work_mode(
     if rank[requested] < rank[automatic]:
         raise ValueError(f"work mode {requested} cannot downgrade required {automatic} mode")
     return requested, ["explicit-work-mode", *reasons]
+
+
+def route_intent(args: argparse.Namespace) -> tuple[str, str]:
+    """Resolve the primary work intent while retaining the 1.x task vocabulary."""
+    if args.intent is not None:
+        if args.intent in LEGACY_INTENT_ALIASES:
+            return LEGACY_INTENT_ALIASES[args.intent], f"legacy-intent:{args.intent}"
+        return args.intent, "explicit-intent"
+    task_type = args.task_type
+    if task_type not in LEGACY_TASK_INTENTS:
+        raise ValueError("route-task requires --intent or the compatible --task-type")
+    return LEGACY_TASK_INTENTS[task_type], f"legacy-task-type:{task_type}"
+
+
+def select_execution_mode(args: argparse.Namespace) -> tuple[str, list[str]]:
+    """Select 2.0 continuity mode independently from engineering risk."""
+    signals = {
+        "multi-session": bool(args.multi_session),
+        "multi-slice": bool(args.multi_slice),
+        "cross-module": bool(args.cross_module),
+        "coordination": bool(args.coordination),
+        "material-tradeoff": bool(args.material_tradeoff),
+        "durable-plan": bool(args.durable_plan),
+    }
+    reasons = [name for name, active in signals.items() if active]
+    if args.task_type in {"large-feature", "large-refactor", "migration"}:
+        reasons.append(args.task_type)
+    automatic = "managed" if reasons else "direct"
+    if args.work_mode == "auto":
+        return automatic, reasons or ["bounded-work"]
+    return args.work_mode, ["explicit-work-mode", *(reasons or ["bounded-work"])]
+
+
+def route_knowledge(args: argparse.Namespace, work_mode: str) -> dict[str, Any]:
+    """Describe repository knowledge consequences without creating workflow state."""
+    requested = list(dict.fromkeys(args.knowledge_impact))
+    if "none" in requested and len(requested) > 1:
+        raise ValueError("knowledge impact 'none' cannot be combined with another impact")
+
+    superseded: list[str] = []
+    if work_mode == "managed":
+        impacts = ["workstream"]
+        for impact in requested:
+            if impact == "none":
+                continue
+            if impact == "change-record":
+                superseded.append("change-record:managed-workstream")
+                continue
+            if impact not in impacts:
+                impacts.append(impact)
+    else:
+        impacts = requested or ["none"]
+
+    return {
+        "disposition": impacts,
+        "default_change_record_path": "docs/change-notes/<slug>.md" if "change-record" in impacts else None,
+        "superseded": superseded,
+        "rules": [
+            "update repository-native current truth before adding a separate record",
+            "use a change record only for durable behavior or rationale not already clear from code and maintained docs",
+            "do not copy commands, logs, hashes, agent activity, or file-by-file history",
+        ],
+        "recheck_on": ["scope-or-design-change", "new-durable-impact", "before-close"],
+        "artifact_created": False,
+    }
+
+
+def route_requirement_understanding(
+    args: argparse.Namespace,
+    *,
+    intent: str,
+    work_mode: str,
+) -> dict[str, Any]:
+    """Classify semantic depth and the Default-mode confirmation boundary."""
+    if args.understanding_confirmed and args.waive_understanding_confirmation:
+        raise ValueError(
+            "--understanding-confirmed and --waive-understanding-confirmation are mutually exclusive"
+        )
+
+    explicit = args.requirement_class
+    if explicit is not None:
+        requirement_class = explicit
+        source = "explicit"
+    elif intent in {"research", "review", "delivery"}:
+        requirement_class = "read-only"
+        source = f"intent:{intent}"
+    elif args.task_type == "micro":
+        requirement_class = "mechanical"
+        source = "legacy-task-type:micro"
+    elif intent == "diagnose" or args.task_type == "bugfix":
+        requirement_class = "defect-correction"
+        source = "diagnosis-or-bugfix"
+    elif (
+        intent == "design"
+        or args.task_type in {"large-feature", "migration"}
+        or args.ambiguity
+        or args.material_tradeoff
+        or args.ui_impact == "material"
+    ):
+        requirement_class = "semantic-change"
+        source = "semantic-signal"
+    else:
+        requirement_class = "structural-adjustment"
+        source = "bounded-change-default"
+
+    if requirement_class == "defect-correction" and args.ambiguity:
+        requirement_class = "semantic-change"
+        source = "ambiguous-defect-upgrade"
+
+    confirmation_required = requirement_class == "semantic-change"
+    if args.understanding_confirmed:
+        confirmation = "confirmed"
+    elif args.waive_understanding_confirmation:
+        confirmation = "waived"
+    elif confirmation_required:
+        confirmation = "required"
+    else:
+        confirmation = "not-required"
+    design_allowed = not confirmation_required or confirmation in {"confirmed", "waived"}
+
+    return {
+        "class": requirement_class,
+        "class_source": source,
+        "detailed_output": requirement_class in {"semantic-change", "structural-adjustment"},
+        "confirmation_required": confirmation_required,
+        "confirmation": confirmation,
+        "design_allowed": design_allowed,
+        "next_action": (
+            "publish-detailed-understanding-and-stop"
+            if confirmation_required and not design_allowed
+            else "continue"
+        ),
+        "stop_before": "technical-design" if confirmation_required and not design_allowed else None,
+        "durable_requirement_source": work_mode == "managed" and requirement_class == "semantic-change",
+        "rules": [
+            "remain in Default mode",
+            "resolve repository facts before asking the user",
+            "a correction requires a complete revised understanding",
+            "confirmation does not authorize dependencies, delivery, or destructive/external action",
+        ],
+    }
+
+
+def route_capability_activation(
+    args: argparse.Namespace,
+    *,
+    intent: str,
+    risks: set[str],
+    needs: set[str],
+) -> dict[str, Any]:
+    """Return a non-persisted advanced-capability posture for the current route."""
+    method_signals = set(args.method_signal)
+    unknown_method_signals = sorted(method_signals - METHOD_ACTIVATION_SIGNALS)
+    if unknown_method_signals:
+        raise ValueError(
+            f"unknown method activation signal(s): {', '.join(unknown_method_signals)}"
+        )
+    method_risks = sorted(risks & METHOD_ACTIVATION_RISKS)
+    method_reasons = [*(f"risk:{value}" for value in method_risks), *(f"signal:{value}" for value in sorted(method_signals))]
+    review_reasons: list[str] = []
+    if args.material_exposure:
+        review_reasons.append("material-exposure")
+    if "review" in needs:
+        review_reasons.append("explicit-review-need")
+    repository_facts = set(args.repo_fact)
+    repository_facts.update(f"risk={risk}" for risk in risks)
+    invalid_facts = sorted(value for value in repository_facts if "=" not in value)
+    if invalid_facts:
+        raise ValueError(f"repository facts must use key=value: {', '.join(invalid_facts)}")
+    effective_skills = set(args.effective_skill)
+    registry = engineering_context.load_capability_registry(CAPABILITY_REGISTRY)
+    specialist_matches: list[dict[str, Any]] = []
+    for capability in registry["capabilities"]:
+        selectors = capability.get("selectors", [])
+        if not selectors or not set(selectors).issubset(repository_facts):
+            continue
+        candidates = [
+            name
+            for name in capability.get("route_names", [])
+            if any(skill == name or skill.rsplit(":", 1)[-1] == name for skill in effective_skills)
+        ]
+        specialist_matches.append(
+            {
+                "capability": capability["id"],
+                "selectors": selectors,
+                "route": candidates[0] if candidates else None,
+                "status": "effective-skill" if candidates else "qualified-fallback",
+                "fallback": None if candidates else capability["manual_fallback"],
+            }
+        )
+    method_selection: dict[str, Any] | None = None
+    if method_reasons:
+        method_phase = {
+            "research": "requirements",
+            "diagnose": "diagnosis",
+            "design": "design",
+            "change": "implementation",
+            "review": "review",
+            "delivery": "delivery",
+        }[intent]
+        method_task_type = args.task_type or INTENT_METHOD_TASK_TYPES[intent]
+        method_depth = args.method_depth or (
+            "deep"
+            if risks & {"abi", "authorization", "concurrency", "ffi", "migration", "privacy", "security", "unsafe"}
+            else "starter"
+        )
+        method_payload = methodology_system.read_registry(methodology_registry_path())
+        selected = methodology_system.select_methods(
+            method_payload,
+            repository_root=plugin_root(),
+            phase=method_phase,
+            task_type=method_task_type,
+            risks=sorted(risks),
+            signals=sorted(METHOD_SIGNAL_TRANSLATIONS[value] for value in method_signals),
+            available=args.method_prerequisite,
+            depth=method_depth,
+            max_methods=3,
+        )
+        method_by_id = {method["id"]: method for method in method_payload["methods"]}
+        method_order = {method["id"]: index for index, method in enumerate(method_payload["methods"])}
+        translated_signals = {METHOD_SIGNAL_TRANSLATIONS[value] for value in method_signals}
+        blocked_by_id = {item["method_id"]: item for item in selected["blocked_methods"]}
+        candidate_ids = {
+            *(method["id"] for method in selected["selected_methods"]),
+            *(item["method_id"] for item in selected["blocked_methods"]),
+        }
+
+        def activation_relevance(method_id: str) -> tuple[int, int]:
+            method = method_by_id[method_id]
+            direct_risks = len(set(method["risks"]) & set(method_risks))
+            direct_signals = len(set(method["signals"]) & translated_signals)
+            return (direct_risks * 10 + direct_signals * 5, -method_order[method_id])
+
+        directly_relevant = [
+            method_id for method_id in candidate_ids if activation_relevance(method_id)[0] > 0
+        ]
+        bounded_ids = sorted(directly_relevant, key=activation_relevance, reverse=True)[:3]
+        if not bounded_ids:
+            bounded_ids = [
+                *(method["id"] for method in selected["selected_methods"]),
+                *(item["method_id"] for item in selected["blocked_methods"]),
+            ][:3]
+        bounded_selected = [
+            method_id
+            for method_id in bounded_ids
+            if method_id not in blocked_by_id
+        ]
+        bounded_blocked = [blocked_by_id[method_id] for method_id in bounded_ids if method_id in blocked_by_id]
+        method_selection = {
+            "status": "selected-with-unresolved-prerequisites" if bounded_blocked else "selected",
+            "phase": method_phase,
+            "depth": method_depth,
+            "selected": bounded_selected,
+            "guidance": [
+                {
+                    "method": method_id,
+                    "steps": method_by_id[method_id]["steps"],
+                    "evidence": method_by_id[method_id]["evidence"],
+                    "limitations": method_by_id[method_id]["limitations"],
+                }
+                for method_id in bounded_selected
+            ],
+            "blocked": [
+                {
+                    "method": item["method_id"],
+                    "missing_prerequisites": item["missing_prerequisites"],
+                    "fallback": item["fallback"],
+                }
+                for item in bounded_blocked
+            ],
+            "matched_risk_models": [
+                item["id"] for item in selected["reasoning_model"]["matched_risk_models"]
+            ],
+            "persisted": False,
+        }
+    return {
+        "artifact": None,
+        "passes": ["after-repository-discovery", "after-material-requirement-confirmation"],
+        "specialist": {
+            "source": "effective-current-turn-skill-surface",
+            "decision": "smallest-applicable-owner-with-positive-value",
+            "fallback": "repository-native-or-qualified-manual-control",
+            "repository_facts": sorted(repository_facts),
+            "matches": specialist_matches,
+            "persisted": False,
+        },
+        "method": {
+            "active_match_required": bool(method_reasons),
+            "reasons": method_reasons,
+            "action": (
+                "use-specialist-method-or-bounded-select"
+                if method_reasons
+                else "ordinary-specialist-or-repository-practice"
+            ),
+            "selection": method_selection,
+            "maximum_loaded_methods": 3,
+            "persisted": False,
+        },
+        "independent_review": {
+            "required": bool(review_reasons),
+            "reasons": sorted(set(review_reasons)),
+            "blue_red_are_lenses": True,
+        },
+        "child_route": {
+            "when": "only after delegation has positive isolation or parallel value",
+            "resolver": "route-agent",
+            "persisted": False,
+        },
+        "recheck_on": [
+            "scope-or-design-change",
+            "new-boundary-or-dependency",
+            "first-surprising-failure",
+            "repeated-failed-hypothesis",
+            "final-diff-exposure",
+            "delivery-or-irreversibility",
+        ],
+    }
+
+
+def risk_overlays(
+    task_type: str,
+    risks: set[str],
+    needs: set[str],
+    ui_impact: str,
+    requested: Iterable[str],
+) -> list[dict[str, Any]]:
+    """Return orthogonal risk controls without changing continuity mode."""
+    reasons: dict[str, set[str]] = {value: {"explicit"} for value in requested}
+
+    def add(name: str, values: Iterable[str]) -> None:
+        selected = {value for value in values if value}
+        if selected:
+            reasons.setdefault(name, set()).update(selected)
+
+    security = risks & {
+        "authentication",
+        "authorization",
+        "privacy",
+        "regulated",
+        "secrets",
+        "security",
+        "untrusted-input",
+    }
+    migration = risks & {
+        "compatibility",
+        "data-deletion",
+        "migration",
+        "persisted-data",
+        "rollback",
+        "schema",
+        "version-compatibility",
+    }
+    external = risks & {
+        "distributed-state",
+        "external-write",
+        "idempotency",
+        "protocol",
+    }
+    release = risks & {"deployment", "production-config", "release", "signing"}
+    irreversible = risks & {"data-deletion"}
+    add("security", security | ({task_type} if task_type == "security" else set()))
+    add("migration", migration | ({task_type} if task_type == "migration" else set()))
+    add("external-system", external)
+    add(
+        "release",
+        release
+        | ({task_type} if task_type in {"release-hotfix", "rollback"} else set())
+        | ({"delivery"} if "delivery" in needs else set()),
+    )
+    add("irreversible", irreversible)
+    add("ui-product", {ui_impact} if ui_impact == "material" else set())
+    return [
+        {"overlay": name, "reasons": sorted(values)}
+        for name, values in sorted(reasons.items())
+    ]
 
 
 def utc_now() -> str:
@@ -1462,9 +1912,14 @@ def codex_preflight(args: argparse.Namespace) -> int:
         capability_issues.append(str(exc))
 
     features = dict(FEATURE_RE.findall(features_text or ""))
-    for feature in ("multi_agent", "multi_agent_v2", "hooks"):
-        if features.get(feature) != "true":
-            capability_issues.append(f"Codex feature {feature} is not enabled")
+    observed_capabilities = set(args.effective_capability)
+    if args.tool_surface_confirmed:
+        # Compatibility alias retained for callers that only confirm delegation.
+        observed_capabilities.add("delegation")
+    if features.get("multi_agent") != "true":
+        capability_issues.append("Codex effective feature multi_agent is not enabled")
+    if features.get("hooks") != "true":
+        warnings.append("Codex effective feature hooks is unavailable; Dev Flow continues without hook automation")
 
     try:
         agent_dispatch.load_registry()
@@ -1480,19 +1935,17 @@ def codex_preflight(args: argparse.Namespace) -> int:
             feature_config = effective.get("features", {})
             if not isinstance(feature_config, dict):
                 raise ValueError("config [features] must be a table")
-            if feature_config.get("multi_agent_v2") is not True:
-                capability_issues.append("config must set [features].multi_agent_v2 = true for delegation")
-            if feature_config.get("multi_agent") is not True:
-                capability_issues.append("config must set [features].multi_agent = true for delegation")
-            if feature_config.get("hooks") is not True:
-                capability_issues.append("config must set [features].hooks = true for governed hooks")
+            if feature_config.get("multi_agent") is False:
+                warnings.append("config explicitly disables multi_agent even though the effective feature list is authoritative")
+            if feature_config.get("hooks") is False:
+                warnings.append("config explicitly disables hooks; hook automation remains optional")
             agent_config = effective.get("agents", {})
             if not isinstance(agent_config, dict):
                 raise ValueError("config [agents] must be a table")
             limit = agent_config.get("max_concurrent_threads_per_session")
-            if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
-                capability_issues.append("config must set a positive [agents].max_concurrent_threads_per_session for delegation")
-            else:
+            if limit is not None and (not isinstance(limit, int) or isinstance(limit, bool) or limit < 1):
+                capability_issues.append("configured [agents].max_concurrent_threads_per_session must be a positive integer")
+            elif limit is not None:
                 configured_ceiling = limit
                 if limit > GOVERNED_MAX_ACTIVE_CHILDREN:
                     warnings.append(
@@ -1501,11 +1954,11 @@ def codex_preflight(args: argparse.Namespace) -> int:
                         f"{GOVERNED_MAX_ACTIVE_CHILDREN} active children"
                     )
             if isinstance(feature_config.get("multi_agent_v2"), dict):
-                capability_issues.append("obsolete [features.multi_agent_v2] table is not supported")
+                warnings.append("obsolete [features.multi_agent_v2] is ignored; the current runtime uses multi_agent")
         except (OSError, ValueError, tomllib.TOMLDecodeError) as exc:
             capability_issues.append(f"cannot read Codex config {config_path}: {exc}")
 
-    if not args.tool_surface_confirmed:
+    if "delegation" not in observed_capabilities:
         capability_issues.append("The active root must confirm the collaboration tools before delegation")
 
     errors = capability_issues if args.require_delegation else []
@@ -1560,13 +2013,39 @@ def codex_preflight(args: argparse.Namespace) -> int:
             "status": status,
             "codex_binary": binary,
             "actual_version": ".".join(map(str, actual)) if actual else None,
-            "features": {name: features.get(name) for name in ("multi_agent", "multi_agent_v2", "hooks")},
+            "features": {
+                name: features.get(name)
+                for name in (
+                    "multi_agent",
+                    "multi_agent_v2",
+                    "hooks",
+                    "goals",
+                    "browser_use",
+                    "in_app_browser",
+                    "computer_use",
+                    "apps",
+                )
+            },
             "config": str(config_path),
             "capabilities": {
                 "core_workflow": True,
                 "delegation": delegation_available,
                 "agent_dispatch": dispatch_registry_ready,
                 "governed_hooks": features.get("hooks") == "true",
+                "goal_bridge": True if "goal-bridge" in observed_capabilities else None,
+                "browser_or_device": True if "browser-or-device" in observed_capabilities else None,
+                "external_context": True if "external-context" in observed_capabilities else None,
+            },
+            "capability_observation": {
+                "authority": "effective current-turn callable surface",
+                "observed": sorted(observed_capabilities),
+                "feature_flags_are_capability_evidence": False,
+                "unobserved_optional_capability": None,
+            },
+            "interaction_contract": {
+                "required_mode": "Default",
+                "plan_mode_allowed": False,
+                "requirement_confirmation_uses": "normal turn boundary and user reply",
             },
             "delegation_capacity": {
                 "configured_ceiling": configured_ceiling,
@@ -1599,6 +2078,30 @@ def codex_preflight(args: argparse.Namespace) -> int:
         },
         0 if not errors else 2,
     )
+
+
+def flow_metrics_command(args: argparse.Namespace) -> int:
+    """Run compatibility-named Flow Activation Coverage without effect scoring."""
+    repository = Path(__file__).resolve().parents[3]
+    catalog = args.catalog or repository / "evals" / (
+        "flow-activation-semantic-cases.json" if args.lane == "semantic" else "flow-activation-cases.json"
+    )
+    try:
+        if args.lane == "semantic":
+            if args.observations is None:
+                raise flow_metrics.ActivationContractError(
+                    "semantic lane requires --observations from actual first attempts"
+                )
+            result = flow_metrics.run_semantic_catalog(catalog.resolve(), args.observations.resolve())
+        else:
+            if args.observations is not None:
+                raise flow_metrics.ActivationContractError(
+                    "--observations is only valid for the semantic lane"
+                )
+            result = flow_metrics.run_catalog(catalog.resolve(), Path(__file__).resolve())
+    except (OSError, json.JSONDecodeError, flow_metrics.ActivationContractError) as exc:
+        return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+    return emit(result, 0 if result["status"] == "matched" else 1)
 
 
 def git_state(root: Path) -> str:
@@ -2245,6 +2748,80 @@ def init_packet(args: argparse.Namespace) -> int:
                 *method_artifacts,
             ],
             "next_state": "awaiting-approval",
+        }
+    )
+
+
+def init_workstream(args: argparse.Namespace) -> int:
+    """Create concise repository-tracked continuity documents for managed work."""
+    root = args.root.resolve()
+    if not root.is_dir():
+        return emit({"status": "error", "errors": [f"repository root does not exist: {root}"]}, 2)
+    if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{2,80}", args.slug):
+        return emit({"status": "error", "errors": ["workstream slug must use 3-81 lowercase safe characters"]}, 2)
+    relative = Path(args.path) if args.path else Path("docs") / "workstreams" / args.slug
+    try:
+        target = contained_path(
+            root,
+            relative,
+            label="workstream path",
+            require_relative=True,
+            reject_symlinks=True,
+        )
+    except PathContractError as exc:
+        return emit({"status": "error", "errors": [str(exc)]}, 2)
+
+    filenames = ["implementation.md", "progress.md"]
+    if args.with_requirements:
+        filenames.insert(0, "requirements.md")
+    if args.with_design:
+        filenames.insert(1 if args.with_requirements else 0, "design.md")
+    if args.with_decisions:
+        filenames.append("decisions.md")
+    if target.exists():
+        if not args.reuse or not target.is_dir() or target.is_symlink():
+            return emit({"status": "error", "errors": [f"workstream path already exists: {target}"]}, 2)
+        invalid = [name for name in filenames if not (target / name).is_file() or (target / name).is_symlink()]
+        if invalid:
+            return emit(
+                {"status": "error", "errors": [f"existing workstream is missing regular files: {', '.join(invalid)}"]},
+                2,
+            )
+        return emit(
+            {
+                "status": "reused",
+                "mode": "managed",
+                "workstream": str(target),
+                "artifacts": filenames,
+            }
+        )
+
+    templates = skill_root() / "templates" / "workstream"
+    missing = [name for name in filenames if not (templates / name).is_file()]
+    if missing:
+        return emit({"status": "error", "errors": [f"workstream templates are missing: {', '.join(missing)}"]}, 2)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary = Path(tempfile.mkdtemp(prefix=f".{args.slug}-", dir=target.parent))
+    try:
+        values = {
+            "workstream": args.slug,
+            "objective": args.objective.strip(),
+            "updated": utc_now(),
+        }
+        for name in filenames:
+            content = replace_tokens((templates / name).read_text(encoding="utf-8"), values)
+            atomic_write_text(temporary / name, content)
+        temporary.replace(target)
+    except (OSError, PathContractError) as exc:
+        shutil.rmtree(temporary, ignore_errors=True)
+        return emit({"status": "error", "errors": [f"cannot create workstream: {exc}"]}, 2)
+    return emit(
+        {
+            "status": "created",
+            "mode": "managed",
+            "workstream": str(target),
+            "artifacts": filenames,
+            "packet": None,
         }
     )
 
@@ -5509,20 +6086,25 @@ def select_methods_command(args: argparse.Namespace) -> int:
     registry_path = methodology_registry_path(args.registry)
     repository_root = args.root.resolve() if args.root else plugin_root()
     try:
+        intent, intent_source = route_intent(args)
+        method_task_type = args.task_type or INTENT_METHOD_TASK_TYPES[intent]
         payload = methodology_system.read_registry(registry_path)
         result = methodology_system.select_methods(
             payload,
             repository_root=repository_root,
             phase=args.phase,
-            task_type=args.task_type,
+            task_type=method_task_type,
             risks=args.risk,
             signals=args.signal,
             available=args.available,
             depth=args.depth,
             max_methods=args.max_methods,
         )
-    except (OSError, json.JSONDecodeError, methodology_system.MethodologyContractError) as exc:
+    except (OSError, ValueError, json.JSONDecodeError, methodology_system.MethodologyContractError) as exc:
         return emit({"status": "invalid", "registry": str(registry_path), "errors": [str(exc)]}, 2)
+    result["request"]["intent"] = intent
+    result["request"]["intent_source"] = intent_source
+    result["request"]["method_task_type"] = method_task_type
     result["registry"] = str(registry_path)
     return emit(result)
 
@@ -5611,10 +6193,30 @@ def route_task(args: argparse.Namespace) -> int:
     unknowns = set(args.unknown)
     # An unresolved delivery dimension is not delivery intent or authority.
     needs.update(value for value in unknowns if value in {"architecture", "dependency", "diagnosis", "review"})
-    mutation_intent = args.mutation or ("none" if args.task_type == "read-only-audit" else "persistent")
-    if args.task_type == "read-only-audit" and mutation_intent != "none":
-        return emit({"status": "invalid", "errors": ["read-only-audit cannot declare persistent mutation"]}, 2)
-    decision_work = args.task_type != "read-only-audit"
+    try:
+        intent, intent_source = route_intent(args)
+    except ValueError as exc:
+        return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+    if intent == "delivery":
+        needs.add("delivery")
+    if args.mutation is not None:
+        mutation_intent = args.mutation
+    elif args.task_type is not None:
+        mutation_intent = "none" if args.task_type == "read-only-audit" else "persistent"
+    else:
+        mutation_intent = "persistent" if intent == "change" else "none"
+    if intent in {"research", "review"} and mutation_intent != "none":
+        return emit(
+            {
+                "status": "invalid",
+                "errors": [
+                    f"{intent} intent cannot declare persistent mutation; "
+                    "use change with --need review for review-and-fix work"
+                ],
+            },
+            2,
+        )
+    decision_work = intent in {"diagnose", "design", "change"}
     mutating = decision_work and mutation_intent == "persistent"
     conservative_risks = list(args.risk)
     conservative_risks.extend(
@@ -5628,23 +6230,21 @@ def route_task(args: argparse.Namespace) -> int:
     )
     try:
         risks = engineering_context.canonical_risks(conservative_risks)
-        work_mode, mode_reasons = select_work_mode(
-            args.task_type,
-            risks,
-            args.work_mode,
-            persistent_mutation=mutating,
+        work_mode, mode_reasons = select_execution_mode(args)
+        knowledge = route_knowledge(args, work_mode)
+        understanding = route_requirement_understanding(
+            args,
+            intent=intent,
+            work_mode=work_mode,
+        )
+        capability_activation = route_capability_activation(
+            args,
+            intent=intent,
+            risks=risks,
+            needs=needs,
         )
     except ValueError as exc:
         return emit({"status": "invalid", "errors": [str(exc)]}, 2)
-    if (args.ui_impact == "material" or "ui" in unknowns) and work_mode != "governed":
-        if args.work_mode != "auto":
-            message = (
-                "material UI impact requires governed work mode"
-                if args.ui_impact == "material"
-                else "unresolved UI impact requires governed work mode"
-            )
-            return emit({"status": "invalid", "errors": [message]}, 2)
-        work_mode, mode_reasons = "governed", ["material-ui-impact" if args.ui_impact == "material" else "unresolved-ui-impact"]
     if args.profile_operation:
         add("manage-engineering-profiles", "explicit profile or instruction lifecycle operation")
     if args.ui_impact in {"preserve", "material"} or "ui" in unknowns:
@@ -5655,77 +6255,100 @@ def route_task(args: argparse.Namespace) -> int:
             else "existing UI intent and protected behavior",
         )
     if (
-        mutating
-        or
-        args.ambiguity
-        or args.task_type in {"large-feature", "large-refactor", "migration", "dependency-change", "security"}
+        understanding["class"] == "semantic-change"
+        or intent == "design"
+        or work_mode == "managed"
+        or args.ambiguity
         or args.ui_impact == "material"
         or unknowns & {"compatibility", "data", "security", "ui"}
-        or decision_work and risks & REQUIREMENTS_ROUTING_RISKS
     ):
-        add("requirements-design", "durable requirement understanding, scope, and compatibility baseline")
-    if args.task_type == "bugfix" or "diagnosis" in needs or risks & DIAGNOSIS_ROUTING_RISKS:
+        add("requirements-design", "material semantics or managed-work design continuity")
+    if intent == "diagnose" or args.task_type == "bugfix" or "diagnosis" in needs or risks & DIAGNOSIS_ROUTING_RISKS:
         add("systematic-debugging", "failure reproduction and causal diagnosis")
     if (
         "architecture" in needs
-        or args.task_type in {"large-feature", "large-refactor", "migration", "performance", "security"}
-        or decision_work and risks & ARCHITECTURE_ROUTING_RISKS
+        or args.task_type in {"large-feature", "large-refactor", "migration", "performance"}
+        or intent in {"diagnose", "design", "change", "review"}
+        and risks & ARCHITECTURE_ROUTING_RISKS
     ):
         add("architecture-decisions", "material boundary, ownership, state, compatibility, or resource decision")
     if "dependency" in needs or args.task_type == "dependency-change" or decision_work and "dependency" in risks:
         add("dependency-decisions", "dependency, tool, service, plugin, or feature decision")
     if args.suite_maintenance:
         add("dev-flow-maintainer", "explicit Dev Flow suite maintenance")
-    if mutating or "verification" in needs:
+    if mutating or intent == "delivery" or "verification" in needs:
         add("verification", "risk-based fresh evidence")
-    review_risks = engineering_context.GOVERNED_RISKS
-    if (
-        "review" in needs
-        or risks & review_risks
-        or args.ui_impact == "material"
-        or args.suite_maintenance
-        or args.task_type in {"security", "migration", "release-hotfix", "dependency-change", "rollback"}
-    ):
-        add("change-review", "independent specification and adversarial review")
-    if "delivery" in needs:
+    if intent == "review":
+        add("verification", "review intent needs current native evidence")
+    overlays = risk_overlays(args.task_type or "", risks, needs, args.ui_impact, args.overlay)
+    if intent == "review" or "review" in needs or args.material_exposure:
+        add("change-review", "material exposure, consequential trade-off, evidence conflict, or policy requires independent review")
+    if intent == "delivery" or "delivery" in needs:
         add("delivery-readiness", "acceptance, rollback, and delivery authority accounting")
-    method_risks, risk_translations, unmapped_method_risks = methodology_system.normalize_risks(
-        methodology_system.read_registry(methodology_registry_path())["vocabulary"],
-        sorted(risks),
-    )
-    return emit(
-        {
+    payload = {
             "status": "routed",
             "kernel": "dev-flow",
-            "quality_kernel": {
-                "always_loaded": True,
-                "requirements": "resolve repository facts, persist understood semantics, and stop affected slices on open material ambiguity",
-                "continuity": "rehydrate at lifecycle and premise-change triggers from digest-bound requirement, design, context, and checkpoint state",
-                "testing": "account black-box and white-box views separately; challenge oracle failure sensitivity",
-                "challenge": "root performs basic specification and adversarial checks at every phase; independent deep review remains risk-routed",
-                "knowledge": "record a project-knowledge impact/disposition and promote only implemented, verified, reusable truth",
-                "specialists": "derive neutral outcomes first, then load the minimum repository-valid technical Skills; re-resolve on path, phase, rule, or risk drift",
-            },
+            "intent": intent,
+            "intent_source": intent_source,
+            "legacy_task_type": args.task_type,
+            "mutation_intent": mutation_intent,
             "work_mode": work_mode,
             "work_mode_reasons": mode_reasons,
+            "risk_overlays": overlays,
+            "requirement_understanding": understanding,
+            "capability_activation": capability_activation,
             "routes": [{"skill": skill, "reasons": reasons[skill]} for skill in routes],
             "unresolved_dimensions": sorted(unknowns),
-            "method_selection": {
-                "required": work_mode == "governed",
-                "input_risks": sorted(risks),
-                "canonical_risks": method_risks,
-                "translations": risk_translations,
-                "unmapped_risks": unmapped_method_risks,
-                "lifecycle_gates": ["design", "verification", "review"]
-                if work_mode == "governed"
+            "continuity": {
+                "documents_required": work_mode == "managed",
+                "default_path": "docs/workstreams/<slug>" if work_mode == "managed" else None,
+                "artifacts": ["implementation.md", "progress.md"] if work_mode == "managed" else [],
+                "conditional_artifacts": ["requirements.md", "design.md", "decisions.md"]
+                if work_mode == "managed"
                 else [],
             },
+            "knowledge": knowledge,
+            "quality_calibration": {
+                "artifact": None,
+                "scan": [
+                    "business-semantics",
+                    "trust-and-data",
+                    "compatibility-and-public-contracts",
+                    "dependencies-and-external-systems",
+                    "operations-delivery-and-irreversibility",
+                    "ui-and-accessibility",
+                ],
+                "recheck_on": [
+                    "scope-or-design-change",
+                    "new-boundary-or-dependency",
+                    "first-surprising-failure",
+                    "repeated-failed-hypothesis",
+                    "delivery-or-irreversibility",
+                ],
+            },
+            "delegation": "when a child is actually dispatched, use route-agent and do not persist the route",
             "excluded": {
                 "manage-engineering-profiles": "ordinary profile consumption does not activate management" if not args.profile_operation else None,
                 "dev-flow-maintainer": "explicit-only" if not args.suite_maintenance else None,
+                "legacy-packets": "readable through explicit compatibility commands; never created or activated by 2.0 routing",
             },
         }
-    )
+    if args.compact:
+        payload = {
+            "status": payload["status"],
+            "intent": payload["intent"],
+            "work_mode": payload["work_mode"],
+            "requirement_understanding": {
+                key: payload["requirement_understanding"][key]
+                for key in ("class", "confirmation_required", "design_allowed", "next_action")
+            },
+            "routes": [item["skill"] for item in payload["routes"]],
+            "risk_overlays": [item["overlay"] for item in payload["risk_overlays"]],
+            "method": capability_activation["method"],
+            "independent_review": capability_activation["independent_review"],
+            "knowledge": payload["knowledge"]["disposition"],
+        }
+    return emit(payload)
 
 
 def route_agent_command(args: argparse.Namespace) -> int:
@@ -6159,6 +6782,13 @@ def build_parser() -> argparse.ArgumentParser:
     preflight.add_argument("--config", type=Path)
     preflight.add_argument("--skip-config", action="store_true")
     preflight.add_argument("--tool-surface-confirmed", action="store_true")
+    preflight.add_argument(
+        "--effective-capability",
+        action="append",
+        choices=("delegation", "goal-bridge", "browser-or-device", "external-context"),
+        default=[],
+        help="Repeat for a capability actually callable on the current turn; feature flags alone are not evidence",
+    )
     preflight.add_argument("--require-delegation", action="store_true")
     preflight.set_defaults(func=codex_preflight)
 
@@ -6177,6 +6807,20 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--reuse", action="store_true")
     init.add_argument("--work-mode", choices=("auto", *sorted(WORK_MODES)), default="auto")
     init.set_defaults(func=init_packet)
+
+    workstream = sub.add_parser(
+        "init-workstream",
+        help="Create concise repository-tracked continuity documents for managed work",
+    )
+    workstream.add_argument("--root", type=Path, required=True)
+    workstream.add_argument("--slug", required=True)
+    workstream.add_argument("--objective", required=True)
+    workstream.add_argument("--path", help="repository-relative workstream directory")
+    workstream.add_argument("--with-requirements", action="store_true")
+    workstream.add_argument("--with-design", action="store_true")
+    workstream.add_argument("--with-decisions", action="store_true")
+    workstream.add_argument("--reuse", action="store_true")
+    workstream.set_defaults(func=init_workstream)
 
     validate = sub.add_parser("validate-packet")
     validate.add_argument("packet", type=Path)
@@ -6341,7 +6985,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Select a bounded method stack from lifecycle, risk, and observed failure signals",
     )
     select_methods.add_argument("--phase", required=True)
-    select_methods.add_argument("--task-type", choices=sorted(TASK_TYPES), required=True)
+    select_method_kind = select_methods.add_mutually_exclusive_group(required=True)
+    select_method_kind.add_argument("--intent", choices=sorted(ACCEPTED_TASK_INTENTS))
+    select_method_kind.add_argument(
+        "--task-type",
+        choices=sorted(TASK_TYPES),
+        help="Compatible methodology specialization; prefer --intent for new 2.0 callers",
+    )
     select_methods.add_argument("--risk", action="append", default=[])
     select_methods.add_argument("--signal", action="append", default=[])
     select_methods.add_argument("--available", action="append", default=[])
@@ -6369,14 +7019,62 @@ def build_parser() -> argparse.ArgumentParser:
     record_methods.set_defaults(func=record_methods_command)
 
     route = sub.add_parser("route-task", help="Select the minimal built-in Skill composition for a classified task")
-    route.add_argument("--task-type", choices=sorted(TASK_TYPES), required=True)
+    route_kind = route.add_mutually_exclusive_group(required=True)
+    route_kind.add_argument("--intent", choices=sorted(ACCEPTED_TASK_INTENTS))
+    route_kind.add_argument(
+        "--task-type",
+        choices=sorted(TASK_TYPES),
+        help="Compatible 1.x classification; prefer --intent for new 2.0 callers",
+    )
     route.add_argument("--risk", action="append", default=[])
     route.add_argument("--need", choices=("architecture", "dependency", "diagnosis", "verification", "review", "delivery"), action="append", default=[])
     route.add_argument("--ui-impact", choices=sorted(UI_IMPACTS), default="none")
     route.add_argument("--ambiguity", action="store_true")
+    route.add_argument("--material-exposure", action="store_true")
+    route.add_argument(
+        "--repo-fact",
+        action="append",
+        default=[],
+        help="Observed repository fact as key=value; repeat for language/framework facts",
+    )
+    route.add_argument(
+        "--effective-skill",
+        action="append",
+        default=[],
+        help="Skill exposed on the current turn; plugin-prefixed names are accepted",
+    )
+    route.add_argument(
+        "--method-signal",
+        action="append",
+        default=[],
+        help="Observed high-leverage method signal; repeat for multiple signals",
+    )
+    route.add_argument(
+        "--method-prerequisite",
+        action="append",
+        default=[],
+        help="Observed methodology prerequisite; repeat and never invent unavailable evidence",
+    )
+    route.add_argument(
+        "--method-depth",
+        choices=("starter", "deep"),
+        help="Bounded method depth override; formal methods remain an explicit separate choice",
+    )
+    route.add_argument(
+        "--requirement-class",
+        choices=sorted(REQUIREMENT_CLASSES),
+        help="Semantic understanding depth; infer from evidence when omitted",
+    )
+    route_confirmation = route.add_mutually_exclusive_group()
+    route_confirmation.add_argument("--understanding-confirmed", action="store_true")
+    route_confirmation.add_argument("--waive-understanding-confirmation", action="store_true")
     route.add_argument("--profile-operation", action="store_true")
     route.add_argument("--suite-maintenance", action="store_true")
-    route.add_argument("--mutation", choices=("none", "persistent"))
+    route.add_argument(
+        "--mutation",
+        choices=("none", "persistent"),
+        help="Repository mutation intent; external delivery authority remains separate",
+    )
     route.add_argument(
         "--unknown",
         choices=("architecture", "compatibility", "data", "delivery", "dependency", "diagnosis", "review", "security", "ui"),
@@ -6384,7 +7082,31 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         help="Unresolved risk dimension; route conservatively until repository evidence closes it",
     )
-    route.add_argument("--work-mode", choices=("auto", *sorted(WORK_MODES)), default="auto")
+    route.add_argument("--work-mode", choices=("auto", *sorted(EXECUTION_MODES)), default="auto")
+    route.add_argument("--multi-session", action="store_true")
+    route.add_argument("--multi-slice", action="store_true")
+    route.add_argument("--cross-module", action="store_true")
+    route.add_argument("--coordination", action="store_true")
+    route.add_argument("--material-tradeoff", action="store_true")
+    route.add_argument("--durable-plan", action="store_true")
+    route.add_argument(
+        "--knowledge-impact",
+        choices=sorted(ROUTE_KNOWLEDGE_IMPACTS),
+        action="append",
+        default=[],
+        help="Repository knowledge consequence; re-evaluate after discovery and before close",
+    )
+    route.add_argument(
+        "--overlay",
+        choices=("external-system", "irreversible", "migration", "release", "security", "ui-product"),
+        action="append",
+        default=[],
+    )
+    route.add_argument(
+        "--compact",
+        action="store_true",
+        help="Emit the bounded runtime decisions without the explanatory route envelope",
+    )
     route.set_defaults(func=route_task)
 
     agent_route = sub.add_parser(
@@ -6408,6 +7130,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     agent_route.add_argument("--registry", type=Path)
     agent_route.set_defaults(func=route_agent_command)
+
+    activation = sub.add_parser(
+        "flow-metrics",
+        help="Run Flow Activation Coverage; this compatibility name never measures effect or productivity",
+    )
+    activation.add_argument("--catalog", type=Path)
+    activation.add_argument("--lane", choices=("deterministic", "semantic"), default="deterministic")
+    activation.add_argument("--observations", type=Path)
+    activation.set_defaults(func=flow_metrics_command)
 
     check = sub.add_parser("check")
     check.add_argument("--plugin-root", type=Path)

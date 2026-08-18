@@ -1,72 +1,60 @@
-# Core lifecycle
+# Dev Flow 2.0 lifecycle
 
-This is the canonical human-readable projection of `governance/capability-contracts.json`. Registered owner count is a compatibility fact, not a quality target. Use only applicable focused owners, while the quality kernel below always runs.
+## Three evidence planes
 
-## Always-on quality kernel
+1. Business continuity: repository-tracked implementation/progress and conditional requirements/design/material decisions for managed work.
+2. Engineering evidence: code, Git, tests, builds, CI, runtime observation, and artifact provenance.
+3. Safety boundary: host permissions and explicit authority for destructive, irreversible, or external actions, plus the independent data-security Hook on its supported confidentiality surfaces.
 
-Every persistent mutation, independent of routed specialists, must retain these invariants:
+Keep ownership separate. A document does not prove runtime behavior; a test does not choose product meaning; a local result does not authorize delivery.
 
-1. Repository facts and effective rules are fresh for the affected paths.
-2. Original/sanitized input, AI-understood requirement revisions, user corrections, material ambiguity dispositions, AC/SC/VO, and approved repository-grounded design are durable.
-3. A schema-1.1 recovery checkpoint binds requirement, design, engineering context, repository baseline/reconciliation, current objective, last evidence, next action, stop condition, and drift ruling so the task is recoverable after compaction/interruption.
-4. Black-box and white-box obligations are derived separately; applicable views run, N/A has a concrete reason, and the oracle is challenged for failure sensitivity.
-5. Root performs basic specification and adversarial challenge during requirements, design, implementation, verification, and final diff. Clean-context deep review remains risk-routed.
-6. Project-knowledge impact is explicit; only implemented, verified, reusable truth is promoted.
+## Always-on quality spine
 
-If classification is uncertain, route the plausible owner until evidence resolves it. A missed specialist may reduce depth, but never removes the kernel.
+Every task briefly establishes the observable outcome, current repository facts, assumptions, affected boundaries, smallest coherent slice, native oracle, and delivery limits. Scan for risks visible in code and dependencies, not only risks named by the request. This calibration creates no file or approval state.
 
-## Forward path
+For substantial managed work, material risk, delegation, or repeated failure, use `quality-calibration.md` to decide whether a specialist Skill, P0-P6 child route, bounded assurance method, or independent review has positive decision value.
 
-1. `dev-flow` binds authority, work mode, route order, integration, and the exact claim being pursued.
-2. `repo-context` establishes roots, instructions, current behavior, call paths, native controls, artifact facts, effective fingerprints, and minimum admitted technical Skills.
-3. Persistent work always uses `requirements-design` to persist semantic understanding. For material UI, `product-ux-discovery` first establishes interface intent and UX Ready. Repeated high-value interaction continues until no material ambiguity remains.
-4. For a bug or unexplained failure, `systematic-debugging` proves the earliest cause and affected invariant before a corrective design.
-5. `architecture-decisions` owns structural choices; `dependency-decisions` separately owns external capability selection and graph mutation.
-6. The root freezes the smallest ready coherent slice, updates continuity/progress at event boundaries, keeps code/tests/docs/comments together, runs narrow then integration/smoke checks, audits the diff, and records `change-set.v1` plus commit/knowledge readiness. OPEN checkpoints allow slice work after a low-cost repository identity/HEAD check; checkpoint, resume, delegation, pre-verification, and final-claim boundaries compare the full declared-root worktree. No specialist may enlarge its authority.
-7. `verification` executes separately derived black-box/white-box risk oracles against final bytes and reviews test validity.
-8. `change-review` independently reviews frozen source/change scope only when explicitly requested or routed by governed risk.
-9. `delivery-readiness` evaluates an explicit delivery action only; ordinary mutation, verification, or rollback planning does not imply delivery authority.
+Classify requirement understanding before technical design. Material new or changed product semantics publish a detailed technology-neutral understanding and stop in Default mode for explicit confirmation. Established defects proceed from proven expected/protected behavior, while ambiguous defects upgrade to semantic confirmation. Mechanical and read-only work never acquire the stop solely because Dev Flow is active.
 
-`manage-engineering-profiles` is explicit profile lifecycle work. `dev-flow-maintainer` is explicit maintenance of Dev Flow itself. Neither is part of an ordinary repository task.
+After repository discovery and after a material requirement confirmation, perform the ephemeral capability-activation pass: applicable effective-host specialist, bounded method, independent review, and child model/effort. It produces no artifact. Re-run only an affected decision when evidence changes.
 
-## Root change set
+## Direct path
 
-`change-set.v1` is inline for direct work and uses the existing ledger otherwise. Bind intent/protected behavior, final bytes/scope, files, decisions/drift, narrow checks, and limits. Creation-tagged packets bind it at each `verifying`; one-sided or post-binding drift blocks. Unsigned state is not tamper evidence. Untagged packets keep their old contract; upgrades require explicit migration. Later relevant byte changes invalidate affected evidence.
+1. Resolve objective, authority, roots, instructions, current behavior, scope, and user changes.
+2. Clarify only a material decision. For semantic creation/change, publish the full understanding and stop for confirmation before design; otherwise proceed with a reversible repository-grounded assumption.
+3. Reproduce a defect before repair when practical.
+4. Implement one coherent slice.
+5. Run the narrowest sensitive oracle, then affected broader checks.
+6. Inspect the final diff and report outcomes, evidence, and limits.
 
-Quality-tagged packets also content-bind design approval, a pre-verification continuity checkpoint, engineering-context fingerprint, separate test-technique accounting, and project-knowledge disposition. Untagged legacy packets remain readable and are not retroactively tightened.
+Direct work has no Dev Flow continuity artifact or lifecycle transition. It still maintains existing repository documentation when architecture, contracts, runbooks, product behavior, or operational truth changes. When no existing home preserves an otherwise durable product rule, public contract, data/security behavior, recovery rule, cross-boundary invariant, or non-obvious rationale, add one concise repository-native change note; do not duplicate code, tests, issues, changelogs, ADRs, or maintained docs.
 
-## Knowledge and engineering context
+## Managed path
 
-The three knowledge planes have different authority: tracked project truth describes current verified behavior; tracked change dossiers preserve requirement/design/execution/verification history; ignored packet state stores detailed recovery evidence. Current truth changes in place under Git, accepted ADRs are superseded rather than rewritten, and accepted dossiers use errata/follow-ups. Do not promote raw logs, secrets, unnecessary personal payloads, or generated facts better owned by code/schema.
+Use when continuity or coordination exceeds one coherent slice. Read the repository's current workstream documents at start/resume, verify their assumptions against current Git/repository facts, and update them only at meaningful boundaries.
 
-At each phase/path/risk change, resolve applicable repository instructions, profiles, native controls, artifact facts, and installed Skills. First state the neutral capability outcome, then admit the minimum technical specialist by identity/fingerprint. User-local Skills do not silently become shared policy.
+The implementation plan keeps scope, acceptance behavior, and a dependency-aware list of outcomes; it is not a tool ledger. `progress.md` is the current handoff snapshot. Add `requirements.md` only when complex or cross-team semantics need a durable source beyond the request or issue. Create `design.md` only for real trade-offs; material design changes update it. Durable decisions use the repository ADR convention or optional `decisions.md`.
 
-## Owner boundaries
+## Re-evaluation
 
-| Owner | Owns | Must not substitute for |
-|---|---|---|
-| `dev-flow` | authority, mode, routing, lifecycle, root implementation integration, final change set, final claim state | repository discovery or specialist decisions |
-| `repo-context` | observed repository/runtime facts and context gaps | user semantics, architecture, or dependency selection |
-| `requirements-design` | user-owned semantics, acceptance, scope, compatibility intent, approval | technical implementation evidence |
-| `product-ux-discovery` | IA, flows, states, accessibility intent, design truth, UX Ready | final product approval or rendered verification |
-| `systematic-debugging` | reproduction, hypotheses, earliest cause, invariant | broad redesign or proof that a fix works |
-| `architecture-decisions` | boundaries, ownership, state, concurrency, lifecycle, compatibility mechanics | dependency approval or test execution |
-| `dependency-decisions` | external capability, version/features, graph, supply chain, rollback/removal | product semantics or delivery authority |
-| `verification` | oracles, commands, environments, evidence, evidence status | design, repair, review, or acceptance |
-| `change-review` | verified findings, severity, classification, disposition | upstream design or missing execution evidence |
-| `company-data-security` | surface-aware classification, least-data handling, reference/local-compute/redaction choices, and disclosure limits | enterprise policy, endpoint/network DLP, repository lifecycle, or delivery authority |
-| `delivery-readiness` | exact readiness level, residual gates, rollback, action-specific authority | implementation or inferred permission |
-| `manage-engineering-profiles` | profile ownership, resolution, promotion, retirement, waiver | product or repository decisions |
-| `dev-flow-maintainer` | Dev Flow public surfaces, compatibility, governance, and evaluation policy | ordinary product work |
+Re-evaluate mode, design, or overlays when:
 
-## Reopen and stop rules
+- the user changes the outcome or scope;
+- a new module/root/team makes continuity material;
+- evidence disproves a design premise;
+- a dependency, migration, destructive action, production system, public contract, or external delivery appears;
+- repeated repairs show the reproducer, model, design, environment, or oracle may be wrong.
 
-- Verification or review may expose an upstream defect, but may not repair the missing requirement, diagnosis, architecture, or dependency decision inside its own artifact. Return the issue to its owner, then rerun only affected downstream evidence.
-- Initial routing is provisional. When repository evidence changes task type, risk, UI impact, requested capability, or delivery need, rerun routing and record the delta before mutation; never preserve a smaller route merely because work already started. Escalate on newly discovered risk. Remove a route only when exact evidence disproves an inferred trigger; never downgrade a user-declared risk, need, or authority boundary.
-- A user-owned semantic or scope change invalidates affected approvals. A final-byte change invalidates affected verification and review evidence.
-- Context compaction, resume, user correction, premise/phase change, slice/team boundary, repeated failure, pre-verification, and final claim trigger rehydration from durable requirement/design/context/checkpoint state. Time/tool-count reminders are advisory, not correctness gates.
-- `implementation-start`, `resume`, `user-steering`, `slice-start`, `reconciliation`, and `premise-change` are OPEN-slice triggers. `slice-end`, `delegation`, `phase-transition`, `pre-verification`, and `final-claim` are SEALED-slice triggers. Ordinary mutation checks repository identity and Git `HEAD` without repeatedly hashing worktree bytes; sealed boundaries bind and compare the full worktree.
-- Repository observation conservatively covers each entire declared root. A non-Git root is recorded with `observable=false`, so byte stability needs external/manual evidence. A Git `HEAD` change requires explicit reconciliation with the exact accepted object ID; ordinary resume may not silently adopt it. Repository-identity changes reopen the premise or require a new packet.
-- Three failed hypotheses or repair rounds on the same cause stop local iteration. Reassess the reproducer, requirement, architecture, environment, and oracle before another repair.
-- `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, and `WAIVED` remain distinct. A downstream green result never upgrades an unresolved upstream state.
-- Commit, push, PR, tag, release, deploy, install, migration execution, and external messages each require their own authority.
+The first surprising failure triggers a focused assumption/risk recheck. Two failed repairs or hypotheses for the same symptom trigger explicit recalibration before another repair.
+
+Escalation adds the specific missing control. It does not recreate a full governance lifecycle or automatically change direct work into managed work.
+
+## Evidence status
+
+Keep `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, and `WAIVED` distinct. A later green result does not erase an unresolved earlier cause, and evidence from one OS, device, account, environment, or compatibility direction does not prove another.
+
+Commit, push, PR, tag, release, deploy, migration execution, installation, and external communication are separate actions and authorities.
+
+## Legacy compatibility
+
+Schemas 1.0-2.0, packet validation, archive, and explicit lifecycle commands remain readable for old work. They are not part of this lifecycle. An active legacy pointer never governs 2.0 work.

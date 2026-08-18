@@ -47,12 +47,67 @@
       "manual_fallback": "measured-render-or-bundle-review"
     },
     {
+      "id": "quality.rust.axum",
+      "outcome": "Axum routes, extractors, middleware, shared state, and errors follow framework-native ownership and integration patterns.",
+      "selectors": ["language=rust", "framework=axum"],
+      "native_evidence": ["Cargo.toml", "**/Cargo.toml", "**/*router*.rs", "**/*route*.rs"],
+      "route_names": ["axum-code-review"],
+      "preferred_route": "axum-code-review",
+      "manual_fallback": "qualified-axum-integration-review"
+    },
+    {
+      "id": "quality.rust.serde",
+      "outcome": "Serde representations, compatibility, validation, defaults, and custom serialization are checked at affected boundaries.",
+      "selectors": ["language=rust", "framework=serde"],
+      "native_evidence": ["Cargo.toml", "**/Cargo.toml", "**/*serde*.rs", "**/*serialization*.rs"],
+      "route_names": ["serde-code-review"],
+      "preferred_route": "serde-code-review",
+      "manual_fallback": "qualified-serialization-contract-review"
+    },
+    {
+      "id": "quality.rust.sqlx",
+      "outcome": "SQLx queries, pools, transactions, migrations, and database compatibility are checked with repository-native evidence.",
+      "selectors": ["language=rust", "framework=sqlx"],
+      "native_evidence": ["Cargo.toml", "**/Cargo.toml", "migrations/**", "**/migrations/**", "**/*.sql"],
+      "route_names": ["sqlx-code-review"],
+      "preferred_route": "sqlx-code-review",
+      "manual_fallback": "qualified-database-boundary-review"
+    },
+    {
       "id": "quality.swift.correctness",
       "outcome": "Swift isolation, lifecycle, error, and platform contracts are verified for the affected target.",
       "selectors": ["language=swift"],
       "native_evidence": ["Package.swift", "**/Package.swift", "**/*.xcodeproj/project.pbxproj"],
       "route_names": ["swift-concurrency", "swiftui-expert-skill"],
       "manual_fallback": "qualified-apple-reviewer"
+    },
+    {
+      "id": "quality.swift.concurrency",
+      "outcome": "Swift concurrency changes prove actor isolation, Sendable boundaries, cancellation, task ownership, and UI isolation.",
+      "selectors": ["language=swift", "risk=concurrency"],
+      "native_evidence": ["Package.swift", "**/Package.swift", "**/*.swift", "**/*Tests.swift"],
+      "route_names": ["swift-concurrency"],
+      "preferred_route": "swift-concurrency",
+      "contextual_review_required": true,
+      "manual_fallback": "qualified-swift-concurrency-review"
+    },
+    {
+      "id": "quality.java.correctness",
+      "outcome": "Java changes are checked for correctness, nullability, error behavior, maintainability, and affected tests.",
+      "selectors": ["language=java"],
+      "native_evidence": ["pom.xml", "**/pom.xml", "build.gradle", "build.gradle.kts", "**/*.java"],
+      "route_names": ["java-code-review"],
+      "preferred_route": "java-code-review",
+      "manual_fallback": "qualified-java-reviewer"
+    },
+    {
+      "id": "quality.java.spring",
+      "outcome": "Spring Boot modules, boundaries, configuration, persistence, and web behavior follow the affected framework contracts.",
+      "selectors": ["language=java", "framework=spring-boot"],
+      "native_evidence": ["pom.xml", "**/pom.xml", "build.gradle", "build.gradle.kts", "**/application*.yml", "**/application*.properties"],
+      "route_names": ["spring-boot-skill", "spring-modulith-verifier"],
+      "preferred_route": "spring-boot-skill",
+      "manual_fallback": "qualified-spring-boundary-review"
     },
     {
       "id": "quality.kotlin.correctness",

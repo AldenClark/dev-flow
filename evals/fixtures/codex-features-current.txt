@@ -1,0 +1,8 @@
+multi_agent stable true
+multi_agent_v2 stable false
+hooks stable true
+goals stable true
+browser_use stable true
+in_app_browser stable true
+computer_use stable true
+apps stable true

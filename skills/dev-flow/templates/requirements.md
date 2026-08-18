@@ -1,5 +1,7 @@
 # Change requirements: <change-id>
 
+> Legacy packet compatibility template. Direct and managed 2.0 work uses repository-native requirement sources or `templates/workstream/requirements.md`.
+
 ## Requirement source and understanding revisions
 
 - Original input: <sanitized user text, issue, design package, or durable secure pointer>

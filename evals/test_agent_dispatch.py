@@ -49,6 +49,8 @@ class AgentDispatchBlackBoxTests(unittest.TestCase):
                 if completed.returncode == 0 and payload["delegate"]:
                     self.assertEqual(payload["fork_turns"], "none")
                     self.assertIn(payload["selection_source"], {"policy", "explicit-profile"})
+                    self.assertIn("current task result", payload["runtime_fallback"])
+                    self.assertNotIn("record", payload["runtime_fallback"])
 
     def test_same_request_is_byte_stable(self) -> None:
         args = (
@@ -102,8 +104,9 @@ class AgentDispatchWhiteBoxTests(unittest.TestCase):
         registry = agent_dispatch.load_registry(REGISTRY)
         profiles = {item["id"]: item for item in registry["profiles"]}
         self.assertEqual(set(profiles), {"P0", "P1", "P2", "P3", "P4", "P5", "P6", "PX"})
-        self.assertEqual((profiles["P3"]["capability"], profiles["P3"]["reasoning_effort"]), ("B", "high"))
-        self.assertEqual((profiles["P4"]["capability"], profiles["P4"]["reasoning_effort"]), ("F", "medium"))
+        self.assertEqual((profiles["P2"]["capability"], profiles["P2"]["reasoning_effort"]), ("E", "high"))
+        self.assertEqual((profiles["P3"]["capability"], profiles["P3"]["reasoning_effort"]), ("B", "medium"))
+        self.assertEqual((profiles["P4"]["capability"], profiles["P4"]["reasoning_effort"]), ("B", "high"))
         self.assertTrue(profiles["PX"]["exception"])
         self.assertFalse(any(profiles[name]["exception"] for name in profiles if name != "PX"))
 
@@ -129,6 +132,16 @@ class AgentDispatchWhiteBoxTests(unittest.TestCase):
         )
         mutations.append(duplicate_condition)
 
+        dangling_suppression = json.loads(json.dumps(baseline))
+        dangling_suppression["upgrade_rules"][-2]["unless_all_signals"].append("unknown-signal")
+        mutations.append(dangling_suppression)
+
+        duplicate_suppression = json.loads(json.dumps(baseline))
+        duplicate_suppression["upgrade_rules"][-2]["unless_all_signals"].append(
+            duplicate_suppression["upgrade_rules"][-2]["unless_all_signals"][0]
+        )
+        mutations.append(duplicate_suppression)
+
         for index, payload in enumerate(mutations):
             with self.subTest(mutation=index), tempfile.TemporaryDirectory() as temp:
                 path = Path(temp) / "registry.json"
@@ -144,16 +157,39 @@ class AgentDispatchWhiteBoxTests(unittest.TestCase):
                 self.assertNotIn("model =", text)
                 self.assertNotIn("model_reasoning_effort", text)
 
-    def test_orchestration_and_templates_bind_runtime_receipts(self) -> None:
+    def test_role_configs_do_not_reintroduce_legacy_ceremony(self) -> None:
+        role_root = ROOT / "skills" / "dev-flow" / "assets" / "agent-configs"
+        forbidden = (
+            "packet",
+            "digest",
+            "fingerprint",
+            "AC/SC/VO",
+            "resource lease",
+            "frozen source",
+            "frozen brief",
+            "durable report",
+        )
+        for path in sorted(role_root.glob("*.toml")):
+            with self.subTest(role=path.name):
+                text = path.read_text(encoding="utf-8")
+                for token in forbidden:
+                    self.assertNotIn(token, text)
+
+    def test_orchestration_routes_actual_dispatch_without_receipts(self) -> None:
         orchestration = (ROOT / "skills" / "dev-flow" / "references" / "multi-agent-v2-orchestration.md").read_text(encoding="utf-8")
         brief = (ROOT / "skills" / "dev-flow" / "templates" / "task-brief.md").read_text(encoding="utf-8")
         execution = (ROOT / "skills" / "dev-flow" / "templates" / "execution.md").read_text(encoding="utf-8")
-        for token in ("route-agent", "requested_model", "requested_reasoning_effort", "effective_model", "fallback_reason"):
+        self.assertIn("route-agent", orchestration)
+        self.assertIn("Use the returned model, reasoning effort, and fork request", orchestration)
+        for token in ("requested_model", "requested_reasoning_effort", "effective_model", "fallback_reason"):
+            self.assertNotIn(token, orchestration)
+        for token in ("objective and expected outcome", "owned paths", "allowed verification", "expected return"):
             self.assertIn(token, orchestration)
-        for token in ("Dispatch profile", "Selection source", "Requested model", "Requested reasoning effort", "Fallback behavior"):
-            self.assertIn(token, brief)
-        for token in ("Dispatch profile/source", "Requested model/effort/fork", "Effective model/effort", "Fallback"):
-            self.assertIn(token, execution)
+        self.assertIn("A child final is a report", orchestration)
+
+        # 1.x templates stay readable for existing packets but do not govern 2.0 delegation.
+        self.assertIn("Dispatch profile", brief)
+        self.assertIn("Dispatch profile/source", execution)
 
 
 if __name__ == "__main__":

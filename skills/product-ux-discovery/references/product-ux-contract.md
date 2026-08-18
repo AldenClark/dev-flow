@@ -1,46 +1,27 @@
 # Product and UX contract
 
-## Impact classification
+Use this reference when a user-facing change has complex state, accessibility, responsive behavior, or conflicting design truth.
+
+## Impact
 
 - `none`: no user-facing behavior or presentation.
-- `preserve`: implementation or visual refinement must preserve product position, IA, navigation, flows, states, terminology, and domain distinctions.
-- `material`: product behavior, IA, flow, state model, permissions, destructive action, or accessibility contract changes and requires explicit UX Ready.
+- `preserve`: implementation or visual refinement should preserve product position, information architecture, navigation, flows, state semantics, terminology, and domain distinctions.
+- `material`: product behavior, information architecture, flow, state model, permissions, destructive action, or accessibility contract changes.
 
-## Discovery questions
+Material impact requires a user decision only when current direction and repository evidence do not resolve the product choice. It does not require a named UX Ready artifact or approval revision.
 
-Resolve from evidence before asking:
+## Discovery
 
-- primary users, jobs, success and failure outcomes;
-- product position and domain-specific distinctions;
-- entry points, navigation, hierarchy, primary and recovery flows;
-- loading, empty, error, offline, permission, destructive confirmation, success, undo, and partial states;
-- target platforms, viewports, input modes, native conventions, localization, and data density;
-- telemetry/consent and privacy boundaries;
-- protected shipped behavior and explicitly approved changes.
+Resolve primary users/jobs, success/failure outcomes, entry points, hierarchy, primary/recovery flows, loading/empty/error/offline/permission/success/undo/partial states, target platforms and inputs, localization/data density, privacy, and protected shipped behavior to the extent they affect this change.
 
-## Design truth
+Apply design truth in this order: explicit user direction, accepted design source, shipped behavior, canonical design system/components/tokens, maintained product documentation. Record material conflicts instead of averaging them.
 
-Apply explicit user direction first, then approved design source, shipped product behavior, canonical design system/components/tokens, and maintained product documentation. Record conflicts instead of averaging them.
+## Fidelity and accessibility
 
-Screenshots and generic component-library examples are evidence, not automatic product authority. When product domains differ, share primitives and table/layout infrastructure while preserving typed workflows and information architecture.
+Use the cheapest artifact that resolves uncertainty: prose/table, flow/state diagram, wireframe, or rendered prototype. Do not require a prototype for bounded preserve-mode work.
 
-## Fidelity
+Cover applicable semantics/landmarks, keyboard order/focus, accessible names and announcements, contrast/non-color cues, text scaling, target sizes, reduced motion, input alternatives, platform conventions, and error/recovery. Automated checks support but do not replace rendered or human evidence.
 
-Use the cheapest artifact that resolves the uncertainty:
+## Durable output
 
-- prose or acceptance table for simple state/behavior;
-- flow or state diagram for branching/sequence;
-- wireframe for layout/hierarchy;
-- rendered prototype for high-risk interaction, visual system, responsive behavior, or accessibility uncertainty.
-
-Do not require interaction design for no-UI work or a prototype for a bounded preserve-mode change.
-
-## Accessibility
-
-Define semantic structure and landmarks, keyboard order and visible focus, accessible names/descriptions, screen-reader announcements, contrast and non-color cues, zoom/text scaling, target sizes, reduced motion, input alternatives, platform conventions, and error/recovery behavior.
-
-Automated checks support but never replace human judgment. Name manual keyboard, screen-reader/assistive-technology, motion, scaling, and target-platform cells when they are material.
-
-## Output
-
-The versioned contract contains impact, users/outcomes, IA/navigation/flows, complete state model, design truth and conflicts, platform/input/responsive behavior, accessibility obligations, telemetry/privacy, protected behavior, open material questions, evidence, and UX Ready approval revision.
+For managed work, update the repository design with the durable product decision, complete state intent, important responsive/accessibility behavior, conflicts, and open questions. For direct work, code, tests, and the final report are usually sufficient. Keep screenshots, traces, and raw accessibility output as runtime evidence rather than copying them into business documents.

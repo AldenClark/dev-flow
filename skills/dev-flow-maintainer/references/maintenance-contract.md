@@ -5,7 +5,7 @@
 A first-class Skill requires all of:
 
 1. a natural direct user request;
-2. one bounded versioned primary artifact;
+2. one bounded primary outcome or artifact with a clear owner;
 3. a clear negative trigger;
 4. decisions consumed rather than silently rewritten by other capabilities;
 5. independently testable trigger/output behavior;
@@ -35,7 +35,7 @@ Use a quality pyramid and prove the core workflow before expanding an evaluation
 
 1. Deterministically test direct/orchestrated positive triggers, negative triggers, exact route order, work mode, collisions, output ownership, stop/handoff behavior, safe counterexamples, and unrelated changes.
 2. Exercise representative repository workflows from task to final evidence. At minimum cover an ordinary bugfix, a structural bugfix, and a public-contract change; verify that upstream owners run before proof/review and that review or verification cannot backfill a missing decision.
-3. For a material model-dependent Skill change, run filtered attested pilots for every affected development category after the first two layers pass. Use at least three independent first attempts. One pair is a diagnostic for a specific failure or case/grader defect, not material-change admission evidence.
+3. When an explicitly authorized release or capability-admission decision depends materially on model behavior, run filtered attested pilots for every affected development category after the first two layers pass. Use at least three independent first attempts. One pair remains available as a focused diagnostic for a specific failure or case/grader defect, but is not material-change admission evidence.
 4. Run the complete frozen acceptance plan only as an explicitly authorized and budgeted release comparison. It is model-behavior evidence, not the source of Skill ownership, a deterministic CI gate, or total release readiness.
 5. Add a protocol, schema, evaluator stage, or case family only when a proven core invariant cannot be observed through existing deterministic checks and the thin harness. Record that invariant, the smaller rejected alternative, owner, maintenance and run cost, rollback, and removal condition.
 
@@ -56,3 +56,14 @@ Maintain a bounded regression bank plus fresh shadow cases derived from real fai
 Map every prior content/source family to migrate, split, profile, snapshot, detector, route, deduplicate, or retire-with-reason. Remove an old entrypoint only after target owner tests pass and no live invocation/alias/doc promise remains. Preserve historical migration mentions explicitly marked as history.
 
 Internal waves are checkpoints, not supported partial releases. Validate the integrated suite, restore the old router/data registry on rollback, retain immutable decisions/research, and keep generated snapshots replaceable.
+
+## Proportionate release evidence
+
+Classify the changed surface before choosing gates:
+
+- R1 standard: documentation, Skill prose, fixtures, and ordinary deterministic logic use focused checks plus the single semantic CI lane and affected compatibility cells.
+- R2 runtime: Hooks, installer, process/path/shell, and host integration additionally use the full focused compatibility lane and isolated runtime lifecycle smoke.
+- R3 artifact/security: builders, workflow permissions, SBOM/attestation, or confidentiality controls additionally use deterministic artifact/security negative tests and hosted candidate evidence.
+- R4 model-semantic: before publication or a capability-admission claim, material model-interpreted behavior additionally uses a predeclared, authorized, and budgeted bounded multi-trial evaluation; the complete frozen comparison needs separate release authority and budget.
+
+The release-candidate workflow consumes exact-SHA CI evidence and must not duplicate the full semantic suite. It owns archive, SBOM, checksum, provenance, attestation, and candidate upload facts. Publication and installation remain separate authorities.

@@ -45,7 +45,7 @@ AI work adds failure classes beyond ordinary code:
 | Hidden/stale project knowledge | repository legibility and context engineering |
 | Repeated structured omission/action | deterministic agent harness |
 | Dangerous or ambiguous mutations/tools | authority and tool-boundary model |
-| Long-running continuity/drift | semantic checkpoints |
+| Long-running continuity/drift | semantic handoff snapshots |
 | Model behavior claim | agent evaluation design plus identity pinning |
 | Benchmark trust concern | contamination/case-health analysis |
 | Stochastic uncertainty matters | multiple independent first attempts |
@@ -75,8 +75,8 @@ Prefer task-realistic outcomes and deterministic repository graders. Separate ex
 
 Use multiple first attempts only when variance changes a decision. Predeclare pairing/randomization, unit of analysis, stopping/retry rules, and infrastructure-error handling; retain case-level results and uncertainty. Benchmark scores do not substitute for real acceptance evidence, and evidence that AI was faster or slower on one study does not generalize automatically to this repository/task/user. Conformal/selective-action claims additionally require held-out representative calibration data and explicit distribution assumptions.
 
-## Long-running checkpoints
+## Long-running handoffs
 
-At semantic boundaries bind objective, requirement/design digests, engineering context, repository identity/HEAD/worktree, active IDs/slice, last evidence, next action, stop condition, and drift disposition. For consequential actions also append attempt, side effect, idempotency, compensation, and outstanding-state records. Resume by revalidating these against current bytes and reconciling incomplete effects. A checkpoint supports continuity; it is not tamper-proof storage, a distributed transaction log, or permission.
+At semantic boundaries, update repository `progress.md` or its native equivalent with the objective, current outcome slice, material decisions/assumptions, completed/current/next work, blockers, evidence limits, and stop condition. Resume by rereading current source and maintained documents, then reconcile incomplete effects before continuing. Consequential external actions need their own domain-native durable operation record for attempts, side effects, idempotency, compensation, and outstanding state; that record protects operational correctness, not Dev Flow process. A handoff snapshot supports continuity but is not permission or a transaction log.
 
 Load `methods-agent-control-evaluation.md` when any of autonomy, partial observability, dynamic planning, AI repair, runtime safety, external effects, untrusted context, persistent memory, human oversight, multi-agent coordination, trajectory evaluation, calibration, or simulation is selected.

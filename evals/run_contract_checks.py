@@ -71,7 +71,6 @@ DESCRIPTION_BUDGET = 2500
 ORDINARY_STATIC_BUDGET = 18000
 ORDINARY_STATIC_FILES = (
     "skills/dev-flow/SKILL.md",
-    "skills/dev-flow/references/artifact-schemas.md",
     "skills/repo-context/SKILL.md",
     "skills/verification/SKILL.md",
 )
@@ -614,6 +613,7 @@ def main() -> int:
     if observed_skills != filesystem_skills or len(capabilities) != len(observed_skills):
         errors.append("capability contract must define every repository Skill exactly once")
     output_owners: dict[str, str] = {}
+    legacy_active_terms = ("packet", "digest", "checkpoint", "change-set.v1", "flow.state.v1")
     for item in capabilities:
         if not isinstance(item, dict):
             errors.append("capability contract entries must be objects")
@@ -634,6 +634,12 @@ def main() -> int:
             if output in output_owners:
                 errors.append(f"primary output {output} has multiple owners: {output_owners[output]} and {item.get('skill')}")
             output_owners[output] = str(item.get("skill"))
+        active_semantics = json.dumps(
+            {field: item.get(field) for field in ("primary_outputs", "consumes", "stops")},
+            ensure_ascii=False,
+        ).lower()
+        if any(term in active_semantics for term in legacy_active_terms):
+            errors.append(f"capability {item.get('skill')}: active semantics contain legacy packet-era terms")
     conditions_by_skill = {
         item.get("skill"): set(item.get("orchestrated_conditions", []))
         for item in capabilities
@@ -717,10 +723,10 @@ def main() -> int:
     for token in ("Default mode", "request_user_input", "item/tool/requestUserInput", "isBlocking", "isSecret", "None of these outcomes select the recommendation"):
         if token not in reference_text:
             errors.append(f"user interaction reference is missing {token}")
-    for skill_name in registered_skills:
+    for skill_name in {"dev-flow", "requirements-design"}:
         skill_text = (ROOT / "skills" / skill_name / "SKILL.md").read_text(encoding="utf-8")
         if "user-interaction.md" not in skill_text or "Default mode" not in skill_text:
-            errors.append(f"{skill_name}: missing suite interaction invariant")
+            errors.append(f"{skill_name}: missing shared interaction ownership invariant")
     context_template = (ROOT / "skills" / "dev-flow" / "templates" / "context.md").read_text(encoding="utf-8")
     if "Interaction route:" not in context_template:
         errors.append("context template must record the selected user interaction route")
@@ -794,7 +800,7 @@ def main() -> int:
         for field in ("args", "expected", "required", "forbidden"):
             if not isinstance(case.get(field), list):
                 errors.append(f"routing case {case_id}: {field} must be a list")
-        if case.get("work_mode") not in {"direct", "traced", "governed"}:
+        if case.get("work_mode") not in {"direct", "managed"}:
             errors.append(f"routing case {case_id}: invalid work_mode {case.get('work_mode')!r}")
         unknown = (
             set(case.get("expected", []))

@@ -1,5 +1,7 @@
 # Red audit: <change-id>
 
+> Legacy packet compatibility template. Direct and managed 2.0 review uses the current diff and native evidence without this artifact.
+
 ## Audit brief
 
 <Independent reviewer, clean brief path, attack/failure surface, allowed actions, and evidence date.>

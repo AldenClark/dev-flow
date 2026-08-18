@@ -1,5 +1,7 @@
 # Change design: <change-id>
 
+> Legacy packet compatibility template. Direct and managed 2.0 work uses repository-native design docs or `templates/workstream/design.md`.
+
 ## Decision
 
 <Selected design and why it fits the observed repository.>

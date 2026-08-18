@@ -1,43 +1,31 @@
 # Independent change review
 
-## Frozen brief
+Use this deeper protocol for a large change, high-risk boundary, or review intentionally separated from implementation.
 
-For a source audit, freeze the exact source tree/revision or content digest, audited paths, applicable contracts, explicit exclusions, environment facts, and any evidence already available; change-only inputs remain `not applicable`, not silently invented. For an approved change review, provide the approved requirement revision/digest, AC/SC/VO IDs, architecture/dependency decisions, protected/out-of-scope behavior, base and final diff, changed-file list, and raw verification results. Exclude implementer self-review and expected conclusions in both modes.
+## Review input
 
-## Blue lens
+Establish the objective, current source or base/final diff, reviewed paths, important contracts, explicit exclusions, and raw verification results. Use an exact revision when the review must remain stable; otherwise state that findings are against the current worktree. Do not preload the implementer's conclusions.
 
-Verify requirement fidelity, complete scope, integration between components, public/data/protocol compatibility, errors and cancellation, ownership/lifecycle/cleanup, migration/rollback, security/privacy, performance/operations, observability, documentation, generated artifacts, and explained preference exceptions.
+## Lenses
 
-## Red lens
+Inspect only applicable areas:
 
-Select only applicable hypotheses:
+- requirement and scope fidelity, integration, public/data/protocol compatibility;
+- errors, cancellation, ownership, lifecycle, cleanup, migration, rollback;
+- security/privacy, unsafe/FFI, performance, operations, observability;
+- generated artifacts, dependencies, packaging/loading, platform and mixed-version behavior;
+- malformed/adversarial input, authorization, retries, duplicates, ordering, races, overload, shutdown, data loss, partial failure, and recovery.
 
-- malformed, boundary, oversized, ambiguous, and adversarial input;
-- authorization bypass, tenant confusion, secrets, injection, unsafe behavior;
-- cancellation, timeout, retry, duplicates, ordering, race, deadlock, leak, overload, shutdown;
-- data loss, partial migration, mixed versions, corrupt state, stale cache, crash recovery, rollback;
-- browser/device/OS/toolchain/architecture differences;
-- signing, packaging, loader, permissions, installation, upgrade, runtime configuration;
-- performance cliffs, memory/resource growth, and unbounded work.
-
-## Specialist routing
-
-For each candidate route, record capability ID, provenance/digest/version, active-host compatibility, language/framework/version, artifact role/boundary, tools/permissions/side effects, context cost, source freshness, overlap/collision, structural validation, paired utility, fallback, and admission state.
-
-Use native controls first and select the smallest approved non-colliding route set. `trial` routes require an explicit note. Unassessed, incompatible, stale, conflicting, untrusted, missing, or irrelevant routes never auto-activate. Do not copy manuals or install plugins as review remediation.
+Load a specialist only when its language, platform, or boundary is present and its additional failure model is worth the context cost.
 
 ## Finding discipline
 
-A reportable finding needs current source location, applicable rule/contract, causal path, concrete impact, reproducible or inspectable evidence, and a scoped correction. Verify names/style/context before reporting. Facts and project style guides outrank reviewer preference.
+A reportable finding needs a current source location, causal path, concrete impact, and bounded correction. Verify it in the current source and omit speculation, style preference, or names-only heuristics.
 
-Classify as implementation defect, design defect, evidence gap, scope change, requirement ambiguity, or non-issue. A late material/high-risk ambiguity reopens affected approval; an implementation defect does not.
+Classify the issue as implementation defect, design defect, evidence gap, scope change, requirement ambiguity, or non-issue. Report severity, proof, consequence, and remediation. Use repository-native IDs only when the project already has them; Dev Flow does not require finding ledgers, repair-round counters, or fixed blue/red documents.
 
-Record finding ID, severity, affected AC/SC/VO, evidence, owner, disposition, repair round, and fresh recheck. Use fix-now, design change, explicit defer/acceptance, or rejected-with-proof. Stop after three failed repairs.
+For cross-language changes, trace affected consumers, generated artifacts, ABI/ownership/lifecycle, packaging/loading, version coexistence, and rollback where relevant. Missing device, platform, signing, or runtime evidence remains `NOT RUN`.
 
-For cross-language changes, trace every consumer and generated-artifact causal path. A post-change review names the approved diff, generated artifacts, complete changed-file list, raw verification evidence, each applicable consumer path, ABI, lifecycle, packaging/loading, version coexistence, and rollback; missing prerequisites remain `NOT RUN`.
+## Recheck
 
-## Evaluation
-
-Test positive violations, safe counterexamples, and unrelated changes. Measure coverage, restraint/false positives, retention of ordinary defects, actionability, rework, context cost, and unsafe actions—not finding count.
-
-For concurrency findings, require controlled scheduling or bounded repeated evidence, retain protected ordinary behavior tests, and omit unrelated specialist checklists.
+After repair, inspect the affected diff and rerun the checks that can falsify the repaired behavior. Escalate repeated non-causal repairs to design or debugging when they stop producing new evidence. Completion order, report count, and finding count are not quality metrics.

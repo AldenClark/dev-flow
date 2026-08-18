@@ -16,16 +16,16 @@ DESCRIPTION_BUDGET = 2500
 ORDINARY_STATIC_BUDGET = 18000
 ORDINARY_STATIC_FILES = (
     "skills/dev-flow/SKILL.md",
-    "skills/dev-flow/references/artifact-schemas.md",
     "skills/repo-context/SKILL.md",
     "skills/verification/SKILL.md",
 )
 ROUTE_REQUIRED_CASES = {
     "ROUTE-READONLY",
     "ROUTE-READONLY-SECURITY",
-    "ROUTE-NATIVE-PACKAGING-NO-DELIVERY",
-    "ROUTE-EXPLICIT-DELIVERY",
-    "ROUTE-PRESERVE-UI-PUBLIC-CONTRACT",
+    "ROUTE-ROUTINE",
+    "ROUTE-SECURITY-OVERLAY",
+    "ROUTE-DELIVERY",
+    "ROUTE-MATERIAL-UI",
     "ROUTE-MAINTAINER",
 }
 DISPATCH_REQUIRED_CASES = {
@@ -109,10 +109,14 @@ def validate_routes(registered: set[str]) -> list[str]:
             if upstream in positions and downstream in positions and positions[upstream] >= positions[downstream]:
                 errors.append(f"{case_id}: {upstream} must precede {downstream}")
         task_type = args[args.index("--task-type") + 1] if "--task-type" in args else None
-        explicit_delivery = "--need" in args and any(
-            args[index + 1] == "delivery"
-            for index, value in enumerate(args[:-1])
-            if value == "--need"
+        intent = args[args.index("--intent") + 1] if "--intent" in args else None
+        explicit_delivery = intent == "delivery" or (
+            "--need" in args
+            and any(
+                args[index + 1] == "delivery"
+                for index, value in enumerate(args[:-1])
+                if value == "--need"
+            )
         )
         if "delivery-readiness" in positions and not explicit_delivery and task_type not in {"release-hotfix", "rollback"}:
             errors.append(f"{case_id}: delivery-readiness requires explicit delivery intent")
@@ -234,6 +238,7 @@ def main() -> int:
     if len(observed) != len(registered):
         errors.append("capability contract must define every registered Skill exactly once")
     output_owners: dict[str, str] = {}
+    legacy_active_terms = ("packet", "digest", "checkpoint", "change-set.v1", "flow.state.v1")
     for item in capabilities:
         if not isinstance(item, dict):
             errors.append("capability contract entry must be an object")
@@ -253,10 +258,15 @@ def main() -> int:
             if output in output_owners:
                 errors.append(f"primary output {output} has multiple owners")
             output_owners[output] = str(skill_name)
-        skill_text = (ROOT / "skills" / str(skill_name) / "SKILL.md").read_text(encoding="utf-8") if skill_name in registered else ""
-        for marker in ("## Responsibility contract", "- Consumes:", "- Owns:", "- Stops:", "- Hands off:"):
-            if marker not in skill_text:
-                errors.append(f"{skill_name}: responsibility projection missing {marker}")
+        active_semantics = json.dumps(
+            {field: item.get(field) for field in ("primary_outputs", "consumes", "stops")},
+            ensure_ascii=False,
+        ).lower()
+        if any(term in active_semantics for term in legacy_active_terms):
+            errors.append(f"capability {skill_name}: active semantics contain legacy packet-era terms")
+        # The capability registry is the single machine-readable owner topology.
+        # Task-facing Skills describe only decisions and procedure; duplicating the
+        # registry's consumes/stops/handoff fields in every entrypoint creates drift.
     conditions = {
         item.get("skill"): set(item.get("orchestrated_conditions", []))
         for item in capabilities

@@ -5,7 +5,7 @@
     "minimum_codex": "0.147.0",
     "default_fork_turns": "none",
     "capabilities": {
-      "E": {"rank": 0, "model": "gpt-5.6-luna", "purpose": "efficient narrow and repeatable work"},
+      "E": {"rank": 0, "model": "gpt-5.6-luna", "purpose": "efficient directed work with closed semantics and bounded evidence"},
       "B": {"rank": 1, "model": "gpt-5.6-terra", "purpose": "balanced bounded engineering work"},
       "F": {"rank": 2, "model": "gpt-5.6-sol", "purpose": "frontier broad, ambiguous, or high-risk work"}
     },
@@ -20,9 +20,9 @@
   "profiles": [
     {"id": "P0", "capability": "E", "reasoning_effort": "low", "exception": false, "purpose": "exact lookup, fixed command, log filtering, or formatting"},
     {"id": "P1", "capability": "E", "reasoning_effort": "medium", "exception": false, "purpose": "narrow research, structured summary, or deterministic mechanical change"},
-    {"id": "P2", "capability": "B", "reasoning_effort": "medium", "exception": false, "purpose": "ordinary exploration, implementation, or failure classification"},
-    {"id": "P3", "capability": "B", "reasoning_effort": "high", "exception": false, "purpose": "bounded causal depth, oracle challenge, or routine independent review"},
-    {"id": "P4", "capability": "F", "reasoning_effort": "medium", "exception": false, "purpose": "broad context or multi-step work with a clear outcome"},
+    {"id": "P2", "capability": "E", "reasoning_effort": "high", "exception": false, "purpose": "confirmed bounded implementation or repetitive change with a deterministic oracle"},
+    {"id": "P3", "capability": "B", "reasoning_effort": "medium", "exception": false, "purpose": "ordinary exploration, implementation, failure classification, or clear multi-step work"},
+    {"id": "P4", "capability": "B", "reasoning_effort": "high", "exception": false, "purpose": "complex causal depth, routine independent review, or bounded engineering trade-offs"},
     {"id": "P5", "capability": "F", "reasoning_effort": "high", "exception": false, "purpose": "cross-component, public-contract, migration, concurrency, FFI, security, or complex review"},
     {"id": "P6", "capability": "F", "reasoning_effort": "xhigh", "exception": false, "purpose": "critical adversarial acceptance, irreversibility, or data-loss risk"},
     {"id": "PX", "capability": "F", "reasoning_effort": "max", "exception": true, "purpose": "explicitly acknowledged and evaluated exceptional work only"}
@@ -38,24 +38,28 @@
   "workloads": [
     {"id": "exact-lookup", "roles": ["dev-flow-explorer"], "delegate": true, "default_profile": "P0", "purpose": "exact file, symbol, or call-site location"},
     {"id": "docs-research", "roles": ["dev-flow-explorer"], "delegate": true, "default_profile": "P1", "purpose": "official documentation, version note, or API research"},
-    {"id": "broad-mapping", "roles": ["dev-flow-explorer"], "delegate": true, "default_profile": "P2", "purpose": "repository-wide impact or call-chain mapping"},
-    {"id": "causal-debugging", "roles": ["dev-flow-explorer"], "delegate": true, "default_profile": "P3", "purpose": "bounded causal diagnosis"},
+    {"id": "broad-mapping", "roles": ["dev-flow-explorer"], "delegate": true, "default_profile": "P2", "purpose": "directed repository-wide impact or call-chain mapping"},
+    {"id": "causal-debugging", "roles": ["dev-flow-explorer"], "delegate": true, "default_profile": "P4", "purpose": "complex causal diagnosis"},
     {"id": "exact-verification", "roles": ["dev-flow-test-runner"], "delegate": true, "default_profile": "P0", "purpose": "execute an exact command and preserve its first result"},
-    {"id": "failure-triage", "roles": ["dev-flow-test-runner"], "delegate": true, "default_profile": "P2", "purpose": "classify logs, failures, or environment evidence"},
+    {"id": "failure-triage", "roles": ["dev-flow-test-runner"], "delegate": true, "default_profile": "P1", "purpose": "classify bounded logs, failures, or environment evidence"},
     {"id": "mechanical-change", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P1", "purpose": "fully specified mechanical change with a deterministic oracle"},
-    {"id": "bounded-change", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P2", "purpose": "ordinary bounded bug fix or feature slice"},
-    {"id": "broad-multi-step", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P4", "purpose": "large-context multi-step work with a clear outcome"},
+    {"id": "bounded-change", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P2", "purpose": "confirmed bounded bug fix or feature slice with a deterministic oracle"},
+    {"id": "broad-multi-step", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P3", "purpose": "multi-step work with a clear outcome and ordinary exploration"},
     {"id": "cross-component-change", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P5", "purpose": "cross-component or high-risk contract change"},
-    {"id": "routine-review", "roles": ["dev-flow-blue-reviewer", "dev-flow-red-reviewer"], "delegate": true, "default_profile": "P3", "purpose": "routine independent integration or adversarial review"},
+    {"id": "routine-review", "roles": ["dev-flow-blue-reviewer", "dev-flow-red-reviewer"], "delegate": true, "default_profile": "P4", "purpose": "routine independent integration or adversarial review"},
     {"id": "high-risk-review", "roles": ["dev-flow-blue-reviewer", "dev-flow-red-reviewer"], "delegate": true, "default_profile": "P5", "purpose": "high-risk security, data, compatibility, or rollback review"},
     {"id": "root-decision", "roles": ["root"], "delegate": false, "default_profile": null, "purpose": "requirement semantics, dependency choice, architecture adjudication, or final claim"}
   ],
   "signal_vocabulary": [
     "ambiguity",
     "causal-uncertainty",
+    "closed-scope",
+    "confirmed-semantics",
+    "consequential-judgment",
     "conflicting-evidence",
     "cross-root",
     "data-loss-risk",
+    "deterministic-oracle",
     "high-risk-acceptance",
     "independent-review",
     "irreversible",
@@ -66,23 +70,40 @@
   ],
   "upgrade_rules": [
     {
-      "id": "bounded-depth",
+      "id": "judgmental-depth",
       "any_signal": ["causal-uncertainty", "independent-review", "nondeterminism", "oracle-challenge"],
+      "minimum_capability": "B",
       "minimum_effort": "high",
-      "reason": "bounded work requires deeper causal, adversarial, or oracle reasoning"
+      "reason": "causal, adversarial, or oracle judgment requires balanced capability and deeper reasoning"
     },
     {
-      "id": "broad-capability",
-      "any_signal": ["ambiguity", "conflicting-evidence", "cross-root", "large-context", "multi-step"],
+      "id": "bounded-breadth",
+      "any_signal": ["cross-root", "large-context", "multi-step"],
+      "minimum_capability": "B",
+      "minimum_effort": "medium",
+      "reason": "breadth alone needs balanced synthesis but does not require frontier judgment"
+    },
+    {
+      "id": "frontier-judgment",
+      "any_signal": ["ambiguity", "conflicting-evidence", "consequential-judgment"],
       "minimum_capability": "F",
-      "reason": "breadth or ambiguity requires frontier capability rather than effort alone"
+      "minimum_effort": "high",
+      "reason": "open semantics, conflicting evidence, or consequential judgment requires frontier capability"
     },
     {
       "id": "critical-engineering-risk",
-      "any_risk": ["abi", "authorization", "concurrency", "data-deletion", "ffi", "migration", "persisted-data", "privacy", "protocol", "public-api", "regulated", "release", "rollback", "schema", "security", "unsafe"],
+      "any_risk": ["authorization", "data-deletion", "ffi", "privacy", "regulated", "security", "unsafe"],
       "minimum_capability": "F",
       "minimum_effort": "high",
       "reason": "critical engineering contracts require frontier capability and high checking depth"
+    },
+    {
+      "id": "structured-engineering-risk",
+      "any_risk": ["abi", "concurrency", "migration", "persisted-data", "protocol", "public-api", "release", "rollback", "schema"],
+      "unless_all_signals": ["closed-scope", "confirmed-semantics", "deterministic-oracle"],
+      "minimum_capability": "F",
+      "minimum_effort": "high",
+      "reason": "an open structured engineering contract requires frontier judgment until semantics, scope, and oracle are closed"
     },
     {
       "id": "critical-acceptance",

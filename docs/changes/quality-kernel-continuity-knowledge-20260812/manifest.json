@@ -18,7 +18,7 @@
     },
     "design": {
       "path": "design.md",
-      "sha256": "sha256:d7d25fe3dc1e5591f42701e718968954f034a3f35ceb2cf066f02e923b314566"
+      "sha256": "sha256:0cf8539b6d049663e523f45718c222c3c70dcef5921a4ed166d2430472a5a802"
     },
     "identifier_sets": {
       "acceptance_criteria": [

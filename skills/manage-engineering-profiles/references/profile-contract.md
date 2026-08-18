@@ -31,7 +31,7 @@ ${CODEX_HOME}/dev-flow/profiles/*.toml
 <repo>/.dev-flow/profiles/*.toml
 <repo>/.dev-flow/decisions/PREF-*.json
 <repo>/.dev-flow/suppressions.json
-<packet>/effective-preferences.json
+<caller-selected-output>/effective-preferences.json  # optional replaceable audit output
 ```
 
 Ordinary resolution uses local pinned sources and does not fetch remote policy. Repository sources may not escape `.dev-flow/`, and declared digests must match.
@@ -74,7 +74,7 @@ Block only unresolved applicable `must` conflicts, invalid required sources, or 
 - Recheck on recorded ecosystem, project, exception, or contract triggers.
 - Retire without rewriting history.
 
-Reminder suppression is not policy and never satisfies a governed blocker. Bind it to the exact ECR fingerprint, owner, reason, tier, and optional expiry; re-evaluate when the fingerprint changes.
+Reminder suppression is not policy and never resolves an applicable `must` conflict. When suppression output is explicitly requested, bind it to the resolved profile fingerprint, owner, reason, scope, and optional expiry; re-evaluate when the resolved inputs change.
 
 ## AGENTS projection
 

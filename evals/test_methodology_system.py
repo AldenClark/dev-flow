@@ -826,7 +826,7 @@ class MethodologySystemContractTests(unittest.TestCase):
         self.assertEqual(payload["request"]["risks"], sorted(payload["request"]["risks"]))
         self.assertEqual(payload["schema_version"], "method.selection.v1")
 
-    def test_progressive_guidance_and_novice_template_are_linked(self) -> None:
+    def test_progressive_guidance_remains_available_and_non_persisted(self) -> None:
         for method in self.pool["methods"]:
             self.assertTrue((ROOT / method["guidance_ref"]).is_file(), method["id"])
         for path in (
@@ -836,11 +836,17 @@ class MethodologySystemContractTests(unittest.TestCase):
         ):
             self.assertTrue((ROOT / path).is_file(), path)
         skill = (ROOT / "skills/dev-flow/SKILL.md").read_text(encoding="utf-8")
+        methodology = (ROOT / "skills/dev-flow/references/methodology-system.md").read_text(encoding="utf-8")
         orchestration = (ROOT / "skills/dev-flow/references/orchestration.md").read_text(encoding="utf-8")
-        self.assertIn("`select-methods`", skill)
-        self.assertIn("`record-methods`", skill)
-        self.assertIn("methodology-system.md", skill)
-        self.assertIn("observation → failure hypothesis → method → owner artifact → evidence", orchestration)
+        self.assertIn("Methodology and legacy packet details use progressive disclosure", skill)
+        self.assertIn("packet material is compatibility-only", skill)
+        self.assertIn("bounded methods", skill)
+        self.assertIn("advisory reasoning aid", methodology)
+        self.assertIn("non-persisted", methodology)
+        self.assertIn("select-methods", methodology)
+        self.assertIn("`record-methods`", methodology)
+        self.assertIn("Avoid file-by-file task inventories", orchestration)
+        self.assertIn("method records", orchestration)
 
 
 if __name__ == "__main__":

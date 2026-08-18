@@ -2,6 +2,8 @@
 
 本文件解释 Dev Flow 为什么以及怎样选择方法。机器可读真相位于 [`governance/methodology-pool.json`](../governance/methodology-pool.json)，详细操作卡按需位于 [`skills/dev-flow/references/`](../skills/dev-flow/references/)；这里不复制 117 张完整方法卡，避免文档和选择器分叉。
 
+> Dev Flow 2.0：方法池是新颖/高不确定问题的可选研究工具，不自动选择、不要求落盘，也不参与 direct/managed 生命周期门禁。下文的 `record-methods`、AC/SC/VO 和 packet 绑定属于 1.x 历史兼容说明。
+
 ## 目标与边界
 
 方法论层解决的是“面对这个已观察到的失败机理，AI 应该怎样专业地推理、产出什么、用什么证据检验”的问题。它不取代：
@@ -166,7 +168,7 @@ python3 skills/dev-flow/scripts/dev-flow.py select-methods \
 
 `--available` 必须有当前证据，不是愿望清单。输出 `method.selection.v1` 记录 foundation、匹配模型、方法栈、blocked/excluded、context budget、重选触发和 assurance boundary。
 
-受治理工作包使用持久化命令：
+维护 1.x 历史 packet 时仍可显式使用持久化命令：
 
 ```bash
 python3 skills/dev-flow/scripts/dev-flow.py record-methods \
@@ -176,7 +178,7 @@ python3 skills/dev-flow/scripts/dev-flow.py record-methods \
   --available boundary-inventory --available consumer-toolchain --depth deep
 ```
 
-`route-task` 会同时输出是否需要方法门禁、输入风险、canonical methodology risks、逐项翻译和未映射风险。工程上下文的 55 个风险现在要么直接是方法风险，要么通过 23 个显式 alias 转换；未知或目标不存在的映射失败关闭。
+2.0 `route-task` 只说明方法选择是可选研究，不再输出或强制方法门禁。独立 `select-methods` 仍可做显式研究；旧 packet 的 `record-methods` 和风险翻译继续作为兼容接口。
 
 ## 扩展治理
 

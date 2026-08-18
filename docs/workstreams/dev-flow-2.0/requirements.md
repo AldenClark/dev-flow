@@ -1,0 +1,65 @@
+# Dev Flow 2.0 requirements
+
+## Outcome
+
+Dev Flow must help Codex complete real repository work with broad engineering intelligence and proportionate process cost. It must keep long-running work understandable to both humans and agents without turning ordinary development into a parallel workflow system.
+
+## Users and scenarios
+
+- A developer or business owner follows a long-running implementation through concise repository documents.
+- Codex completes a small change without creating governance state or documentation solely for Dev Flow.
+- A high-risk but bounded change receives focused engineering controls without inheriting unrelated ceremony.
+- A maintainer releases Dev Flow using only evidence that can change the decision for the affected surface.
+- A repository with legacy packet history continues normal 2.0 work without that history blocking tools or completion.
+
+## In scope
+
+- A complete but elastic understand, explore, design, implement, verify, review, deliver, and learn lifecycle.
+- A Default-mode requirement-understanding gate that separates product-semantic work from bugs and mechanical edits, publishes a detailed understanding result for material new or changed behavior, and waits for explicit user confirmation before design.
+- Direct and managed continuity modes plus orthogonal risk overlays.
+- Primary task intent and independent knowledge-impact routing.
+- A 2+N repository document model: implementation/progress by default and conditional requirements/design/decisions.
+- Proactive zero-artifact quality calibration plus an evidence-driven capability-activation spine that selects specialist Skills, bounded methods, independent review, and P0-P6 routing from the request, repository, confirmed requirements, current diff, failures, and effective Codex tool surface.
+- Dynamic Codex capability adaptation for available Skills, subagents, native review, Goals, worktree isolation, browser/device verification, and external context without requiring any optional host capability.
+- Luna-first execution for closed, directed child work while user semantics, architecture, consequential engineering judgment, and final claims remain with the root or stronger models.
+- Flow Activation Coverage that tests positive and negative branch reachability without measuring developer productivity or product effectiveness.
+- Native engineering evidence, an independent data-security Hook, no Dev Flow process Hook, legacy packet compatibility, and proportionate release tiers.
+
+## Out of scope
+
+- Replacing Git, issue trackers, CI, deployment systems, ADR conventions, or regulated traceability systems.
+- Persisting prompts, method selections, routing receipts, fingerprints, checkpoints, command transcripts, or duplicated evidence for ordinary work.
+- Requiring Plan mode, switching to Plan mode, or weakening a task because a Default-mode interaction tool is unavailable.
+- Treating Skill, method, model, agent, review, or branch activation counts as quality, productivity, or effectiveness metrics.
+- Inferring commit, push, publication, installation, migration execution, deployment, or external communication authority.
+- Claiming production, device, account, network, hosted-CI, or business acceptance from local source verification.
+
+## Acceptance behavior
+
+- Routine work routes direct and creates no packet, state, or continuity document.
+- Direct work updates current truth and may create one light change record when durable behavior or rationale has no adequate existing home.
+- Managed initialization creates exactly `implementation.md` and `progress.md` unless a conditional document is explicitly requested.
+- `requirements.md`, `design.md`, and `decisions.md` each have a distinct positive and negative trigger.
+- Every task retains a zero-artifact quality spine; actual child dispatch uses P0-P6; high-leverage risks actively consider bounded methods.
+- Material new or changed product semantics produce a detailed requirement-understanding result and stop for explicit confirmation before technical design; established bugs and mechanical edits avoid that stop unless their expected behavior is materially ambiguous.
+- Repository and diff evidence can activate applicable technical or product Skills without requiring the user to name a risk; negative triggers keep unrelated Skills and methods out of simple work.
+- High-leverage failure mechanisms either use the owning specialist's established method or perform one bounded advisory method lookup; no method record is created.
+- Closed, confirmed, deterministic child work is eligible for Luna through P0-P2; open-ended diagnosis and consequential judgment route to Terra or Sol.
+- `flow-metrics` compatibility surfaces report expected versus observed activation only and never emit a composite outcome, productivity, or effectiveness score.
+- Legacy packet state cannot block normal search, edits, tests, package management, agent activity, or final responses.
+- No Dev Flow process Hook runs on commands, lifecycle, delegation, or completion; the independent data-security Hook protects supported sensitive-data surfaces.
+- Full semantic CI runs once per exact source revision; compatibility and artifact lanes remain focused.
+- Source version and maintained docs consistently identify the beta while publication/install/deployment remain unclaimed.
+
+## Constraints and protected behavior
+
+- Preserve explicit readers, validators, archive operations, and data compatibility for legacy packet schemas in the first 2.0 release.
+- Preserve truthful evidence states and separate local, hosted, artifact, publication, installation, deployment, and business evidence.
+- Preserve data-security controls, cross-platform behavior where affected, and deterministic artifact identity.
+- Keep main Skills concise and route detailed guidance through one-level progressive references.
+- Keep all active user interaction in Default mode. Natural-language confirmation is sufficient and creates no approval receipt.
+- Detect Codex capabilities from the effective current-turn surface; never infer them from a version, feature flag, plugin inventory, or remembered session.
+
+## Open decisions
+
+- None for local beta implementation and verification.

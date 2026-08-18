@@ -12,20 +12,92 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: utf-8
+  PYTHONDONTWRITEBYTECODE: "1"
+
 jobs:
-  validate:
-    name: ${{ matrix.os }} / Python ${{ matrix.python }}
-    runs-on: ${{ matrix.os }}
+  change-scope:
+    name: Change scope
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      compatibility: ${{ steps.scope.outputs.compatibility }}
+    steps:
+      - name: Check out source with history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Classify compatibility scope
+        id: scope
+        run: python3 tools/ci_change_scope.py
+
+  semantic:
+    name: Semantic / Ubuntu / Python 3.14
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
-    env:
-      PYTHONUTF8: "1"
-      PYTHONIOENCODING: utf-8
-      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - name: Record environment
+        run: >-
+          python -c "import json, os, platform, sys; print(json.dumps({'python': sys.version, 'platform': platform.platform(), 'machine': platform.machine(), 'runner_image': os.environ.get('ImageOS'), 'runner_version': os.environ.get('ImageVersion')}, sort_keys=True))"
+
+      - name: Run behavioral tests once
+        run: python -W error::ResourceWarning -m unittest discover -s evals -v
+
+      - name: Run structural contracts
+        run: python evals/run_contract_checks.py
+
+      - name: Validate shipped legacy methodology data
+        run: python skills/dev-flow/scripts/dev-flow.py validate-methods --root .
+
+      - name: Validate shipped legacy knowledge data
+        run: python skills/dev-flow/scripts/dev-flow.py validate-knowledge --root .
+
+      - name: Validate plugin repository
+        run: python skills/dev-flow/scripts/dev-flow.py check --plugin-root .
+
+      - name: Validate focused Skill suite
+        run: python skills/dev-flow-maintainer/scripts/validate-suite.py
+
+      - name: Validate protected data-security controls
+        run: python skills/company-data-security/scripts/doctor.py --plugin-root .
+
+      - name: Compile Python sources
+        run: python -m compileall -q hooks skills evals tools
+
+      - name: Confirm tests did not modify tracked files
+        run: git diff --exit-code
+
+  compatibility:
+    name: Compatibility / ${{ matrix.os }} / Python ${{ matrix.python }}
+    needs: change-scope
+    if: needs.change-scope.outputs.compatibility == 'true'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-15, windows-2025]
-        python: ["3.11", "3.14"]
+        include:
+          - os: ubuntu-24.04
+            python: "3.11"
+          - os: macos-15
+            python: "3.11"
+          - os: macos-15
+            python: "3.14"
+          - os: windows-2025
+            python: "3.11"
+          - os: windows-2025
+            python: "3.14"
 
     steps:
       - name: Check out source
@@ -40,32 +112,14 @@ jobs:
         run: >-
           python -c "import json, os, platform, sys; print(json.dumps({'python': sys.version, 'platform': platform.platform(), 'machine': platform.machine(), 'runner_image': os.environ.get('ImageOS'), 'runner_version': os.environ.get('ImageVersion')}, sort_keys=True))"
 
-      - name: Validate cross-platform agent dispatch
-        run: python -W error::ResourceWarning -m unittest evals.test_agent_dispatch -v
-
-      - name: Run behavioral tests
-        run: python -W error::ResourceWarning -m unittest discover -s evals -v
-
-      - name: Run structural contracts
-        run: python evals/run_contract_checks.py
-
-      - name: Validate assurance methodology
-        run: python skills/dev-flow/scripts/dev-flow.py validate-methods --root .
-
-      - name: Validate project knowledge
-        run: python skills/dev-flow/scripts/dev-flow.py validate-knowledge --root .
-
-      - name: Validate plugin repository
-        run: python skills/dev-flow/scripts/dev-flow.py check --plugin-root .
-
-      - name: Validate focused Skill suite and cutover
-        run: python skills/dev-flow-maintainer/scripts/validate-suite.py
-
-      - name: Validate protected data-security controls
-        run: python skills/company-data-security/scripts/doctor.py --plugin-root .
-
-      - name: Compile Python sources
-        run: python -m compileall -q hooks skills evals tools
+      - name: Run platform-sensitive tests
+        run: >-
+          python -W error::ResourceWarning -m unittest
+          evals.test_agent_dispatch
+          evals.test_scripts.PreflightTests
+          evals.test_scripts.RuntimeInstallerTests
+          evals.test_release_artifacts.RuntimeLifecycleSmokeTests
+          -v
 
       - name: Confirm tests did not modify tracked files
         run: git diff --exit-code

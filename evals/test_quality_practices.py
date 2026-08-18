@@ -21,22 +21,23 @@ def missing_contract_terms(text: str, terms: tuple[str, ...]) -> list[str]:
 
 
 class QualityPracticesContractTests(unittest.TestCase):
-    def test_verification_requires_two_independent_derivation_views(self) -> None:
+    def test_verification_selects_views_by_failure_sensitivity(self) -> None:
         skill = read("skills/verification/SKILL.md")
         strategy = read("skills/verification/references/test-strategy.md")
         required = (
-            "For every non-trivial behavior change",
+            "Start from the changed behavior",
             "Black-box",
             "White-box",
-            "cannot substitute for black-box or white-box",
-            "Use `N/A` only with a concrete reason tied to the actual change",
-            "Black-box and white-box describe how obligations are derived, not where tests run",
+            "distinct failure sensitivity",
+            "do not require every view or a prose `N/A`",
+            "high-risk or easy-to-fake oracle",
         )
         self.assertEqual(missing_contract_terms(strategy, required), [])
-        self.assertIn("run each applicable view", skill)
-        self.assertIn("third view, never a substitute", skill)
+        self.assertIn("where they add distinct failure sensitivity", skill)
+        self.assertIn("Do not require each view or a prose `N/A`", skill)
+        self.assertIn("practical negative control", skill)
 
-        # Negative control: losing either independent derivation view must fail the contract.
+        # Negative control: losing an available derivation view weakens the strategy contract.
         without_white_box = strategy.replace("**White-box:**", "**Structure checks:**", 1)
         self.assertIn("**White-box:**", missing_contract_terms(without_white_box, ("**White-box:**",)))
 
@@ -67,19 +68,20 @@ class QualityPracticesContractTests(unittest.TestCase):
             "skills/architecture-decisions/references/neutral-engineering-policy.md"
         )
         for term in (
-            "Freeze the approved requirement/design baseline",
-            "same coherent slice",
-            "narrow oracle early",
-            "representative smoke path",
-            "Before calling a slice commit-ready",
-            "never authorizes staging, committing, pushing",
-            "why, invariants, safety/privacy, compatibility/protocol",
-            "concurrency/lifecycle/resource ownership",
-            "workaround/removal conditions",
-            "public API contracts, limits, and errors",
+            "Re-read current product intent",
+            "smallest coherent change",
+            "Run the narrow oracle early",
+            "representative integration path when relevant",
+            "Before calling a slice complete",
+            "never authorizes stage, commit, push, PR, release, or deployment",
+            "why, invariants, safety/privacy, compatibility",
+            "ownership/lifecycle",
+            "workaround removal",
+            "public limits",
             "narrate obvious code",
-            "commented-out code",
-            "`TODO` without an owner",
+            "preserve dead code",
+            "unowned `TODO`",
+            "distinct failure sensitivity",
         ):
             self.assertIn(term, policy)
 
@@ -90,7 +92,7 @@ class QualityPracticesContractTests(unittest.TestCase):
         )
         self.assertIsNone(numeric_target.search(policy))
 
-    def test_multi_agent_brief_binds_every_drift_sensitive_input(self) -> None:
+    def test_multi_agent_brief_is_minimal_and_reconciled_by_root(self) -> None:
         orchestration = read(
             "skills/dev-flow/references/multi-agent-v2-orchestration.md"
         )
@@ -99,80 +101,31 @@ class QualityPracticesContractTests(unittest.TestCase):
         report = read("skills/dev-flow/templates/agent-report.md")
 
         for term in (
-            "base commit and worktree",
-            "requirement and design revisions/digests",
-            "effective instruction/profile/capability fingerprint",
-            "`AC/SC/VO` IDs",
-            "exclusive files/symbols/environments and read/write sets",
-            "separately derived black-box and white-box obligations",
-            "must stop and return drift",
-            "root independently rechecks",
-            "Terminal child status is coordination evidence only",
-            "governed active-child ceiling",
-            "ordinary soft limit",
-            "observed productive capacity",
-            "rolling ready frontier",
-            "critical-path",
-            "shared-disjoint-files",
-            "Declared sibling changes",
-            "combined cohort as one candidate",
-            "isolated-worktree",
-            "lease_epoch",
-            "integration queue",
-            "terminal-but-unreconciled",
-            "proposed | blocked | ready -> cancelled -> reconciled",
-            "no approved in-scope task in `proposed`, `blocked`",
-            "spawned | working -> draining",
-            "1`, `2`, `4`, and `6`",
+            "objective and expected outcome",
+            "relevant business/repository context",
+            "owned paths or an explicit read-only boundary",
+            "allowed verification and resource limits",
+            "stop conditions",
+            "expected return",
+            "Shared writers need disjoint paths",
+            "root reconciles returned work against the current Git state",
+            "reruns affected checks",
+            "A child final is a report",
         ):
             self.assertIn(term, orchestration)
+        self.assertIn("Do not require packet IDs", orchestration)
+        self.assertIn("context fingerprints", orchestration)
+        self.assertIn("unless a repository-native system genuinely consumes them", orchestration)
 
-        for term in (
-            "Base commit and worktree binding",
-            "Effective engineering context",
-            "Requirement and design baseline",
-            "Acceptance, scope, and verification IDs",
-            "Black-box obligations",
-            "White-box obligations",
-            "Resource lease and teardown",
-            "no delivery authority",
-            "engineering-context fingerprint",
-            "Task graph and state",
-            "Parallelization fit and grain",
-            "Cohort and ready frontier",
-            "Attempt, lease, and cancellation",
-            "Writer isolation and owned scope",
-            "Integration contract",
-            "proposed/blocked/ready/spawned/working/draining/overdue/interrupt-requested/terminal/orphan-suspected/cancelled/reconciled",
-        ):
-            self.assertIn(term, brief)
+        # Legacy templates remain readable, but they are not the 2.0 orchestration contract.
+        self.assertTrue(brief)
+        self.assertTrue(execution)
+        self.assertTrue(report)
 
-        for term in (
-            "Scheduler snapshot",
-            "terminal-but-unreconciled",
-            "Productive evidence",
-            "Integration queue",
-            "Sibling deltas outside a child's write set are expected",
-            "attempt / epoch",
-            "Completion order is not merge order",
-            "no approved in-scope task in proposed, blocked",
-        ):
-            self.assertIn(term, execution)
-
-        for term in (
-            "Bound baseline recheck",
-            "Effective engineering context recheck",
-            "Black-box and white-box accountability",
-            "Test-oracle validity",
-            "Resource lease and teardown",
-            "root must independently recheck",
-        ):
-            self.assertIn(term, report)
-
-        without_base = brief.replace("Base commit and worktree binding", "Initial state", 1)
+        without_objective = orchestration.replace("objective and expected outcome", "goal", 1)
         self.assertEqual(
-            missing_contract_terms(without_base, ("Base commit and worktree binding",)),
-            ["Base commit and worktree binding"],
+            missing_contract_terms(without_objective, ("objective and expected outcome",)),
+            ["objective and expected outcome"],
         )
 
 

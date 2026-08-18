@@ -1,5 +1,7 @@
 # Test matrix: <change-id>
 
+> Legacy packet compatibility template. Direct and managed 2.0 verification selects native evidence without requiring this artifact.
+
 ## Dimensions and selection rationale
 
 - Instruction mapping: <INS IDs and the cells that prove them>

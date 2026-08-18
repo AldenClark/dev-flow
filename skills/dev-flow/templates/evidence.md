@@ -1,5 +1,7 @@
 # Change evidence: <change-id>
 
+> Legacy packet compatibility template. Direct and managed 2.0 work keeps technical evidence in native engineering systems.
+
 ## Acceptance traceability
 
 | ID | Implementation | Evidence | Status | Limitation |

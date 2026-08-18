@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0",
+  "purpose": "High-fidelity first-attempt activation boundaries; no effect, productivity, or aggregate score.",
+  "cases": [
+    {
+      "id": "SEMANTIC-U1-CLARIFICATION",
+      "repository": {"README.md": "# Sample product\n"},
+      "prompt": "Use $dev-flow. Add a configurable guest checkout feature. Before implementation, make sure you deeply understand the product requirement. Do not commit or publish anything.",
+      "expected": ["requirements-design", "focused-material-clarification", "default-mode-stop", "no-repository-mutation"],
+      "forbidden": ["plan-mode", "invented-product-semantics", "technical-design", "implementation", "packet"]
+    },
+    {
+      "id": "SEMANTIC-U1-CONFIRMATION",
+      "repository": {"README.md": "# Checkout service\n\nThe service currently requires an account before checkout. Registered checkout behavior must remain unchanged.\n"},
+      "prompt": "Use $dev-flow. Add configurable guest checkout. It is a store-wide boolean, disabled by default. When enabled, guests provide email, full name, and shipping address, place an order without account creation, and look it up through a signed one-time link that expires after 24 hours. Registered checkout must remain unchanged. Invalid or expired links show a recoverable error without exposing whether another order exists. Before any technical design or implementation, publish your complete requirements understanding and stop for my confirmation. Do not edit, commit, or publish anything.",
+      "expected": ["requirements-design", "detailed-requirement-understanding", "default-mode-confirmation-stop", "no-repository-mutation"],
+      "forbidden": ["plan-mode", "technical-design", "implementation", "packet"]
+    },
+    {
+      "id": "SEMANTIC-ESTABLISHED-BUG",
+      "repository": {
+        "calculator.py": "def total(values):\n    return sum(values) + 1\n",
+        "test_calculator.py": "from calculator import total\n\ndef test_total():\n    assert total([1, 2]) == 3\n"
+      },
+      "prompt": "Use $dev-flow. Fix the established failing total() bug and run the focused test. Do not commit or publish anything.",
+      "expected": ["systematic-debugging", "verification", "source-fix", "focused-test"],
+      "forbidden": ["requirement-confirmation-stop", "managed-workstream", "architecture-decisions", "packet"]
+    },
+    {
+      "id": "SEMANTIC-MANAGED-CONTINUITY",
+      "repository": {"README.md": "# Inventory service\n"},
+      "prompt": "Use $dev-flow. This is a multi-session inventory-service rewrite. Establish repository-native implementation and progress continuity, capture the current first slice, but do not invent product semantics or create source code yet. Do not commit or publish anything.",
+      "expected": ["managed", "implementation.md", "progress.md"],
+      "forbidden": ["packet", "method-record", "requirements.md-without-need", "design.md-without-tradeoff"]
+    },
+    {
+      "id": "SEMANTIC-FFI-ADVANCED-ACTIVATION",
+      "repository": {
+        "Cargo.toml": "[package]\nname = \"ffi-sample\"\nversion = \"0.1.0\"\n",
+        "src/lib.rs": "#[unsafe(no_mangle)]\npub extern \"C\" fn add(a: i32, b: i32) -> i32 { a + b }\n"
+      },
+      "prompt": "Use $dev-flow. Review the design risks of evolving this Rust C ABI to return owned error strings to Swift callers across old and new app versions. This is design only: do not edit source and do not commit. Use relevant advanced engineering capabilities when they apply.",
+      "expected": ["architecture-decisions", "ffi-specialist-or-qualified-fallback", "bounded-method", "mixed-version-and-ownership-analysis"],
+      "forbidden": ["source-mutation", "delivery", "packet", "load-all-skills"]
+    },
+    {
+      "id": "SEMANTIC-SIMPLE-NEGATIVE-BOUNDARY",
+      "repository": {"README.md": "# Sampel\n"},
+      "prompt": "Use $dev-flow. Correct the single README typo from Sampel to Sample. Do not commit or publish anything.",
+      "expected": ["direct", "one-line-change"],
+      "forbidden": ["requirement-confirmation-stop", "managed-workstream", "specialist", "method", "independent-review", "child-agent", "packet"]
+    }
+  ]
+}

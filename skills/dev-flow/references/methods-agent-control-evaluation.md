@@ -19,7 +19,7 @@ The evidence is an autonomy ladder tied to the actual task, not a general claim 
 
 ### Belief state and active information
 
-Maintain a small ledger of `observed`, `inferred`, `unknown`, `conflicting`, and `stale` facts. For every unknown that can change the next material action, state competing hypotheses and the cheapest safe observation that separates them. Prefer repository/runtime observation over another round of model reflection. When an observation changes a premise, invalidate the dependent plan and evidence rather than blending old and new narratives.
+Maintain a small working set of `observed`, `inferred`, `unknown`, `conflicting`, and `stale` facts. For every unknown that can change the next material action, state competing hypotheses and the cheapest safe observation that separates them. Prefer repository/runtime observation over another round of model reflection. When an observation changes a premise, invalidate the dependent plan and evidence rather than blending old and new narratives.
 
 Use qualitative confidence unless a calibrated probabilistic model exists. Semantic entropy or self-consistency may prioritize inspection; neither proves correctness. If no safe discriminating observation exists, choose the conservative reversible path or stop.
 
@@ -95,7 +95,7 @@ Test cross-user/repository leakage, stale replay, poisoning, conflicting updates
 
 Build the task dependency graph before choosing a topology. Use one agent for tightly coupled mutable work; manager-worker for independently owned subtasks; parallel independent derivation for uncertainty/common-mode challenge; pipeline only where artifact contracts are stable. Estimate communication, integration, and common-mode costs—not just nominal parallel speed.
 
-Every agent receives exclusive paths/responsibilities, immutable baselines, interfaces, dependencies, authority, resource leases, deadline, stop conditions, and expected evidence. The root reconciles native results, rechecks current bytes, integrates, and adjudicates conflicts. Agent count or consensus is never an acceptance oracle.
+Every agent receives a clear outcome, relevant current context, owned paths or read-only responsibility, interfaces/dependencies, authority, allowed resources/checks, stop conditions, and expected return. The root reconciles native results against current source, integrates, and adjudicates conflicts. Do not require snapshots, digests, leases, or generated reports unless a repository-native system genuinely consumes them. Agent count or consensus is never an acceptance oracle.
 
 ### HTN planning
 
@@ -137,4 +137,4 @@ Report sample size, coverage/risk, selectivity/abstention, uncertainty, subgroup
 
 ## Common stops
 
-Stop the affected action or claim when authority is missing, provenance is lost, a monitor cannot fail safe, a partial external state has no owner, a memory item has no scope/lifecycle, a multi-agent task has conflicting ownership, a simulation lacks decision-relevant fidelity, or an evaluation cannot separate infrastructure, outcome, trajectory, and statistical assumptions. Record the fallback and keep the unexecuted gate `NOT RUN`.
+Stop the affected action or claim when authority is missing, provenance is lost, a monitor cannot fail safe, a partial external state has no owner, a memory item has no scope/lifecycle, a multi-agent task has conflicting ownership, a simulation lacks decision-relevant fidelity, or an evaluation cannot separate infrastructure, outcome, trajectory, and statistical assumptions. State the fallback in the current result and keep the unexecuted gate `NOT RUN`.

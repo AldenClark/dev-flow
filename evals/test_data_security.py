@@ -270,6 +270,7 @@ class DoctorTests(unittest.TestCase):
         for relative in (
             *doctor.PROTECTED_PATHS,
             doctor.BASELINE_PATH,
+            "hooks/hooks.json",
             "governance/capability-contracts.json",
             "governance/claim-kinds.json",
         ):

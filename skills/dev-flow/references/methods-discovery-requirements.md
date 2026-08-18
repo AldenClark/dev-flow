@@ -17,7 +17,7 @@ Use these methods to prevent “correct implementation of the wrong thing.” Re
 | Non-functional claim | quality-attribute-scenario | ATAM for competing material qualities | no affected quality claim |
 | Misuse/abuse at a boundary | use-misuse-abuse-case | STRIDE/attack tree | no meaningful misuse surface |
 | Stable boundary invariant | invariant-design-by-contract | typestate, property tests, or formal refinement | trivial glue already enforced by native types |
-| Regulated/high-consequence trace | traceability-v-model | GSN assurance case | compact AC/SC/VO is sufficient |
+| Regulated/high-consequence trace | traceability-v-model | GSN assurance case | compact acceptance/scope/verification prose is sufficient |
 
 ## Ontology and identity worksheet
 

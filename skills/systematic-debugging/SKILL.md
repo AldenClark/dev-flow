@@ -5,31 +5,22 @@ description: Reproduce and diagnose bugs, flakes, crashes, hangs, integration fa
 
 # Systematic Debugging
 
-If diagnosis reaches a missing user-owned fact or semantic boundary, remain in Default mode and follow `../requirements-design/references/user-interaction.md`.
-
 Trace the earliest incorrect state rather than patching the final symptom.
-
-## Responsibility contract
-
-- Consumes: repository context, expected behavior, the symptom, environment, and first-failure evidence.
-- Owns: reproduction, hypotheses, earliest cause, affected invariant, and a regression-oracle proposal.
-- Stops: at missing semantic/environment authority or after three failed hypotheses or repair attempts.
-- Hands off: semantic mismatch to requirements, structural cause to architecture, the bounded correction to the control plane, and executed proof to verification.
 
 ## Procedure
 
-1. Capture symptom, environment, version, input, expected/actual result, logs/trace, and reproduction reliability.
-2. Reduce to the smallest faithful reproducer and trace backward across boundaries.
-3. Maintain a `diagnosis.ledger.v1` with facts, unknowns, hypotheses, predicted observations, experiments, results, and dispositions.
-4. Run the cheapest discriminating experiment; preserve first failures and rejected hypotheses.
-5. Identify the root cause and affected invariant before proposing a correction.
-6. For implementation authority, add or identify a regression oracle that fails on the broken behavior when practical, apply one root-cause correction, then rerun the reproducer and nearby regressions.
-7. After three failed hypotheses or repair attempts, stop layering changes and reassess reproduction, model, architecture, environment, and oracle.
+1. Capture the symptom, expected and actual behavior, environment, input, version, and reproduction reliability.
+2. Reduce to the smallest faithful reproducer and preserve the first failure.
+3. Form a small set of competing hypotheses with observations that would distinguish them.
+4. Run the cheapest discriminating experiment and trace backward across boundaries.
+5. Identify the earliest actionable cause and the invariant it violates before changing code.
+6. When implementation is authorized, add or identify a regression oracle that fails on the broken behavior when practical, apply one causal correction, then rerun the reproducer and nearby regressions.
+7. After repeated failed hypotheses or repairs, stop layering changes and reassess the reproducer, model, architecture, environment, and oracle.
 
-Read `references/hypothesis-ledger.md` for evidence, flake, breaker, and regression rules.
+Use `references/hypothesis-ledger.md` for complex or long-running incidents. A local scratch table may help; no persisted diagnosis ledger is required for ordinary bugs.
 
 ## Boundaries
 
-- Keep diagnosis and remediation authority separate.
-- Do not use retries to erase flakiness or a passing linter as root-cause proof.
-- Do not opportunistically refactor outside the causal boundary.
+- Diagnosis does not by itself authorize remediation.
+- Retries do not erase flakes and a passing linter does not prove root cause.
+- Do not refactor outside the causal boundary without separately justified scope.

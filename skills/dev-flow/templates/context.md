@@ -1,5 +1,7 @@
 # Change context: <change-id>
 
+> Legacy packet compatibility template. Do not use for direct or managed 2.0 work.
+
 - Task type: <task-type>
 - Project profiles: <profiles>
 - Risk modifiers: <risk-modifiers>

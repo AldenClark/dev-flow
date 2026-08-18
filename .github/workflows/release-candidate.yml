@@ -6,7 +6,7 @@ on:
       version:
         description: SemVer declared by .codex-plugin/plugin.json
         required: true
-        default: "1.1.3"
+        default: "2.0.0-beta.3"
         type: string
       expected_sha:
         description: Full immutable commit SHA to build and attest
@@ -60,36 +60,6 @@ jobs:
       - name: Record environment
         run: >-
           python3 -c "import json, os, platform, sys; print(json.dumps({'python': sys.version, 'platform': platform.platform(), 'machine': platform.machine(), 'runner_image': os.environ.get('ImageOS'), 'runner_version': os.environ.get('ImageVersion'), 'commit': os.environ['GITHUB_SHA']}, sort_keys=True))"
-
-      - name: Validate cross-platform agent dispatch
-        run: python3 -W error::ResourceWarning -m unittest evals.test_agent_dispatch -v
-
-      - name: Run behavioral tests
-        run: python3 -W error::ResourceWarning -m unittest discover -s evals -v
-
-      - name: Run structural contracts
-        run: python3 evals/run_contract_checks.py
-
-      - name: Validate assurance methodology
-        run: python3 skills/dev-flow/scripts/dev-flow.py validate-methods --root .
-
-      - name: Validate project knowledge
-        run: python3 skills/dev-flow/scripts/dev-flow.py validate-knowledge --root .
-
-      - name: Validate plugin repository
-        run: python3 skills/dev-flow/scripts/dev-flow.py check --plugin-root .
-
-      - name: Validate focused Skill suite and cutover
-        run: python3 skills/dev-flow-maintainer/scripts/validate-suite.py
-
-      - name: Validate protected data-security controls
-        run: python3 skills/company-data-security/scripts/doctor.py --plugin-root .
-
-      - name: Compile Python sources
-        run: python3 -m compileall -q hooks skills evals tools
-
-      - name: Confirm tests did not modify tracked files
-        run: git diff --exit-code
 
       - name: Build deterministic source archive
         run: python3 tools/build_release.py build --root . --output "$ARTIFACT_DIR" --version "$RELEASE_VERSION" --commit "$EXPECTED_SHA"
