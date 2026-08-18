@@ -15,7 +15,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Verification
 
-- Reused the complete Beta.3 local evidence and required one fresh bounded semantic activation pass on the RC source before tag creation.
+- Reused the complete Beta.3 local evidence. One fresh isolated first-attempt pass matched all six semantic activation cases on the committed RC source, with no forbidden branch or authority violation.
 - No stable `v2.0.0`, GitHub Release, active-profile installation, deployment, production use, or business acceptance is implied.
 
 ## [2.0.0-beta.3] - 2026-08-18

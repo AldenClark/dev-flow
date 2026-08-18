@@ -68,13 +68,17 @@ The pilot is a small decision-oriented sample, not a release score or population
 
 These are branch-activation observations, not effect measurement, a productivity score, or a population claim. The FFI token counts are retained only as a before/after marginal-cost diagnostic for the discovered routing defect.
 
+## RC.1 semantic activation
+
+The committed RC source was installed into a temporary Codex home and exercised once in six fresh isolated repositories. All six first attempts matched their expected activation and negative boundaries: U1 clarification, U1 confirmation, established-bug diagnosis and verification, managed continuity, advanced FFI design review, and a one-line mechanical edit. The managed rewrite also created a conditional `requirements.md`; this was accepted because the multi-session rewrite had no authoritative product semantics, and the file contained only known facts, material unknowns, and the confirmation slice rather than invented behavior. No authority violation occurred.
+
 ## Current slice
 
-S12-S21 are complete. S22 has frozen features and prepared committed `2.0.0-rc.1` source for bounded semantic activation, annotated tag creation, and GitHub push.
+S12-S22 are complete for `2.0.0-rc.1`: features are frozen, the 1.x boundary is a hard cut, version and release truth are aligned, and all six bounded semantic cases matched on the committed RC source. Publication state is owned by Git history and remote refs rather than duplicated as mutable prose.
 
 ## Next
 
-Run the affected semantic activation cases, then create `v2.0.0-rc.1` and push `main` plus the tag. Hosted CI is feedback rather than an RC.1 gate; artifact publication, active-profile installation, and real-task soak remain deferred.
+Collect separately authorized RC usage feedback before deciding whether to promote the same feature scope to stable `2.0.0`. Hosted CI remains asynchronous feedback rather than an RC.1 gate; artifact publication, active-profile installation, and real-task soak remain deferred.
 
 ## Blockers and decisions needed
 
@@ -85,6 +89,7 @@ Run the affected semantic activation cases, then create `v2.0.0-rc.1` and push `
 
 - External research sources were inspected live on 2026-08-16.
 - Repository implementation started from clean `main` baseline `46ab9e0`; Beta.3 was committed as `0abb976` before RC.1 convergence.
+- RC.1 semantic activation used one first attempt per shipped semantic case in isolated synthetic repositories and a temporary plugin home. It proves branch behavior for those six executions, not population effectiveness or broad production readiness.
 - Beta.2 and Beta.3 pilots used isolated synthetic Git repositories and temporary Codex installations of the current working tree. They do not prove behavior on a large real project or all model variations.
 - The dependency pilot could not reach the package index from its sandbox; external resolution remained `BLOCKED` while its local regression passed.
 - Hosted CI, release-candidate artifact workflow, active user-profile installation, GitHub Release creation, deployment, production use, and business acceptance are not RC.1 gates and remain `NOT RUN`. No 1.x upgrade/rollback compatibility is promised. Effect evaluation is not a Dev Flow 2.0 release requirement; activation coverage is.
