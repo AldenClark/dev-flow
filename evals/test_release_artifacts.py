@@ -174,17 +174,15 @@ class RuntimeLifecycleSmokeTests(unittest.TestCase):
 
 
 class ReleaseWorkflowContractTests(unittest.TestCase):
-    def test_readme_install_ref_matches_declared_published_version(self) -> None:
+    def test_readme_install_ref_matches_declared_rc_version(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        published = re.search(r"当前已发布稳定标签为 `v([^`]+)`", readme)
-        self.assertIsNotNone(published)
-        published_version = published.group(1)
-        self.assertRegex(published_version, r"^\d+\.\d+\.\d+$")
+        self.assertIn("`v1.1.2` 是最后一个 1.x 稳定标签", readme)
+        self.assertRegex(VERSION, r"^2\.0\.0-rc\.\d+$")
         self.assertIn(
-            f"codex plugin marketplace add AldenClark/dev-flow --ref v{published_version}",
+            f"codex plugin marketplace add AldenClark/dev-flow --ref v{VERSION}",
             readme,
         )
-        self.assertIn(f"当前源码 `{VERSION}`", readme)
+        self.assertIn(f"`{VERSION}` 发布候选", readme)
 
     def test_release_identity_and_lifecycle_claims_match_exercised_evidence(self) -> None:
         attestation = json.loads(
@@ -203,12 +201,15 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
         design = (ROOT / "docs" / "workstreams" / "dev-flow-2.0" / "design.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn("last remotely verifiable stable tag (`v1.1.2`)", design)
-        self.assertIn("1.1.3 source history is not an immutable release tag", design)
+        self.assertIn("hard 1.x cut", design)
+        self.assertIn("does not promise that 2.0 state", design)
 
         releasing = (ROOT / "docs" / "releasing.md").read_text(encoding="utf-8")
-        self.assertIn("prior-version upgrade, rollback, re-upgrade", releasing)
-        self.assertIn("remain `NOT RUN` until exercised", releasing)
+        self.assertIn("2.0.0-rc.1 authorized minimal path", releasing)
+        self.assertIn("No 1.x upgrade/rollback compatibility is promised", (
+            ROOT / "docs" / "workstreams" / "dev-flow-2.0" / "progress.md"
+        ).read_text(encoding="utf-8"))
+        self.assertIn("not applicable to the hard cut", releasing)
 
     def test_workflow_run_scalars_do_not_embed_mapping_tokens_unquoted(self) -> None:
         workflows = ROOT / ".github" / "workflows"

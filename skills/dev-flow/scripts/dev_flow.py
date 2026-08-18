@@ -6330,7 +6330,7 @@ def route_task(args: argparse.Namespace) -> int:
             "excluded": {
                 "manage-engineering-profiles": "ordinary profile consumption does not activate management" if not args.profile_operation else None,
                 "dev-flow-maintainer": "explicit-only" if not args.suite_maintenance else None,
-                "legacy-packets": "readable through explicit compatibility commands; never created or activated by 2.0 routing",
+                "legacy-packets": "unsupported 1.x internals; never created, loaded, or activated by 2.0 routing",
             },
         }
     if args.compact:
@@ -6990,7 +6990,7 @@ def build_parser() -> argparse.ArgumentParser:
     select_method_kind.add_argument(
         "--task-type",
         choices=sorted(TASK_TYPES),
-        help="Compatible methodology specialization; prefer --intent for new 2.0 callers",
+        help="Unsupported 1.x parser residue; 2.0 callers use --intent",
     )
     select_methods.add_argument("--risk", action="append", default=[])
     select_methods.add_argument("--signal", action="append", default=[])
@@ -7024,7 +7024,7 @@ def build_parser() -> argparse.ArgumentParser:
     route_kind.add_argument(
         "--task-type",
         choices=sorted(TASK_TYPES),
-        help="Compatible 1.x classification; prefer --intent for new 2.0 callers",
+        help="Unsupported 1.x parser residue; 2.0 callers use --intent",
     )
     route.add_argument("--risk", action="append", default=[])
     route.add_argument("--need", choices=("architecture", "dependency", "diagnosis", "verification", "review", "delivery"), action="append", default=[])

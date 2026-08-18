@@ -70,21 +70,21 @@ These are branch-activation observations, not effect measurement, a productivity
 
 ## Current slice
 
-S12-S21 are locally complete and verified as `2.0.0-beta.3` source. The repository remains uncommitted and unpublished.
+S12-S21 are complete. S22 has frozen features and prepared committed `2.0.0-rc.1` source for bounded semantic activation, annotated tag creation, and GitHub push.
 
 ## Next
 
-User review of the hardened local Beta.3 source. Commit, hosted CI, tag, Marketplace publication, installation into an active profile, and release remain later authority boundaries.
+Run the affected semantic activation cases, then create `v2.0.0-rc.1` and push `main` plus the tag. Hosted CI is feedback rather than an RC.1 gate; artifact publication, active-profile installation, and real-task soak remain deferred.
 
 ## Blockers and decisions needed
 
-- None for local S12-S21 implementation and verification; the user approved the final design baseline on 2026-08-18.
-- Commit, push, tag, publish, release, and install remain unauthorized.
+- None for S12-S22 implementation, RC tag, and GitHub push; the user authorized the hard cut and RC.1 delivery on 2026-08-18.
+- GitHub Release creation, active-profile installation, artifact publication, deployment, and stable `v2.0.0` remain separate later actions.
 
 ## Evidence limits
 
 - External research sources were inspected live on 2026-08-16.
-- Repository implementation started from clean `main` baseline `46ab9e0`; final source remains an uncommitted working-tree change.
+- Repository implementation started from clean `main` baseline `46ab9e0`; Beta.3 was committed as `0abb976` before RC.1 convergence.
 - Beta.2 and Beta.3 pilots used isolated synthetic Git repositories and temporary Codex installations of the current working tree. They do not prove behavior on a large real project or all model variations.
 - The dependency pilot could not reach the package index from its sandbox; external resolution remained `BLOCKED` while its local regression passed.
-- Hosted CI, release-candidate workflow execution, active user-profile install/upgrade/rollback, formal multi-trial effect evaluation, tag/release/publication, deployment, production use, and business acceptance are `NOT RUN`. Effect evaluation is not a Dev Flow 2.0 release requirement; activation coverage is.
+- Hosted CI, release-candidate artifact workflow, active user-profile installation, GitHub Release creation, deployment, production use, and business acceptance are not RC.1 gates and remain `NOT RUN`. No 1.x upgrade/rollback compatibility is promised. Effect evaluation is not a Dev Flow 2.0 release requirement; activation coverage is.

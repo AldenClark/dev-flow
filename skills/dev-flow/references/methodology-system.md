@@ -51,7 +51,7 @@ python3 skills/dev-flow/scripts/dev_flow.py select-methods \
 
 Its `--root` identifies the Dev Flow methodology source repository, never the target product repository. A standalone selection is advisory, ephemeral, and non-persisted. It is not a workstream artifact, approval, checkpoint, or verification result. Persist only a resulting durable design decision, test strategy, or finding when a future maintainer needs it.
 
-`record-methods` remains only for explicit maintenance of an existing legacy packet whose schema already requires that record. Do not invoke it for 2.0 direct or managed work.
+`record-methods` is unsupported 1.x residue. Do not invoke it for 2.0 direct or managed work.
 
 ## Depth and context
 
@@ -71,9 +71,9 @@ Formal depth is not a quality badge. Never load the full pool into working conte
 
 Treat this output as research guidance. The actual code, design decision, test, review finding, or release evidence remains authoritative.
 
-## Legacy compatibility
+## 1.x boundary
 
-Legacy packet schemas and explicit CLI commands remain readable and validatable. Their historical phase-selection, event projection, digest binding, and approval rules apply only when a user deliberately operates that packet. They never activate from 2.0 routing, workstream documents, Hooks, or ordinary Skill use.
+Historical packet records and method ledgers are unsupported in 2.0. Do not route to or validate them from 2.0 work. Residual implementation code does not create a compatibility promise.
 
 ## Progressive references
 

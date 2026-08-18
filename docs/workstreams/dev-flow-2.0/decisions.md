@@ -34,7 +34,7 @@
 
 ## D5: Legacy packets remain readable but inert
 
-- Status: accepted
+- Status: superseded by D20 before RC.1
 - Context: existing repositories contain valuable packet history and may need archive/validation, but compatibility must not force continued use.
 - Decision: retain explicit legacy packet CLI and validators for the first 2.0 release; new routing, Skills, and Hooks never activate them.
 - Alternatives: delete packet code now; migrate every packet automatically.
@@ -150,3 +150,11 @@
 - Decision: identify the completed local source as `2.0.0-beta.3`, correct the published baseline to the remotely verifiable `v1.1.2`, and keep 1.1.3 as untagged source history. Commit, push, hosted CI, tag, release, publication, active installation, and deployment remain separate authority boundaries.
 - Alternatives: keep the expanded source under Beta.2; claim untagged 1.1.3 as published; defer approved capabilities to RC or 2.1.
 - Consequences: source identity matches the material model-facing change while published and local states remain exact.
+
+## D20: Freeze scope and publish RC.1 as a hard 1.x cut
+
+- Status: accepted; supersedes D5's compatibility promise and D19's Beta.3 source state
+- Context: the 2.0 outcome is complete, further feature work is frozen, and preserving 1.x upgrade/state compatibility would reintroduce the release and validation burden that 2.0 removes.
+- Decision: identify the next source as `2.0.0-rc.1`; provide no public 1.x packet, command, state, upgrade, migration, or rollback compatibility contract. Run one bounded semantic activation pass, then create an annotated RC tag and push `main` plus the tag. Hosted CI is asynchronous feedback, while artifact construction, upgrade/rollback matrices, active-profile installation, and real-task soak are not RC.1 gates.
+- Alternatives: preserve read compatibility through 2.x; remove every legacy implementation byte before RC; require hosted CI and attested artifacts before a tag.
+- Consequences: RC.1 stays small and matches the intentional breaking cut. Residual legacy code is unsupported internal debt, not a compatibility promise, and can be removed separately without blocking this release.

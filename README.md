@@ -2,7 +2,7 @@
 
 Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是建立第二套工作流引擎，而是用最少的流程成本保持三件事：长期业务工作不漂移、技术结论有原生工程证据、高后果动作保留明确安全边界。
 
-当前源码 `2.0.0-beta.3`。当前已发布稳定标签为 `v1.1.2`；1.1.3 和 2.0 beta 都只是后续源码历史，尚未形成对应发布标签，本次工作也未 commit、tag、发布或安装到活动用户环境。
+当前源码为已提交的 `2.0.0-rc.1` 发布候选。`v1.1.2` 是最后一个 1.x 稳定标签；2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。RC tag、远端 push 和安装状态必须以 Git/GitHub 实际结果为准。
 
 ## 2.0 核心模型
 
@@ -26,9 +26,9 @@ Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是
 - `risk overlays`：security、migration、external system、release、irreversible、UI 等；
 - `knowledge impact`：`none`、`current-truth`、`change-record`，managed 另有 workstream 连续性文档。
 
-Intent 只选择能力所有者，不是新的生命周期。旧 `--task-type` 仍作为兼容入口，并被明确映射到 intent。
+Intent 只选择能力所有者，不是新的生命周期。2.0 调用方只应使用 intent；源码中残留的 `--task-type` 解析不属于公共兼容承诺。
 
-`research` 用于收集、核对和比较事实，不判断目标是否存在缺陷；`review` 用于审计、代码审查、安全审查和其他需要验证发现的只读判断。`review` 默认不修改仓库；“审查并修复”使用 `change --need review`。旧的显式 `research-audit` 和 `read-only-audit` 兼容输入统一映射到 `review`。
+`research` 用于收集、核对和比较事实，不判断目标是否存在缺陷；`review` 用于审计、代码审查、安全审查和其他需要验证发现的只读判断。`review` 默认不修改仓库；“审查并修复”使用 `change --need review`。2.0 不把旧 audit/task-type 别名定义为受支持接口。
 
 仓库修改和外部动作的授权仍在路由之前单独确认。`--mutation` 只描述是否修改仓库；它不代表 push、发布、部署、迁移执行或其他外部动作的权限。
 
@@ -179,25 +179,20 @@ Dev Flow 主 Skill 只负责模式、风险和最小路由。按真实决策加�
 
 `data_security_hook.py` 仍作为独立安全能力，在支持的 prompt/tool 输入输出面阻止或脱敏高置信凭据。它不判断任务流程、需求状态、依赖合理性、测试充分性或用户语义。
 
-## Legacy packet 兼容
+## 2.0 破坏性切换
 
-2.0 第一阶段继续读取 schema 1.0-2.0 packet，并保留 `init-packet`、`validate-packet`、`resume-packet`、`transition`、`archive-packet`、`deactivate-packet`、method/knowledge validators 等显式兼容命令。它们只用于历史数据维护：
-
-- 新路由和主 Skill 永不创建或激活 packet；
-- 旧 `.codex/dev-flow/current` 不得阻断搜索、修改、测试、委派或最终回复；
-- 不自动迁移、降级或删除旧 packet；
-- `docs/project`、`docs/changes`、catalog/manifest 仍是有效历史，但新工作不再需要它们。
+2.0 不提供 1.x packet、状态、命令、安装布局或工作流的兼容承诺，也不提供自动迁移、升级或回滚路径。旧 `.codex/dev-flow/current` 不得阻断 2.0 的搜索、修改、测试、委派或最终回复；需要保留的历史文件由使用者自行归档。源码中暂时仍存在的旧 reader、validator 或 CLI 只属于未公开内部遗留，不是 2.0 公共接口，可在后续版本直接删除。
 
 ## 安装
 
-当前已发布稳定版仍为 1.1.2：
+RC 发布后可固定安装候选标签：
 
 ```bash
-codex plugin marketplace add AldenClark/dev-flow --ref v1.1.2
+codex plugin marketplace add AldenClark/dev-flow --ref v2.0.0-rc.1
 codex plugin add dev-flow@dev-flow
 ```
 
-源码开发可在仓库内执行检查，但 `2.0.0-beta.3` 尚未发布，不应把源码版本或未打 tag 的 1.1.3 历史误报为可安装版本。
+正式稳定版发布前，生产性使用仍应显式固定 RC 标签；不要把分支 HEAD 或未打标签的源码当作已发布版本。
 
 ## 验证
 
@@ -215,14 +210,14 @@ python3 -m compileall -q hooks skills evals tools
 git diff --check
 ```
 
-CI 不再在 6 个 OS/Python cell 中重复完整套件：一个 semantic job 执行完整语义/结构检查，focused compatibility matrix 只执行平台和 Python 版本敏感测试。release-candidate workflow 消费 exact SHA 的 CI 结论，只负责 archive、SBOM、checksum、provenance、attestation 和 candidate upload。
+CI 不再在 6 个 OS/Python cell 中重复完整套件：一个 semantic job 执行完整语义/结构检查，focused compatibility matrix 只执行平台和 Python 版本敏感测试。对于 `2.0.0-rc.1`，push 后 CI 作为异步反馈而不是 tag/push 的阻塞门禁；RC 不要求额外构造 archive、SBOM、provenance 或 attestation。
 
 发版按变更面分为 R1 standard、R2 runtime、R3 artifact/security、R4 model-semantic。`flow-metrics` 只验证分支激活与负向边界，不衡量生产力或效果。具体边界、命令和 `NOT RUN` 规则见 [docs/releasing.md](docs/releasing.md)。
 
 ## 版本和发布状态
 
-- `2.0.0-beta.3` 是当前未提交、未发布源码，加入 Default-mode 需求确认、主动高级能力激活、Luna P0-P2、Codex 原生适配和 Flow Activation Coverage。
-- `v1.1.2` 是当前远端已发布稳定标签；1.1.3 是未打发布标签的后续源码历史。
+- `2.0.0-rc.1` 是当前已提交的发布候选源码，包含 Default-mode 需求确认、主动高级能力激活、Luna P0-P2、Codex 原生适配和 Flow Activation Coverage。
+- `v1.1.2` 是最后一个 1.x 稳定标签；1.1.3 只存在于未发布源码历史，2.0 不提供 1.x 兼容或迁移保证。
 - 源码、commit、push、tag、GitHub Release、Marketplace 安装和生产使用是不同状态；只有逐项执行和复核后才能声称完成。
 
 研究、设计、实施拆解、进度、决策和范围外建议位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)。历史版本见 [CHANGELOG.md](CHANGELOG.md)。

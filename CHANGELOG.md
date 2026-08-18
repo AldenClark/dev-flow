@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2.0.0-rc.1] - 2026-08-18
+
+### Changed
+
+- Froze the 2.0 feature scope and promoted the verified Beta.3 implementation to the first release candidate.
+- Made the 2.0 boundary an explicit hard cut: no 1.x packet, command, state, installation, upgrade, migration, or rollback compatibility is promised.
+- Classified any residual 1.x readers, validators, schemas, tests, or datasets as unsupported internal debt rather than release obligations.
+- Selected a minimal RC path: bounded semantic activation, an annotated `v2.0.0-rc.1` tag, and GitHub push. Hosted CI is asynchronous feedback; artifact construction, upgrade/rollback matrices, active-profile installation, and real-task soak are deferred.
+
+### Verification
+
+- Reused the complete Beta.3 local evidence and required one fresh bounded semantic activation pass on the RC source before tag creation.
+- No stable `v2.0.0`, GitHub Release, active-profile installation, deployment, production use, or business acceptance is implied.
+
 ## [2.0.0-beta.3] - 2026-08-18
 
 ### Added
@@ -264,7 +278,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - Runtime markers no longer persist absolute packet paths, start/stop stay fail-open on marker storage or malformed data, and markers are removed whenever subagent stop is observed.
 - Runtime traces, plugin data, secrets, caches, and build outputs are excluded from source control.
 
-[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v2.0.0-rc.1...HEAD
+[2.0.0-rc.1]: https://github.com/AldenClark/dev-flow/compare/v1.1.2...v2.0.0-rc.1
 [2.0.0-beta.3]: https://github.com/AldenClark/dev-flow/compare/v1.1.2...HEAD
 [2.0.0-beta.2]: https://github.com/AldenClark/dev-flow/compare/v1.1.2...HEAD
 [2.0.0-beta.1]: https://github.com/AldenClark/dev-flow/compare/v1.1.2...HEAD

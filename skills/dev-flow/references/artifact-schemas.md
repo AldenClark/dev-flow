@@ -1,6 +1,6 @@
 # Legacy Packet State Contract
 
-> Dev Flow 2.0 compatibility note: these schemas document historical packet formats and explicit legacy CLI operations. Direct and managed 2.0 work do not create or consume these artifacts, and an active legacy packet cannot govern new work.
+> Dev Flow 2.0 boundary: these are unsupported historical packet internals, not a public compatibility interface. Direct and managed 2.0 work never create, consume, validate, or operate them.
 
 `<repo>/.codex/dev-flow/<change-id>/` is ignored recovery/evidence state; tracked knowledge is separate (see `knowledge-system.md`). New packets use capability-tagged schema 2.0. Older or untagged packets keep their original contract; never upgrade them silently.
 
@@ -83,4 +83,4 @@ Schema 2.0 binds each `DEP-n` identity, command/ref, files, operations, and resu
 
 Optional preference/readiness files keep v1 shape. Quality readiness adds a validator-recomputed canonical fingerprint over all governed fields; an old self-reported fingerprint cannot preserve changed tier/outcome/route/coverage. Checkpoints need non-blocked readiness. Accepted state cannot retain blocked/checkpoint readiness or preferences.
 
-When explicitly maintaining a legacy packet, validate after approval, resume/compaction, material implementation/repair waves, pre-verification, and final claim. Use CLI mutators so ledger and projection stay consistent. Terminal transition and matching `deactivate-packet` are explicit compatibility operations; Dev Flow 2.0 has no Stop Hook. Preserve newer packets on runtime mismatch.
+Do not use these packet operations for 2.0 work. Any separate historical forensics is outside the Dev Flow 2.0 support contract and must not block current implementation. Dev Flow 2.0 has no packet Stop Hook.

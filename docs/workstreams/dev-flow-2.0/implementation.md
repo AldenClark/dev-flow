@@ -8,7 +8,7 @@
 | S2 Routing and workstreams | New work defaults to direct/managed; managed docs initialize in the repository; risk overlays are orthogonal | `dev_flow.py`, templates, routing tests | direct/managed scenarios and packet-free assertions | complete |
 | S3 Thin Skills | Main and specialist instructions no longer mandate packet/ID/fingerprint/method records | Skill entrypoints and 2.0 references | suite validation, routing/contracts, static inspection | complete |
 | S4 No process Hook | Legacy packet state and command parsing cannot gate work; confidentiality remains an independent capability | `hooks.json`, deletion of `dev_flow_hook.py`, data-security tests | default manifest, data-security negative/positive cases, doctor | complete |
-| S5 Knowledge migration | New docs-as-code model is documented; legacy validator remains compatibility-only | knowledge references, README | no mandatory catalog/manifest for new work | complete |
+| S5 Knowledge migration | New docs-as-code model is documented; historical validator residue does not govern 2.0 | knowledge references, README | no mandatory catalog/manifest for new work | complete |
 | S6 Verification and release tiers | Full semantic suite runs once; focused compatibility and artifact lanes remain | CI, RC workflow, release docs/tests | workflow contracts and release-artifact tests | complete |
 | S7 Integrated verification | Focused then full deterministic validation and final diff audit | repository-wide | tests, contracts, plugin/suite/data-security checks, compile, diff | complete |
 | S8 Quality rebalance | Restore zero-artifact calibration, P0-P6 dispatch, bounded methods, hidden-risk rechecks, and conditional design docs without packet ceremony | main Skill, quality reference, router, templates, docs, tests | routing/workstream/Skill contracts plus integrated verification | complete |
@@ -25,11 +25,12 @@
 | S19 Native Codex engineering bridges | Add light AGENTS health, native review, explicit Goal, worktree isolation, UI/device verification, and external-context adapters | focused references/runtime helpers/evals | each bridge activates only on positive trigger and degrades honestly | complete |
 | S20 History and release convergence | Finish the 0.2-1.x disposition, current docs/version identity, isolated fresh-install/idempotence/uninstall smoke, high-fidelity pilots, and integrated verification | history disposition, release docs/tools, plugin/version surfaces, full suite | exact-SHA/source checks, the exercised isolated lifecycle smoke, pilots, contracts, plugin/Skill validation | complete |
 | S21 Post-audit truth and activation hardening | Make semantic activation evidence executable, expand deterministic branch coverage, bind native capabilities to the current turn, and remove model-facing/release/version documentation drift | flow-metrics, preflight, catalogs, active prompts, release/workstream truth, version sample, regressions | focused adversarial checks, full suite, contracts, plugin/Skill validation, final reverse audit | complete |
+| S22 RC.1 convergence | Freeze features, declare the hard 1.x cut, align version/state documents, run bounded semantic activation, tag, and push | manifest, README, changelog, workstream decisions/progress, semantic fixtures, Git | focused source checks, semantic observations, annotated tag, verified remote refs | in progress |
 
 ## Implementation rules
 
 - Do not create a Dev Flow packet for this work.
-- Preserve legacy packet data and explicit commands; do not make them the 2.0 default.
+- Treat 1.x packet data and commands as unsupported internals; never make them part of a 2.0 task or release promise.
 - Keep manual edits scoped and use existing standard-library tooling.
 - Prefer deleting mandatory coupling over adding adapters that reproduce it.
 - Change tests with the behavior; preserve decision-useful cross-platform and security coverage.
@@ -52,7 +53,7 @@
   - create `decisions.md` only with `--with-decisions`;
   - refuse symlink/path escape and non-empty overwrite;
   - never create `.codex/dev-flow/current` or a packet.
-- Keep `init-packet` explicitly documented as legacy compatibility.
+- Do not advertise residual `init-packet` internals as a 2.0 interface.
 
 ## S3 details: Skills
 
@@ -77,7 +78,7 @@
 
 - Treat repository documents as normal tracked knowledge reviewed through Git.
 - Remove new-work instructions for catalog, manifest, digest, promotion, and packet binding.
-- Preserve `validate-knowledge` and historical dossiers as legacy/read-only compatibility.
+- Keep historical files user-owned but outside the 2.0 support contract.
 - Update top-level documentation so teams may choose their own docs/ADR convention.
 
 ## S6 details: verification and release

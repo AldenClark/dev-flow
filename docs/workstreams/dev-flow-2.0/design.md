@@ -2,10 +2,10 @@
 
 ## Status
 
-- State: `2.0.0-beta.3` source locally implemented and verified; uncommitted and unpublished
+- State: `2.0.0-rc.1` source implemented and committed; tag and remote push are the active delivery actions
 - Product decision: replace the 1.x packet-first default with repository-first direct and managed work
-- Compatibility decision: preserve legacy packet readers and explicit maintenance commands, but legacy packets never govern 2.0 work
-- Publication state: not released, not tagged, not installed
+- Compatibility decision: make a hard 1.x cut with no public upgrade, migration, rollback, packet, state, or command compatibility contract
+- Publication state: RC source prepared; installation and production use remain separate
 
 ## Outcome
 
@@ -17,7 +17,7 @@ Success means:
 - long-running work maintains concise implementation/progress documents and only adds requirements/design/decision documents when their content has durable value;
 - code, tests, Git, CI, runtime checks, and release artifacts remain the evidence owners for technical claims;
 - risks add specific controls without changing the base continuity model;
-- legacy packet state cannot block searching, editing, testing, delegation, or completion of 2.0 work;
+- unsupported 1.x state cannot block searching, editing, testing, delegation, or completion of 2.0 work;
 - Dev Flow's own patch release cost is materially lower while preserving cross-platform and artifact-integrity evidence.
 
 ## Non-goals
@@ -26,7 +26,7 @@ Success means:
 - Require every repository to use the default document path or filenames.
 - Prove production, device, network, account, or human acceptance through local evidence.
 - Infer authority to commit, push, publish, deploy, migrate, install, or communicate externally.
-- Delete old packet history or break its read/validate/archive tools in the first 2.0 release.
+- Migrate, upgrade, repair, archive, or roll back 1.x state for users.
 
 ## Design constitution
 
@@ -375,14 +375,13 @@ Use three lanes:
 
 Report pass/fail, expected versus observed activation, missing activation, unexpected activation, and unmet prerequisites. Do not emit a composite score, productivity/effect metric, developer ranking, Skill/method usage target, or persistent task telemetry. Use pairwise/boundary cases rather than a Cartesian product; add a case when a real activation failure is observed.
 
-## Legacy migration
+## Breaking 1.x cutover
 
-- Keep schemas 1.0-2.0 packet validation, archive, and explicit legacy CLI commands readable.
-- Stop creating packets from the 2.0 Skill and new `route-task` defaults.
+- 2.0 starts from its repository-first direct/managed model and does not consume 1.x state.
+- No automatic migration, upgrade, downgrade, rollback, packet repair, or command compatibility is provided.
 - Remove the Dev Flow process Hook, including packet lifecycle, command authorization, delegation, and Stop handling.
-- If a legacy packet is active, ignore it for 2.0 work; the user may archive it later without blocking current work.
-- Existing tracked `docs/project` and `docs/changes` remain valid history. New work uses the repository's convention or `docs/workstreams`.
-- Mark packet/methodology/catalog APIs as legacy in documentation before a later major removal decision.
+- Ignore any old active pointer for 2.0 work; users retain or delete historical files under their own repository policy.
+- Residual packet readers, validators, schemas, tests, or datasets are unsupported internals rather than a release promise and may be deleted later without a compatibility ceremony.
 
 ## Acceptance scenarios
 
@@ -401,6 +400,6 @@ Report pass/fail, expected versus observed activation, missing activation, unexp
 
 ## Rollback
 
-Before publication, rollback is a normal Git revert of the 2.0 changes. After publication, restore the last remotely verifiable stable tag (`v1.1.2`) or a separately preserved exact pre-2.0 source snapshot while retaining the 2.0 research and workstream documents as historical knowledge. The 1.1.3 source history is not an immutable release tag. Legacy packet code remains available throughout the first 2.0 release, so rollback does not require packet-data migration.
+Before tag/push, rollback is a normal Git revert of the RC preparation commit. After publication, users may independently pin `v1.1.2`, but Dev Flow 2.0 does not promise that 2.0 state, configuration, or behavior can be downgraded into 1.x. No upgrade/rollback matrix is a release requirement for this hard cut.
 
 Recommendations intentionally outside this implementation are tracked in [recommendations.md](recommendations.md).

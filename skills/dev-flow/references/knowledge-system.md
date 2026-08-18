@@ -32,6 +32,6 @@ Repositories with regulated traceability, generated documentation, or stronger n
 - Exclude secrets, personal payloads, unnecessary production data, machine-local paths, bulk logs, and generated facts owned by code/tooling.
 - Delete or archive a workstream only under the repository's normal knowledge-retention rules.
 
-## Legacy knowledge compatibility
+## 1.x boundary
 
-`docs/project`, `docs/changes`, `catalog.json`, per-change manifests, authority bindings, and `validate-knowledge` remain readable compatibility surfaces for existing Dev Flow history. They are not required for new 2.0 work and must not block implementation or acceptance.
+Historical `docs/project`, `docs/changes`, catalogs, manifests, and authority bindings are user-owned repository files, not supported 2.0 workflow inputs. Never let them block implementation or acceptance, and do not migrate or validate them unless the user explicitly requests separate historical maintenance.

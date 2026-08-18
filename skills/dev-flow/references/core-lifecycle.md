@@ -55,6 +55,6 @@ Keep `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, and `WAIVED` distinct. A
 
 Commit, push, PR, tag, release, deploy, migration execution, installation, and external communication are separate actions and authorities.
 
-## Legacy compatibility
+## 1.x boundary
 
-Schemas 1.0-2.0, packet validation, archive, and explicit lifecycle commands remain readable for old work. They are not part of this lifecycle. An active legacy pointer never governs 2.0 work.
+2.0 has no 1.x state, command, migration, upgrade, or rollback compatibility contract. An old pointer never governs 2.0 work. Do not load or operate residual packet internals during a 2.0 task.

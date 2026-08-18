@@ -10,7 +10,7 @@ Dev Flow must help Codex complete real repository work with broad engineering in
 - Codex completes a small change without creating governance state or documentation solely for Dev Flow.
 - A high-risk but bounded change receives focused engineering controls without inheriting unrelated ceremony.
 - A maintainer releases Dev Flow using only evidence that can change the decision for the affected surface.
-- A repository with legacy packet history continues normal 2.0 work without that history blocking tools or completion.
+- A repository may start 2.0 cleanly even when unsupported 1.x state still exists; that state never blocks tools or completion.
 
 ## In scope
 
@@ -23,7 +23,7 @@ Dev Flow must help Codex complete real repository work with broad engineering in
 - Dynamic Codex capability adaptation for available Skills, subagents, native review, Goals, worktree isolation, browser/device verification, and external context without requiring any optional host capability.
 - Luna-first execution for closed, directed child work while user semantics, architecture, consequential engineering judgment, and final claims remain with the root or stronger models.
 - Flow Activation Coverage that tests positive and negative branch reachability without measuring developer productivity or product effectiveness.
-- Native engineering evidence, an independent data-security Hook, no Dev Flow process Hook, legacy packet compatibility, and proportionate release tiers.
+- Native engineering evidence, an independent data-security Hook, no Dev Flow process Hook, a clean 1.x compatibility cut, and proportionate release checks.
 
 ## Out of scope
 
@@ -48,12 +48,12 @@ Dev Flow must help Codex complete real repository work with broad engineering in
 - `flow-metrics` compatibility surfaces report expected versus observed activation only and never emit a composite outcome, productivity, or effectiveness score.
 - Legacy packet state cannot block normal search, edits, tests, package management, agent activity, or final responses.
 - No Dev Flow process Hook runs on commands, lifecycle, delegation, or completion; the independent data-security Hook protects supported sensitive-data surfaces.
-- Full semantic CI runs once per exact source revision; compatibility and artifact lanes remain focused.
-- Source version and maintained docs consistently identify the beta while publication/install/deployment remain unclaimed.
+- Deterministic activation and the affected bounded semantic cases validate the RC; hosted CI may provide later feedback without becoming a publication ceremony.
+- Source version and maintained docs consistently identify the RC while installation and production use remain unclaimed.
 
 ## Constraints and protected behavior
 
-- Preserve explicit readers, validators, archive operations, and data compatibility for legacy packet schemas in the first 2.0 release.
+- Provide no 1.x packet, state, command, installation, upgrade, migration, or rollback compatibility contract. Any residual reader or validator is unsupported internal code and may be removed without notice.
 - Preserve truthful evidence states and separate local, hosted, artifact, publication, installation, deployment, and business evidence.
 - Preserve data-security controls, cross-platform behavior where affected, and deterministic artifact identity.
 - Keep main Skills concise and route detailed guidance through one-level progressive references.
@@ -62,4 +62,4 @@ Dev Flow must help Codex complete real repository work with broad engineering in
 
 ## Open decisions
 
-- None for local beta implementation and verification.
+- None for RC.1 implementation, bounded semantic validation, tag, and push.

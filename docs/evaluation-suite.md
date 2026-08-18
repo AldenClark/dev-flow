@@ -75,8 +75,8 @@ R1 always runs deterministic activation coverage. R4 model-semantic changes addi
 
 A result may block publication only when a required branch is missing, a forbidden branch activates, authority is exceeded, or the fixture/prerequisite is invalid. Repository tests, platform checks, security controls, artifact provenance, installation, and publication authority remain separate evidence.
 
-## Legacy paired-evaluation compatibility
+## Unsupported 1.x evaluation residue
 
-The repository still ships the 1.x paired-evaluation runner, schemas, development bank, and frozen acceptance bank so accepted historical artifacts remain readable and their deterministic contracts do not silently rot. They are compatibility/research surfaces, not `flow-metrics`, not a Dev Flow 2.0 default gate, and not evidence of developer or workflow effectiveness.
+The repository still contains the 1.x paired-evaluation runner, schemas, development bank, and frozen acceptance bank as internal historical residue. They are not a supported 2.0 compatibility or research interface, not `flow-metrics`, and not a release gate. They may be removed without a migration promise.
 
-Running the legacy model harness requires explicit scope and budget. Its historical metric and threshold fields retain their schema meaning only; Dev Flow 2.0 does not use them to rank people, optimize process activation counts, or decide ordinary releases. A future removal or extraction requires an explicit compatibility decision.
+Dev Flow 2.0 never uses their historical metric or threshold fields to rank people, optimize process activation counts, or decide releases. Flow Activation Coverage is the only active routing-evaluation contract.

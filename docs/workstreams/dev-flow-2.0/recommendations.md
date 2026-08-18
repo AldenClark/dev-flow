@@ -2,9 +2,9 @@
 
 S12–S20 bring the previously proposed RC/2.1 workflow capabilities into the 2.0 beta baseline. The remaining recommendations are organizational or product-packaging choices that should not become global workflow requirements.
 
-## 1. Define the legacy compatibility horizon
+## 1. Remove residual 1.x internals only when it pays for itself
 
-Keep packet, catalog, method-record, and paired-evaluation readers during beta. Before stable release, publish a separate deprecation horizon for read-only support, extraction to a compatibility package, or eventual removal. Do not make ordinary 2.0 work prove that legacy machinery still governs it.
+The compatibility decision is resolved as a hard 2.0 cut. Packet, catalog, method-record, and paired-evaluation residue is unsupported internal debt, not a public transition surface. Remove or extract it later only when the maintenance saving exceeds the deletion and regression cost; never make ordinary 2.0 work validate it as a release promise.
 
 ## 2. Improve repository-native golden paths
 
