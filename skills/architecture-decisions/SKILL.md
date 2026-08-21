@@ -7,6 +7,10 @@ description: Make repository-grounded architecture decisions for material bounda
 
 Choose the smallest coherent architecture that satisfies the product outcome and existing repository contracts.
 
+This Skill may operate alone for a bounded design decision. If the decision drives material repository mutation, cross-boundary implementation, managed continuity, or high-risk delivery, load `dev-flow` as the coordinating kernel when it is available and not already active; keep this Skill as the architecture owner.
+
+Public-contract or data-lifecycle design spanning compatibility, rollout, recovery, privacy, or deletion is cross-boundary even when it is read-only. Load `dev-flow` before technical design in that case.
+
 ## Procedure
 
 1. Establish the active language/framework/version, artifact role, call path, boundary, ownership, and brownfield constraints.

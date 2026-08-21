@@ -1,11 +1,13 @@
 ---
 name: verification
-description: Derive risk-based oracles, run native checks, control environments and resources, and report fresh compatibility, security, performance, accessibility, and runtime evidence.
+description: Derive risk-based oracles, run native checks, and report fresh compatibility, security, performance, accessibility, and runtime evidence.
 ---
 
 # Verification
 
 Use the narrowest evidence that can falsify the changed behavior, then broaden only across affected risks.
+
+This Skill may operate alone for a bounded read-only check. If verification accompanies material repository mutation, crosses compatibility or runtime boundaries, needs managed continuity, or supports high-risk delivery, load `dev-flow` as the coordinating kernel when it is available and not already active; keep this Skill as the evidence owner.
 
 ## Procedure
 

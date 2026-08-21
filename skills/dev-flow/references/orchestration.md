@@ -32,13 +32,15 @@ At start or resume:
 3. reconcile meaningful drift in the documents with one concise update;
 4. continue the smallest ready slice.
 
-Update progress only after a coherent slice, design/scope change, blocker, handoff, or closure. Replace stale current-state text; rely on Git for event history.
+Update progress after a coherent slice, design/scope change, new boundary, assumption-breaking first failure, blocker, interruption/handoff, or closure. Before yielding an incomplete slice, leave the minimum restartable handoff: done, current, next, blockers or unrun gates, and worktree/parallel-change state. Replace stale current-state text; rely on Git for event history.
 
 Run the zero-artifact quality calibration at initial planning and after the re-evaluation triggers in `quality-calibration.md`. Put only durable results into the workstream: a changed design, changed slice plan, material blocker, or decision. Do not record the calibration itself.
 
 ## Collaboration
 
 Delegate only isolated work with a credible net benefit. For every actual child dispatch, resolve the role/workload through `route-agent` and use the returned model, reasoning effort, and fork request. Do not persist the route. Briefs contain objective/outcome, context, owned paths/read-only boundary, allowed checks/resources, stop conditions, and the expected return. The root owns integration, conflict resolution, current-diff review, and affected verification.
+
+When independent review is required, dispatch a clean-context reviewer through `route-agent` when available and authorized. If not, record the downgrade in the user-facing result, use the strongest same-context review available, and retain `common-mode-risk` as an evidence limit. Blue/red lenses in the implementer's context do not satisfy independence.
 
 Parallel workers must have disjoint writes or isolated worktrees. Do not use agent count, profile depth, report count, or concurrency as progress metrics.
 

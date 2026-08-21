@@ -2,10 +2,25 @@
 
 ## Status
 
-- State: `2.0.0-rc.1` source implemented and committed; tag and remote push are the active delivery actions
+- State: `2.0.0-rc.2` activation hardening is implemented and deterministically verified in the local working tree; model-semantic and delivery gates remain separate
 - Product decision: replace the 1.x packet-first default with repository-first direct and managed work
 - Compatibility decision: make a hard 1.x cut with no public upgrade, migration, rollback, packet, state, or command compatibility contract
 - Publication state: RC source prepared; installation and production use remain separate
+
+## RC.2 activation-hardening design
+
+The hardening is an additive compatibility layer rather than a new workflow generation:
+
+1. **Discovery:** describe the main Skill in user-task language and explicitly keep implicit invocation enabled. Engineering subskills reconnect to the kernel only after their narrow task becomes material or cross-boundary.
+2. **Activation:** require one compact `route-task` decision for explicit invocations and material/high-leverage work. The activation result is shown briefly in conversation and is never persisted as a receipt.
+3. **Normalization:** accept a small alias table at the task-facing route, preserve canonical signals in downstream selection, record normalization in output, and derive foundational signals only when the caller supplied no method signal.
+4. **Selection:** let the lower-level selector preserve its public schema and complete reasoning trace; the task-facing projection independently ranks ready and blocked results so blocked or broad-domain methods cannot consume the ready guidance budget.
+5. **Domain gates:** privacy methods require privacy evidence, agent-memory methods require an agentic memory store, and multi-agent methods require planned delegation. Missing domain evidence removes an irrelevant candidate rather than manufacturing prerequisites.
+6. **Review:** a required independent review returns an executable `route-agent` contract plus an explicit downgrade path. Same-context review remains useful but carries a named common-mode limitation.
+7. **Continuity:** managed routing returns update, resume, and interruption-handoff invariants. Repository documents remain the only durable coordination surface.
+8. **Evaluation:** deterministic catalogs test the aliases, derivation, ranking, domain gates, review contract, continuity contract, explicit/implicit semantic cases, and negative controls. No new evaluation schema or aggregate score is introduced.
+
+The smaller rejected alternatives were adding another Skill, expanding the 117-method pool, making every task call the router, or changing the lower-level `method.selection.v1` schema. Each would add context or compatibility cost without addressing the observed activation failure directly.
 
 ## Outcome
 
@@ -357,7 +372,7 @@ Runtime logs and temporary evidence remain ignored/generated. Promote only durab
 | R1 standard | docs, Skill prose, fixtures, ordinary logic | focused local checks + semantic CI + affected compatibility tests |
 | R2 runtime | installer, host integration, or cross-platform process/path behavior | R1 + compatibility lane + isolated install/uninstall smoke |
 | R3 artifact/security | builder, release workflow, attestation, data-security controls | R2 as applicable + deterministic archive/SBOM/provenance negative tests |
-| R4 model-semantic | material change whose branch activation depends on Codex interpretation | affected deterministic gates + semantic fixtures and bounded isolated first-attempt activation pilots when needed; no effect score |
+| R4 model-semantic | material change whose branch activation depends on Codex interpretation | affected deterministic gates + predeclared authorized/budgeted categories, at least three distinct cases per category and three independent first attempts per case; separate safety/authority gates and no aggregate score |
 
 Higher tiers are additive only where relevant. A documentation patch does not rehearse install rollback. A data-security Hook change uses security-specific gates without a full model acceptance run. A model evaluation never substitutes for deterministic or artifact evidence.
 

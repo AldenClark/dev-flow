@@ -2,7 +2,7 @@
 
 本文件解释 Dev Flow 为什么以及怎样选择方法。机器可读真相位于 [`governance/methodology-pool.json`](../governance/methodology-pool.json)，详细操作卡按需位于 [`skills/dev-flow/references/`](../skills/dev-flow/references/)；这里不复制 117 张完整方法卡，避免文档和选择器分叉。
 
-> Dev Flow 2.0：方法池是新颖/高不确定问题的可选研究工具，不自动选择、不要求落盘，也不参与 direct/managed 生命周期门禁。下文的 `record-methods`、AC/SC/VO 和 packet 绑定属于 1.x 历史兼容说明。
+> Dev Flow 2.0：方法池是新颖/高不确定问题的有界研究工具。高杠杆失败机理会通过 task-facing `route-task` 主动匹配，但结果不要求落盘，也不参与 direct/managed 生命周期门禁。下文的 `record-methods`、AC/SC/VO 和 packet 绑定属于 1.x 历史兼容说明。
 
 ## 目标与边界
 
@@ -178,7 +178,11 @@ python3 skills/dev-flow/scripts/dev-flow.py record-methods \
   --available boundary-inventory --available consumer-toolchain --depth deep
 ```
 
-2.0 `route-task` 只说明方法选择是可选研究，不再输出或强制方法门禁。独立 `select-methods` 仍可做显式研究；旧 packet 的 `record-methods` 和风险翻译继续作为兼容接口。
+2.0 `route-task` 是普通任务的集成入口：它接受八个稳定 canonical signals，并把 `concurrency-ordering`、`distributed-state`、`migration-rollback` 等常见说法归一化；当调用方只给出 concurrency、migration、security/privacy、persisted-data 等风险而没有 signal 时，派生最小基础 signal。`data-loss` 作为 task-facing 风险别名映射到 `persisted-data`。canonical signal、方法 ID 和低层 `method.selection.v1` 不变。
+
+Task-facing 投影分别限制 ready 与 blocked：最多给出三个可执行 guidance 和两个直接相关的缺前提 fallback；blocked 不占 ready 名额。若 change/implementation 阶段没有匹配方法，但 signal 明确属于 requirements、diagnosis、design 或 verification owner，route 会选择相邻 owner phase，而不是返回空的 implementation 结果。宽 security 不会单独引出隐私方法，persistent-agent-memory 需要 agentic system 与 memory-store 证据，多 Agent 方法需要真实 delegation signal。若仍没有可执行或直接相关的 blocked 方法，结果明确为 `no-actionable-match` 并回退到 owner Skill，而不是用一个无关名称假装覆盖。
+
+独立 `select-methods` 仍可做显式维护研究；旧 packet 的 `record-methods` 和风险翻译继续作为兼容接口。
 
 ## 扩展治理
 

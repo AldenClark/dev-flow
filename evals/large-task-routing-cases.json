@@ -1,0 +1,3148 @@
+{
+  "schema_version": "1.0",
+  "purpose": "Deterministic large-task Dev Flow simulations covering 20 common software-engineering task families with four distinct local routing variants each; branch activation only, never model effectiveness.",
+  "cases": [
+    {
+      "id": "LARGE-F01-ISSUE-DIAGNOSIS-IOS-PUSH-LATENCY",
+      "command": [
+        "route-task",
+        "--intent",
+        "diagnose",
+        "--requirement-class",
+        "defect-correction",
+        "--multi-session",
+        "--cross-module",
+        "--risk",
+        "concurrency",
+        "--risk",
+        "backpressure",
+        "--risk",
+        "recovery",
+        "--risk",
+        "incomplete-reproduction",
+        "--method-signal",
+        "conflicting-evidence",
+        "--method-prerequisite",
+        "repository-facts",
+        "--method-prerequisite",
+        "test-oracle",
+        "--need",
+        "verification",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.method.selection.phase": "diagnosis"
+      },
+      "contains": {
+        "routes": [
+          "systematic-debugging",
+          "architecture-decisions",
+          "verification"
+        ],
+        "capability_activation.method.reasons": [
+          "signal:conflicting-evidence",
+          "signal:state-lifecycle"
+        ],
+        "capability_activation.method.selection.selected": "reproduction-minimization"
+      }
+    },
+    {
+      "id": "LARGE-F01-ISSUE-DIAGNOSIS-FLAKY-CI-RACE",
+      "command": [
+        "route-task",
+        "--intent",
+        "diagnose",
+        "--requirement-class",
+        "defect-correction",
+        "--multi-session",
+        "--risk",
+        "concurrency",
+        "--risk",
+        "ordering",
+        "--risk",
+        "flaky-baseline",
+        "--risk",
+        "incomplete-reproduction",
+        "--method-signal",
+        "conflicting-evidence",
+        "--method-prerequisite",
+        "repository-facts",
+        "--method-prerequisite",
+        "test-oracle",
+        "--method-depth",
+        "deep",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.method.selection.phase": "diagnosis"
+      },
+      "contains": {
+        "routes": [
+          "systematic-debugging",
+          "architecture-decisions",
+          "verification"
+        ],
+        "capability_activation.method.signal_normalization.canonical": [
+          "conflicting-evidence",
+          "state-lifecycle"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F01-ISSUE-DIAGNOSIS-STARTUP-REGRESSION",
+      "command": [
+        "route-task",
+        "--intent",
+        "diagnose",
+        "--requirement-class",
+        "defect-correction",
+        "--risk",
+        "startup",
+        "--risk",
+        "performance",
+        "--risk",
+        "memory",
+        "--risk",
+        "incomplete-reproduction",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "defect-correction"
+      },
+      "contains": {
+        "routes": [
+          "systematic-debugging",
+          "architecture-decisions",
+          "verification"
+        ]
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F01-ISSUE-DIAGNOSIS-EXTERNAL-API-TIMEOUT",
+      "command": [
+        "route-task",
+        "--intent",
+        "diagnose",
+        "--requirement-class",
+        "defect-correction",
+        "--cross-module",
+        "--risk",
+        "protocol",
+        "--risk",
+        "recovery",
+        "--risk",
+        "idempotency",
+        "--risk",
+        "incomplete-reproduction",
+        "--method-signal",
+        "conflicting-evidence",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "defect-correction"
+      },
+      "contains": {
+        "routes": [
+          "systematic-debugging",
+          "architecture-decisions",
+          "verification"
+        ],
+        "capability_activation.method.reasons": "signal:conflicting-evidence"
+      }
+    },
+    {
+      "id": "LARGE-F02-BOUNDED-FIX-UNTRUSTED-PARSER",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "defect-correction",
+        "--mutation",
+        "persistent",
+        "--risk",
+        "untrusted-input",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.independent_review.required": false
+      },
+      "contains": {
+        "routes": [
+          "repo-context",
+          "verification"
+        ],
+        "risk_overlays": "security"
+      },
+      "excludes": {
+        "routes": [
+          "requirements-design",
+          "change-review"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F02-BOUNDED-FIX-CANCELLATION-CLEANUP",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "defect-correction",
+        "--mutation",
+        "persistent",
+        "--risk",
+        "cancellation",
+        "--risk",
+        "memory",
+        "--risk",
+        "recovery",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "defect-correction"
+      },
+      "contains": {
+        "routes": "verification",
+        "capability_activation.method.signal_normalization.canonical": "state-lifecycle"
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F02-BOUNDED-FIX-BROWSER-SERIALIZATION",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "defect-correction",
+        "--mutation",
+        "persistent",
+        "--ui-impact",
+        "preserve",
+        "--risk",
+        "browser",
+        "--risk",
+        "protocol",
+        "--risk",
+        "compatibility",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "defect-correction"
+      },
+      "contains": {
+        "routes": [
+          "product-ux-discovery",
+          "architecture-decisions",
+          "verification"
+        ]
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F02-BOUNDED-FIX-PRODUCTION-CONFIG-TYPO",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "mechanical",
+        "--mutation",
+        "persistent",
+        "--risk",
+        "production-config",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "mechanical",
+        "capability_activation.method.active_match_required": false
+      },
+      "contains": {
+        "routes": [
+          "repo-context",
+          "verification"
+        ]
+      },
+      "excludes": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "change-review"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F03-STRUCTURAL-FIX-RECOVERABLE-DELETION",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "defect-correction",
+        "--risk",
+        "data-deletion",
+        "--risk",
+        "recovery",
+        "--risk",
+        "concurrency",
+        "--method-signal",
+        "migration-rollback",
+        "--material-exposure",
+        "--need",
+        "review",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "capability_activation.method.selection.phase": "design",
+        "capability_activation.method.selection.phase_source": "signal-adjacent-owner"
+      },
+      "contains": {
+        "risk_overlays": [
+          "irreversible",
+          "migration"
+        ],
+        "capability_activation.method.signal_normalization.canonical": [
+          "multi-version-coexistence",
+          "state-lifecycle"
+        ],
+        "capability_activation.method.selection.blocked": [
+          "state-transition-model",
+          "branch-abstraction-feature-flag"
+        ],
+        "routes": [
+          "architecture-decisions",
+          "verification",
+          "change-review"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F03-STRUCTURAL-FIX-DISTRIBUTED-CACHE-INVALIDATION",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "defect-correction",
+        "--mutation",
+        "persistent",
+        "--cross-module",
+        "--risk",
+        "distributed-state",
+        "--risk",
+        "concurrency",
+        "--risk",
+        "ordering",
+        "--risk",
+        "recovery",
+        "--method-signal",
+        "distributed-state",
+        "--need",
+        "verification",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "defect-correction"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification"
+        ],
+        "capability_activation.method.signal_normalization.canonical": [
+          "cross-participant-flow",
+          "state-lifecycle"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F03-STRUCTURAL-FIX-AUTH-SCOPE-PROPAGATION",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "defect-correction",
+        "--mutation",
+        "persistent",
+        "--cross-module",
+        "--risk",
+        "authentication",
+        "--risk",
+        "authorization",
+        "--risk",
+        "security",
+        "--material-exposure",
+        "--need",
+        "review",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.independent_review.required": true
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "verification",
+          "change-review"
+        ],
+        "risk_overlays": "security",
+        "capability_activation.method.signal_normalization.canonical": "trust-boundary"
+      }
+    },
+    {
+      "id": "LARGE-F03-STRUCTURAL-FIX-CRASH-CONSISTENT-FILES",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "defect-correction",
+        "--mutation",
+        "persistent",
+        "--cross-module",
+        "--risk",
+        "persisted-data",
+        "--risk",
+        "recovery",
+        "--risk",
+        "ordering",
+        "--risk",
+        "data-deletion",
+        "--need",
+        "verification",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "defect-correction"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification"
+        ],
+        "risk_overlays": [
+          "migration",
+          "irreversible"
+        ],
+        "capability_activation.method.signal_normalization.canonical": "state-lifecycle"
+      }
+    },
+    {
+      "id": "LARGE-F04-FEATURE-CLI-SUBCOMMAND",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "semantic-change",
+        "--understanding-confirmed",
+        "--mutation",
+        "persistent",
+        "--risk",
+        "public-api",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "semantic-change",
+        "requirement_understanding.design_allowed": true
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification"
+        ]
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F04-FEATURE-RESPONSIVE-DASHBOARD",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "semantic-change",
+        "--understanding-confirmed",
+        "--mutation",
+        "persistent",
+        "--ui-impact",
+        "material",
+        "--risk",
+        "accessibility",
+        "--risk",
+        "browser",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "semantic-change"
+      },
+      "contains": {
+        "routes": [
+          "product-ux-discovery",
+          "requirements-design",
+          "verification"
+        ],
+        "risk_overlays": "ui-product"
+      }
+    },
+    {
+      "id": "LARGE-F04-FEATURE-OFFLINE-WORK-QUEUE",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "semantic-change",
+        "--understanding-confirmed",
+        "--mutation",
+        "persistent",
+        "--cross-module",
+        "--risk",
+        "persisted-data",
+        "--risk",
+        "recovery",
+        "--risk",
+        "idempotency",
+        "--risk",
+        "ordering",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "semantic-change"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification"
+        ],
+        "risk_overlays": "migration",
+        "capability_activation.method.signal_normalization.canonical": "state-lifecycle"
+      }
+    },
+    {
+      "id": "LARGE-F04-FEATURE-ML-TRAINING-PIPELINE",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "semantic-change",
+        "--understanding-confirmed",
+        "--mutation",
+        "persistent",
+        "--multi-session",
+        "--risk",
+        "performance",
+        "--risk",
+        "resource-limits",
+        "--risk",
+        "external-write",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "semantic-change"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification"
+        ],
+        "risk_overlays": "external-system"
+      }
+    },
+    {
+      "id": "LARGE-F05-CROSS-FEATURE-DURABLE-OUTBOX",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--multi-session",
+        "--multi-slice",
+        "--cross-module",
+        "--risk",
+        "persisted-data",
+        "--risk",
+        "distributed-state",
+        "--risk",
+        "backpressure",
+        "--risk",
+        "recovery",
+        "--risk",
+        "idempotency",
+        "--risk",
+        "ordering",
+        "--method-signal",
+        "distributed-state",
+        "--material-exposure",
+        "--need",
+        "review",
+        "--method-prerequisite",
+        "repository-facts",
+        "--method-prerequisite",
+        "requirement-baseline",
+        "--method-prerequisite",
+        "state-model",
+        "--method-prerequisite",
+        "test-oracle",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "capability_activation.independent_review.required": true,
+        "capability_activation.method.selection.phase": "requirements"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification",
+          "change-review"
+        ],
+        "risk_overlays": [
+          "external-system",
+          "migration"
+        ],
+        "capability_activation.method.selection.selected": [
+          "data-lineage-provenance",
+          "quality-attribute-scenario"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F05-CROSS-FEATURE-BILLING-WEBHOOKS",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "semantic-change",
+        "--understanding-confirmed",
+        "--mutation",
+        "persistent",
+        "--multi-session",
+        "--cross-module",
+        "--risk",
+        "protocol",
+        "--risk",
+        "idempotency",
+        "--risk",
+        "recovery",
+        "--risk",
+        "authorization",
+        "--method-signal",
+        "cross-participant-flow",
+        "--material-exposure",
+        "--need",
+        "review",
+        "--need",
+        "verification",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "capability_activation.independent_review.required": true
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification",
+          "change-review"
+        ],
+        "risk_overlays": [
+          "external-system",
+          "security"
+        ],
+        "capability_activation.method.signal_normalization.canonical": [
+          "cross-participant-flow",
+          "state-lifecycle",
+          "trust-boundary"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F05-CROSS-FEATURE-SEARCH-INDEX-PIPELINE",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--mutation",
+        "persistent",
+        "--multi-session",
+        "--multi-slice",
+        "--cross-module",
+        "--risk",
+        "distributed-state",
+        "--risk",
+        "persisted-data",
+        "--risk",
+        "performance",
+        "--risk",
+        "backpressure",
+        "--method-signal",
+        "distributed-state",
+        "--need",
+        "verification",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "structural-adjustment"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification"
+        ],
+        "risk_overlays": [
+          "external-system",
+          "migration"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F05-CROSS-FEATURE-REGULATED-AUDIT-EXPORT",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "semantic-change",
+        "--understanding-confirmed",
+        "--mutation",
+        "persistent",
+        "--multi-session",
+        "--cross-module",
+        "--risk",
+        "privacy",
+        "--risk",
+        "regulated",
+        "--risk",
+        "external-write",
+        "--risk",
+        "persisted-data",
+        "--material-exposure",
+        "--need",
+        "review",
+        "--need",
+        "verification",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "capability_activation.independent_review.required": true
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "verification",
+          "change-review"
+        ],
+        "risk_overlays": [
+          "security",
+          "external-system",
+          "migration"
+        ],
+        "capability_activation.method.signal_normalization.canonical": [
+          "state-lifecycle",
+          "trust-boundary"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F06-REFACTOR-MECHANICAL-RENAME",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "mechanical",
+        "--mutation",
+        "persistent",
+        "--knowledge-impact",
+        "none"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "mechanical",
+        "capability_activation.method.active_match_required": false
+      },
+      "contains": {
+        "routes": [
+          "repo-context",
+          "verification"
+        ]
+      },
+      "excludes": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "change-review"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F06-REFACTOR-LOCAL-EXTRACTION",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--mutation",
+        "persistent",
+        "--knowledge-impact",
+        "none"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "structural-adjustment"
+      },
+      "contains": {
+        "routes": [
+          "repo-context",
+          "verification"
+        ]
+      },
+      "excludes": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "change-review"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F06-REFACTOR-CROSS-MODULE-LAYERING",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--mutation",
+        "persistent",
+        "--cross-module",
+        "--risk",
+        "architecture",
+        "--material-tradeoff",
+        "--need",
+        "architecture",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "structural-adjustment"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification"
+        ]
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F06-REFACTOR-PERFORMANCE-PRESERVING",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--mutation",
+        "persistent",
+        "--multi-session",
+        "--cross-module",
+        "--risk",
+        "performance",
+        "--risk",
+        "memory",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "structural-adjustment"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification"
+        ]
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F07-PERFORMANCE-SLO-LATENCY-PROFILING",
+      "command": [
+        "route-task",
+        "--intent",
+        "diagnose",
+        "--requirement-class",
+        "defect-correction",
+        "--risk",
+        "slo",
+        "--risk",
+        "performance",
+        "--risk",
+        "resource-limits",
+        "--risk",
+        "incomplete-reproduction",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "defect-correction"
+      },
+      "contains": {
+        "routes": [
+          "systematic-debugging",
+          "architecture-decisions",
+          "verification"
+        ]
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F07-PERFORMANCE-N-PLUS-ONE-QUERY",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "defect-correction",
+        "--mutation",
+        "persistent",
+        "--risk",
+        "performance",
+        "--risk",
+        "resource-limits",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "defect-correction"
+      },
+      "contains": {
+        "routes": [
+          "architecture-decisions",
+          "verification"
+        ]
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F07-PERFORMANCE-MEMORY-GROWTH",
+      "command": [
+        "route-task",
+        "--intent",
+        "diagnose",
+        "--requirement-class",
+        "defect-correction",
+        "--multi-session",
+        "--risk",
+        "memory",
+        "--risk",
+        "resource-limits",
+        "--risk",
+        "incomplete-reproduction",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "defect-correction"
+      },
+      "contains": {
+        "routes": [
+          "systematic-debugging",
+          "architecture-decisions",
+          "verification"
+        ]
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F07-PERFORMANCE-OVERLOAD-BACKPRESSURE",
+      "command": [
+        "route-task",
+        "--intent",
+        "design",
+        "--requirement-class",
+        "structural-adjustment",
+        "--multi-session",
+        "--material-tradeoff",
+        "--risk",
+        "performance",
+        "--risk",
+        "backpressure",
+        "--risk",
+        "resource-limits",
+        "--risk",
+        "recovery",
+        "--need",
+        "architecture",
+        "--method-signal",
+        "state-lifecycle",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "structural-adjustment"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions"
+        ],
+        "capability_activation.method.signal_normalization.canonical": "state-lifecycle"
+      }
+    },
+    {
+      "id": "LARGE-F08-CONCURRENCY-INTERRUPTED-WORKSTREAM",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--multi-session",
+        "--multi-slice",
+        "--coordination",
+        "--cross-module",
+        "--risk",
+        "concurrency",
+        "--risk",
+        "ordering",
+        "--risk",
+        "recovery",
+        "--risk",
+        "resource-limits",
+        "--method-signal",
+        "ordering-sensitive-concurrency",
+        "--repo-fact",
+        "delegation=planned",
+        "--method-prerequisite",
+        "task-dependency-graph",
+        "--method-prerequisite",
+        "repository-facts",
+        "--method-prerequisite",
+        "representative-examples",
+        "--material-exposure",
+        "--need",
+        "review",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "continuity.documents_required": true,
+        "capability_activation.independent_review.same_context_is_independent": false
+      },
+      "contains": {
+        "capability_activation.method.selection.selected": [
+          "state-transition-model",
+          "multi-agent-topology-ownership"
+        ],
+        "continuity.update_on": [
+          "assumption-breaking-first-failure",
+          "interruption-or-handoff"
+        ],
+        "continuity.resume": [
+          "read-current-workstream",
+          "reconcile-changed-paths-and-parallel-changes"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F08-CONCURRENCY-ASYNC-CANCELLATION-RACE",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "defect-correction",
+        "--mutation",
+        "persistent",
+        "--cross-module",
+        "--risk",
+        "concurrency",
+        "--risk",
+        "cancellation",
+        "--risk",
+        "ordering",
+        "--risk",
+        "recovery",
+        "--method-signal",
+        "concurrent-state-lifecycle",
+        "--need",
+        "verification",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "defect-correction"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification"
+        ],
+        "capability_activation.method.signal_normalization.canonical": "state-lifecycle"
+      }
+    },
+    {
+      "id": "LARGE-F08-CONCURRENCY-LEADER-ELECTION",
+      "command": [
+        "route-task",
+        "--intent",
+        "design",
+        "--requirement-class",
+        "structural-adjustment",
+        "--multi-session",
+        "--material-tradeoff",
+        "--risk",
+        "distributed-state",
+        "--risk",
+        "concurrency",
+        "--risk",
+        "ordering",
+        "--risk",
+        "recovery",
+        "--method-signal",
+        "distributed-state",
+        "--method-depth",
+        "deep",
+        "--need",
+        "architecture"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "structural-adjustment"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions"
+        ],
+        "capability_activation.method.signal_normalization.canonical": [
+          "cross-participant-flow",
+          "state-lifecycle"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F08-CONCURRENCY-IDEMPOTENT-JOB-STATE",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--mutation",
+        "persistent",
+        "--cross-module",
+        "--risk",
+        "concurrency",
+        "--risk",
+        "idempotency",
+        "--risk",
+        "ordering",
+        "--risk",
+        "persisted-data",
+        "--method-signal",
+        "state-lifecycle",
+        "--need",
+        "verification",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "structural-adjustment"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification"
+        ],
+        "risk_overlays": [
+          "external-system",
+          "migration"
+        ],
+        "capability_activation.method.signal_normalization.canonical": "state-lifecycle"
+      }
+    },
+    {
+      "id": "LARGE-F09-DATA-SCHEMA-EXPAND-CONTRACT",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--mutation",
+        "persistent",
+        "--multi-session",
+        "--cross-module",
+        "--risk",
+        "schema",
+        "--risk",
+        "migration",
+        "--risk",
+        "version-compatibility",
+        "--risk",
+        "rollback",
+        "--risk",
+        "persisted-data",
+        "--method-signal",
+        "multi-version-coexistence",
+        "--need",
+        "verification",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "structural-adjustment"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification"
+        ],
+        "risk_overlays": "migration",
+        "capability_activation.method.signal_normalization.canonical": [
+          "multi-version-coexistence",
+          "state-lifecycle"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F09-DATA-PRIVACY-RETENTION-DELETE",
+      "command": [
+        "route-task",
+        "--intent",
+        "design",
+        "--requirement-class",
+        "semantic-change",
+        "--understanding-confirmed",
+        "--multi-session",
+        "--material-tradeoff",
+        "--risk",
+        "privacy",
+        "--risk",
+        "data-deletion",
+        "--risk",
+        "recovery",
+        "--risk",
+        "regulated",
+        "--method-signal",
+        "state-lifecycle",
+        "--need",
+        "architecture",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "semantic-change"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions"
+        ],
+        "risk_overlays": [
+          "security",
+          "irreversible",
+          "migration"
+        ],
+        "capability_activation.method.signal_normalization.canonical": [
+          "state-lifecycle",
+          "trust-boundary"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F09-DATA-ONLINE-BACKFILL",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--mutation",
+        "persistent",
+        "--multi-session",
+        "--multi-slice",
+        "--cross-module",
+        "--risk",
+        "migration",
+        "--risk",
+        "persisted-data",
+        "--risk",
+        "recovery",
+        "--risk",
+        "rollback",
+        "--risk",
+        "ordering",
+        "--method-signal",
+        "migration-rollback",
+        "--need",
+        "verification",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "structural-adjustment"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification"
+        ],
+        "risk_overlays": "migration",
+        "capability_activation.method.signal_normalization.canonical": [
+          "multi-version-coexistence",
+          "state-lifecycle"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F09-DATA-MIGRATION-ROLLBACK-READINESS",
+      "command": [
+        "route-task",
+        "--intent",
+        "delivery",
+        "--risk",
+        "migration",
+        "--risk",
+        "schema",
+        "--risk",
+        "persisted-data",
+        "--risk",
+        "rollback",
+        "--risk",
+        "recovery",
+        "--method-signal",
+        "migration-rollback",
+        "--method-prerequisite",
+        "rollback-path",
+        "--method-prerequisite",
+        "telemetry",
+        "--need",
+        "verification",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "read-only",
+        "mutation_intent": "none"
+      },
+      "contains": {
+        "routes": [
+          "verification",
+          "delivery-readiness"
+        ],
+        "risk_overlays": "migration"
+      }
+    },
+    {
+      "id": "LARGE-F10-CONTRACT-SSE-PARTIAL-RESPONSE",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "defect-correction",
+        "--cross-module",
+        "--risk",
+        "public-api",
+        "--risk",
+        "protocol",
+        "--risk",
+        "version-compatibility",
+        "--method-signal",
+        "cross-boundary-state",
+        "--method-prerequisite",
+        "stable-contract",
+        "--method-prerequisite",
+        "requirement-baseline",
+        "--method-prerequisite",
+        "repository-facts",
+        "--material-exposure",
+        "--need",
+        "review",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "capability_activation.method.selection.phase": "requirements",
+        "capability_activation.independent_review.execution": "explicit-downgrade"
+      },
+      "contains": {
+        "capability_activation.method.signal_normalization.canonical": [
+          "cross-participant-flow",
+          "multi-version-coexistence",
+          "trust-boundary"
+        ],
+        "capability_activation.method.selection.selected": [
+          "contract-consumer-testing",
+          "compatibility-matrix",
+          "data-lineage-provenance"
+        ],
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification",
+          "change-review"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F10-CONTRACT-REST-V2-DESIGN",
+      "command": [
+        "route-task",
+        "--intent",
+        "design",
+        "--requirement-class",
+        "semantic-change",
+        "--understanding-confirmed",
+        "--multi-session",
+        "--material-tradeoff",
+        "--risk",
+        "public-api",
+        "--risk",
+        "protocol",
+        "--risk",
+        "version-compatibility",
+        "--method-signal",
+        "multi-version-coexistence",
+        "--need",
+        "architecture",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "semantic-change"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions"
+        ],
+        "risk_overlays": "migration",
+        "capability_activation.method.signal_normalization.canonical": [
+          "multi-version-coexistence",
+          "trust-boundary"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F10-CONTRACT-EVENT-SCHEMA-EVOLUTION",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--mutation",
+        "persistent",
+        "--cross-module",
+        "--risk",
+        "public-api",
+        "--risk",
+        "protocol",
+        "--risk",
+        "schema",
+        "--risk",
+        "compatibility",
+        "--risk",
+        "version-compatibility",
+        "--method-signal",
+        "cross-participant-flow",
+        "--need",
+        "verification",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "structural-adjustment"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification"
+        ],
+        "risk_overlays": [
+          "external-system",
+          "migration"
+        ],
+        "capability_activation.method.signal_normalization.canonical": [
+          "cross-participant-flow",
+          "multi-version-coexistence",
+          "trust-boundary"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F10-CONTRACT-FFI-ABI-BRIDGE",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--mutation",
+        "persistent",
+        "--cross-module",
+        "--risk",
+        "ffi",
+        "--risk",
+        "abi",
+        "--risk",
+        "unsafe",
+        "--risk",
+        "version-compatibility",
+        "--method-signal",
+        "multi-version-coexistence",
+        "--material-exposure",
+        "--need",
+        "review",
+        "--need",
+        "verification",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "capability_activation.independent_review.required": true
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification",
+          "change-review"
+        ],
+        "risk_overlays": "migration",
+        "capability_activation.method.selection.blocked": "cross-language-abi-contract"
+      }
+    },
+    {
+      "id": "LARGE-F11-DEPENDENCY-EXACT-PIN",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "mechanical",
+        "--mutation",
+        "persistent",
+        "--risk",
+        "dependency",
+        "--need",
+        "dependency",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "mechanical"
+      },
+      "contains": {
+        "routes": [
+          "dependency-decisions",
+          "verification"
+        ]
+      },
+      "excludes": {
+        "routes": [
+          "requirements-design",
+          "change-review"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F11-DEPENDENCY-MAJOR-FRAMEWORK-UPGRADE",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--mutation",
+        "persistent",
+        "--multi-session",
+        "--cross-module",
+        "--risk",
+        "dependency",
+        "--risk",
+        "compatibility",
+        "--risk",
+        "version-compatibility",
+        "--risk",
+        "rollback",
+        "--risk",
+        "toolchain",
+        "--need",
+        "dependency",
+        "--need",
+        "architecture",
+        "--need",
+        "verification",
+        "--material-exposure",
+        "--need",
+        "review"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "capability_activation.independent_review.required": true
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "dependency-decisions",
+          "architecture-decisions",
+          "verification",
+          "change-review"
+        ],
+        "risk_overlays": "migration"
+      }
+    },
+    {
+      "id": "LARGE-F11-DEPENDENCY-COMPILER-TOOLCHAIN",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--mutation",
+        "persistent",
+        "--cross-module",
+        "--risk",
+        "dependency",
+        "--risk",
+        "toolchain",
+        "--risk",
+        "compatibility",
+        "--risk",
+        "ci-cd",
+        "--need",
+        "dependency",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "structural-adjustment"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "dependency-decisions",
+          "verification"
+        ]
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F11-DEPENDENCY-SUPPLY-CHAIN-REVIEW",
+      "command": [
+        "route-task",
+        "--intent",
+        "review",
+        "--risk",
+        "dependency",
+        "--risk",
+        "security",
+        "--risk",
+        "untrusted-input",
+        "--risk",
+        "secrets",
+        "--need",
+        "dependency",
+        "--material-exposure"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "read-only",
+        "capability_activation.independent_review.required": true
+      },
+      "contains": {
+        "routes": [
+          "dependency-decisions",
+          "verification",
+          "change-review"
+        ],
+        "risk_overlays": "security"
+      }
+    },
+    {
+      "id": "LARGE-F12-SECURITY-AUTHORIZATION-REVIEW",
+      "command": [
+        "route-task",
+        "--intent",
+        "review",
+        "--risk",
+        "security",
+        "--risk",
+        "authentication",
+        "--risk",
+        "authorization",
+        "--material-exposure"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "read-only",
+        "capability_activation.independent_review.required": true
+      },
+      "contains": {
+        "routes": [
+          "verification",
+          "change-review"
+        ],
+        "risk_overlays": "security",
+        "capability_activation.method.signal_normalization.canonical": "trust-boundary"
+      }
+    },
+    {
+      "id": "LARGE-F12-SECURITY-PRIVACY-DATA-FLOW-DESIGN",
+      "command": [
+        "route-task",
+        "--intent",
+        "design",
+        "--requirement-class",
+        "semantic-change",
+        "--understanding-confirmed",
+        "--multi-session",
+        "--material-tradeoff",
+        "--risk",
+        "privacy",
+        "--risk",
+        "regulated",
+        "--risk",
+        "persisted-data",
+        "--method-signal",
+        "trust-boundary",
+        "--method-prerequisite",
+        "privacy-data-map",
+        "--need",
+        "architecture",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "semantic-change"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions"
+        ],
+        "risk_overlays": [
+          "security",
+          "migration"
+        ],
+        "capability_activation.method.selection.selected": "linddun-privacy-model"
+      }
+    },
+    {
+      "id": "LARGE-F12-SECURITY-SECRET-ROTATION-READINESS",
+      "command": [
+        "route-task",
+        "--intent",
+        "delivery",
+        "--risk",
+        "secrets",
+        "--risk",
+        "external-write",
+        "--risk",
+        "deployment",
+        "--risk",
+        "rollback",
+        "--material-exposure",
+        "--need",
+        "verification",
+        "--need",
+        "review"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "read-only",
+        "mutation_intent": "none",
+        "capability_activation.independent_review.required": true
+      },
+      "contains": {
+        "routes": [
+          "verification",
+          "change-review",
+          "delivery-readiness"
+        ],
+        "risk_overlays": [
+          "security",
+          "external-system",
+          "release"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F12-SECURITY-UNTRUSTED-DESERIALIZATION-FIX",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "defect-correction",
+        "--mutation",
+        "persistent",
+        "--risk",
+        "untrusted-input",
+        "--risk",
+        "security",
+        "--risk",
+        "protocol",
+        "--material-exposure",
+        "--need",
+        "review",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.independent_review.required": true
+      },
+      "contains": {
+        "routes": [
+          "architecture-decisions",
+          "verification",
+          "change-review"
+        ],
+        "risk_overlays": [
+          "security",
+          "external-system"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F13-UI-ACCESSIBILITY-SCREENSHOT-BUG",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "defect-correction",
+        "--mutation",
+        "persistent",
+        "--ui-impact",
+        "preserve",
+        "--risk",
+        "accessibility",
+        "--risk",
+        "browser",
+        "--risk",
+        "device",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "defect-correction"
+      },
+      "contains": {
+        "routes": [
+          "product-ux-discovery",
+          "verification"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F13-UI-DASHBOARD-FEATURE",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "semantic-change",
+        "--understanding-confirmed",
+        "--mutation",
+        "persistent",
+        "--ui-impact",
+        "material",
+        "--risk",
+        "accessibility",
+        "--risk",
+        "browser",
+        "--risk",
+        "performance",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "semantic-change"
+      },
+      "contains": {
+        "routes": [
+          "product-ux-discovery",
+          "requirements-design",
+          "architecture-decisions",
+          "verification"
+        ],
+        "risk_overlays": "ui-product"
+      }
+    },
+    {
+      "id": "LARGE-F13-UI-KEYBOARD-FOCUS-REGRESSION",
+      "command": [
+        "route-task",
+        "--intent",
+        "diagnose",
+        "--requirement-class",
+        "defect-correction",
+        "--ui-impact",
+        "preserve",
+        "--risk",
+        "accessibility",
+        "--risk",
+        "browser",
+        "--risk",
+        "incomplete-reproduction",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "defect-correction"
+      },
+      "contains": {
+        "routes": [
+          "product-ux-discovery",
+          "systematic-debugging",
+          "verification"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F13-UI-IOS-BACKGROUND-LIFECYCLE",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "semantic-change",
+        "--understanding-confirmed",
+        "--mutation",
+        "persistent",
+        "--cross-module",
+        "--ui-impact",
+        "preserve",
+        "--repo-fact",
+        "language=swift",
+        "--repo-fact",
+        "platform=ios",
+        "--effective-skill",
+        "background-execution",
+        "--risk",
+        "platform-lifecycle",
+        "--risk",
+        "device",
+        "--risk",
+        "battery",
+        "--risk",
+        "recovery",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "semantic-change"
+      },
+      "contains": {
+        "routes": [
+          "product-ux-discovery",
+          "requirements-design",
+          "architecture-decisions",
+          "verification"
+        ],
+        "capability_activation.specialist.matches": [
+          "quality.swift.background-execution",
+          "background-execution",
+          "effective-skill"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F14-TESTING-RC-MODEL-EVALUATION",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--suite-maintenance",
+        "--multi-session",
+        "--risk",
+        "weak-tests",
+        "--risk",
+        "compatibility",
+        "--risk",
+        "public-api",
+        "--method-signal",
+        "model-evaluation",
+        "--method-prerequisite",
+        "evaluator-contract",
+        "--method-prerequisite",
+        "isolated-environment",
+        "--method-prerequisite",
+        "model-identity",
+        "--method-prerequisite",
+        "requirement-baseline",
+        "--material-exposure",
+        "--need",
+        "review",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "capability_activation.method.selection.phase": "verification",
+        "capability_activation.method.selection.phase_source": "signal-adjacent-owner",
+        "capability_activation.independent_review.required": true,
+        "capability_activation.independent_review.downgrade.required_report": "common-mode-risk"
+      },
+      "contains": {
+        "routes": [
+          "dev-flow-maintainer",
+          "verification",
+          "change-review"
+        ],
+        "capability_activation.method.selection.selected": [
+          "agent-evaluation-design",
+          "eval-contamination-case-health",
+          "model-tool-identity-pinning"
+        ],
+        "capability_activation.method.selection.matched_risk_models": [
+          "RM-AI-AGENT-ASSURANCE",
+          "RM-AI-STOCHASTIC-EVAL-VALIDITY"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F14-TESTING-FLAKY-INTEGRATION-SUITE",
+      "command": [
+        "route-task",
+        "--intent",
+        "diagnose",
+        "--requirement-class",
+        "defect-correction",
+        "--multi-session",
+        "--risk",
+        "flaky-baseline",
+        "--risk",
+        "incomplete-reproduction",
+        "--risk",
+        "weak-tests",
+        "--method-signal",
+        "repeated-failure",
+        "--method-prerequisite",
+        "test-oracle",
+        "--need",
+        "verification",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.method.selection.phase": "diagnosis"
+      },
+      "contains": {
+        "routes": [
+          "systematic-debugging",
+          "verification"
+        ],
+        "capability_activation.method.signal_normalization.canonical": [
+          "oracle-challenge",
+          "repeated-failure"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F14-TESTING-WEAK-ORACLE-REVIEW",
+      "command": [
+        "route-task",
+        "--intent",
+        "review",
+        "--risk",
+        "weak-tests",
+        "--method-signal",
+        "oracle-challenge",
+        "--need",
+        "verification",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "read-only",
+        "capability_activation.method.selection.actionable": true
+      },
+      "contains": {
+        "routes": [
+          "verification",
+          "change-review"
+        ],
+        "capability_activation.method.selection.matched_risk_models": "RM-WEAK-ORACLE"
+      },
+      "excludes": {
+        "routes": "architecture-decisions"
+      }
+    },
+    {
+      "id": "LARGE-F14-TESTING-CI-COMPATIBILITY-MATRIX",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--mutation",
+        "persistent",
+        "--cross-module",
+        "--risk",
+        "ci-cd",
+        "--risk",
+        "toolchain",
+        "--risk",
+        "compatibility",
+        "--risk",
+        "os",
+        "--risk",
+        "browser",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "structural-adjustment"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "verification"
+        ]
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F15-REVIEW-ORDINARY-PR",
+      "command": [
+        "route-task",
+        "--intent",
+        "review",
+        "--requirement-class",
+        "read-only",
+        "--mutation",
+        "none"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "read-only",
+        "capability_activation.independent_review.required": false
+      },
+      "contains": {
+        "routes": [
+          "repo-context",
+          "verification",
+          "change-review"
+        ]
+      },
+      "excludes": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F15-REVIEW-PERFORMANCE-DIFF",
+      "command": [
+        "route-task",
+        "--intent",
+        "review",
+        "--risk",
+        "performance",
+        "--risk",
+        "resource-limits",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "read-only",
+        "capability_activation.independent_review.required": false
+      },
+      "contains": {
+        "routes": [
+          "architecture-decisions",
+          "verification",
+          "change-review"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F15-REVIEW-MIGRATION-DIFF",
+      "command": [
+        "route-task",
+        "--intent",
+        "review",
+        "--risk",
+        "migration",
+        "--risk",
+        "persisted-data",
+        "--risk",
+        "rollback",
+        "--risk",
+        "version-compatibility",
+        "--material-exposure",
+        "--need",
+        "architecture"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "read-only",
+        "capability_activation.independent_review.required": true
+      },
+      "contains": {
+        "routes": [
+          "architecture-decisions",
+          "verification",
+          "change-review"
+        ],
+        "risk_overlays": "migration"
+      }
+    },
+    {
+      "id": "LARGE-F15-REVIEW-TECHNICAL-PROPOSAL-SELECTION",
+      "command": [
+        "route-task",
+        "--intent",
+        "review",
+        "--risk",
+        "architecture",
+        "--risk",
+        "compatibility",
+        "--material-exposure",
+        "--need",
+        "architecture"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "read-only",
+        "capability_activation.independent_review.required": true
+      },
+      "contains": {
+        "routes": [
+          "architecture-decisions",
+          "verification",
+          "change-review"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F16-DESIGN-ARCHITECTURE-ALTERNATIVES",
+      "command": [
+        "route-task",
+        "--intent",
+        "design",
+        "--requirement-class",
+        "semantic-change",
+        "--understanding-confirmed",
+        "--multi-session",
+        "--material-tradeoff",
+        "--risk",
+        "architecture",
+        "--risk",
+        "compatibility",
+        "--need",
+        "architecture"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "semantic-change"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions"
+        ]
+      },
+      "excludes": {
+        "routes": [
+          "verification",
+          "change-review"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F16-DESIGN-DATA-RETENTION-POLICY",
+      "command": [
+        "route-task",
+        "--intent",
+        "design",
+        "--requirement-class",
+        "semantic-change",
+        "--understanding-confirmed",
+        "--multi-session",
+        "--material-tradeoff",
+        "--risk",
+        "privacy",
+        "--risk",
+        "regulated",
+        "--risk",
+        "data-deletion",
+        "--risk",
+        "recovery",
+        "--need",
+        "architecture",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "semantic-change"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions"
+        ],
+        "risk_overlays": [
+          "security",
+          "irreversible",
+          "migration"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F16-DESIGN-RETRY-RECONCILIATION",
+      "command": [
+        "route-task",
+        "--intent",
+        "design",
+        "--requirement-class",
+        "structural-adjustment",
+        "--multi-session",
+        "--material-tradeoff",
+        "--risk",
+        "protocol",
+        "--risk",
+        "idempotency",
+        "--risk",
+        "recovery",
+        "--risk",
+        "backpressure",
+        "--method-signal",
+        "cross-participant-flow",
+        "--need",
+        "architecture",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "structural-adjustment"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions"
+        ],
+        "risk_overlays": "external-system",
+        "capability_activation.method.signal_normalization.canonical": [
+          "cross-participant-flow",
+          "state-lifecycle"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F16-DESIGN-GREENFIELD-SERVICE",
+      "command": [
+        "route-task",
+        "--intent",
+        "design",
+        "--requirement-class",
+        "semantic-change",
+        "--understanding-confirmed",
+        "--multi-session",
+        "--multi-slice",
+        "--material-tradeoff",
+        "--risk",
+        "public-api",
+        "--risk",
+        "dependency",
+        "--risk",
+        "deployment",
+        "--need",
+        "architecture",
+        "--need",
+        "dependency"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "semantic-change"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "dependency-decisions",
+          "architecture-decisions"
+        ],
+        "risk_overlays": [
+          "release"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F17-RESEARCH-REPOSITORY-SUBSYSTEM",
+      "command": [
+        "route-task",
+        "--intent",
+        "research",
+        "--requirement-class",
+        "read-only",
+        "--mutation",
+        "none"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "read-only",
+        "mutation_intent": "none"
+      },
+      "contains": {
+        "routes": "repo-context"
+      },
+      "excludes": {
+        "routes": [
+          "requirements-design",
+          "verification",
+          "change-review"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F17-RESEARCH-DEPENDENCY-OPTIONS",
+      "command": [
+        "route-task",
+        "--intent",
+        "research",
+        "--requirement-class",
+        "read-only",
+        "--mutation",
+        "none",
+        "--risk",
+        "dependency",
+        "--need",
+        "dependency"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "read-only"
+      },
+      "contains": {
+        "routes": [
+          "repo-context",
+          "dependency-decisions"
+        ]
+      },
+      "excludes": {
+        "routes": [
+          "verification",
+          "change-review"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F17-RESEARCH-UNFAMILIAR-SUBSYSTEM",
+      "command": [
+        "route-task",
+        "--intent",
+        "research",
+        "--requirement-class",
+        "read-only",
+        "--mutation",
+        "none",
+        "--multi-session",
+        "--risk",
+        "unfamiliar-subsystem"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "read-only"
+      },
+      "contains": {
+        "routes": "repo-context",
+        "continuity.update_on": "interruption-or-handoff"
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F17-RESEARCH-EXTERNAL-API-FEASIBILITY",
+      "command": [
+        "route-task",
+        "--intent",
+        "research",
+        "--requirement-class",
+        "read-only",
+        "--mutation",
+        "none",
+        "--multi-session",
+        "--risk",
+        "protocol",
+        "--risk",
+        "public-api",
+        "--risk",
+        "dependency",
+        "--need",
+        "architecture",
+        "--need",
+        "dependency"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "read-only"
+      },
+      "contains": {
+        "routes": [
+          "repo-context",
+          "dependency-decisions",
+          "architecture-decisions"
+        ],
+        "risk_overlays": "external-system"
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F18-BUILD-OPS-CI-FAILURE",
+      "command": [
+        "route-task",
+        "--intent",
+        "diagnose",
+        "--requirement-class",
+        "defect-correction",
+        "--risk",
+        "ci-cd",
+        "--risk",
+        "toolchain",
+        "--risk",
+        "incomplete-reproduction",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "defect-correction"
+      },
+      "contains": {
+        "routes": [
+          "systematic-debugging",
+          "verification"
+        ]
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F18-BUILD-OPS-NATIVE-PACKAGING",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--mutation",
+        "persistent",
+        "--risk",
+        "native-packaging",
+        "--risk",
+        "signing",
+        "--risk",
+        "toolchain",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "structural-adjustment"
+      },
+      "contains": {
+        "routes": [
+          "architecture-decisions",
+          "verification"
+        ],
+        "risk_overlays": "release"
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F18-BUILD-OPS-NETWORK-CONFIGURATION",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--mutation",
+        "persistent",
+        "--risk",
+        "protocol",
+        "--risk",
+        "production-config",
+        "--risk",
+        "security",
+        "--risk",
+        "untrusted-input",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "direct",
+        "requirement_understanding.class": "structural-adjustment"
+      },
+      "contains": {
+        "routes": [
+          "architecture-decisions",
+          "verification"
+        ],
+        "risk_overlays": [
+          "external-system",
+          "security"
+        ]
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F18-BUILD-OPS-SCIENTIFIC-DATA-PIPELINE",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "semantic-change",
+        "--understanding-confirmed",
+        "--mutation",
+        "persistent",
+        "--multi-session",
+        "--risk",
+        "performance",
+        "--risk",
+        "resource-limits",
+        "--risk",
+        "external-write",
+        "--risk",
+        "persisted-data",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "requirement_understanding.class": "semantic-change"
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification"
+        ],
+        "risk_overlays": [
+          "external-system",
+          "migration"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F19-DELIVERY-ROLLBACK-ASSESSMENT",
+      "command": [
+        "route-task",
+        "--intent",
+        "delivery",
+        "--risk",
+        "release",
+        "--risk",
+        "rollback",
+        "--risk",
+        "deployment",
+        "--risk",
+        "version-compatibility",
+        "--method-signal",
+        "migration-rollback",
+        "--method-prerequisite",
+        "telemetry",
+        "--method-prerequisite",
+        "rollback-path",
+        "--method-prerequisite",
+        "stable-contract",
+        "--material-exposure",
+        "--need",
+        "review",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "mutation_intent": "none",
+        "work_mode": "direct",
+        "requirement_understanding.class": "read-only",
+        "capability_activation.independent_review.required": true
+      },
+      "contains": {
+        "routes": [
+          "verification",
+          "change-review",
+          "delivery-readiness"
+        ],
+        "risk_overlays": [
+          "migration",
+          "release"
+        ],
+        "capability_activation.method.selection.selected": [
+          "branch-abstraction-feature-flag",
+          "contract-consumer-testing",
+          "parallel-change-expand-contract"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F19-DELIVERY-SIGNING-NOTARIZATION",
+      "command": [
+        "route-task",
+        "--intent",
+        "delivery",
+        "--risk",
+        "signing",
+        "--risk",
+        "entitlement",
+        "--risk",
+        "native-packaging",
+        "--risk",
+        "release",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "mutation_intent": "none",
+        "work_mode": "direct",
+        "requirement_understanding.class": "read-only"
+      },
+      "contains": {
+        "routes": [
+          "verification",
+          "delivery-readiness"
+        ],
+        "risk_overlays": "release"
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F19-DELIVERY-DATABASE-MIGRATION",
+      "command": [
+        "route-task",
+        "--intent",
+        "delivery",
+        "--risk",
+        "migration",
+        "--risk",
+        "schema",
+        "--risk",
+        "persisted-data",
+        "--risk",
+        "rollback",
+        "--risk",
+        "recovery",
+        "--material-exposure",
+        "--need",
+        "review",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "mutation_intent": "none",
+        "work_mode": "direct",
+        "requirement_understanding.class": "read-only",
+        "capability_activation.independent_review.required": true
+      },
+      "contains": {
+        "routes": [
+          "verification",
+          "change-review",
+          "delivery-readiness"
+        ],
+        "risk_overlays": "migration"
+      }
+    },
+    {
+      "id": "LARGE-F19-DELIVERY-PRODUCTION-CONFIG",
+      "command": [
+        "route-task",
+        "--intent",
+        "delivery",
+        "--risk",
+        "deployment",
+        "--risk",
+        "production-config",
+        "--risk",
+        "secrets",
+        "--risk",
+        "rollback",
+        "--risk",
+        "external-write",
+        "--material-exposure",
+        "--need",
+        "review",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "mutation_intent": "none",
+        "work_mode": "direct",
+        "requirement_understanding.class": "read-only",
+        "capability_activation.independent_review.required": true
+      },
+      "contains": {
+        "routes": [
+          "verification",
+          "change-review",
+          "delivery-readiness"
+        ],
+        "risk_overlays": [
+          "release",
+          "security",
+          "external-system"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F20-LONG-HORIZON-EXPAND-CONTRACT-ROLLOUT",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--multi-session",
+        "--multi-slice",
+        "--coordination",
+        "--cross-module",
+        "--risk",
+        "public-api",
+        "--risk",
+        "compatibility",
+        "--risk",
+        "version-compatibility",
+        "--risk",
+        "rollback",
+        "--method-signal",
+        "multi-version-coexistence",
+        "--method-prerequisite",
+        "stable-contract",
+        "--method-prerequisite",
+        "rollback-path",
+        "--method-prerequisite",
+        "telemetry",
+        "--method-prerequisite",
+        "repository-facts",
+        "--method-prerequisite",
+        "requirement-baseline",
+        "--material-exposure",
+        "--need",
+        "review",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "capability_activation.method.selection.phase": "design"
+      },
+      "contains": {
+        "capability_activation.method.selection.selected": [
+          "branch-abstraction-feature-flag",
+          "parallel-change-expand-contract",
+          "strangler-migration"
+        ],
+        "continuity.resume": "reconcile-changed-paths-and-parallel-changes",
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification",
+          "change-review"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F20-LONG-HORIZON-VERSION-ROADMAP",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--mutation",
+        "persistent",
+        "--multi-session",
+        "--multi-slice",
+        "--cross-module",
+        "--coordination",
+        "--durable-plan",
+        "--risk",
+        "version-compatibility",
+        "--risk",
+        "dependency",
+        "--risk",
+        "toolchain",
+        "--risk",
+        "migration",
+        "--risk",
+        "rollback",
+        "--need",
+        "dependency",
+        "--need",
+        "architecture",
+        "--need",
+        "verification",
+        "--method-signal",
+        "multi-version-coexistence",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "continuity.documents_required": true
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "dependency-decisions",
+          "architecture-decisions",
+          "verification"
+        ],
+        "risk_overlays": "migration",
+        "continuity.update_on": [
+          "scope-or-design-change",
+          "interruption-or-handoff"
+        ]
+      }
+    },
+    {
+      "id": "LARGE-F20-LONG-HORIZON-MULTI-SLICE-REFACTOR",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "structural-adjustment",
+        "--mutation",
+        "persistent",
+        "--multi-session",
+        "--multi-slice",
+        "--cross-module",
+        "--durable-plan",
+        "--risk",
+        "architecture",
+        "--risk",
+        "compatibility",
+        "--risk",
+        "performance",
+        "--need",
+        "architecture",
+        "--need",
+        "verification"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "continuity.documents_required": true
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification"
+        ],
+        "continuity.resume": [
+          "read-current-workstream",
+          "continue-smallest-ready-slice"
+        ]
+      },
+      "excludes": {
+        "routes": "change-review"
+      }
+    },
+    {
+      "id": "LARGE-F20-LONG-HORIZON-CROSS-REPO-FEATURE",
+      "command": [
+        "route-task",
+        "--intent",
+        "change",
+        "--requirement-class",
+        "semantic-change",
+        "--understanding-confirmed",
+        "--mutation",
+        "persistent",
+        "--multi-session",
+        "--multi-slice",
+        "--cross-module",
+        "--coordination",
+        "--durable-plan",
+        "--repo-fact",
+        "delegation=planned",
+        "--risk",
+        "public-api",
+        "--risk",
+        "distributed-state",
+        "--risk",
+        "compatibility",
+        "--risk",
+        "recovery",
+        "--material-exposure",
+        "--need",
+        "review",
+        "--need",
+        "verification",
+        "--method-signal",
+        "distributed-state",
+        "--method-prerequisite",
+        "task-dependency-graph",
+        "--method-prerequisite",
+        "repository-facts",
+        "--method-depth",
+        "deep"
+      ],
+      "expect": {
+        "work_mode": "managed",
+        "continuity.documents_required": true,
+        "capability_activation.independent_review.required": true
+      },
+      "contains": {
+        "routes": [
+          "requirements-design",
+          "architecture-decisions",
+          "verification",
+          "change-review"
+        ],
+        "capability_activation.method.signal_normalization.canonical": [
+          "cross-participant-flow",
+          "state-lifecycle",
+          "trust-boundary"
+        ],
+        "continuity.interruption_handoff": "worktree-and-parallel-change-state"
+      }
+    }
+  ]
+}

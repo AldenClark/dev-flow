@@ -1,11 +1,13 @@
 ---
 name: change-review
-description: Independently review current source or a final diff for intent, integration, maintainability, security, compatibility, and failure risks; report only verified findings.
+description: Independently review current source or a final diff for intent, integration, security, compatibility, and failure risks; report verified findings.
 ---
 
 # Change Review
 
 Review the actual source and diff, not the implementer's narrative. Review depth follows blast radius and risk; ordinary changes do not require ceremonial blue/red reports.
+
+This Skill may operate alone for an independent read-only review. If the request also authorizes material repair, crosses repositories, needs managed continuity, or assesses high-risk delivery, load `dev-flow` as the coordinating kernel when it is available and not already active; keep this Skill as the finding owner.
 
 ## Procedure
 

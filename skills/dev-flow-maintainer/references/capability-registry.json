@@ -92,6 +92,15 @@
       "manual_fallback": "qualified-swift-concurrency-review"
     },
     {
+      "id": "quality.swift.background-execution",
+      "outcome": "Apple-platform background work proves lifecycle eligibility, scheduling, expiration, cancellation, persistence, and recovery behavior.",
+      "selectors": ["language=swift", "risk=platform-lifecycle"],
+      "native_evidence": ["Package.swift", "**/Package.swift", "**/*.xcodeproj/project.pbxproj", "**/*Background*.swift", "**/*BGTask*.swift"],
+      "route_names": ["background-execution"],
+      "preferred_route": "background-execution",
+      "manual_fallback": "qualified-apple-background-lifecycle-review"
+    },
+    {
       "id": "quality.java.correctness",
       "outcome": "Java changes are checked for correctness, nullability, error behavior, maintainability, and affected tests.",
       "selectors": ["language=java"],

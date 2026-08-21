@@ -7,6 +7,8 @@ description: Reproduce and diagnose bugs, flakes, crashes, hangs, integration fa
 
 Trace the earliest incorrect state rather than patching the final symptom.
 
+This Skill may operate alone for narrow diagnosis. If the repair becomes a material repository mutation, crosses boundaries, needs managed continuity, or exposes high-risk delivery, load `dev-flow` as the coordinating kernel when it is available and not already active; keep this Skill as the causal-diagnosis owner.
+
 ## Procedure
 
 1. Capture the symptom, expected and actual behavior, environment, input, version, and reproduction reliability.

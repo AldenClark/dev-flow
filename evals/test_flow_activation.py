@@ -77,6 +77,10 @@ class FlowActivationCoverageTests(unittest.TestCase):
         self.assertIn("no effect", catalog["purpose"])
         self.assertGreaterEqual(len(catalog["cases"]), 5)
         ids = set()
+        explicit_prompts = 0
+        implicit_prompts = 0
+        implicit_positive = 0
+        implicit_negative = 0
         for case in catalog["cases"]:
             self.assertEqual(set(case), {"id", "repository", "prompt", "expected", "forbidden"})
             self.assertNotIn(case["id"], ids)
@@ -84,7 +88,18 @@ class FlowActivationCoverageTests(unittest.TestCase):
             self.assertTrue(case["repository"])
             self.assertTrue(case["expected"])
             self.assertTrue(case["forbidden"])
-            self.assertIn("$dev-flow", case["prompt"])
+            if "$dev-flow" in case["prompt"]:
+                explicit_prompts += 1
+            else:
+                implicit_prompts += 1
+                if "dev-flow" in case["expected"]:
+                    implicit_positive += 1
+                if any(value in {"dev-flow", "sustained-dev-flow"} for value in case["forbidden"]):
+                    implicit_negative += 1
+        self.assertGreaterEqual(explicit_prompts, 3)
+        self.assertGreaterEqual(implicit_prompts, 6)
+        self.assertGreaterEqual(implicit_positive, 3)
+        self.assertGreaterEqual(implicit_negative, 3)
         serialized = json.dumps(catalog).lower()
         for forbidden in ("productivity_score", "effect_score", "aggregate_score", "developer_rank"):
             self.assertNotIn(forbidden, serialized)

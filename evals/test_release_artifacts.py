@@ -174,15 +174,14 @@ class RuntimeLifecycleSmokeTests(unittest.TestCase):
 
 
 class ReleaseWorkflowContractTests(unittest.TestCase):
-    def test_readme_install_ref_matches_declared_rc_version(self) -> None:
+    def test_readme_identifies_current_published_rc(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("`v1.1.2` 是最后一个 1.x 稳定标签", readme)
         self.assertRegex(VERSION, r"^2\.0\.0-rc\.\d+$")
-        self.assertIn(
-            f"codex plugin marketplace add AldenClark/dev-flow --ref v{VERSION}",
-            readme,
-        )
-        self.assertIn(f"`{VERSION}` 发布候选", readme)
+        self.assertIn(f"当前版本为 `{VERSION}`", readme)
+        self.assertIn(f"--ref v{VERSION}", readme)
+        self.assertIn(f"`v{VERSION}` 是当前 activation-hardening RC", readme)
+        self.assertNotIn(f"`{VERSION}` 是当前未提交的", readme)
 
     def test_release_identity_and_lifecycle_claims_match_exercised_evidence(self) -> None:
         attestation = json.loads(
@@ -205,7 +204,9 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
         self.assertIn("does not promise that 2.0 state", design)
 
         releasing = (ROOT / "docs" / "releasing.md").read_text(encoding="utf-8")
-        self.assertIn("2.0.0-rc.1 authorized minimal path", releasing)
+        self.assertIn("2.0.0-rc.2 activation-hardening release", releasing)
+        self.assertIn("at least three distinct cases per affected category", releasing)
+        self.assertIn("at least three independent first attempts per case", releasing)
         self.assertIn("No 1.x upgrade/rollback compatibility is promised", (
             ROOT / "docs" / "workstreams" / "dev-flow-2.0" / "progress.md"
         ).read_text(encoding="utf-8"))

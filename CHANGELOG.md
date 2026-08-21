@@ -4,6 +4,34 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2.0.0-rc.2] - 2026-08-21
+
+Release identity: `2.0.0-rc.2`.
+
+### Added
+
+- Added implicit and explicit activation fixtures derived from real repository tasks, including iOS push latency, SSE retry safety, recoverable deletion, durable outbox, cross-repository rollout, public-schema compatibility, and non-engineering negative controls.
+- Added task-facing method-signal aliases, `data-loss` risk normalization, risk-derived foundational signals, actionable invalid-input corrections, separate ready/blocked limits, and privacy/agent-memory/multi-agent domain gates without changing canonical method IDs or `method.selection.v1`.
+- Added executable independent-review-or-downgrade output and restartable managed interruption/resume contracts.
+- Expanded executable large-task routing from eight regressions to 80 cases across 20 balanced common task families, with four variants per family, coverage-distribution gates, and mutations for missing methods, owner overactivation, and missing specialists.
+- Added narrow Swift background-execution capability routing for observed `language=swift` plus `risk=platform-lifecycle`; unrelated Swift work remains on the general correctness route or fallback.
+
+### Changed
+
+- Rewrote the main Skill description around natural repository-engineering requests, explicitly enabled implicit invocation, and connected nine engineering specialist Skills back to the kernel when their narrow work becomes material or cross-boundary.
+- Required one compact non-persisted route for explicit Dev Flow, managed candidates, cross-boundary/high-leverage work, full audit/certification, or assumption-breaking failure while keeping mechanical and narrow read-only work optional.
+- Ranked directly relevant ready method guidance separately from blocked fallbacks so missing prerequisites and broad risk models cannot displace executable guidance.
+- Clarified that same-context blue/red work is not independent review and that interrupted managed work must preserve done/current/next, blockers or unrun gates, and worktree/parallel-change state.
+- Made generated corrections executable from target repositories and semantics-preserving across every public route option; invalid risk and combined risk/signal input now return bounded suggestions without inventing workflow-to-risk mappings.
+- Supplemented explicit method signals with uncovered risk families, activated weak-oracle routing from `weak-tests`, and exposed explicit `model-evaluation` routing to the existing agent-evaluation, case-health, and identity-pinning methods.
+- Kept explicitly confirmed U1 work classified as `semantic-change` through `--understanding-confirmed`, and made public-contract/data-lifecycle design an explicit kernel trigger even for read-only design tasks.
+
+### Verification
+
+- R4 used 24,521,511 of the authorized 25,000,000-token ceiling. A 33-attempt broad matrix exposed and preserved confirmed-U1 and kernel-trigger failures; after repair, 12/12 impact-family attempts matched across six cases with no safety or authority violation, including three cases with three first attempts each.
+- Final local gates passed: 464 unit tests, 39 process contracts, 33 deterministic activation cases, 80 large-task simulations across 20 families, 117 methods/73 sources/38 risk models, 13-Skill validation, plugin/knowledge/data-security checks, compilation, JSON parsing, and clean diff checks.
+- Deterministic local gates, hosted exact-SHA CI, immutable artifact/SBOM/provenance checks, signed tag, isolated installation, and active-profile installation are release gates; deployment, production use, business effect, and stable `v2.0.0` remain outside this RC claim.
+
 ## [2.0.0-rc.1] - 2026-08-18
 
 ### Changed
@@ -278,7 +306,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - Runtime markers no longer persist absolute packet paths, start/stop stay fail-open on marker storage or malformed data, and markers are removed whenever subagent stop is observed.
 - Runtime traces, plugin data, secrets, caches, and build outputs are excluded from source control.
 
-[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v2.0.0-rc.1...HEAD
+[Unreleased]: https://github.com/AldenClark/dev-flow/compare/v2.0.0-rc.2...HEAD
+[2.0.0-rc.2]: https://github.com/AldenClark/dev-flow/compare/v2.0.0-rc.1...v2.0.0-rc.2
 [2.0.0-rc.1]: https://github.com/AldenClark/dev-flow/compare/v1.1.2...v2.0.0-rc.1
 [2.0.0-beta.3]: https://github.com/AldenClark/dev-flow/compare/v1.1.2...HEAD
 [2.0.0-beta.2]: https://github.com/AldenClark/dev-flow/compare/v1.1.2...HEAD

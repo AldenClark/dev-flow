@@ -5,11 +5,13 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import difflib
 import fnmatch
 import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import stat
 import subprocess
@@ -78,6 +80,30 @@ REQUIREMENT_CLASSES = {
     "defect-correction",
     "mechanical",
     "read-only",
+}
+REQUIREMENT_CLASS_ALIASES = {
+    "U1": "semantic-change",
+    "U2": "structural-adjustment",
+    "U3": "defect-correction",
+    "U4": "mechanical",
+    "U5": "read-only",
+}
+ROUTE_NEEDS = {
+    "requirements",
+    "architecture",
+    "dependency",
+    "diagnosis",
+    "verification",
+    "review",
+    "delivery",
+}
+ROUTE_NEED_ALIASES = {
+    "requirements-design": "requirements",
+    "architecture-decisions": "architecture",
+    "dependency-decisions": "dependency",
+    "systematic-debugging": "diagnosis",
+    "change-review": "review",
+    "delivery-readiness": "delivery",
 }
 COLLABORATION_PROFILES = {"execute", "checkpointed", "co-design"}
 UI_IMPACTS = {"none", "preserve", "material"}
@@ -186,11 +212,13 @@ METHOD_ACTIVATION_RISKS = {
     "security",
     "unsafe",
     "version-compatibility",
+    "weak-tests",
 }
 METHOD_ACTIVATION_SIGNALS = {
     "complex-rules",
     "conflicting-evidence",
     "cross-participant-flow",
+    "model-evaluation",
     "multi-version-coexistence",
     "oracle-challenge",
     "repeated-failure",
@@ -201,11 +229,55 @@ METHOD_SIGNAL_TRANSLATIONS = {
     "complex-rules": "interacting-features",
     "conflicting-evidence": "ambiguity",
     "cross-participant-flow": "multi-user-state",
+    "model-evaluation": "model-evaluation",
     "multi-version-coexistence": "multi-version-coexistence",
     "oracle-challenge": "weak-oracle",
     "repeated-failure": "debugging-unknown-cause",
     "state-lifecycle": "protocol-state",
     "trust-boundary": "cross-boundary-identity",
+}
+METHOD_SIGNAL_ALIASES: dict[str, tuple[str, ...]] = {
+    "concurrent-state-lifecycle": ("state-lifecycle",),
+    "concurrency-ordering": ("state-lifecycle",),
+    "cross-boundary-state": ("cross-participant-flow",),
+    "distributed-state": ("cross-participant-flow", "state-lifecycle"),
+    "migration-rollback": ("multi-version-coexistence",),
+    "ordering-sensitive-concurrency": ("state-lifecycle",),
+}
+ROUTE_RISK_ALIASES: dict[str, tuple[str, ...]] = {
+    "data-loss": ("persisted-data",),
+    "external-system": ("external-write",),
+}
+METHOD_RISK_DERIVED_SIGNALS: dict[str, tuple[str, ...]] = {
+    "authorization": ("trust-boundary",),
+    "concurrency": ("state-lifecycle",),
+    "data-deletion": ("state-lifecycle",),
+    "distributed-state": ("cross-participant-flow",),
+    "migration": ("multi-version-coexistence",),
+    "ordering": ("state-lifecycle",),
+    "persisted-data": ("state-lifecycle",),
+    "privacy": ("trust-boundary",),
+    "protocol": ("trust-boundary",),
+    "public-api": ("trust-boundary",),
+    "recovery": ("state-lifecycle",),
+    "rollback": ("multi-version-coexistence",),
+    "security": ("trust-boundary",),
+    "version-compatibility": ("multi-version-coexistence",),
+    "weak-tests": ("oracle-challenge",),
+}
+PRIVACY_METHOD_IDS = {"linddun-privacy-model"}
+AGENT_MEMORY_METHOD_IDS = {"agent-memory-lifecycle-governance"}
+MULTI_AGENT_METHOD_IDS = {"contract-net-task-allocation", "multi-agent-topology-ownership"}
+METHOD_SIGNAL_PREFERRED_PHASE = {
+    "complex-rules": "requirements",
+    "conflicting-evidence": "diagnosis",
+    "cross-participant-flow": "requirements",
+    "model-evaluation": "verification",
+    "multi-version-coexistence": "design",
+    "oracle-challenge": "verification",
+    "repeated-failure": "diagnosis",
+    "state-lifecycle": "design",
+    "trust-boundary": "design",
 }
 CAPABILITY_REGISTRY = (
     Path(__file__).resolve().parents[2]
@@ -506,6 +578,376 @@ VERSION_RE = re.compile(r"(?:codex-cli\s+)?(\d+)\.(\d+)\.(\d+)(?:[-+][^\s]+)?")
 FEATURE_RE = re.compile(r"^([a-z][a-z0-9_]*)\s+\S+\s+(true|false)\s*$", re.MULTILINE)
 
 
+class MethodSignalContractError(ValueError):
+    """Describe an invalid task-facing method signal without losing correction context."""
+
+    def __init__(self, unknown: list[str]) -> None:
+        known = sorted(METHOD_ACTIVATION_SIGNALS | set(METHOD_SIGNAL_ALIASES))
+        self.unknown = sorted(set(unknown))
+        self.suggestions = {
+            value: difflib.get_close_matches(value, known, n=1, cutoff=0.45)
+            for value in self.unknown
+        }
+        rendered = ", ".join(self.unknown)
+        super().__init__(f"unknown method activation signal(s): {rendered}")
+
+
+class RouteRiskContractError(ValueError):
+    """Describe an invalid task-facing risk without losing correction context."""
+
+    def __init__(self, unknown: list[str]) -> None:
+        known = sorted(engineering_context.RISK_TOKENS | set(ROUTE_RISK_ALIASES))
+        self.unknown = sorted(set(unknown))
+        self.suggestions = {
+            value: difflib.get_close_matches(value, known, n=1, cutoff=0.45)
+            for value in self.unknown
+        }
+        rendered = ", ".join(self.unknown)
+        super().__init__(f"unknown route risk(s): {rendered}")
+
+
+class RouteNeedContractError(ValueError):
+    """Describe an invalid capability need without losing correction context."""
+
+    def __init__(self, unknown: list[str]) -> None:
+        known = sorted(ROUTE_NEEDS | set(ROUTE_NEED_ALIASES))
+        self.unknown = sorted(set(unknown))
+        self.suggestions = {
+            value: difflib.get_close_matches(value, known, n=1, cutoff=0.45)
+            for value in self.unknown
+        }
+        rendered = ", ".join(self.unknown)
+        super().__init__(f"unknown route need(s): {rendered}")
+
+
+def normalize_requirement_class(value: str) -> str:
+    """Accept task-facing U1-U5 aliases while retaining one canonical output vocabulary."""
+    return REQUIREMENT_CLASS_ALIASES.get(value.upper(), value)
+
+
+def normalize_route_needs(values: Iterable[str]) -> tuple[list[str], list[dict[str, str]]]:
+    """Accept specialist Skill names as task-facing aliases for route needs."""
+    inputs = sorted(set(values))
+    unknown = sorted(
+        value for value in inputs if value not in ROUTE_NEEDS and value not in ROUTE_NEED_ALIASES
+    )
+    if unknown:
+        raise RouteNeedContractError(unknown)
+    normalized: set[str] = set()
+    translations: list[dict[str, str]] = []
+    for value in inputs:
+        target = ROUTE_NEED_ALIASES.get(value, value)
+        normalized.add(target)
+        translations.append(
+            {
+                "input": value,
+                "canonical": target,
+                "kind": "alias" if value in ROUTE_NEED_ALIASES else "canonical",
+            }
+        )
+    return sorted(normalized), translations
+
+
+def normalize_route_risks(values: Iterable[str]) -> tuple[list[str], list[dict[str, Any]]]:
+    """Accept bounded task-facing risk aliases while preserving canonical downstream values."""
+    inputs = sorted(set(values))
+    unknown = sorted(
+        value
+        for value in inputs
+        if value not in engineering_context.RISK_TOKENS and value not in ROUTE_RISK_ALIASES
+    )
+    if unknown:
+        raise RouteRiskContractError(unknown)
+    normalized: set[str] = set()
+    translations: list[dict[str, Any]] = []
+    for value in inputs:
+        targets = ROUTE_RISK_ALIASES.get(value, (value,))
+        normalized.update(targets)
+        translations.append(
+            {
+                "input": value,
+                "canonical": sorted(targets),
+                "kind": "alias" if value in ROUTE_RISK_ALIASES else "canonical",
+            }
+        )
+    return sorted(normalized), translations
+
+
+def normalize_method_activation_signals(
+    values: Iterable[str],
+    *,
+    risks: set[str],
+) -> tuple[list[str], list[dict[str, Any]], list[str]]:
+    """Normalize public aliases and supplement them with uncovered risk foundations."""
+    inputs = sorted(set(values))
+    unknown = sorted(
+        value
+        for value in inputs
+        if value not in METHOD_ACTIVATION_SIGNALS and value not in METHOD_SIGNAL_ALIASES
+    )
+    if unknown:
+        raise MethodSignalContractError(unknown)
+    normalized: set[str] = set()
+    translations: list[dict[str, Any]] = []
+    for value in inputs:
+        targets = METHOD_SIGNAL_ALIASES.get(value, (value,))
+        normalized.update(targets)
+        translations.append(
+            {
+                "input": value,
+                "canonical": sorted(targets),
+                "kind": "alias" if value in METHOD_SIGNAL_ALIASES else "canonical",
+            }
+        )
+    risk_foundations: set[str] = set()
+    for risk in sorted(risks):
+        risk_foundations.update(METHOD_RISK_DERIVED_SIGNALS.get(risk, ()))
+    derived = risk_foundations - normalized
+    normalized.update(derived)
+    return sorted(normalized), translations, sorted(derived)
+
+
+def corrected_route_command(
+    args: argparse.Namespace,
+    *,
+    risk_suggestions: dict[str, list[str]] | None = None,
+    signal_suggestions: dict[str, list[str]] | None = None,
+    need_suggestions: dict[str, list[str]] | None = None,
+    fact_replacements: dict[str, str] | None = None,
+) -> str | None:
+    """Replay a corrected route with the original task semantics from any working directory."""
+    risk_suggestions = risk_suggestions or {}
+    signal_suggestions = signal_suggestions or {}
+    need_suggestions = need_suggestions or {}
+    fact_replacements = fact_replacements or {}
+    if any(
+        not matches
+        for matches in (
+            *risk_suggestions.values(),
+            *signal_suggestions.values(),
+            *need_suggestions.values(),
+        )
+    ):
+        return None
+    risk_replacements = {value: matches[0] for value, matches in risk_suggestions.items()}
+    signal_replacements = {value: matches[0] for value, matches in signal_suggestions.items()}
+    need_replacements = {value: matches[0] for value, matches in need_suggestions.items()}
+    if (
+        not risk_replacements
+        and not signal_replacements
+        and not need_replacements
+        and not fact_replacements
+    ):
+        return None
+    command = [
+        sys.executable,
+        str(Path(__file__).resolve().with_name("dev-flow.py")),
+        "route-task",
+    ]
+    if args.intent is not None:
+        command.extend(("--intent", args.intent))
+    else:
+        command.extend(("--task-type", args.task_type))
+    for risk in args.risk:
+        command.extend(("--risk", risk_replacements.get(risk, risk)))
+    for need in args.need:
+        command.extend(("--need", need_replacements.get(need, need)))
+    if args.ui_impact != "none":
+        command.extend(("--ui-impact", args.ui_impact))
+    if args.ambiguity:
+        command.append("--ambiguity")
+    if args.material_exposure:
+        command.append("--material-exposure")
+    if args.independent_review_authorized:
+        command.append("--independent-review-authorized")
+    for fact in args.repo_fact:
+        command.extend(("--repo-fact", fact_replacements.get(fact, fact)))
+    for skill in args.effective_skill:
+        command.extend(("--effective-skill", skill))
+    for signal in args.method_signal:
+        command.extend(("--method-signal", signal_replacements.get(signal, signal)))
+    for prerequisite in args.method_prerequisite:
+        command.extend(("--method-prerequisite", prerequisite))
+    if args.method_depth is not None:
+        command.extend(("--method-depth", args.method_depth))
+    if args.requirement_class is not None:
+        command.extend(("--requirement-class", args.requirement_class))
+    if args.understanding_confirmed:
+        command.append("--understanding-confirmed")
+    if args.waive_understanding_confirmation:
+        command.append("--waive-understanding-confirmation")
+    if args.profile_operation:
+        command.append("--profile-operation")
+    if args.suite_maintenance:
+        command.append("--suite-maintenance")
+    if args.mutation is not None:
+        command.extend(("--mutation", args.mutation))
+    for unknown in args.unknown:
+        command.extend(("--unknown", unknown))
+    if args.work_mode != "auto":
+        command.extend(("--work-mode", args.work_mode))
+    for active, option in (
+        (args.multi_session, "--multi-session"),
+        (args.multi_slice, "--multi-slice"),
+        (args.cross_module, "--cross-module"),
+        (args.coordination, "--coordination"),
+        (args.material_tradeoff, "--material-tradeoff"),
+        (args.durable_plan, "--durable-plan"),
+    ):
+        if active:
+            command.append(option)
+    for impact in args.knowledge_impact:
+        command.extend(("--knowledge-impact", impact))
+    for overlay in args.overlay:
+        command.extend(("--overlay", overlay))
+    if args.compact:
+        command.append("--compact")
+    return subprocess.list2cmdline(command) if os.name == "nt" else shlex.join(command)
+
+
+def validate_method_domain_gate_ids(payload: dict[str, Any]) -> None:
+    """Fail closed when a hard-coded domain gate drifts from the method registry."""
+    registered = {method["id"] for method in payload["methods"]}
+    configured = PRIVACY_METHOD_IDS | AGENT_MEMORY_METHOD_IDS | MULTI_AGENT_METHOD_IDS
+    missing = sorted(configured - registered)
+    if missing:
+        raise methodology_system.MethodologyContractError(
+            f"task-facing method domain gate references unknown method(s): {', '.join(missing)}"
+        )
+
+
+def method_domain_gate_reason(
+    method_id: str,
+    *,
+    risks: set[str],
+    repository_facts: set[str],
+    available_prerequisites: set[str],
+) -> str | None:
+    """Keep specialist domains out of broad task-facing method projections."""
+    if method_id in PRIVACY_METHOD_IDS and "privacy" not in risks:
+        return "privacy method requires an observed privacy risk"
+    if method_id in AGENT_MEMORY_METHOD_IDS and not (
+        "memory-store-inventory" in available_prerequisites
+        and repository_facts
+        & {
+            "agentic-system=true",
+            "feature=persistent-agent-memory",
+            "system=agentic",
+        }
+    ):
+        return "agent-memory method requires an agentic-system fact and memory-store inventory"
+    if method_id in MULTI_AGENT_METHOD_IDS and not repository_facts & {
+        "delegation=active",
+        "delegation=planned",
+        "multi-agent-work=true",
+    }:
+        return "multi-agent method requires actual planned or active delegation"
+    return None
+
+
+def task_facing_method_phase(
+    *,
+    default_phase: str,
+    payload: dict[str, Any],
+    risks: set[str],
+    method_signals: set[str],
+    translated_signals: set[str],
+    repository_facts: set[str],
+    available_prerequisites: set[str],
+    depth: str,
+    task_type: str,
+) -> tuple[str, str]:
+    """Use an adjacent owner when its methods better cover an explicit reasoning shape."""
+    if not method_signals:
+        return default_phase, "intent"
+    normalized_risks, _, _ = methodology_system.normalize_risks(
+        payload["vocabulary"], sorted(risks)
+    )
+    canonical_risks = set(normalized_risks)
+    matched_method_ids: set[str] = set()
+    for model in payload["risk_models"]:
+        matches = {
+            "risks": canonical_risks & set(model["match"]["risks"]),
+            "signals": translated_signals & set(model["match"]["signals"]),
+            "task_types": {task_type} & set(model["match"]["task_types"]),
+        }
+        score = sum(
+            len(matches[field]) * methodology_system.MATCH_WEIGHTS[field]
+            for field in methodology_system.MATCH_FIELDS
+        )
+        if score >= model["minimum_score"]:
+            matched_method_ids.update(model["method_ids"])
+    depth_index = {
+        value: index for index, value in enumerate(payload["selection_contract"]["depths"])
+    }
+
+    def direct_strength(phase: str) -> tuple[int, int]:
+        applicable = [
+            method
+            for method in payload["methods"]
+            if method["id"] in matched_method_ids
+            and phase in method["phases"]
+            and depth_index[method["depth"]] <= depth_index[depth]
+            and method_domain_gate_reason(
+                method["id"],
+                risks=risks,
+                repository_facts=repository_facts,
+                available_prerequisites=available_prerequisites,
+            )
+            is None
+        ]
+        return (
+            len(
+                set().union(
+                    *(set(method["signals"]) & translated_signals for method in applicable)
+                )
+            ),
+            len(
+                set().union(
+                    *(set(method["risks"]) & canonical_risks for method in applicable)
+                )
+            ),
+        )
+
+    if (
+        default_phase in {"implementation", "review"}
+        and "model-evaluation" in method_signals
+        and direct_strength("verification") > (0, 0)
+    ):
+        return "verification", "signal-adjacent-owner"
+
+    if default_phase == "review":
+        if (
+            "oracle-challenge" in method_signals
+            and direct_strength("verification")[0] > direct_strength("review")[0]
+        ):
+            return "verification", "signal-adjacent-owner"
+        return default_phase, "intent"
+    if default_phase != "implementation":
+        return default_phase, "intent"
+
+    default_strength = direct_strength(default_phase)
+    preferred = [
+        phase
+        for phase in ("requirements", "diagnosis", "design", "verification")
+        if any(METHOD_SIGNAL_PREFERRED_PHASE[signal] == phase for signal in method_signals)
+    ]
+    preferred_strengths = [(direct_strength(phase), phase) for phase in preferred]
+    best_preferred_strength, best_preferred_phase = max(
+        preferred_strengths,
+        key=lambda item: item[0],
+        default=((0, 0), default_phase),
+    )
+    if best_preferred_strength[0] > default_strength[0]:
+        return best_preferred_phase, "signal-adjacent-owner"
+    if default_strength > (0, 0):
+        return default_phase, "intent-direct-match"
+    for phase in preferred:
+        if direct_strength(phase) > (0, 0):
+            return phase, "signal-adjacent-owner"
+    return default_phase, "intent-no-adjacent-match"
+
+
 def documentation_family(profile: Any) -> str | None:
     if profile in {"micro", "trace"}:
         return "trace"
@@ -686,21 +1128,32 @@ def route_capability_activation(
     intent: str,
     risks: set[str],
     needs: set[str],
+    risk_translations: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """Return a non-persisted advanced-capability posture for the current route."""
-    method_signals = set(args.method_signal)
-    unknown_method_signals = sorted(method_signals - METHOD_ACTIVATION_SIGNALS)
-    if unknown_method_signals:
-        raise ValueError(
-            f"unknown method activation signal(s): {', '.join(unknown_method_signals)}"
-        )
+    normalized_method_signals, signal_translations, derived_method_signals = (
+        normalize_method_activation_signals(args.method_signal, risks=risks)
+    )
+    method_signals = set(normalized_method_signals)
     method_risks = sorted(risks & METHOD_ACTIVATION_RISKS)
-    method_reasons = [*(f"risk:{value}" for value in method_risks), *(f"signal:{value}" for value in sorted(method_signals))]
+    method_reasons = [
+        *(f"risk:{value}" for value in method_risks),
+        *(f"signal:{value}" for value in sorted(method_signals)),
+    ]
     review_reasons: list[str] = []
     if args.material_exposure:
         review_reasons.append("material-exposure")
     if "review" in needs:
         review_reasons.append("explicit-review-need")
+    for risk in sorted(risks & {"data-deletion", "rollback", "version-compatibility"}):
+        review_reasons.append(f"risk:{risk}")
+    if "persisted-data" in risks and risks & {
+        "backpressure",
+        "distributed-state",
+        "external-write",
+        "idempotency",
+    }:
+        review_reasons.append("cross-system-durability")
     repository_facts = set(args.repo_fact)
     repository_facts.update(f"risk={risk}" for risk in risks)
     invalid_facts = sorted(value for value in repository_facts if "=" not in value)
@@ -729,7 +1182,7 @@ def route_capability_activation(
         )
     method_selection: dict[str, Any] | None = None
     if method_reasons:
-        method_phase = {
+        default_method_phase = {
             "research": "requirements",
             "diagnose": "diagnosis",
             "design": "design",
@@ -740,10 +1193,42 @@ def route_capability_activation(
         method_task_type = args.task_type or INTENT_METHOD_TASK_TYPES[intent]
         method_depth = args.method_depth or (
             "deep"
-            if risks & {"abi", "authorization", "concurrency", "ffi", "migration", "privacy", "security", "unsafe"}
+            if risks
+            & {
+                "abi",
+                "authorization",
+                "concurrency",
+                "data-deletion",
+                "distributed-state",
+                "ffi",
+                "migration",
+                "ordering",
+                "persisted-data",
+                "privacy",
+                "recovery",
+                "rollback",
+                "security",
+                "unsafe",
+                "version-compatibility",
+                "weak-tests",
+            }
             else "starter"
         )
         method_payload = methodology_system.read_registry(methodology_registry_path())
+        validate_method_domain_gate_ids(method_payload)
+        translated_signals = {METHOD_SIGNAL_TRANSLATIONS[value] for value in method_signals}
+        available_prerequisites = set(args.method_prerequisite)
+        method_phase, method_phase_source = task_facing_method_phase(
+            default_phase=default_method_phase,
+            payload=method_payload,
+            risks=risks,
+            method_signals=method_signals,
+            translated_signals=translated_signals,
+            repository_facts=repository_facts,
+            available_prerequisites=available_prerequisites,
+            depth=method_depth,
+            task_type=method_task_type,
+        )
         selected = methodology_system.select_methods(
             method_payload,
             repository_root=plugin_root(),
@@ -753,41 +1238,116 @@ def route_capability_activation(
             signals=sorted(METHOD_SIGNAL_TRANSLATIONS[value] for value in method_signals),
             available=args.method_prerequisite,
             depth=method_depth,
-            max_methods=3,
+            # The task-facing projection below owns the three-method context cap.
+            # Avoid letting registry order hide a later ready, directly relevant method.
+            max_methods=len(method_payload["methods"]),
         )
         method_by_id = {method["id"]: method for method in method_payload["methods"]}
         method_order = {method["id"]: index for index, method in enumerate(method_payload["methods"])}
-        translated_signals = {METHOD_SIGNAL_TRANSLATIONS[value] for value in method_signals}
+        canonical_method_risks = set(selected["request"]["risks"])
         blocked_by_id = {item["method_id"]: item for item in selected["blocked_methods"]}
-        candidate_ids = {
-            *(method["id"] for method in selected["selected_methods"]),
-            *(item["method_id"] for item in selected["blocked_methods"]),
-        }
+        ready_ids = [method["id"] for method in selected["selected_methods"]]
+        blocked_ids = [item["method_id"] for item in selected["blocked_methods"]]
+        method_model_order: dict[str, tuple[int, int]] = {}
+        for stack_index, stack in enumerate(selected["stacks"]):
+            for stack_method_index, entry in enumerate(stack["methods"]):
+                method_model_order.setdefault(
+                    entry["method_id"], (stack_index, stack_method_index)
+                )
 
-        def activation_relevance(method_id: str) -> tuple[int, int]:
+        def activation_relevance(method_id: str) -> tuple[int, int, int, int, int]:
             method = method_by_id[method_id]
-            direct_risks = len(set(method["risks"]) & set(method_risks))
             direct_signals = len(set(method["signals"]) & translated_signals)
-            return (direct_risks * 10 + direct_signals * 5, -method_order[method_id])
+            direct_risks = len(set(method["risks"]) & canonical_method_risks)
+            stack_index, stack_method_index = method_model_order.get(
+                method_id, (len(selected["stacks"]), len(method_payload["methods"]))
+            )
+            return (
+                direct_signals,
+                direct_risks,
+                -stack_index,
+                -stack_method_index,
+                -method_order[method_id],
+            )
 
-        directly_relevant = [
-            method_id for method_id in candidate_ids if activation_relevance(method_id)[0] > 0
-        ]
-        bounded_ids = sorted(directly_relevant, key=activation_relevance, reverse=True)[:3]
-        if not bounded_ids:
-            bounded_ids = [
-                *(method["id"] for method in selected["selected_methods"]),
-                *(item["method_id"] for item in selected["blocked_methods"]),
-            ][:3]
-        bounded_selected = [
+        def directly_relevant(method_id: str) -> bool:
+            direct_signals, direct_risks, *_ = activation_relevance(method_id)
+            return direct_signals > 0 or direct_risks > 0
+
+        gated_ready = [
             method_id
-            for method_id in bounded_ids
-            if method_id not in blocked_by_id
+            for method_id in ready_ids
+            if method_domain_gate_reason(
+                method_id,
+                risks=risks,
+                repository_facts=repository_facts,
+                available_prerequisites=available_prerequisites,
+            )
+            is None
+            and directly_relevant(method_id)
         ]
-        bounded_blocked = [blocked_by_id[method_id] for method_id in bounded_ids if method_id in blocked_by_id]
+        gated_blocked = [
+            method_id
+            for method_id in blocked_ids
+            if method_domain_gate_reason(
+                method_id,
+                risks=risks,
+                repository_facts=repository_facts,
+                available_prerequisites=available_prerequisites,
+            )
+            is None
+            and directly_relevant(method_id)
+        ]
+        bounded_selected = sorted(gated_ready, key=activation_relevance, reverse=True)[:3]
+        ranked_blocked = sorted(gated_blocked, key=activation_relevance, reverse=True)
+        bounded_blocked_ids: list[str] = []
+        # Preserve both the observed reasoning shape and the affected consequence
+        # when they identify different blocked methods; two variants of one axis
+        # must not hide the other.
+        for component in (0, 1):
+            candidate = next(
+                (
+                    method_id
+                    for method_id in ranked_blocked
+                    if method_id not in bounded_blocked_ids
+                    and activation_relevance(method_id)[component] > 0
+                ),
+                None,
+            )
+            if candidate is not None:
+                bounded_blocked_ids.append(candidate)
+        for method_id in ranked_blocked:
+            if len(bounded_blocked_ids) >= 2:
+                break
+            if method_id not in bounded_blocked_ids:
+                bounded_blocked_ids.append(method_id)
+        bounded_blocked = [blocked_by_id[method_id] for method_id in bounded_blocked_ids]
+        if not bounded_selected and not bounded_blocked:
+            # A phase foundation remains a bounded fallback only when the observed
+            # facts did not make any risk-model method actionable.
+            bounded_selected = [
+                method_id
+                for method_id in ready_ids
+                if method_by_id[method_id]["selection"] == "foundation"
+                and method_domain_gate_reason(
+                    method_id,
+                    risks=risks,
+                    repository_facts=repository_facts,
+                    available_prerequisites=available_prerequisites,
+                )
+                is None
+            ][:1]
+        selection_status = (
+            "selected-with-unresolved-prerequisites"
+            if bounded_blocked
+            else "selected"
+            if bounded_selected
+            else "no-actionable-match"
+        )
         method_selection = {
-            "status": "selected-with-unresolved-prerequisites" if bounded_blocked else "selected",
+            "status": selection_status,
             "phase": method_phase,
+            "phase_source": method_phase_source,
             "depth": method_depth,
             "selected": bounded_selected,
             "guidance": [
@@ -810,8 +1370,15 @@ def route_capability_activation(
             "matched_risk_models": [
                 item["id"] for item in selected["reasoning_model"]["matched_risk_models"]
             ],
+            "fallback": (
+                None
+                if bounded_selected or bounded_blocked
+                else "Use the owning specialist's established procedure and state that no bounded methodology match was actionable."
+            ),
+            "actionable": bool(bounded_selected or bounded_blocked),
             "persisted": False,
         }
+    independent_review_required = bool(review_reasons)
     return {
         "artifact": None,
         "passes": ["after-repository-discovery", "after-material-requirement-confirmation"],
@@ -826,6 +1393,16 @@ def route_capability_activation(
         "method": {
             "active_match_required": bool(method_reasons),
             "reasons": method_reasons,
+            "signal_normalization": {
+                "input": sorted(set(args.method_signal)),
+                "canonical": sorted(method_signals),
+                "translations": signal_translations,
+                "derived_from_risks": derived_method_signals,
+            },
+            "risk_normalization": {
+                "canonical": sorted(risks),
+                "translations": risk_translations,
+            },
             "action": (
                 "use-specialist-method-or-bounded-select"
                 if method_reasons
@@ -836,9 +1413,43 @@ def route_capability_activation(
             "persisted": False,
         },
         "independent_review": {
-            "required": bool(review_reasons),
+            "required": independent_review_required,
             "reasons": sorted(set(review_reasons)),
             "blue_red_are_lenses": True,
+            "same_context_is_independent": False,
+            "evidence_required": {
+                "reviewer_identity": "non-empty-dispatched-reviewer-or-receiver-id",
+                "completed_result": True,
+            },
+            "empty_wait_is_independent": False,
+            "delegation_authorized": args.independent_review_authorized,
+            "authorization_from_route": False,
+            "wait_precondition": "successful-dispatch-with-non-empty-reviewer-identity",
+            "execution": (
+                "route-agent-or-explicit-downgrade"
+                if independent_review_required and args.independent_review_authorized
+                else "explicit-downgrade"
+                if independent_review_required
+                else "not-required"
+            ),
+            "route_agent": (
+                {
+                    "role": "dev-flow-red-reviewer",
+                    "workload": "high-risk-review",
+                    "signal": "independent-review",
+                }
+                if independent_review_required and args.independent_review_authorized
+                else None
+            ),
+            "downgrade": (
+                {
+                    "allowed_when": "clean-context delegation is unavailable or not authorized",
+                    "required_report": "common-mode-risk",
+                    "claim": "same-context-review",
+                }
+                if independent_review_required
+                else None
+            ),
         },
         "child_route": {
             "when": "only after delegation has positive isolation or parallel value",
@@ -6189,7 +6800,24 @@ def route_task(args: argparse.Namespace) -> int:
             routes.append(skill)
         reasons.setdefault(skill, []).append(reason)
 
-    needs = set(args.need)
+    try:
+        normalized_needs, need_translations = normalize_route_needs(args.need)
+    except RouteNeedContractError as exc:
+        return emit(
+            {
+                "status": "invalid",
+                "errors": [str(exc)],
+                "allowed_needs": sorted(ROUTE_NEEDS),
+                "need_aliases": dict(sorted(ROUTE_NEED_ALIASES.items())),
+                "suggestions": exc.suggestions,
+                "corrected_command": corrected_route_command(
+                    args,
+                    need_suggestions=exc.suggestions,
+                ),
+            },
+            2,
+        )
+    needs = set(normalized_needs)
     unknowns = set(args.unknown)
     # An unresolved delivery dimension is not delivery intent or authority.
     needs.update(value for value in unknowns if value in {"architecture", "dependency", "diagnosis", "review"})
@@ -6218,8 +6846,8 @@ def route_task(args: argparse.Namespace) -> int:
         )
     decision_work = intent in {"diagnose", "design", "change"}
     mutating = decision_work and mutation_intent == "persistent"
-    conservative_risks = list(args.risk)
-    conservative_risks.extend(
+    input_risks = list(args.risk)
+    input_risks.extend(
         {
             "security": "security",
             "data": "persisted-data",
@@ -6229,6 +6857,7 @@ def route_task(args: argparse.Namespace) -> int:
         for value in sorted(unknowns & {"security", "data", "compatibility", "dependency"})
     )
     try:
+        conservative_risks, risk_translations = normalize_route_risks(input_risks)
         risks = engineering_context.canonical_risks(conservative_risks)
         work_mode, mode_reasons = select_execution_mode(args)
         knowledge = route_knowledge(args, work_mode)
@@ -6242,9 +6871,90 @@ def route_task(args: argparse.Namespace) -> int:
             intent=intent,
             risks=risks,
             needs=needs,
+            risk_translations=risk_translations,
+        )
+    except RouteRiskContractError as exc:
+        known_method_signals = sorted(METHOD_ACTIVATION_SIGNALS | set(METHOD_SIGNAL_ALIASES))
+        invalid_method_signals = sorted(
+            value
+            for value in set(args.method_signal)
+            if value not in METHOD_ACTIVATION_SIGNALS and value not in METHOD_SIGNAL_ALIASES
+        )
+        method_signal_suggestions = {
+            value: difflib.get_close_matches(value, known_method_signals, n=1, cutoff=0.45)
+            for value in invalid_method_signals
+        }
+        return emit(
+            {
+                "status": "invalid",
+                "errors": [
+                    str(exc),
+                    *(
+                        [
+                            "unknown method activation signal(s): "
+                            + ", ".join(invalid_method_signals)
+                        ]
+                        if invalid_method_signals
+                        else []
+                    ),
+                ],
+                "allowed_risks": sorted(engineering_context.RISK_TOKENS),
+                "risk_aliases": {
+                    key: list(value) for key, value in sorted(ROUTE_RISK_ALIASES.items())
+                },
+                "suggestions": exc.suggestions,
+                "allowed_method_signals": sorted(METHOD_ACTIVATION_SIGNALS),
+                "method_signal_aliases": {
+                    key: list(value) for key, value in sorted(METHOD_SIGNAL_ALIASES.items())
+                },
+                "method_signal_suggestions": method_signal_suggestions,
+                "corrected_command": corrected_route_command(
+                    args,
+                    risk_suggestions=exc.suggestions,
+                    signal_suggestions=method_signal_suggestions,
+                ),
+                "risk_signal_guidance": (
+                    "Use --risk for an affected engineering consequence; use --method-signal "
+                    "for an observed reasoning shape. Do not translate workflow labels into risks."
+                ),
+            },
+            2,
+        )
+    except MethodSignalContractError as exc:
+        return emit(
+            {
+                "status": "invalid",
+                "errors": [str(exc)],
+                "allowed_method_signals": sorted(METHOD_ACTIVATION_SIGNALS),
+                "method_signal_aliases": {
+                    key: list(value) for key, value in sorted(METHOD_SIGNAL_ALIASES.items())
+                },
+                "suggestions": exc.suggestions,
+                "corrected_command": corrected_route_command(
+                    args,
+                    signal_suggestions=exc.suggestions,
+                ),
+                "risk_signal_guidance": (
+                    "Use --risk for an affected engineering consequence such as concurrency, "
+                    "migration, or data-loss; use --method-signal for an observed reasoning "
+                    "shape such as state-lifecycle or multi-version-coexistence."
+                ),
+            },
+            2,
         )
     except ValueError as exc:
-        return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+        invalid_facts = [value for value in args.repo_fact if "=" not in value]
+        payload: dict[str, Any] = {"status": "invalid", "errors": [str(exc)]}
+        if invalid_facts:
+            payload["corrected_command"] = corrected_route_command(
+                args,
+                fact_replacements={value: f"context={value}" for value in invalid_facts},
+            )
+            payload["repository_fact_guidance"] = (
+                "Use repeatable --repo-fact key=value inputs; context=<bounded prose> "
+                "preserves an otherwise unstructured observation without inventing a selector."
+            )
+        return emit(payload, 2)
     if args.profile_operation:
         add("manage-engineering-profiles", "explicit profile or instruction lifecycle operation")
     if args.ui_impact in {"preserve", "material"} or "ui" in unknowns:
@@ -6255,7 +6965,8 @@ def route_task(args: argparse.Namespace) -> int:
             else "existing UI intent and protected behavior",
         )
     if (
-        understanding["class"] == "semantic-change"
+        "requirements" in needs
+        or understanding["class"] == "semantic-change"
         or intent == "design"
         or work_mode == "managed"
         or args.ambiguity
@@ -6281,7 +6992,11 @@ def route_task(args: argparse.Namespace) -> int:
     if intent == "review":
         add("verification", "review intent needs current native evidence")
     overlays = risk_overlays(args.task_type or "", risks, needs, args.ui_impact, args.overlay)
-    if intent == "review" or "review" in needs or args.material_exposure:
+    if (
+        intent == "review"
+        or "review" in needs
+        or capability_activation["independent_review"]["required"]
+    ):
         add("change-review", "material exposure, consequential trade-off, evidence conflict, or policy requires independent review")
     if intent == "delivery" or "delivery" in needs:
         add("delivery-readiness", "acceptance, rollback, and delivery authority accounting")
@@ -6295,6 +7010,7 @@ def route_task(args: argparse.Namespace) -> int:
             "work_mode": work_mode,
             "work_mode_reasons": mode_reasons,
             "risk_overlays": overlays,
+            "need_normalization": need_translations,
             "requirement_understanding": understanding,
             "capability_activation": capability_activation,
             "routes": [{"skill": skill, "reasons": reasons[skill]} for skill in routes],
@@ -6304,6 +7020,41 @@ def route_task(args: argparse.Namespace) -> int:
                 "default_path": "docs/workstreams/<slug>" if work_mode == "managed" else None,
                 "artifacts": ["implementation.md", "progress.md"] if work_mode == "managed" else [],
                 "conditional_artifacts": ["requirements.md", "design.md", "decisions.md"]
+                if work_mode == "managed"
+                else [],
+                "conditional_artifact_rules": {
+                    "requirements.md": "only-confirmed-complex-semantics-not-an-unknown-baseline",
+                    "design.md": "only-real-technical-tradeoffs-after-required-semantic-confirmation",
+                    "decisions.md": "only-durable-decisions-without-a-repository-native-home",
+                }
+                if work_mode == "managed"
+                else {},
+                "update_on": [
+                    "scope-or-design-change",
+                    "coherent-slice-completion",
+                    "new-boundary",
+                    "assumption-breaking-first-failure",
+                    "blocker",
+                    "interruption-or-handoff",
+                    "closure",
+                ]
+                if work_mode == "managed"
+                else [],
+                "resume": [
+                    "read-current-workstream",
+                    "verify-git-root-branch-head-and-worktree",
+                    "reconcile-changed-paths-and-parallel-changes",
+                    "continue-smallest-ready-slice",
+                ]
+                if work_mode == "managed"
+                else [],
+                "interruption_handoff": [
+                    "done",
+                    "current",
+                    "next",
+                    "blockers-or-unrun-gates",
+                    "worktree-and-parallel-change-state",
+                ]
                 if work_mode == "managed"
                 else [],
             },
@@ -6816,7 +7567,14 @@ def build_parser() -> argparse.ArgumentParser:
     workstream.add_argument("--slug", required=True)
     workstream.add_argument("--objective", required=True)
     workstream.add_argument("--path", help="repository-relative workstream directory")
-    workstream.add_argument("--with-requirements", action="store_true")
+    workstream.add_argument(
+        "--with-requirements",
+        action="store_true",
+        help=(
+            "Add only when confirmed complex semantics already exist; unknown baselines or "
+            "unanswered questions stay in implementation/progress"
+        ),
+    )
     workstream.add_argument("--with-design", action="store_true")
     workstream.add_argument("--with-decisions", action="store_true")
     workstream.add_argument("--reuse", action="store_true")
@@ -7026,13 +7784,37 @@ def build_parser() -> argparse.ArgumentParser:
         choices=sorted(TASK_TYPES),
         help="Unsupported 1.x parser residue; 2.0 callers use --intent",
     )
-    route.add_argument("--risk", action="append", default=[])
-    route.add_argument("--need", choices=("architecture", "dependency", "diagnosis", "verification", "review", "delivery"), action="append", default=[])
+    route.add_argument(
+        "--risk",
+        action="append",
+        default=[],
+        help="Affected engineering consequence; repeat as needed and use structured invalid output for canonical values",
+    )
+    route.add_argument(
+        "--need",
+        action="append",
+        default=[],
+        help=(
+            "Required capability; canonical short names and corresponding specialist Skill "
+            "names are accepted, and invalid values return a structured correction"
+        ),
+    )
     route.add_argument("--ui-impact", choices=sorted(UI_IMPACTS), default="none")
     route.add_argument("--ambiguity", action="store_true")
     route.add_argument("--material-exposure", action="store_true")
     route.add_argument(
+        "--independent-review-authorized",
+        action="store_true",
+        help=(
+            "Confirm separate authority to dispatch a clean-context reviewer; route-task "
+            "never grants that authority and otherwise requires an explicit same-context downgrade"
+        ),
+    )
+    route.add_argument(
         "--repo-fact",
+        "--repository-fact",
+        "--repository-facts",
+        dest="repo_fact",
         action="append",
         default=[],
         help="Observed repository fact as key=value; repeat for language/framework facts",
@@ -7047,7 +7829,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--method-signal",
         action="append",
         default=[],
-        help="Observed high-leverage method signal; repeat for multiple signals",
+        help="Observed high-leverage reasoning shape; model-evaluation is explicit and weak-tests derives the cheaper oracle challenge",
     )
     route.add_argument(
         "--method-prerequisite",
@@ -7062,12 +7844,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     route.add_argument(
         "--requirement-class",
+        type=normalize_requirement_class,
         choices=sorted(REQUIREMENT_CLASSES),
-        help="Semantic understanding depth; infer from evidence when omitted",
+        help="Semantic understanding depth; U1-U5 aliases are accepted and output remains canonical",
     )
     route_confirmation = route.add_mutually_exclusive_group()
-    route_confirmation.add_argument("--understanding-confirmed", action="store_true")
-    route_confirmation.add_argument("--waive-understanding-confirmation", action="store_true")
+    route_confirmation.add_argument(
+        "--understanding-confirmed",
+        action="store_true",
+        help="The complete U1 understanding was explicitly confirmed; retain semantic-change and continue",
+    )
+    route_confirmation.add_argument(
+        "--waive-understanding-confirmation",
+        action="store_true",
+        help="The request explicitly waives U1 reconfirmation; retain semantic-change and continue",
+    )
     route.add_argument("--profile-operation", action="store_true")
     route.add_argument("--suite-maintenance", action="store_true")
     route.add_argument(

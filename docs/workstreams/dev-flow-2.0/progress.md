@@ -74,16 +74,17 @@ The committed RC source was installed into a temporary Codex home and exercised 
 
 ## Current slice
 
-S12-S22 are complete for `2.0.0-rc.1`: features are frozen, the 1.x boundary is a hard cut, version and release truth are aligned, and all six bounded semantic cases matched on the committed RC source. Publication state is owned by Git history and remote refs rather than duplicated as mutable prose.
+RC.2 implementation and R4 convergence are complete. The 80-case deterministic catalog still covers 20 balanced task families. The authorized R4 run used 24,521,511 / 25,000,000 tokens: a preserved 33-attempt broad matrix found confirmed-U1 downclassification and a missing kernel trigger for read-only public-contract design; both were repaired. The final affected-family evidence matched 12/12 attempts across six cases, with three distinct confirmed-U1 continuation cases repeated three times each and no safety/authority violation.
 
 ## Next
 
-Collect separately authorized RC usage feedback before deciding whether to promote the same feature scope to stable `2.0.0`. Hosted CI remains asynchronous feedback rather than an RC.1 gate; artifact publication, active-profile installation, and real-task soak remain deferred.
+Complete the already authorized delivery sequence: final deterministic gates and same-context review, exact-SHA commit/push/hosted CI, immutable release artifact and attestations, signed tag, GitHub Release, isolated install smoke, then active-profile installation.
 
 ## Blockers and decisions needed
 
-- None for S12-S22 implementation, RC tag, and GitHub push; the user authorized the hard cut and RC.1 delivery on 2026-08-18.
-- GitHub Release creation, active-profile installation, artifact publication, deployment, and stable `v2.0.0` remain separate later actions.
+- No blocker remains for local implementation and deterministic verification.
+- No implementation or R4 blocker remains. Delivery actions must still be verified individually against the exact commit and artifact.
+- Deployment, production use, business acceptance, and stable `v2.0.0` remain outside RC.2.
 
 ## Evidence limits
 
@@ -93,3 +94,16 @@ Collect separately authorized RC usage feedback before deciding whether to promo
 - Beta.2 and Beta.3 pilots used isolated synthetic Git repositories and temporary Codex installations of the current working tree. They do not prove behavior on a large real project or all model variations.
 - The dependency pilot could not reach the package index from its sandbox; external resolution remained `BLOCKED` while its local regression passed.
 - Hosted CI, release-candidate artifact workflow, active user-profile installation, GitHub Release creation, deployment, production use, and business acceptance are not RC.1 gates and remain `NOT RUN`. No 1.x upgrade/rollback compatibility is promised. Effect evaluation is not a Dev Flow 2.0 release requirement; activation coverage is.
+- S23 baseline evidence: 74 focused routing/method/activation tests passed and the 13-Skill suite validator reported valid before implementation. An initial validator call used the wrong repository path and failed before the correct repository-native entrypoint passed.
+- S23 final deterministic evidence: 450/450 unit tests and 39/39 process contracts passed; 117 methods, 73 sources, and 38 risk models validated; 13 Skills fit the 2,500-character description and 18,000-byte ordinary-context budgets; plugin, knowledge, data-security, compile, CLI help/error, and clean-diff checks passed.
+- Independent review was explicitly downgraded because clean-context delegation was not authorized for this run. A same-context adversarial review found and repaired an incomplete corrected-command diagnostic plus a phase-routing gap; `common-mode-risk` remains.
+- S24 focused evidence: 67 routing, activation, and large-simulation tests passed; the large-scenario mutation changed the expected advanced method to a nonexistent one and was correctly reported as mismatched.
+- S24 full deterministic evidence: 456/456 unit tests passed in 80.716 seconds. The eight large-task simulations all matched their declared branches, and foreign-working-directory plus combined-invalid correction replays returned valid equivalent routes.
+- S25 focused evidence: 132 affected routing, capability, activation, engineering-context, and release-artifact tests passed. The coverage gate rejected one duplicate command shape before the performance case was replaced with a distinct SLO/latency task.
+- S25 taxonomy sources were inspected live on 2026-08-21; only task shapes were adapted into local deterministic routes, not external datasets, graders, scores, or model claims.
+- S25 final deterministic evidence: 460/460 unit tests passed in 87.350 seconds; 80/80 large-task simulations matched. Family-removal, nonexistent advanced-method, review-overactivation, and missing-specialist mutations were all detected. The 39 process contracts, 117-method registry, 13-Skill suite, plugin/knowledge/data-security checks, compilation, 430 JSON parses, and clean-diff check passed.
+- RC.2 final local evidence: 464/464 unit tests, 39/39 process contracts, 33/33 deterministic activation cases, and 80/80 large-task simulations passed. The 117-method/73-source/38-risk-model registry, 13-Skill suite (17,879 ordinary static bytes), plugin, knowledge, data-security doctor, compilation, JSON parsing, and diff checks also passed.
+- S24 changed model-facing semantics but did not execute live model trials. The current active plugin remains RC.1, so RC.2 implicit invocation, real interruption recovery, and clean-context review remain `NOT RUN`; the final audit is same-context and retains `common-mode-risk`.
+- R4 model-semantic trials are complete. They used isolated synthetic repositories and one model/effort, so they do not prove population effectiveness or production behavior. Final review is same-context and retains `common-mode-risk` because independent dispatch was not authorized.
+- No 1.x upgrade/rollback compatibility is promised; the 2.0 line remains a hard cut.
+- Hosted CI, commit, tag, push, isolated/active installation, GitHub Release, and artifact publication remain pending until their actions complete; deployment, production use, and business acceptance remain `NOT RUN`.

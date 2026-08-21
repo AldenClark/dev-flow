@@ -1,11 +1,13 @@
 ---
 name: repo-context
-description: Resolve repository facts, boundaries, instructions, current behavior, and native controls without changing product code.
+description: Resolve repository facts, boundaries, instructions, behavior, and native controls without product-code changes.
 ---
 
 # Repository Context
 
 Establish the smallest fact base needed to act safely. Resolve repository facts yourself; do not ask the user to rediscover code, configuration, branches, or tool output.
+
+This Skill may operate alone for a narrow read-only lookup. If discovery reveals material repository mutation, cross-boundary diagnosis/design, managed continuity, or high-risk delivery, load `dev-flow` as the coordinating kernel when it is available and not already active; keep this Skill as the fact owner.
 
 ## Procedure
 

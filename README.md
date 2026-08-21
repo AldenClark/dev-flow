@@ -2,7 +2,7 @@
 
 Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是建立第二套工作流引擎，而是用最少的流程成本保持三件事：长期业务工作不漂移、技术结论有原生工程证据、高后果动作保留明确安全边界。
 
-当前源码为已提交的 `2.0.0-rc.1` 发布候选。`v1.1.2` 是最后一个 1.x 稳定标签；2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。RC tag、远端 push 和安装状态必须以 Git/GitHub 实际结果为准。
+当前版本为 `2.0.0-rc.2` activation-hardening RC；它完成了扩大后的确定性覆盖与预算内 R4 模型语义门禁。`v1.1.2` 仍是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
 
 ## 2.0 核心模型
 
@@ -185,10 +185,10 @@ Dev Flow 主 Skill 只负责模式、风险和最小路由。按真实决策加�
 
 ## 安装
 
-RC 发布后可固定安装候选标签：
+固定安装 RC.2 标签：
 
 ```bash
-codex plugin marketplace add AldenClark/dev-flow --ref v2.0.0-rc.1
+codex plugin marketplace add AldenClark/dev-flow --ref v2.0.0-rc.2
 codex plugin add dev-flow@dev-flow
 ```
 
@@ -210,13 +210,14 @@ python3 -m compileall -q hooks skills evals tools
 git diff --check
 ```
 
-CI 不再在 6 个 OS/Python cell 中重复完整套件：一个 semantic job 执行完整语义/结构检查，focused compatibility matrix 只执行平台和 Python 版本敏感测试。对于 `2.0.0-rc.1`，push 后 CI 作为异步反馈而不是 tag/push 的阻塞门禁；RC 不要求额外构造 archive、SBOM、provenance 或 attestation。
+CI 不再在 6 个 OS/Python cell 中重复完整套件：一个 semantic job 执行完整语义/结构检查，focused compatibility matrix 只执行平台和 Python 版本敏感测试。RC.2 的 R4 使用 24,521,511 / 25,000,000 token；33 次广域矩阵暴露并保留了两项候选失败，修复后的影响族 12/12 匹配且无安全/授权违规。模型结果不代表生产力、业务效果或总体质量分数。
 
 发版按变更面分为 R1 standard、R2 runtime、R3 artifact/security、R4 model-semantic。`flow-metrics` 只验证分支激活与负向边界，不衡量生产力或效果。具体边界、命令和 `NOT RUN` 规则见 [docs/releasing.md](docs/releasing.md)。
 
 ## 版本和发布状态
 
-- `2.0.0-rc.1` 是当前已提交的发布候选源码，包含 Default-mode 需求确认、主动高级能力激活、Luna P0-P2、Codex 原生适配和 Flow Activation Coverage。
+- `v2.0.0-rc.2` 是当前 activation-hardening RC，增加隐式激活、专家回链、方法归一化/排序、confirmed-U1 保真、独立审查真值和中断恢复。
+- `v2.0.0-rc.1` 是上一 RC，包含 Default-mode 需求确认、主动高级能力激活、Luna P0-P2、Codex 原生适配和 Flow Activation Coverage。
 - `v1.1.2` 是最后一个 1.x 稳定标签；1.1.3 只存在于未发布源码历史，2.0 不提供 1.x 兼容或迁移保证。
 - 源码、commit、push、tag、GitHub Release、Marketplace 安装和生产使用是不同状态；只有逐项执行和复核后才能声称完成。
 

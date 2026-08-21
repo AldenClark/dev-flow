@@ -7,6 +7,8 @@ description: Define product intent, information architecture, flows, states, acc
 
 Use this Skill when a user-facing change alters a workflow, information architecture, or product behavior. Small visual fixes normally stay on the direct path.
 
+This Skill may operate alone for bounded product discovery. If the result drives material repository mutation, cross-boundary implementation, managed continuity, or high-risk delivery, load `dev-flow` as the coordinating kernel when it is available and not already active; keep this Skill as the product/UX owner.
+
 ## Procedure
 
 1. Classify UI impact as none, preserve, or material.

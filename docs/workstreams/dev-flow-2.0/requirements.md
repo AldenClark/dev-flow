@@ -51,6 +51,19 @@ Dev Flow must help Codex complete real repository work with broad engineering in
 - Deterministic activation and the affected bounded semantic cases validate the RC; hosted CI may provide later feedback without becoming a publication ceremony.
 - Source version and maintained docs consistently identify the RC while installation and production use remain unclaimed.
 
+### RC.2 activation hardening
+
+- Natural repository-engineering requests can discover the main `dev-flow` Skill without requiring `$dev-flow`, while ordinary writing, spreadsheet work, Skill installation, and one-line mechanical edits remain quiet.
+- An engineering specialist that discovers material mutation, cross-boundary diagnosis/design, managed continuity, or high-risk delivery reconnects to the main kernel without displacing the specialist's decision ownership.
+- Explicit Dev Flow requests and material managed/high-leverage work run one compact deterministic route after repository discovery; ordinary bounded work may continue without a CLI ceremony.
+- Common concurrency, distributed-state, migration, rollback, and cross-boundary aliases normalize to the existing canonical method-signal vocabulary, and risk-only calls derive the smallest applicable foundational signal.
+- Invalid method signals return canonical choices, aliases, a nearest correction when available, and an explanation of the risk-versus-signal distinction.
+- Ready, directly relevant methods are returned before blocked methods. Ready guidance is capped at three and directly relevant blocked fallbacks are reported separately, capped at two.
+- Privacy, agent-memory, and multi-agent methods require evidence of their actual domain rather than appearing from a broad risk label alone.
+- A required independent review is either executed through a clean context or explicitly downgraded with common-mode risk; same-context blue/red lenses are never called independent.
+- Managed work resumes from current repository/workstream truth and leaves a concise interruption handoff covering completed/current/next work, blockers or unrun gates, and worktree or parallel-change state.
+- Semantic activation catalogs contain both explicit and implicit positive cases plus negative controls. Model-semantic release evidence remains `NOT RUN` until separately authorized and budgeted.
+
 ## Constraints and protected behavior
 
 - Provide no 1.x packet, state, command, installation, upgrade, migration, or rollback compatibility contract. Any residual reader or validator is unsupported internal code and may be removed without notice.
@@ -62,4 +75,5 @@ Dev Flow must help Codex complete real repository work with broad engineering in
 
 ## Open decisions
 
-- None for RC.1 implementation, bounded semantic validation, tag, and push.
+- None for local RC.2 activation-hardening implementation and deterministic validation.
+- Model-semantic first-attempt trials, commit, tag, push, installation, publication, and release remain separate authority or budget decisions.

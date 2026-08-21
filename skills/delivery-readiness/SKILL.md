@@ -1,11 +1,13 @@
 ---
 name: delivery-readiness
-description: Check final identity, evidence, compatibility, rollback, residual risk, and action-specific authority before commit, push, PR, release, migration, deployment, or external delivery.
+description: Check identity, evidence, compatibility, rollback, residual risk, and authority before commit, push, PR, release, migration, deployment, or delivery.
 ---
 
 # Delivery Readiness
 
 Implementation, verification, acceptance, release readiness, and delivery are distinct claims. Read `references/readiness-contract.md` for releases, migrations, deployments, signing, or other high-consequence delivery.
+
+This Skill may operate alone for a bounded read-only readiness check. If readiness includes material repository mutation, cross-repository coordination, managed continuity, or high-risk delivery preparation, load `dev-flow` as the coordinating kernel when it is available and not already active; keep this Skill as the delivery-evidence owner.
 
 ## Procedure
 

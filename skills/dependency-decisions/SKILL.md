@@ -7,6 +7,8 @@ description: Evaluate and implement dependency additions, updates, removals, too
 
 Treat dependency cost, compatibility, supply chain, and removal as part of the engineering contract. Read `references/dependency-governance.md` for a new dependency, material capability expansion, or high-impact update.
 
+This Skill may operate alone for a bounded dependency assessment. If the operation becomes a material repository mutation, crosses consumers or repositories, needs managed continuity, or exposes high-risk delivery, load `dev-flow` as the coordinating kernel when it is available and not already active; keep this Skill as the dependency owner.
+
 ## Procedure
 
 1. Classify the operation: new/material expansion, routine update, or removal. Establish the capability need, current graph, manifests, lockfiles/generated surfaces, toolchain/platform constraints, and API actually used.

@@ -158,3 +158,11 @@
 - Decision: identify the next source as `2.0.0-rc.1`; provide no public 1.x packet, command, state, upgrade, migration, or rollback compatibility contract. Run one bounded semantic activation pass, then create an annotated RC tag and push `main` plus the tag. Hosted CI is asynchronous feedback, while artifact construction, upgrade/rollback matrices, active-profile installation, and real-task soak are not RC.1 gates.
 - Alternatives: preserve read compatibility through 2.x; remove every legacy implementation byte before RC; require hosted CI and attested artifacts before a tag.
 - Consequences: RC.1 stays small and matches the intentional breaking cut. Residual legacy code is unsupported internal debt, not a compatibility promise, and can be removed separately without blocking this release.
+
+## D21: Harden activation through additive task-facing contracts
+
+- Status: accepted for RC.2 implementation
+- Context: real RC.1 tasks showed that specialist Skills often activated while the main kernel did not, explicit Dev Flow use did not reliably invoke the deterministic route, guessed risk labels were rejected as method signals, blocked broad-domain methods displaced actionable guidance, same-context red/blue work was described too strongly, and managed work did not reliably survive interruptions.
+- Decision: improve the main description and implicit policy, add bounded specialist-to-kernel reconnects, require one compact route only for explicit/material cases, normalize aliases and derive foundational signals at the task-facing route, project ready and blocked methods through separate caps and domain gates, expose an executable independent-review-or-downgrade contract, and make managed resume/handoff invariants explicit. Preserve canonical signals, method IDs, existing output fields, and `method.selection.v1`.
+- Alternatives: add a new orchestration Skill; expand the methodology pool; require routing for every task; change the lower-level selection schema; restore packet/checkpoint state.
+- Consequences: natural engineering work has a stronger path into the quality kernel and advanced methods without imposing ceremony on negative controls. The change is model-semantic and therefore cannot support an RC.2 release claim until separately budgeted first-attempt trials run after deterministic gates.

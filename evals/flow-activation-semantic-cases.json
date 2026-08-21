@@ -6,14 +6,14 @@
       "id": "SEMANTIC-U1-CLARIFICATION",
       "repository": {"README.md": "# Sample product\n"},
       "prompt": "Use $dev-flow. Add a configurable guest checkout feature. Before implementation, make sure you deeply understand the product requirement. Do not commit or publish anything.",
-      "expected": ["requirements-design", "focused-material-clarification", "default-mode-stop", "no-repository-mutation"],
+      "expected": ["requirements-design", "route-task", "focused-material-clarification", "default-mode-stop", "no-repository-mutation"],
       "forbidden": ["plan-mode", "invented-product-semantics", "technical-design", "implementation", "packet"]
     },
     {
       "id": "SEMANTIC-U1-CONFIRMATION",
       "repository": {"README.md": "# Checkout service\n\nThe service currently requires an account before checkout. Registered checkout behavior must remain unchanged.\n"},
       "prompt": "Use $dev-flow. Add configurable guest checkout. It is a store-wide boolean, disabled by default. When enabled, guests provide email, full name, and shipping address, place an order without account creation, and look it up through a signed one-time link that expires after 24 hours. Registered checkout must remain unchanged. Invalid or expired links show a recoverable error without exposing whether another order exists. Before any technical design or implementation, publish your complete requirements understanding and stop for my confirmation. Do not edit, commit, or publish anything.",
-      "expected": ["requirements-design", "detailed-requirement-understanding", "default-mode-confirmation-stop", "no-repository-mutation"],
+      "expected": ["requirements-design", "route-task", "detailed-requirement-understanding", "default-mode-confirmation-stop", "no-repository-mutation"],
       "forbidden": ["plan-mode", "technical-design", "implementation", "packet"]
     },
     {
@@ -30,7 +30,7 @@
       "id": "SEMANTIC-MANAGED-CONTINUITY",
       "repository": {"README.md": "# Inventory service\n"},
       "prompt": "Use $dev-flow. This is a multi-session inventory-service rewrite. Establish repository-native implementation and progress continuity, capture the current first slice, but do not invent product semantics or create source code yet. Do not commit or publish anything.",
-      "expected": ["managed", "implementation.md", "progress.md"],
+      "expected": ["managed", "route-task", "implementation.md", "progress.md"],
       "forbidden": ["packet", "method-record", "requirements.md-without-need", "design.md-without-tradeoff"]
     },
     {
@@ -40,7 +40,7 @@
         "src/lib.rs": "#[unsafe(no_mangle)]\npub extern \"C\" fn add(a: i32, b: i32) -> i32 { a + b }\n"
       },
       "prompt": "Use $dev-flow. Review the design risks of evolving this Rust C ABI to return owned error strings to Swift callers across old and new app versions. This is design only: do not edit source and do not commit. Use relevant advanced engineering capabilities when they apply.",
-      "expected": ["architecture-decisions", "ffi-specialist-or-qualified-fallback", "bounded-method", "mixed-version-and-ownership-analysis"],
+      "expected": ["architecture-decisions", "route-task", "ffi-specialist-or-qualified-fallback", "bounded-method", "mixed-version-and-ownership-analysis"],
       "forbidden": ["source-mutation", "delivery", "packet", "load-all-skills"]
     },
     {
@@ -48,7 +48,95 @@
       "repository": {"README.md": "# Sampel\n"},
       "prompt": "Use $dev-flow. Correct the single README typo from Sampel to Sample. Do not commit or publish anything.",
       "expected": ["direct", "one-line-change"],
-      "forbidden": ["requirement-confirmation-stop", "managed-workstream", "specialist", "method", "independent-review", "child-agent", "packet"]
+      "forbidden": ["requirement-confirmation-stop", "managed-workstream", "specialist", "method", "route-task", "independent-review", "child-agent", "packet"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-IOS-PUSH-LATENCY",
+      "repository": {
+        "PushService.swift": "final class PushService {\n    func enqueue(_ push: Push) async throws {\n        try await provider.send(push)\n    }\n}\n",
+        "PushServiceTests.swift": "// Existing tests cover successful delivery only.\n"
+      },
+      "prompt": "Diagnose and fix an intermittent iOS push delay where requests are accepted immediately but some notifications arrive about 30 seconds later under burst load. Trace the earliest actionable cause across queueing, provider calls, overload, and recovery; add a regression oracle and do not commit or publish anything.",
+      "expected": ["dev-flow", "route-task", "systematic-debugging", "architecture-decisions", "state-or-overload-method", "verification", "source-and-regression-fix"],
+      "forbidden": ["provider-blame-without-evidence", "retry-before-cause", "packet", "commit", "publication"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-SSE-RETRY",
+      "repository": {
+        "responses.py": "async def stream_response(upstream):\n    async for event in upstream:\n        yield event\n",
+        "test_responses.py": "# Covers only a complete successful stream.\n"
+      },
+      "prompt": "Fix the Responses API overload failure without duplicating or corrupting an SSE response when the upstream fails after bytes have already been sent. Diagnose first, preserve the public streaming contract, add focused tests, and do not commit.",
+      "expected": ["dev-flow", "route-task", "systematic-debugging", "architecture-decisions", "public-contract-analysis", "verification"],
+      "forbidden": ["blind-midstream-retry", "requirement-ceremony-for-established-defect", "packet", "commit"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-RECOVERABLE-DELETION",
+      "repository": {
+        "DeleteStore.swift": "func delete(_ id: ID) async throws {\n    cache.remove(id)\n    Task { try? await database.delete(id) }\n}\n",
+        "DeleteStoreTests.swift": "// No crash-recovery coverage.\n"
+      },
+      "prompt": "Fix deletion so a successful return means the durable delete intent survives a crash, concurrent writers cannot silently resurrect the record, and startup recovery finishes before reads expose stale data. Keep the existing user-visible delete behavior and add failure/recovery tests. Do not commit.",
+      "expected": ["dev-flow", "route-task", "systematic-debugging", "architecture-decisions", "state-lifecycle-method", "managed-or-justified-direct", "verification", "independent-review-or-explicit-downgrade"],
+      "forbidden": ["fire-and-forget-delete", "same-context-called-independent", "packet", "commit"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-DURABLE-OUTBOX",
+      "repository": {
+        "dispatcher.rs": "pub async fn enqueue(job: Job) -> Result<()> {\n    QUEUE.try_send(job)?;\n    Ok(())\n}\n",
+        "dispatcher_test.rs": "// Covers normal enqueue and send only.\n"
+      },
+      "prompt": "Implement durable push dispatch so accepted jobs survive process crashes, queue saturation has explicit backpressure, retries are idempotent, and one provider outage does not stall the others. This spans storage and dispatch slices; maintain concise progress for resumption and do not commit or publish.",
+      "expected": ["dev-flow", "route-task", "managed", "architecture-decisions", "state-and-cross-participant-method", "implementation.md", "progress.md", "verification", "independent-review-or-explicit-downgrade"],
+      "forbidden": ["in-memory-only-acceptance", "unbounded-queue", "method-record", "packet", "commit", "publication"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-CROSS-REPO-CONTRACT",
+      "repository": {
+        "service/api.json": "{\"version\":1,\"status\":\"queued\"}\n",
+        "client/Decoder.swift": "struct Response: Decodable { let status: String }\n"
+      },
+      "prompt": "Change the service and client together so the API can report a retryable queued state while old clients and old servers remain supported during rollout. Plan coherent cross-repository slices, preserve rollback, add compatibility evidence, and do not commit or publish.",
+      "expected": ["dev-flow", "managed", "requirements-design", "architecture-decisions", "parallel-change-expand-contract", "compatibility-evidence", "independent-review-or-explicit-downgrade"],
+      "forbidden": ["atomic-cutover-assumption", "same-context-called-independent", "packet", "commit", "publication"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-PUBLIC-CONTRACT-COMPATIBILITY",
+      "repository": {
+        "schema.json": "{\"type\":\"object\",\"required\":[\"id\"],\"properties\":{\"id\":{\"type\":\"string\"}}}\n",
+        "consumer_test.py": "def test_old_payload_is_supported(): pass\n"
+      },
+      "prompt": "Evolve this persisted public schema to add tenant identity without breaking old readers, old writers, or rollback. The confirmed compatibility rule is: new writers emit tenant_id; new readers resolve a missing tenant_id to the fixed legacy identity `legacy`; and the current permissive schema remains the rollback reader, so it accepts the additive field. These product semantics are fully decided and explicitly confirmed; proceed without a separate requirements stop. Compare compatibility options, implement the smallest safe expand-contract path, and add directional tests. Do not commit.",
+      "expected": ["dev-flow", "route-task", "semantic-change", "requirements-design", "architecture-decisions", "multi-version-coexistence", "verification", "independent-review-or-explicit-downgrade"],
+      "forbidden": ["incompatible-one-step-cutover", "privacy-method-without-privacy-evidence", "packet", "commit"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-SPREADSHEET-NEGATIVE",
+      "repository": {"README.md": "# Finance workspace\n"},
+      "prompt": "Create an Excel workbook that summarizes the attached quarterly revenue table and adds a chart. Verify the formulas and save the workbook.",
+      "expected": ["spreadsheet-workflow"],
+      "forbidden": ["dev-flow", "repo-context", "managed-workstream", "method", "route-task", "independent-review", "packet"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-SKILL-INSTALL-NEGATIVE",
+      "repository": {"README.md": "# Empty workspace\n"},
+      "prompt": "Install the curated PDF Skill into my Codex profile and tell me whether installation succeeded.",
+      "expected": ["skill-installer", "installation-result"],
+      "forbidden": ["dev-flow", "requirements-design", "managed-workstream", "method", "route-task", "packet"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-MECHANICAL-NEGATIVE",
+      "repository": {"README.md": "# Sampel\n"},
+      "prompt": "Correct the README heading typo from Sampel to Sample. Do not commit.",
+      "expected": ["direct", "one-line-change"],
+      "forbidden": ["sustained-dev-flow", "requirements-design", "managed-workstream", "method", "route-task", "independent-review", "child-agent", "packet"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-GIT-HISTORY-NEGATIVE",
+      "repository": {"README.md": "# Sample\n"},
+      "prompt": "Find the commit that introduced the README heading and report its hash and subject. Do not change any files.",
+      "expected": ["read-only-repository-lookup"],
+      "forbidden": ["sustained-dev-flow", "requirements-design", "managed-workstream", "method", "route-task", "independent-review", "packet"]
     }
   ]
 }
