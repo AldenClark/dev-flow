@@ -2,7 +2,7 @@
 
 Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是建立第二套工作流引擎，而是用最少的流程成本保持三件事：长期业务工作不漂移、技术结论有原生工程证据、高后果动作保留明确安全边界。
 
-当前版本为 `2.0.0-rc.2` activation-hardening RC；它完成了扩大后的确定性覆盖与预算内 R4 模型语义门禁。`v1.1.2` 仍是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
+当前发布身份为 `2.0.0-rc.3` transition-hardening RC：它增加结构化路由纠错、精确 owner/overlay 路由、多轮 recalibration、失败隔离、最终字节证据和 `repository-knowledge`。完整 R4 已执行；三轮中的委派续权措辞和参考仓库类比强度未满足严格语义门禁，版本所有者显式接受该残余风险并授权发布。`v2.0.0-rc.2` 保留为上一可固定安装的回滚标签，`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
 
 ## 2.0 核心模型
 
@@ -105,6 +105,27 @@ python3 skills/dev-flow/scripts/dev-flow.py init-workstream \
 
 代码、Git、测试、CI、运行时和制品继续拥有技术事实。文档只保留未来维护者真正需要的业务意图、取舍、切片和当前状态；命令输出、bulk 日志、模型 transcript、临时路径和重复 source schema 不进入业务文档。
 
+## 仓库知识与文档体系
+
+`repository-knowledge` 用于显式审计、设计、初始化、重构或检查一整套仓库知识体系，而不是替代普通任务中的就近文档更新。它同时面向人和 agent，区分：
+
+- AGENTS.md 中始终可见的精简路由、命令和边界；
+- README 或 `docs/index.md` 中稳定的人类可读组件/知识索引；
+- 架构、契约、ADR、runbook、fork 和 workstream 等唯一知识所有者；
+- 按任务生成、可替换的代码/仓库地图；
+- 由 manifest、测试、lint 和 CI 强制的事实。
+
+配套脚本只读扫描单仓库、manifest 定义的 monorepo，以及包含多个独立 Git 根的开发目录；默认排除构建缓存、依赖 checkout、vendor、评测夹具和生成制品：
+
+```bash
+python3 skills/repository-knowledge/scripts/repository_knowledge.py scan --root . --format markdown
+python3 skills/repository-knowledge/scripts/repository_knowledge.py plan --root . --format markdown
+python3 skills/repository-knowledge/scripts/repository_knowledge.py map --root . --task "修改频道密码兼容逻辑" --format markdown
+python3 skills/repository-knowledge/scripts/repository_knowledge.py check --root . --format markdown
+```
+
+目录中出现多个 Git 根只证明它是 multi-repository workspace；在建立共享 catalog、跨仓库架构或 program AGENTS.md 前，仍需确认该目录是否拥有正式的产品/项目边界。`bootstrap` 由 Skill 根据经确认的 plan 生成可审阅 diff，扫描脚本不会自动覆盖现有文档或把推断提升为项目政策。
+
 ## 风险 Overlay
 
 Overlay 与 direct/managed 正交，只增加暴露风险需要的控制：
@@ -146,6 +167,10 @@ python3 skills/dev-flow/scripts/dev-flow.py route-task \
 
 核心原则是先使用最简单且足够的能力，再按具体信号增加模型深度、方法或独立上下文。
 
+实施范围同样采用按需收敛：实现/修复默认 `closed`，诊断/评审默认 `bounded`，只有明确要求广泛探索时才进入 `open`。读代码、运行受影响测试和深入推理不会自动授予更宽的写入、依赖、仓库、委派或交付权限；新发现的问题先归类为必要缺陷、必要前置、可选机会或无关项，再决定是否进入当前实现。
+
+方法论不会以“选中了几个方法”作为质量指标。高价值验证、测试、评审和审计场景需要形成一次明确处置：执行已就绪方法、对受阻方法执行 fallback 并保留限制，或因 owner Skill 的原生程序已足够而合理弃用。真正的落地必须改变测试/oracle、反例、状态或兼容模型、评审攻击面、证据矩阵或最终 claim 限制。
+
 子任务模型以闭合度和后果而不是工作量或价格单独决定：P0-P2 分别使用 Luna low/medium/high 处理精确、机械或已确认且有确定性 oracle 的工作；P3-P4 使用 Terra medium/high 处理普通探索、因果分析和常规取舍；P5-P6 使用 Sol high/xhigh 处理开放的跨组件契约和高后果审查/验收；PX Sol max 仅用于显式评估并确认的例外。根上下文不会仅为使用廉价模型而创建子代理。
 
 ## 专业 Skills
@@ -163,6 +188,7 @@ Dev Flow 主 Skill 只负责模式、风险和最小路由。按真实决策加�
 - `delivery-readiness`：动作级交付身份、证据、回滚和授权；
 - `company-data-security`：跨 Codex/ChatGPT/普通聊天的敏感数据控制；
 - `manage-engineering-profiles`：显式管理偏好/指令资产；
+- `repository-knowledge`：显式审计、建立、重构和检查面向人及 agent 的仓库知识体系；
 - `dev-flow-maintainer`：显式维护 Dev Flow 自身。
 
 方法池在普通工作中不启用；遇到上述高杠杆风险或方法不确定性时主动做 bounded、非持久化选择。它不参与生命周期门禁。
@@ -185,10 +211,10 @@ Dev Flow 主 Skill 只负责模式、风险和最小路由。按真实决策加�
 
 ## 安装
 
-固定安装 RC.2 标签：
+固定安装当前发布的 RC.3 标签：
 
 ```bash
-codex plugin marketplace add AldenClark/dev-flow --ref v2.0.0-rc.2
+codex plugin marketplace add AldenClark/dev-flow --ref v2.0.0-rc.3
 codex plugin add dev-flow@dev-flow
 ```
 
@@ -210,15 +236,16 @@ python3 -m compileall -q hooks skills evals tools
 git diff --check
 ```
 
-CI 不再在 6 个 OS/Python cell 中重复完整套件：一个 semantic job 执行完整语义/结构检查，focused compatibility matrix 只执行平台和 Python 版本敏感测试。RC.2 的 R4 使用 24,521,511 / 25,000,000 token；33 次广域矩阵暴露并保留了两项候选失败，修复后的影响族 12/12 匹配且无安全/授权违规。模型结果不代表生产力、业务效果或总体质量分数。
+CI 不再在 6 个 OS/Python cell 中重复完整套件：一个 semantic job 执行完整语义/结构检查，focused compatibility matrix 只执行平台和 Python 版本敏感测试。RC.3 的完整 R4 在一个冻结候选上执行三轮 22-case/48-turn 矩阵，共使用 9,092,076 token；机械门禁全部通过，两个严格语义缺口由版本所有者显式标记为 `WAIVED`。模型结果不代表生产力、业务效果或总体质量分数。
 
 发版按变更面分为 R1 standard、R2 runtime、R3 artifact/security、R4 model-semantic。`flow-metrics` 只验证分支激活与负向边界，不衡量生产力或效果。具体边界、命令和 `NOT RUN` 规则见 [docs/releasing.md](docs/releasing.md)。
 
 ## 版本和发布状态
 
-- `v2.0.0-rc.2` 是当前 activation-hardening RC，增加隐式激活、专家回链、方法归一化/排序、confirmed-U1 保真、独立审查真值和中断恢复。
+- `v2.0.0-rc.3` 是当前发布的 transition-hardening RC，增加结构化路由纠错、transition/fork 观察契约、失败隔离、最终字节证据和仓库知识能力；发布包含明确记录的 R4 语义豁免。
+- `v2.0.0-rc.2` 是上一 activation-hardening RC，也是 RC.3 的可固定安装回滚标签。
 - `v2.0.0-rc.1` 是上一 RC，包含 Default-mode 需求确认、主动高级能力激活、Luna P0-P2、Codex 原生适配和 Flow Activation Coverage。
 - `v1.1.2` 是最后一个 1.x 稳定标签；1.1.3 只存在于未发布源码历史，2.0 不提供 1.x 兼容或迁移保证。
 - 源码、commit、push、tag、GitHub Release、Marketplace 安装和生产使用是不同状态；只有逐项执行和复核后才能声称完成。
 
-研究、设计、实施拆解、进度、决策和范围外建议位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)。历史版本见 [CHANGELOG.md](CHANGELOG.md)。
+RC.3 的需求、设计、实施拆解、审计和当前资格边界位于 [docs/workstreams/dev-flow-2.0-rc.3](docs/workstreams/dev-flow-2.0-rc.3/)；2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)。历史版本见 [CHANGELOG.md](CHANGELOG.md)。

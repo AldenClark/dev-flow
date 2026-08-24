@@ -1,0 +1,4 @@
+interface:
+  display_name: "Repository Knowledge"
+  short_description: "Establish human-and-agent repository knowledge"
+  default_prompt: "Use $repository-knowledge to audit this repository and propose a minimal, maintainable knowledge system for people and agents."

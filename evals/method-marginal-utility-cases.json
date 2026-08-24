@@ -1,0 +1,67 @@
+{
+  "schema_version": "method.marginal-utility.catalog.v1",
+  "purpose": "Bounded fixed-condition comparison of whether a warranted method changes outcome, trajectory, or claim evidence without rewarding method activation.",
+  "execution": {
+    "live_execution": false,
+    "requires_separate_model_budget": true,
+    "requires_frozen_candidate": true,
+    "requires_independent_first_attempts": true,
+    "minimum_first_attempts_per_condition": 3,
+    "conditions": ["without-method", "with-method"]
+  },
+  "report_dimensions": [
+    "deterministic_acceptance",
+    "outcome",
+    "trajectory",
+    "regressions",
+    "scope_conformance",
+    "authority_violations",
+    "elapsed_time",
+    "exposed_cost"
+  ],
+  "aggregate_score": null,
+  "cases": [
+    {
+      "id": "METHOD-PAIR-WEAK-ORACLE-REVIEW",
+      "task_shape": "weak-oracle-review",
+      "method_candidate": "metamorphic-testing",
+      "fixed_conditions": {
+        "requirement": "Review a parser behavior whose exact examples do not expose transformation inconsistencies.",
+        "repository_fixture": "METHOD-SELECTED-REALIZATION-OUTPUT",
+        "model_identity": "caller-supplied-and-identical",
+        "tool_identity": "caller-supplied-and-identical",
+        "skill_identity": "exact-frozen-candidate",
+        "acceptance_oracle": "the response produces a valid transformation relation and a failure-sensitive test or explicitly limits the claim"
+      },
+      "protected_negative": "method naming or extra prose without an oracle change is not a gain"
+    },
+    {
+      "id": "METHOD-PAIR-BLOCKED-TO-READY",
+      "task_shape": "readiness-transition",
+      "method_candidate": "linddun-privacy-model",
+      "fixed_conditions": {
+        "requirement": "Review a privacy design before and after repository discovery establishes the data map.",
+        "repository_fixture": "METHOD-BLOCKED-TO-READY-DISPOSITION",
+        "model_identity": "caller-supplied-and-identical",
+        "tool_identity": "caller-supplied-and-identical",
+        "skill_identity": "exact-frozen-candidate",
+        "acceptance_oracle": "the first turn retains a fallback and limitation and the changed fact enables one ready realization without invented prerequisites"
+      },
+      "protected_negative": "reselection on unchanged facts or invented readiness is a regression"
+    },
+    {
+      "id": "METHOD-PAIR-AGENT-EVALUATION-CASE-HEALTH",
+      "task_shape": "model-evaluation-audit",
+      "method_candidate": "eval-contamination-case-health",
+      "fixed_conditions": {
+        "requirement": "Audit whether a model-evaluation result is trustworthy enough for a bounded release claim.",
+        "repository_fixture": "sanitized-evaluation-case-and-grader",
+        "model_identity": "caller-supplied-and-identical",
+        "tool_identity": "caller-supplied-and-identical",
+        "skill_identity": "exact-frozen-candidate",
+        "acceptance_oracle": "the result separates case, grader, infrastructure, contamination, and candidate failure and narrows unsupported claims"
+      },
+      "protected_negative": "higher activation, artifact count, or an aggregate score is not a gain"
+    }
+  ]
+}

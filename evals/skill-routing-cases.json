@@ -29,9 +29,9 @@
       "id": "ROUTE-MANAGED-FEATURE",
       "args": ["--intent", "change", "--multi-session", "--cross-module", "--need", "architecture"],
       "work_mode": "managed",
-      "expected": ["repo-context", "requirements-design", "architecture-decisions", "verification"],
-      "required": ["requirements-design", "architecture-decisions", "verification"],
-      "forbidden": ["product-ux-discovery", "systematic-debugging", "dependency-decisions", "change-review", "delivery-readiness"]
+      "expected": ["repo-context", "architecture-decisions", "verification"],
+      "required": ["architecture-decisions", "verification"],
+      "forbidden": ["requirements-design", "product-ux-discovery", "systematic-debugging", "dependency-decisions", "change-review", "delivery-readiness"]
     },
     {
       "id": "ROUTE-SECURITY-OVERLAY",
@@ -53,9 +53,9 @@
       "id": "ROUTE-MIGRATION",
       "args": ["--intent", "change", "--multi-slice", "--risk", "migration", "--risk", "persisted-data"],
       "work_mode": "managed",
-      "expected": ["repo-context", "requirements-design", "architecture-decisions", "verification"],
-      "required": ["requirements-design", "architecture-decisions", "verification"],
-      "forbidden": ["product-ux-discovery", "systematic-debugging", "dependency-decisions", "change-review", "delivery-readiness"]
+      "expected": ["repo-context", "architecture-decisions", "verification"],
+      "required": ["architecture-decisions", "verification"],
+      "forbidden": ["requirements-design", "product-ux-discovery", "systematic-debugging", "dependency-decisions", "change-review", "delivery-readiness"]
     },
     {
       "id": "ROUTE-MATERIAL-UI",

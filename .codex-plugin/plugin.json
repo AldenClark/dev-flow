@@ -1,7 +1,7 @@
 {
   "name": "dev-flow",
-  "version": "2.0.0-rc.2",
-  "description": "A repository-first Codex development flow with Default-mode requirement confirmation, proportional continuity, proactive engineering capability activation, and native evidence.",
+  "version": "2.0.0-rc.3",
+  "description": "A repository-first Codex development flow with proportional continuity, transition-aware capability activation, repository knowledge, and final-byte evidence.",
   "author": {
     "name": "Dev Flow Contributors",
     "url": "https://github.com/AldenClark/dev-flow"
@@ -33,7 +33,8 @@
     "defaultPrompt": [
       "Inspect this repository and implement my request with Dev Flow.",
       "Diagnose and fix this bug with focused native verification.",
-      "Design and implement this long-running change with repository-tracked requirements, design, and progress."
+      "Design and implement this long-running change with repository-tracked requirements, design, and progress.",
+      "Audit this repository and propose a maintainable knowledge system for people and agents."
     ]
   }
 }

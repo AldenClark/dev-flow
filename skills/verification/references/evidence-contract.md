@@ -16,3 +16,7 @@ Use the repository's ignored artifact directory or a private temporary directory
 For sensitive, shared, expensive, or long-lived evidence, note enough owner, purpose, access, retention, and cleanup information to avoid orphaned data. Routine local test output needs no evidence ledger.
 
 Do not commit, upload, attach, or externally share artifacts without separate authority and a redaction check. Release browsers, devices, VMs, containers, databases, ports, processes, caches, and temporary credentials after use. If adequate proof would require prohibited collection, report `BLOCKED` or `NOT RUN` and use a safer oracle when possible.
+
+## Freshness binding
+
+Any edit after a PASS to affected source, configuration, generated output, test oracle, platform wrapper, or delivery candidate invalidates that PASS until the smallest affected check runs on the final relevant bytes. Apply the same rule after delegated edits, review repair, new platform/repository scope, final-diff expansion, and delivery preparation. An unrelated documentation-only edit does not require an irrelevant runtime rerun.

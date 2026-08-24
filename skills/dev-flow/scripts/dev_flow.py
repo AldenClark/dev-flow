@@ -50,6 +50,7 @@ EXECUTION_MODES = {"direct", "managed"}
 TASK_INTENTS = {"research", "diagnose", "design", "change", "review", "delivery"}
 LEGACY_INTENT_ALIASES = {"research-audit": "review"}
 ACCEPTED_TASK_INTENTS = TASK_INTENTS | set(LEGACY_INTENT_ALIASES)
+ROUTE_INTENT_ALIASES = {"diagnosis": "diagnose"}
 LEGACY_TASK_INTENTS = {
     "micro": "change",
     "routine": "change",
@@ -74,6 +75,25 @@ INTENT_METHOD_TASK_TYPES = {
     "delivery": "release-hotfix",
 }
 ROUTE_KNOWLEDGE_IMPACTS = {"none", "current-truth", "change-record"}
+ROUTE_UNKNOWNS = {
+    "architecture",
+    "compatibility",
+    "data",
+    "delivery",
+    "dependency",
+    "diagnosis",
+    "review",
+    "security",
+    "ui",
+}
+ROUTE_OVERLAYS = {
+    "external-system",
+    "irreversible",
+    "migration",
+    "release",
+    "security",
+    "ui-product",
+}
 REQUIREMENT_CLASSES = {
     "semantic-change",
     "structural-adjustment",
@@ -151,21 +171,6 @@ TASK_TYPES = {
     "spike",
     "dependency-change",
     "rollback",
-}
-REQUIREMENTS_ROUTING_RISKS = {
-    "accessibility",
-    "authentication",
-    "authorization",
-    "compatibility",
-    "data-deletion",
-    "migration",
-    "persisted-data",
-    "privacy",
-    "protocol",
-    "public-api",
-    "schema",
-    "security",
-    "version-compatibility",
 }
 ARCHITECTURE_ROUTING_RISKS = {
     "abi",
@@ -279,6 +284,7 @@ METHOD_SIGNAL_PREFERRED_PHASE = {
     "state-lifecycle": "design",
     "trust-boundary": "design",
 }
+METHOD_COST_RANK = {"low": 0, "medium": 1, "high": 2}
 CAPABILITY_REGISTRY = (
     Path(__file__).resolve().parents[2]
     / "dev-flow-maintainer"
@@ -625,6 +631,169 @@ def normalize_requirement_class(value: str) -> str:
     return REQUIREMENT_CLASS_ALIASES.get(value.upper(), value)
 
 
+def route_value_contracts() -> dict[str, tuple[set[str], dict[str, str]]]:
+    """Return documented route-task value options handled before argparse choices."""
+    return {
+        "--intent": (ACCEPTED_TASK_INTENTS, ROUTE_INTENT_ALIASES),
+        "--requirement-class": (REQUIREMENT_CLASSES, REQUIREMENT_CLASS_ALIASES),
+        "--ui-impact": (UI_IMPACTS, {}),
+        "--method-depth": ({"starter", "deep"}, {}),
+        "--mutation": ({"none", "persistent"}, {}),
+        "--unknown": (ROUTE_UNKNOWNS, {}),
+        "--work-mode": ({"auto", *EXECUTION_MODES}, {}),
+        "--knowledge-impact": (ROUTE_KNOWLEDGE_IMPACTS, {}),
+        "--overlay": (ROUTE_OVERLAYS, {}),
+    }
+
+
+def portable_route_command(argv: Iterable[str]) -> str:
+    command = [
+        sys.executable,
+        str(Path(__file__).resolve().with_name("dev-flow.py")),
+        *argv,
+    ]
+    return subprocess.list2cmdline(command) if os.name == "nt" else shlex.join(command)
+
+
+def preprocess_route_argv(
+    argv: list[str],
+) -> tuple[list[str], dict[str, str], dict[str, Any] | None]:
+    """Normalize allowlisted aliases and structure invalid documented values."""
+    if not argv or argv[0] != "route-task":
+        return argv, {}, None
+    contracts = route_value_contracts()
+    value_options = set(contracts) | {
+        "--task-type",
+        "--risk",
+        "--need",
+        "--repo-fact",
+        "--repository-fact",
+        "--repository-facts",
+        "--effective-skill",
+        "--method-signal",
+        "--method-prerequisite",
+    }
+    flag_options = {
+        "--ambiguity",
+        "--material-exposure",
+        "--independent-review-authorized",
+        "--understanding-confirmed",
+        "--waive-understanding-confirmation",
+        "--profile-operation",
+        "--suite-maintenance",
+        "--multi-session",
+        "--multi-slice",
+        "--cross-module",
+        "--coordination",
+        "--material-tradeoff",
+        "--durable-plan",
+        "--compact",
+    }
+    known_options = value_options | flag_options
+    syntax_error = False
+    route_kinds: set[str] = set()
+    scan = 1
+    while scan < len(argv) and not syntax_error:
+        token = argv[scan]
+        if not token.startswith("--"):
+            syntax_error = True
+            break
+        option, separator, _ = token.partition("=")
+        if option in {"--intent", "--task-type"}:
+            route_kinds.add(option)
+            syntax_error = len(route_kinds) > 1
+            if syntax_error:
+                break
+        if option not in known_options or option in flag_options and separator:
+            syntax_error = True
+            break
+        if option in value_options and not separator:
+            if scan + 1 >= len(argv) or argv[scan + 1].startswith("--"):
+                syntax_error = True
+                break
+            scan += 2
+        else:
+            scan += 1
+    if syntax_error:
+        return argv, {}, None
+    normalized = list(argv)
+    aliases_used: dict[str, str] = {}
+    invalid: list[dict[str, Any]] = []
+    index = 1
+    while index < len(normalized):
+        token = normalized[index]
+        option, separator, inline_value = token.partition("=")
+        contract = contracts.get(option)
+        if contract is None:
+            index += 1
+            continue
+        if separator:
+            value = inline_value
+            value_index = index
+        else:
+            if index + 1 >= len(normalized) or normalized[index + 1].startswith("--"):
+                index += 1
+                continue
+            value = normalized[index + 1]
+            value_index = index + 1
+        allowed, aliases = contract
+        canonical = aliases.get(value, aliases.get(value.upper(), value))
+        if canonical in allowed:
+            if canonical != value:
+                aliases_used[option] = value
+                normalized[value_index] = f"{option}={canonical}" if separator else canonical
+            index += 1 if separator else 2
+            continue
+        candidates = sorted(allowed | set(aliases))
+        matches = difflib.get_close_matches(value, candidates, n=2, cutoff=0.45)
+        suggestions = list(
+            dict.fromkeys(aliases.get(match, aliases.get(match.upper(), match)) for match in matches)
+        )
+        invalid.append(
+            {
+                "field": option[2:].replace("-", "_"),
+                "option": option,
+                "input": value,
+                "allowed_values": sorted(allowed),
+                "suggestions": suggestions,
+                "value_index": value_index,
+                "inline": bool(separator),
+            }
+        )
+        index += 1 if separator else 2
+    if not invalid:
+        return normalized, aliases_used, None
+    corrected = list(normalized)
+    replayable = all(len(item["suggestions"]) == 1 for item in invalid)
+    if replayable:
+        for item in invalid:
+            replacement = item["suggestions"][0]
+            corrected[item["value_index"]] = (
+                f"{item['option']}={replacement}" if item["inline"] else replacement
+            )
+    first = invalid[0]
+    payload: dict[str, Any] = {
+        "status": "invalid",
+        "errors": [
+            f"unknown {item['field'].replace('_', '-')} value: {item['input']}"
+            for item in invalid
+        ],
+        "field": first["field"],
+        "input": first["input"],
+        "allowed_values": first["allowed_values"],
+        "suggestions": {item["input"]: item["suggestions"] for item in invalid},
+        "invalid_values": [
+            {
+                key: item[key]
+                for key in ("field", "input", "allowed_values", "suggestions")
+            }
+            for item in invalid
+        ],
+        "corrected_command": portable_route_command(corrected) if replayable else None,
+    }
+    return normalized, aliases_used, payload
+
+
 def normalize_route_needs(values: Iterable[str]) -> tuple[list[str], list[dict[str, str]]]:
     """Accept specialist Skill names as task-facing aliases for route needs."""
     inputs = sorted(set(values))
@@ -909,6 +1078,30 @@ def task_facing_method_phase(
             ),
         )
 
+    def ready_profile(phase: str) -> tuple[bool, int]:
+        ready = [
+            method
+            for method in payload["methods"]
+            if method["id"] in matched_method_ids
+            and phase in method["phases"]
+            and depth_index[method["depth"]] <= depth_index[depth]
+            and set(method["prerequisites"]).issubset(available_prerequisites)
+            and (
+                set(method["signals"]) & translated_signals
+                or set(method["risks"]) & canonical_risks
+            )
+            and method_domain_gate_reason(
+                method["id"],
+                risks=risks,
+                repository_facts=repository_facts,
+                available_prerequisites=available_prerequisites,
+            )
+            is None
+        ]
+        if not ready:
+            return False, -len(METHOD_COST_RANK)
+        return True, -min(METHOD_COST_RANK[method["cost"]] for method in ready)
+
     if (
         default_phase in {"implementation", "review"}
         and "model-evaluation" in method_signals
@@ -917,9 +1110,18 @@ def task_facing_method_phase(
         return "verification", "signal-adjacent-owner"
 
     if default_phase == "review":
+        verification_ready = ready_profile("verification")
+        review_ready = ready_profile("review")
         if (
             "oracle-challenge" in method_signals
-            and direct_strength("verification")[0] > direct_strength("review")[0]
+            and (
+                verification_ready > review_ready
+                or (
+                    not review_ready[0]
+                    and direct_strength("verification")[0]
+                    >= direct_strength("review")[0]
+                )
+            )
         ):
             return "verification", "signal-adjacent-owner"
         return default_phase, "intent"
@@ -984,6 +1186,9 @@ def select_work_mode(
 def route_intent(args: argparse.Namespace) -> tuple[str, str]:
     """Resolve the primary work intent while retaining the 1.x task vocabulary."""
     if args.intent is not None:
+        alias_input = getattr(args, "intent_alias_input", None)
+        if alias_input is not None:
+            return args.intent, f"alias-intent:{alias_input}"
         if args.intent in LEGACY_INTENT_ALIASES:
             return LEGACY_INTENT_ALIASES[args.intent], f"legacy-intent:{args.intent}"
         return args.intent, "explicit-intent"
@@ -1129,6 +1334,7 @@ def route_capability_activation(
     risks: set[str],
     needs: set[str],
     risk_translations: list[dict[str, Any]],
+    understanding: dict[str, Any],
 ) -> dict[str, Any]:
     """Return a non-persisted advanced-capability posture for the current route."""
     normalized_method_signals, signal_translations, derived_method_signals = (
@@ -1217,7 +1423,13 @@ def route_capability_activation(
         method_payload = methodology_system.read_registry(methodology_registry_path())
         validate_method_domain_gate_ids(method_payload)
         translated_signals = {METHOD_SIGNAL_TRANSLATIONS[value] for value in method_signals}
-        available_prerequisites = set(args.method_prerequisite)
+        supplied_prerequisites = set(args.method_prerequisite)
+        inferred_prerequisites: set[str] = set()
+        if repository_facts:
+            inferred_prerequisites.add("repository-facts")
+        if understanding["design_allowed"]:
+            inferred_prerequisites.add("requirement-baseline")
+        available_prerequisites = supplied_prerequisites | inferred_prerequisites
         method_phase, method_phase_source = task_facing_method_phase(
             default_phase=default_method_phase,
             payload=method_payload,
@@ -1236,7 +1448,7 @@ def route_capability_activation(
             task_type=method_task_type,
             risks=sorted(risks),
             signals=sorted(METHOD_SIGNAL_TRANSLATIONS[value] for value in method_signals),
-            available=args.method_prerequisite,
+            available=sorted(available_prerequisites),
             depth=method_depth,
             # The task-facing projection below owns the three-method context cap.
             # Avoid letting registry order hide a later ready, directly relevant method.
@@ -1255,7 +1467,7 @@ def route_capability_activation(
                     entry["method_id"], (stack_index, stack_method_index)
                 )
 
-        def activation_relevance(method_id: str) -> tuple[int, int, int, int, int]:
+        def activation_relevance(method_id: str) -> tuple[int, int, int, int, int, int]:
             method = method_by_id[method_id]
             direct_signals = len(set(method["signals"]) & translated_signals)
             direct_risks = len(set(method["risks"]) & canonical_method_risks)
@@ -1265,6 +1477,7 @@ def route_capability_activation(
             return (
                 direct_signals,
                 direct_risks,
+                -METHOD_COST_RANK[method["cost"]],
                 -stack_index,
                 -stack_method_index,
                 -method_order[method_id],
@@ -1338,10 +1551,10 @@ def route_capability_activation(
                 is None
             ][:1]
         selection_status = (
-            "selected-with-unresolved-prerequisites"
-            if bounded_blocked
-            else "selected"
+            "selected"
             if bounded_selected
+            else "selected-with-unresolved-prerequisites"
+            if bounded_blocked
             else "no-actionable-match"
         )
         method_selection = {
@@ -1350,11 +1563,22 @@ def route_capability_activation(
             "phase_source": method_phase_source,
             "depth": method_depth,
             "selected": bounded_selected,
+            "available_prerequisites": sorted(available_prerequisites),
+            "inferred_prerequisites": sorted(inferred_prerequisites),
             "guidance": [
                 {
                     "method": method_id,
+                    "disposition": "ready",
+                    "owner": method_by_id[method_id]["owner"],
+                    "why": method_by_id[method_id]["positive_trigger"],
+                    "avoid_when": method_by_id[method_id]["negative_trigger"],
+                    "required_prerequisites": method_by_id[method_id]["prerequisites"],
+                    "cost": method_by_id[method_id]["cost"],
+                    "expected_outputs": method_by_id[method_id]["outputs"],
+                    "minimum_action": method_by_id[method_id]["steps"][0],
                     "steps": method_by_id[method_id]["steps"],
                     "evidence": method_by_id[method_id]["evidence"],
+                    "fallback": method_by_id[method_id]["fallback"],
                     "limitations": method_by_id[method_id]["limitations"],
                 }
                 for method_id in bounded_selected
@@ -1362,8 +1586,16 @@ def route_capability_activation(
             "blocked": [
                 {
                     "method": item["method_id"],
+                    "disposition": "blocked",
+                    "owner": method_by_id[item["method_id"]]["owner"],
+                    "why": method_by_id[item["method_id"]]["positive_trigger"],
+                    "avoid_when": method_by_id[item["method_id"]]["negative_trigger"],
+                    "cost": method_by_id[item["method_id"]]["cost"],
+                    "expected_outputs": method_by_id[item["method_id"]]["outputs"],
                     "missing_prerequisites": item["missing_prerequisites"],
                     "fallback": item["fallback"],
+                    "evidence": method_by_id[item["method_id"]]["evidence"],
+                    "limitations": method_by_id[item["method_id"]]["limitations"],
                 }
                 for item in bounded_blocked
             ],
@@ -1376,6 +1608,16 @@ def route_capability_activation(
                 else "Use the owning specialist's established procedure and state that no bounded methodology match was actionable."
             ),
             "actionable": bool(bounded_selected or bounded_blocked),
+            "disposition_options": [
+                "execute-ready-method",
+                "execute-blocked-fallback-with-limitation",
+                "reasoned-abstention-when-owner-procedure-is-sufficient",
+            ],
+            "realization_required": (
+                "change an owner test/oracle, counterexample, model, review attack surface, "
+                "evidence matrix, or explicit claim limitation"
+            ),
+            "selection_count_is_quality": False,
             "persisted": False,
         }
     independent_review_required = bool(review_reasons)
@@ -1473,6 +1715,7 @@ def risk_overlays(
     needs: set[str],
     ui_impact: str,
     requested: Iterable[str],
+    original_risks: Iterable[str] = (),
 ) -> list[dict[str, Any]]:
     """Return orthogonal risk controls without changing continuity mode."""
     reasons: dict[str, set[str]] = {value: {"explicit"} for value in requested}
@@ -1495,11 +1738,12 @@ def risk_overlays(
         "compatibility",
         "data-deletion",
         "migration",
-        "persisted-data",
         "rollback",
         "schema",
         "version-compatibility",
     }
+    if "data-loss" in original_risks:
+        migration.add("data-loss")
     external = risks & {
         "distributed-state",
         "external-write",
@@ -2695,7 +2939,11 @@ def flow_metrics_command(args: argparse.Namespace) -> int:
     """Run compatibility-named Flow Activation Coverage without effect scoring."""
     repository = Path(__file__).resolve().parents[3]
     catalog = args.catalog or repository / "evals" / (
-        "flow-activation-semantic-cases.json" if args.lane == "semantic" else "flow-activation-cases.json"
+        "flow-activation-semantic-cases.json"
+        if args.lane == "semantic"
+        else "flow-transition-semantic-cases.json"
+        if args.lane == "transition"
+        else "flow-activation-cases.json"
     )
     try:
         if args.lane == "semantic":
@@ -2704,6 +2952,14 @@ def flow_metrics_command(args: argparse.Namespace) -> int:
                     "semantic lane requires --observations from actual first attempts"
                 )
             result = flow_metrics.run_semantic_catalog(catalog.resolve(), args.observations.resolve())
+        elif args.lane == "transition":
+            if args.observations is None:
+                raise flow_metrics.ActivationContractError(
+                    "transition lane requires --observations from actual multi-turn attempts"
+                )
+            result = flow_metrics.run_transition_catalog(
+                catalog.resolve(), args.observations.resolve()
+            )
         else:
             if args.observations is not None:
                 raise flow_metrics.ActivationContractError(
@@ -6872,6 +7128,7 @@ def route_task(args: argparse.Namespace) -> int:
             risks=risks,
             needs=needs,
             risk_translations=risk_translations,
+            understanding=understanding,
         )
     except RouteRiskContractError as exc:
         known_method_signals = sorted(METHOD_ACTIVATION_SIGNALS | set(METHOD_SIGNAL_ALIASES))
@@ -6968,12 +7225,11 @@ def route_task(args: argparse.Namespace) -> int:
         "requirements" in needs
         or understanding["class"] == "semantic-change"
         or intent == "design"
-        or work_mode == "managed"
         or args.ambiguity
         or args.ui_impact == "material"
         or unknowns & {"compatibility", "data", "security", "ui"}
     ):
-        add("requirements-design", "material semantics or managed-work design continuity")
+        add("requirements-design", "material or unresolved product, data, security, or compatibility semantics")
     if intent == "diagnose" or args.task_type == "bugfix" or "diagnosis" in needs or risks & DIAGNOSIS_ROUTING_RISKS:
         add("systematic-debugging", "failure reproduction and causal diagnosis")
     if (
@@ -6991,7 +7247,14 @@ def route_task(args: argparse.Namespace) -> int:
         add("verification", "risk-based fresh evidence")
     if intent == "review":
         add("verification", "review intent needs current native evidence")
-    overlays = risk_overlays(args.task_type or "", risks, needs, args.ui_impact, args.overlay)
+    overlays = risk_overlays(
+        args.task_type or "",
+        risks,
+        needs,
+        args.ui_impact,
+        args.overlay,
+        original_risks=input_risks,
+    )
     if (
         intent == "review"
         or "review" in needs
@@ -7868,7 +8131,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     route.add_argument(
         "--unknown",
-        choices=("architecture", "compatibility", "data", "delivery", "dependency", "diagnosis", "review", "security", "ui"),
+        choices=sorted(ROUTE_UNKNOWNS),
         action="append",
         default=[],
         help="Unresolved risk dimension; route conservatively until repository evidence closes it",
@@ -7889,7 +8152,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     route.add_argument(
         "--overlay",
-        choices=("external-system", "irreversible", "migration", "release", "security", "ui-product"),
+        choices=sorted(ROUTE_OVERLAYS),
         action="append",
         default=[],
     )
@@ -7927,7 +8190,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run Flow Activation Coverage; this compatibility name never measures effect or productivity",
     )
     activation.add_argument("--catalog", type=Path)
-    activation.add_argument("--lane", choices=("deterministic", "semantic"), default="deterministic")
+    activation.add_argument(
+        "--lane",
+        choices=("deterministic", "semantic", "transition"),
+        default="deterministic",
+    )
     activation.add_argument("--observations", type=Path)
     activation.set_defaults(func=flow_metrics_command)
 
@@ -7959,8 +8226,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Iterable[str] | None = None) -> int:
+    raw_argv = list(argv) if argv is not None else sys.argv[1:]
+    normalized_argv, aliases_used, invalid = preprocess_route_argv(raw_argv)
+    if invalid is not None:
+        return emit(invalid, 2)
     parser = build_parser()
-    args = parser.parse_args(list(argv) if argv is not None else None)
+    args = parser.parse_args(normalized_argv)
+    if args.command == "route-task":
+        args.intent_alias_input = aliases_used.get("--intent")
     return int(args.func(args))
 
 

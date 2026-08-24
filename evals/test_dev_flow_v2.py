@@ -15,6 +15,9 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 FLOW = ROOT / "skills" / "dev-flow" / "scripts" / "dev-flow.py"
+DEV_FLOW_SKILL = ROOT / "skills" / "dev-flow" / "SKILL.md"
+QUALITY_CALIBRATION = ROOT / "skills" / "dev-flow" / "references" / "quality-calibration.md"
+VERIFICATION_SKILL = ROOT / "skills" / "verification" / "SKILL.md"
 
 
 def run_flow(*args: object, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
@@ -34,6 +37,45 @@ def route(*args: object) -> dict[str, object]:
     return json.loads(result.stdout)
 
 
+class RuntimeGuidanceContractTests(unittest.TestCase):
+    def test_failure_isolation_is_non_persistent_and_change_sensitive(self) -> None:
+        guidance = QUALITY_CALIBRATION.read_text(encoding="utf-8")
+        for phrase in (
+            "transient",
+            "invariant",
+            "authority",
+            "external",
+            "observable readiness facts are unchanged",
+            "continue unrelated safe repository-native checks",
+            "do not add a readiness registry",
+        ):
+            self.assertIn(phrase, guidance)
+        self.assertIn("Retry once when a relevant fact changes", guidance)
+
+    def test_continuation_contract_has_semantic_checkpoint_and_negative_trigger(self) -> None:
+        guidance = DEV_FLOW_SKILL.read_text(encoding="utf-8")
+        continuation = QUALITY_CALIBRATION.read_text(encoding="utf-8")
+        self.assertIn("semantic checkpoint", guidance)
+        self.assertIn("never automatically creates a host task or worktree", guidance)
+        self.assertIn("an unchanged narrow follow-up", guidance.lower())
+        for phrase in (
+            "affected Git roots",
+            "user-owned changes",
+            "stale evidence",
+            "recommended next slice",
+        ):
+            self.assertIn(phrase, continuation)
+
+    def test_evidence_freshness_distinguishes_affected_and_unrelated_edits(self) -> None:
+        guidance = VERIFICATION_SKILL.read_text(encoding="utf-8")
+        evidence = (
+            ROOT / "skills" / "verification" / "references" / "evidence-contract.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("invalidates that PASS", evidence)
+        self.assertIn("unrelated documentation-only edit", evidence)
+        self.assertIn("fallback proves only its own narrower claim", guidance)
+
+
 class RoutingTests(unittest.TestCase):
     def test_new_intent_is_primary_and_legacy_task_type_remains_compatible(self) -> None:
         current = route("--intent", "diagnose")
@@ -49,6 +91,68 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(compatible["legacy_task_type"], "bugfix")
         self.assertEqual(compatible["mutation_intent"], "persistent")
         self.assertIn("systematic-debugging", [item["skill"] for item in compatible["routes"]])
+
+    def test_diagnosis_is_an_allowlisted_intent_alias(self) -> None:
+        payload = route("--intent", "diagnosis")
+        self.assertEqual(payload["intent"], "diagnose")
+        self.assertEqual(payload["intent_source"], "alias-intent:diagnosis")
+        self.assertIn("systematic-debugging", [item["skill"] for item in payload["routes"]])
+
+        inline = route("--intent=diagnosis", "--compact")
+        self.assertEqual(inline["intent"], "diagnose")
+
+    def test_documented_route_value_errors_are_structured_and_replayable(self) -> None:
+        invalid_values = {
+            "--intent": "diagnoise",
+            "--requirement-class": "structural-adjusment",
+            "--ui-impact": "preserv",
+            "--method-depth": "depp",
+            "--mutation": "persistnt",
+            "--unknown": "compatiblity",
+            "--work-mode": "managd",
+            "--knowledge-impact": "current-trut",
+            "--overlay": "migraton",
+        }
+        for option, invalid_value in invalid_values.items():
+            with self.subTest(option=option):
+                completed = run_flow(
+                    "route-task",
+                    "--intent",
+                    "change",
+                    option,
+                    invalid_value,
+                    "--multi-session",
+                    "--compact",
+                )
+                self.assertEqual(completed.returncode, 2)
+                self.assertNotIn("usage:", completed.stderr.lower())
+                payload = json.loads(completed.stdout)
+                self.assertEqual(payload["status"], "invalid")
+                self.assertIsNotNone(payload["corrected_command"])
+                replay = subprocess.run(
+                    shlex.split(payload["corrected_command"]),
+                    cwd=ROOT.parent,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(replay.returncode, 0, replay.stderr or replay.stdout)
+                replayed = json.loads(replay.stdout)
+                self.assertEqual(replayed["work_mode"], "managed")
+
+    def test_route_programmer_syntax_errors_remain_argparse_diagnostics(self) -> None:
+        for args in (
+            ("--unknown-option", "value"),
+            ("--intent",),
+            ("--unknown-option", "value", "--intent", "diagnoise"),
+            ("--intent", "--ui-impact", "preserv"),
+            ("--intent", "diagnoise", "--task-type", "routine"),
+        ):
+            with self.subTest(args=args):
+                completed = run_flow("route-task", *args)
+                self.assertEqual(completed.returncode, 2)
+                self.assertIn("usage:", completed.stderr.lower())
+                self.assertEqual(completed.stdout, "")
 
     def test_every_legacy_task_type_has_a_valid_orthogonal_route(self) -> None:
         expected = {
@@ -136,6 +240,41 @@ class RoutingTests(unittest.TestCase):
         self.assertIsNone(payload["quality_calibration"]["artifact"])
         self.assertIn("first-surprising-failure", payload["quality_calibration"]["recheck_on"])
         self.assertIn("route-agent", payload["delegation"])
+
+    def test_managed_continuity_alone_does_not_imply_requirements(self) -> None:
+        review = route("--intent", "review", "--multi-session")
+        self.assertEqual(review["work_mode"], "managed")
+        self.assertNotIn("requirements-design", [item["skill"] for item in review["routes"]])
+
+        semantic = route(
+            "--intent",
+            "change",
+            "--multi-session",
+            "--requirement-class",
+            "semantic-change",
+            "--understanding-confirmed",
+        )
+        self.assertIn("requirements-design", [item["skill"] for item in semantic["routes"]])
+
+    def test_persisted_data_alone_does_not_imply_migration_overlay(self) -> None:
+        local_state = route("--intent", "change", "--risk", "persisted-data")
+        self.assertNotIn("migration", [item["overlay"] for item in local_state["risk_overlays"]])
+        self.assertIn("signal:state-lifecycle", local_state["capability_activation"]["method"]["reasons"])
+
+        for companion in ("schema", "version-compatibility", "rollback"):
+            with self.subTest(companion=companion):
+                payload = route(
+                    "--intent",
+                    "change",
+                    "--risk",
+                    "persisted-data",
+                    "--risk",
+                    companion,
+                )
+                self.assertIn("migration", [item["overlay"] for item in payload["risk_overlays"]])
+
+        data_loss = route("--intent", "change", "--risk", "data-loss")
+        self.assertIn("migration", [item["overlay"] for item in data_loss["risk_overlays"]])
 
     def test_design_intent_and_durable_plan_are_independent(self) -> None:
         direct = route("--intent", "design")
@@ -794,6 +933,7 @@ class RoutingTests(unittest.TestCase):
             "requirement-baseline",
         )
         selection = payload["capability_activation"]["method"]["selection"]
+        self.assertEqual(selection["status"], "selected")
         self.assertIn("characterization-golden-master", selection["selected"])
         self.assertIn(
             "parallel-change-expand-contract",
@@ -804,6 +944,48 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(
             {item["method"] for item in selection["guidance"]},
             set(selection["selected"]),
+        )
+
+    def test_route_infers_only_established_common_method_prerequisites(self) -> None:
+        payload = route(
+            "--intent",
+            "review",
+            "--risk",
+            "weak-tests",
+            "--method-signal",
+            "model-evaluation",
+            "--repo-fact",
+            "context=synthetic-evaluation",
+            "--method-prerequisite",
+            "evaluator-contract",
+            "--method-prerequisite",
+            "isolated-environment",
+            "--method-prerequisite",
+            "model-identity",
+        )
+        selection = payload["capability_activation"]["method"]["selection"]
+        self.assertEqual(
+            selection["inferred_prerequisites"],
+            ["repository-facts", "requirement-baseline"],
+        )
+        self.assertIn("agent-evaluation-design", selection["selected"])
+
+        pending = route(
+            "--intent",
+            "change",
+            "--requirement-class",
+            "semantic-change",
+            "--risk",
+            "weak-tests",
+            "--method-signal",
+            "model-evaluation",
+            "--repo-fact",
+            "context=synthetic-evaluation",
+        )
+        pending_selection = pending["capability_activation"]["method"]["selection"]
+        self.assertEqual(pending_selection["inferred_prerequisites"], ["repository-facts"])
+        self.assertNotIn(
+            "requirement-baseline", pending_selection["available_prerequisites"]
         )
 
     def test_broad_security_does_not_surface_unrelated_domain_methods(self) -> None:
@@ -1214,6 +1396,15 @@ class WorkstreamTests(unittest.TestCase):
 
 
 class ActiveGuidanceTests(unittest.TestCase):
+    def test_diagnosis_only_stops_before_repair(self) -> None:
+        guidance = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            "A diagnosis-only request stops there; repair only when requested.",
+            guidance,
+        )
+
     def test_main_skill_is_implicitly_discoverable_from_repository_task_language(self) -> None:
         skill = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
         frontmatter = skill.split("---", 2)[1]
@@ -1225,6 +1416,9 @@ class ActiveGuidanceTests(unittest.TestCase):
             "persistent-data",
             "concurrency",
             "migration",
+            "cross-module",
+            "external-system",
+            "assess delivery",
             "long-running work",
         ):
             self.assertIn(trigger, frontmatter)
@@ -1232,6 +1426,18 @@ class ActiveGuidanceTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("allow_implicit_invocation: true", policy)
+
+    def test_main_skill_excludes_narrow_read_only_repository_lookups(self) -> None:
+        skill = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
+        frontmatter = skill.split("---", 2)[1]
+        for phrase in (
+            "Exclude narrow read-only.",
+            "use `repo-context` alone",
+            "do not run `route-task`",
+            "do not sustain Dev Flow",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, frontmatter if phrase.startswith("Exclude") else skill)
 
     def test_engineering_specialists_reconnect_material_work_to_kernel(self) -> None:
         specialists = (

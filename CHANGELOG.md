@@ -4,6 +4,49 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2.0.0-rc.3] - 2026-08-24
+
+Release identity: `2.0.0-rc.3`.
+
+### Added
+
+- Added `repository-knowledge`, a progressively disclosed Skill for auditing, planning, bootstrapping, repairing, and checking human-and-agent repository knowledge systems across single repositories, manifest-defined monorepos, and multi-repository workspaces.
+- Added a standard-library read-only scanner that inventories Git roots, unversioned development containers, AGENTS.md budgets, documentation families, release/update surfaces, workspace evidence, and deterministic link drift while excluding generated dependency/build trees and sensitive filenames.
+- Added ordered multi-turn transition fixtures and an observation validator for intent changes, review-to-delivery, capability failure/recovery, platform expansion, evidence invalidation, interruption/resume, fork continuation, and unchanged-follow-up negative controls.
+- Added a non-spending-by-default isolated transition runner. Live execution requires explicit model-spend acknowledgement and a bounded model/effort/token/time contract; it preserves bounded synthetic first-attempt evidence for a separate manual observation manifest while removing raw session events, session identities, repositories, and temporary homes.
+- Isolated every model-driven transition-trial shell from the maintainer environment with `shell_environment_policy.inherit=none`; the parent Codex process retains only the environment needed for client authentication and candidate setup.
+- Added RC.3 transition cases for scope modes, finding disposition, method readiness/disposition/realization, delegation attenuation, semantic continuation, process supervision, explicit task synthesis, reference boundaries, confirmed preferences, and ordinary-conversation quietness.
+- Bound the 22-case transition catalog to nine canonical R4 categories with at least three cases per category and three independent first attempts per case; qualification mode rejects partial or under-attempted runs, and the public transition lane validates separately authored observation manifests without an aggregate score.
+- Added a strict privacy-minimized dogfood analyzer that reports task/transition/correction/scope aggregates and the method eligibility-to-evidence funnel without accepting transcripts, stable identifiers, paths, free-form notes, personal values, or scores.
+- Added a non-executing, fixed-condition method marginal-utility catalog for weak-oracle review, blocked-to-ready privacy reasoning, and model-evaluation case health; live paired attempts remain separately budgeted.
+
+### Changed
+
+- Extended the Dev Flow knowledge model with concise navigation, stable semantic indexes, replaceable task maps, and explicit ownership for unversioned cross-repository knowledge without changing ordinary direct/managed knowledge dispositions.
+- Added the allowlisted `diagnosis -> diagnose` intent alias and structured, replayable JSON corrections for invalid values across documented `route-task` value-option families while leaving unknown flags and missing values as argparse syntax diagnostics.
+- Stopped managed continuity alone from loading requirements design and stopped `persisted-data` alone from adding the migration overlay; explicit semantic, schema, compatibility, deletion, rollback, and migration facts retain their owners and controls.
+- Defined failure isolation, change-sensitive retry, safe-gate continuation, semantic checkpoints, fork/worktree reconciliation, and final-relevant-byte evidence freshness without a readiness registry or persisted workflow state.
+- Made implementation/repair closed by default, diagnosis/review bounded by default, and open discovery explicitly breadth-authorized; depth, methods, models, managed mode, and red/blue analysis cannot expand mutation authority.
+- Added monotonic delegation narrowing, terminal-condition/non-goal recovery, duplicate-safe process supervision, explicit untrusted task-history synthesis, and reference-repository non-authority guidance.
+- Made delegation evidence truthful: wait/poll and child-result attribution require a successful dispatch plus a non-empty child/receiver identity; empty receiver/state, self-work, or rereading must be reported as unavailable or downgraded.
+- Upgraded task-facing method projection with ready/blocked disposition, why/avoid conditions, prerequisites, cost, owner, expected outputs, minimum action, fallback, evidence, and limitations; weak-oracle review now prefers a ready verification owner before blocked high-cost independent derivation.
+- Fixed method activation feedback so confirmed requirement baselines and supplied repository facts satisfy their common prerequisites automatically, and ready methods retain top-level `selected` status even when other candidates remain blocked.
+- Added a cumulative auxiliary-mechanism convergence checkpoint: after two repairs without primary-terminal progress, the default is simplify, replace, use a bounded manual/native fallback, or defer—not a third local tweak.
+- Removed the RC.3 two-model evaluation mechanism, its CLI option, identity fields, implementation, Schema, tests, and release requirement; R4 now follows the RC.2 execute-then-manually-observe separation and reports same-context common-mode risk.
+
+### Verification
+
+- Final pre-release source passed 555 strict unit tests plus structural, registry/plugin/Skill/knowledge/data-security/compilation/JSON/diff gates. Repository-knowledge rejects credential-pattern files and all symlink content, and its test module is included in the hosted compatibility matrix.
+- The repository-knowledge check passed with the intentionally visible missing-root-AGENTS warning; no empty authority file was added merely to silence it.
+- Three frozen historical candidates preserved one first-attempt R4 failure each without retry: scanner shell-wrapper recognition at 628,825 tokens, an undefined platform mutation target at 873,716 tokens, and an undefined fork mutation target at 1,756,714 tokens. The resulting hard gates now bind exact commands, concrete mutation baselines/paths, bounded repository fixtures, expected-unmet state, and fork reconciliation. The former two-model evaluator and its focused diagnostics are retired nonqualification evidence. At that checkpoint, fresh deterministic/artifact/install evidence and a complete manual-observation R4 matrix were still required; the later final-candidate result is recorded below.
+- The corrected pre-freeze bytes pass 555 strict tests, 39 structural contracts, 117-method/73-source/38-risk-model validation, 14-Skill validation at 17,812 ordinary static bytes, plugin/knowledge/data-security/compilation/JSON/diff checks, and the complete non-spending R4 plan.
+- The first corrected R4 start preserved a diagnosis-only repository-mutation failure at 77,322 candidate tokens and stopped without retry. The runner now checkpoints bounded response/trajectory/delta evidence before semantic hard gates, and diagnosis-only guidance explicitly requires stopping before repair; fresh candidate evidence is required.
+- A fresh 98,271-token focused diagnostic proved that the apparent mutation was only interpreter-generated Python bytecode. Semantic mutation identity now excludes only `__pycache__/*.pyc` and `.pytest_cache` state while still enforcing resource bounds and retaining source-like neighbors; this closes the oracle false positive without weakening source/config mutation gates.
+- Candidate `68ad32824f5393f5c4fdb3d88f8b61a811964023` exposed a one-thread runner configuration that made required child dispatch impossible. A later focused run against candidate `abeabe7b9940853509e3ea55a75156dde38afc45` was initially misclassified because public Codex JSON omitted collaboration events; the preserved isolated rollout proves a real child spawn and delivered result. The runner now allows root plus one child and exports only bounded hashed collaboration facts from its temporary rollout, failing closed on stale, missing, ambiguous, malformed, nested, or child-write evidence.
+- Candidate `bd9102a41b7299735d3ff4a2c47fa384431c232a` stopped its focused check without retry after 38,466 tokens when Codex emitted the public `collab_agent_tool_call` type. The sanitizer now recognizes collaboration events without retaining their prompt and includes only bounded event/item identity in future unknown-tool failures. This instrumentation result is not a model-semantic verdict.
+- Candidate `c833b312ae4ded9ca47c88a86c80805e0ab2938c` completed the focused two-turn gate with 113,457 tokens: one reconciled read-only child, no nested delegation, no repository mutation, root current-state verification, and rejection of the out-of-scope proposal. This closes the P0 delegation-truth blocker but does not satisfy the complete R4 matrix or post-freeze release gates.
+- Frozen candidate `99b5831c3d1890a84700aac6baa4a0cb0b33c495` completed the full three-attempt R4 matrix: 22 cases and 48 turns per attempt, 144 turns total, 9,092,076 tokens, closed usage, unchanged candidate identity, and no mechanical gate failure. Same-context manual assessment found that renewed-authority wording was absent in all three delegation-reconciliation attempts and reference-repository comparison was absent or weak in two attempts. The version owner explicitly accepted these bounded residual risks and authorized release; they are `WAIVED`, not relabeled as passes.
+
 ## [2.0.0-rc.2] - 2026-08-21
 
 Release identity: `2.0.0-rc.2`.

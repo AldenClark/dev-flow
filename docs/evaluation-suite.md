@@ -58,6 +58,67 @@ The result reports:
 
 The matched count is test accounting, not a quality percentage or release score. Never aggregate Skill, method, model, review, agent, question, or document counts into an effectiveness claim.
 
+Method-aware evaluation separates eligibility, activation, candidate selection, readiness, disposition, realization, and evidence effect. A valid method disposition is execute-ready, blocked-fallback with its limitation retained, or reasoned abstention because the owning specialist already supplies a sufficient procedure. Transition fixtures fail when a selected method silently disappears or when its concrete test, mutation, counterexample, model, review surface, evidence matrix, or claim limitation is removed. Method names, generated method artifacts, and selection counts cannot satisfy the oracle.
+
+## Multi-turn transition observations
+
+The shipped transition catalog is `evals/flow-transition-semantic-cases.json`. It declares the nine canonical R4 categories, at least three cases assigned to each category, at least three independent first attempts per case, ordered turns, resume/fork lineage, candidate repository-mutation expectations, optional bounded runner-owned pre-turn fixtures, per-turn expected-unmet state, and expected/forbidden branch observations. Validate externally observed attempts with:
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py flow-metrics \
+  --lane transition \
+  --observations /absolute/path/to/attempt-001.json
+```
+
+Each observed case binds an `initial_repository_sha256`, a deterministic `initial_git_head_sha256`, and one `repository_sha256` per turn. Fixture Git initialization ignores system/global config and hooks and fixes the branch, identity, and timestamp. The validator rejects missing or out-of-order turns, reused evidence digests, a declared repository mutation not bound to changed bytes, byte changes during a `mutation=none` turn, unmet prerequisites, authority violations, and expected/forbidden mismatches. It does not invoke a model, reconstruct a transcript, infer labels, or emit an effect/aggregate score.
+
+The companion runner is non-spending by default. A release-qualification plan must explicitly select the full catalog and minimum attempt count:
+
+```bash
+python3 evals/run_transition_trials.py
+python3 evals/run_transition_trials.py --qualification --attempts 3
+```
+
+An authorized live run additionally requires `--qualification --attempts 3`, `--execute`, `--acknowledge-model-spend`, explicit `--model` and `--reasoning-effort`, an empty `--output-dir`, `--max-total-tokens`, `--per-call-token-limit`, and `--per-call-timeout-seconds`. A complete invocation is:
+
+```bash
+python3 evals/run_transition_trials.py \
+  --qualification --attempts 3 --execute --acknowledge-model-spend \
+  --model MODEL --reasoning-effort EFFORT \
+  --output-dir /absolute/empty/output \
+  --max-total-tokens MAXIMUM --per-call-token-limit PER_CALL \
+  --per-call-timeout-seconds SECONDS
+```
+
+The runner has one responsibility: execute the candidate in isolated synthetic repositories and preserve bounded first-attempt evidence. Each attempt contains the synthetic response text, sanitized tool trajectory, runner-owned fixture delta, candidate repository delta, Git/repository digests, lineage digest, and evidence digest. It checkpoints that evidence before semantic hard gates, so a prohibited mutation or lineage/trajectory failure remains inspectable after the temporary repository is removed. Mutation identity excludes only Python bytecode under `__pycache__` and `.pytest_cache` test-runner state; those paths still count toward resource limits, and source-like neighbors remain visible. It checks resume/fork identity, Git HEAD, candidate-versus-fixture mutations, per-call and aggregate candidate token usage, timeouts, process groups, output size, repository size, and exact candidate/catalog/runner/Codex identity. Delegation-required turns allow exactly one child slot and supplement the incomplete public JSON stream with bounded facts from the runner-owned temporary rollout: hashed child identity/path and result content plus fixed nested-spawn/file-change markers. Current-turn identity, exact spawn/result reconciliation, read-only-child, no-redelegation, safe real paths, JSONL shape, and resource bounds fail closed; raw child text and raw session identities are never copied into attempt evidence. The runner preserves the first execution failure without automatic retry and deletes temporary plugin homes, raw session events, raw session identifiers, and fixture repositories.
+
+Execution ends with `status: awaiting-manual-assessment`; it does not emit observations or a qualification verdict. Inspect each bounded synthetic evidence file, write a separate `flow.transition.observations.v1` manifest, and evaluate it through `flow-metrics --lane transition`. Keep the assessment manifest and coverage result outside the candidate tree. Do not include credentials, personal paths, production values, or raw session IDs. This restores the RC.2 separation between model execution and same-context/manual adjudication; report `common-mode-risk` rather than claiming independent evaluation. `--qualification` rejects a partial `--case` selection or fewer than three attempts. A non-qualification diagnostic run proves only its exact lineage mechanics and cannot satisfy R4.
+
+The runner uses a POSIX process group plus TERM/KILL cleanup and per-file resource limits. Hosted Windows compatibility must still prove descendant cleanup under its native process model; local source evidence does not upgrade that cell to passed. A host-level filesystem quota remains recommended because no portable per-directory disk quota is supplied by Python.
+
+The transition catalog also covers closed versus explicitly open discovery, finding disposition, blocked-to-ready method rechecks, fallback and abstention, review-to-verification adjacency, method realization, nested delegation narrowing, terminal persistence, process supervision, auxiliary-mechanism convergence, explicit task synthesis, reference-repository boundaries, confirmed profile writes, and ordinary-conversation quietness. These are observation contracts; they do not claim deterministic host enforcement.
+
+## RC.3 evaluation correction
+
+Earlier RC.3 candidates used a two-model evaluation mechanism. It consumed substantial budget, introduced its own false positives and contract defects, and encouraged repeated local evaluator repairs without advancing the primary release condition. That mechanism, its Schema, tests, CLI surface, identity fields, and release requirement were removed on 2026-08-24. Its preserved failed and diagnostic results remain historical nonqualification evidence only and must not be rescored or represented as current R4 evidence.
+
+The corrected catalog contains 22 cases across nine enforced categories. It retains the useful hard-gate repairs learned from earlier trials: exact mutation paths and baselines, bounded repository fixtures, deterministic Git identity, changed-fact capability recovery, exact scanner execution including one trusted shell-wrapper layer, unmet-state consistency, and fork current-state reconciliation. It also adds a cumulative auxiliary-mechanism convergence case: after two repairs without primary-outcome progress, the default is a simpler/manual fallback or an honest blocked/deferred gate, not a third evaluator tweak.
+
+Qualification output belongs outside the candidate tree so recording a result cannot change the source identity being qualified. A new complete three-first-attempt matrix on the corrected bytes is required; no earlier partial or focused result satisfies R4.
+
+## Privacy-safe dogfood aggregates
+
+An explicitly authorized local dogfood audit may convert already selected observations into the strict `dev-flow.dogfood.observations.v1` schema and run:
+
+```bash
+python3 skills/dev-flow-maintainer/scripts/analyze_dogfood.py \
+  /absolute/path/to/sanitized-observations.json
+```
+
+The analyzer accepts only enumerated task shapes, transitions, correction categories, scope outcomes, and method-funnel states. Unknown fields are rejected, so raw transcript text, task/session IDs, absolute paths, credentials, personal values, free-form notes, and productivity scores cannot enter its output. It reports counts and limitations only; `aggregate_score` is always null. Unsupported direct host-history access remains `BLOCKED`, and aggregates never authorize a profile write.
+
+`evals/method-marginal-utility-cases.json` predeclares three bounded with-method/without-method comparisons for weak-oracle review, blocked-to-ready privacy reasoning, and model-evaluation case health. Requirement, repository fixture, model/tool/Skill identity, acceptance oracle, conditions, first-attempt minimum, negative regression, trajectory, scope, authority, and exposed cost are fixed separately. The catalog is non-executing and non-scoring; running it requires a separately authorized model budget and a frozen candidate.
+
 ## Required branch families
 
 Keep pairwise and boundary cases for:
@@ -67,7 +128,7 @@ Keep pairwise and boundary cases for:
 3. requirement understanding: U1 confirmation stop, confirmed continuation, ambiguous-defect upgrade, and established-bug/mechanical/read-only skips;
 4. overlays: security/privacy, migration/data, external systems, release, irreversible action, and UI/product without automatic mode escalation;
 5. specialist routing: applicable effective Skills, plugin-prefixed Skill names, and qualified fallback when a route is absent;
-6. methods: high-leverage activation and ordinary-work quietness;
+6. methods: high-leverage eligibility, ready/blocked/fallback/abstain disposition, realization, evidence effect, and ordinary-work quietness;
 7. review: material/explicit activation and generic-label restraint;
 8. child routing: P0-P2 Luna only for closed directed work, Terra for ordinary judgment, Sol for open/consequential work, and root-only decisions;
 9. verification, knowledge, delivery authority, and native-adapter boundaries.
@@ -78,7 +139,7 @@ Add a case when a real activation omission or over-activation is observed. Prefe
 
 1. Deterministic routing executes the public commands, large-task simulations, oracle mutations, and negative controls in normal CI.
 2. Semantic fixtures combine a natural-language request with a small repository shape and assert expected/forbidden activation against a preserved first-attempt observation manifest. Run these when model-facing instructions or triggers change.
-3. High-fidelity isolated pilots use fresh repositories and a temporary plugin home when release/admission confidence depends on actual Codex interpretation. For a material R4 decision, predeclare at least three distinct cases per affected category and preserve at least three independent first attempts per case; report safety/authority, outcome, variability, repair burden, cost, prerequisites, and evidence limits separately.
+3. High-fidelity isolated pilots use fresh repositories and a temporary plugin home when release/admission confidence depends on actual Codex interpretation. The nested model shell must not inherit the maintainer environment; client authentication remains outside that shell boundary. For a material R4 decision, predeclare at least three distinct cases per affected category and preserve at least three independent first attempts per case; report safety/authority, outcome, variability, repair burden, cost, prerequisites, and evidence limits separately.
 
 Semantic and high-fidelity cases are not effect experiments. They do not compare developer speed, defect rates, token economics, or one model's general quality. A pilot can show that a branch did or did not activate under its exact setup; it cannot establish a population performance claim.
 

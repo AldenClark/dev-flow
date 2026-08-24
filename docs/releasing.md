@@ -2,6 +2,12 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
+## 2.0.0-rc.3 transition-hardening release
+
+The source manifest identifies the current candidate as `2.0.0-rc.3`. It changes deterministic routing and model-facing transition/failure/freshness guidance, so publication is R4 even when local source gates pass. The opt-in runner in `evals/run_transition_trials.py` exercises isolated candidate loading plus resume/fork lineage, defaults to a non-spending plan, and never grades its own responses. Actual execution requires separate model-budget authorization; bounded first-attempt evidence is assessed afterward through a manual observation manifest and the public transition lane.
+
+RC.3 source-completeness requires final local deterministic/process/plugin/documentation/security checks. Frozen candidate `99b5831c3d1890a84700aac6baa4a0cb0b33c495` completed the separately authorized three-attempt R4 execution with 144 turns, 9,092,076 tokens, closed usage, unchanged identity, and no mechanical failure. Same-context manual assessment found two bounded semantic gaps: delegation reconciliation omitted an explicit renewed-authority request in all attempts, and reference-repository comparison was absent or weak in two attempts. The version owner explicitly accepted these residual risks and authorized release; the gaps remain `WAIVED`, not passed. Exact-SHA hosted evidence, artifacts, installation, tag, push, and publication remain action-specific delivery gates. `v2.0.0-rc.2` remains the rollback installation.
+
 ## 2.0.0-rc.2 activation-hardening release
 
 RC.2 completed the authorized R4 model-semantic gate before delivery. A preserved 33-attempt broad matrix covered implicit positive activation, explicit advanced activation, and negative controls; it exposed confirmed-U1 downclassification and missing-kernel trigger failures instead of being waved through. After repair, three distinct confirmed-U1 continuation cases each passed three independent first attempts, and U1 clarification, U1 confirmation, and managed-continuity adjacency cases also matched. This satisfies at least three distinct cases per affected category and at least three independent first attempts per case. Safety/authority stayed a separate hard gate, no aggregate score was produced, and total exposed tokens stayed below the authorized ceiling. Commit, tag, push, installation, publication, and release remain action-specific and require their own result evidence.
@@ -71,14 +77,14 @@ For an R3 change, two local builds can establish deterministic behavior before h
 ```bash
 git rev-parse HEAD
 python3 tools/build_release.py build \
-  --root . --output dist-a --version 2.0.0-rc.2 --commit FULL_COMMIT_SHA
+  --root . --output dist-a --version 2.0.0-rc.3 --commit FULL_COMMIT_SHA
 python3 tools/build_release.py build \
-  --root . --output dist-b --version 2.0.0-rc.2 --commit FULL_COMMIT_SHA
-cmp dist-a/dev-flow-2.0.0-rc.2.tar.gz dist-b/dev-flow-2.0.0-rc.2.tar.gz
+  --root . --output dist-b --version 2.0.0-rc.3 --commit FULL_COMMIT_SHA
+cmp dist-a/dev-flow-2.0.0-rc.3.tar.gz dist-b/dev-flow-2.0.0-rc.3.tar.gz
 cmp dist-a/release-manifest.json dist-b/release-manifest.json
 cmp dist-a/SHA256SUMS dist-b/SHA256SUMS
 python3 tools/build_release.py verify \
-  --artifact-dir dist-a --expected-version 2.0.0-rc.2 --expected-commit FULL_COMMIT_SHA
+  --artifact-dir dist-a --expected-version 2.0.0-rc.3 --expected-commit FULL_COMMIT_SHA
 ```
 
 Determinism is asserted within the pinned environment. Promotion reuses attested bytes instead of rebuilding on another zlib/toolchain version.
@@ -89,17 +95,17 @@ After applicable exact-SHA CI is green:
 
 ```bash
 gh workflow run release-candidate.yml \
-  --ref main -f version=2.0.0-rc.2 -f expected_sha=FULL_COMMIT_SHA
+  --ref main -f version=2.0.0-rc.3 -f expected_sha=FULL_COMMIT_SHA
 ```
 
 The workflow has `contents: read`, `id-token: write`, and `attestations: write`. It has no release-publication permission. After download:
 
 ```bash
 python3 tools/build_release.py verify \
-  --artifact-dir dist --expected-version 2.0.0-rc.2 --expected-commit FULL_COMMIT_SHA
-gh attestation verify dist/dev-flow-2.0.0-rc.2.tar.gz \
+  --artifact-dir dist --expected-version 2.0.0-rc.3 --expected-commit FULL_COMMIT_SHA
+gh attestation verify dist/dev-flow-2.0.0-rc.3.tar.gz \
   --repo AldenClark/dev-flow
-gh attestation verify dist/dev-flow-2.0.0-rc.2.tar.gz \
+gh attestation verify dist/dev-flow-2.0.0-rc.3.tar.gz \
   --repo AldenClark/dev-flow \
   --predicate-type https://spdx.dev/Document/v2.3
 ```
@@ -109,6 +115,20 @@ The SBOM must be SPDX 2.3, name `dev-flow`, contain files, identify the root pac
 ## Model-semantic activation evidence
 
 Use [evaluation-suite.md](evaluation-suite.md). Deterministic Flow Activation Coverage runs first. For a material R4 release/admission decision, predeclare each affected category, use at least three distinct natural-language/repository cases per category, and preserve at least three independent first attempts per case. Report safety/authority, expected versus observed activation, variability, missing or unexpected branches, prerequisites, repair burden, cost, and evidence limits separately. Do not emit an effect, productivity, or composite quality score.
+
+The RC.3 catalog encodes the nine affected categories and minimum coverage directly. Confirm the non-spending qualification plan before authorizing live execution:
+
+```bash
+python3 evals/run_transition_trials.py --qualification --attempts 3
+```
+
+Live execution adds the separately approved model, reasoning effort, output directory, aggregate/per-call token ceilings, per-call timeout, and model-spend acknowledgement. Partial case runs and fewer than three attempts are diagnostic only and are rejected in qualification mode. The runner writes one bounded evidence file per attempt and ends at `awaiting-manual-assessment`. A maintainer then writes one separate `flow.transition.observations.v1` manifest per attempt and validates it with `flow-metrics --lane transition`; execution evidence, assessment, and scoring are distinct steps. Same-context assessment must report `common-mode-risk` and must not be described as independent evaluation.
+
+Earlier RC.3 candidates preserved three first-attempt failures: scanner shell-wrapper recognition, an undefined platform mutation target, and an undefined fork mutation target. Their diagnostics led to exact command normalization, concrete mutation baselines/paths, bounded fixture validation, expected-unmet consistency, and current-state fork reconciliation. The former two-model evaluation mechanism was removed completely because it added cost, classification defects, and an auxiliary tuning loop. None of its results qualifies the corrected bytes, and no historical failure is rescored.
+
+The corrected R4 catalog contains 22 cases across nine categories and adds an explicit auxiliary-convergence boundary. After two auxiliary repairs without primary-outcome progress, use a simpler/manual fallback or preserve a blocked/deferred gate unless continued exploration is explicitly requested. Keep all evidence outside the candidate tree so assessment cannot change the source identity. Candidate `99b5831c3d1890a84700aac6baa4a0cb0b33c495` supplied the required complete three-attempt execution; its manual semantic exceptions are recorded as owner waivers above.
+
+Corrected candidate `68ad32824f5393f5c4fdb3d88f8b61a811964023` stopped its first qualification attempt after 2,434,991 tokens because the runner allowed only one total session thread while a catalog case required child dispatch. A later focused run against candidate `abeabe7b9940853509e3ea55a75156dde38afc45` was initially misclassified because `codex exec --json` omitted collaboration events. The preserved isolated rollout proves a real spawn, distinct child execution, delivered result, and wait-after-result. The runner now allows exactly one child and, only for delegation-required turns, extracts bounded hashed spawn/result/nested-spawn/file-change facts from its temporary isolated rollout before deletion. Candidate `bd9102a41b7299735d3ff4a2c47fa384431c232a` then stopped without retry after 38,466 tokens because the public stream emitted `collab_agent_tool_call`, which the sanitizer still treated as an unknown generic tool. The red-first correction accepts public collaboration event identities but never copies their prompt; unknown tools expose only bounded type metadata. Candidate `c833b312ae4ded9ca47c88a86c80805e0ab2938c` subsequently completed the focused gate with one matching hashed spawn/result, a read-only non-delegating child, zero repository mutation, and root rejection of an out-of-scope proposal. The P0 delegation blocker is closed; the later complete R4 result and waivers are recorded above.
 
 Residual paired-evaluation code is unsupported 1.x research debt, not a 2.0 release or compatibility surface. Flow Activation Coverage is the only active semantic-routing check.
 

@@ -174,14 +174,15 @@ class RuntimeLifecycleSmokeTests(unittest.TestCase):
 
 
 class ReleaseWorkflowContractTests(unittest.TestCase):
-    def test_readme_identifies_current_published_rc(self) -> None:
+    def test_readme_identifies_current_published_rc_and_rollback(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("`v1.1.2` 是最后一个 1.x 稳定标签", readme)
         self.assertRegex(VERSION, r"^2\.0\.0-rc\.\d+$")
-        self.assertIn(f"当前版本为 `{VERSION}`", readme)
-        self.assertIn(f"--ref v{VERSION}", readme)
-        self.assertIn(f"`v{VERSION}` 是当前 activation-hardening RC", readme)
-        self.assertNotIn(f"`{VERSION}` 是当前未提交的", readme)
+        self.assertIn(f"当前发布身份为 `{VERSION}`", readme)
+        self.assertIn("`v2.0.0-rc.2` 保留为上一可固定安装的回滚标签", readme)
+        self.assertIn(f"codex plugin marketplace add AldenClark/dev-flow --ref v{VERSION}", readme)
+        self.assertIn(f"`v{VERSION}` 是当前发布的 transition-hardening RC", readme)
+        self.assertIn("发布包含明确记录的 R4 语义豁免", readme)
 
     def test_release_identity_and_lifecycle_claims_match_exercised_evidence(self) -> None:
         attestation = json.loads(

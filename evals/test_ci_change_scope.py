@@ -26,6 +26,7 @@ class CompatibilityChangeScopeTests(unittest.TestCase):
         for path in (
             "skills/dev-flow/scripts/dev_flow.py",
             "skills/dev-flow/scripts/path_contracts.py",
+            "skills/repository-knowledge/scripts/repository_knowledge.py",
             "hooks/hooks.json",
             "skills/dev-flow/assets/agent-configs/dev-flow-worker.toml",
             "evals/test_agent_dispatch.py",

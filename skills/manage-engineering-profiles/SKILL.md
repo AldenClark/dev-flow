@@ -1,6 +1,6 @@
 ---
 name: manage-engineering-profiles
-description: Create, validate, explain, diff, promote, retire, waive, or audit layered engineering profiles and concise AGENTS.md projections; not for ordinary profile consumption.
+description: Manage engineering profiles and AGENTS.md projections: create, validate, explain, diff, or audit.
 ---
 
 # Manage Engineering Profiles
@@ -27,6 +27,8 @@ Manage preference assets without turning current code frequency, installed Skill
 7. Explain winners, shadowed entries, conflicts, exceptions, source hashes, mismatches, and recheck triggers.
 8. Promote only from trial evidence and owner approval; retire without erasing history.
 
+Dev Flow may propose a personal workflow preference only from an explicit owner request or an authorized selected-history/dogfood review. Persist it only after the owner confirms the exact layer, scope, strength, observable effect, conflict behavior, and review trigger. Observed repetition, method frequency, repository statistics, or ordinary conversation never writes or activates a profile automatically.
+
 Read `references/quality-policy.md` when defining code-quality outcomes or specialist capability requirements.
 Use `references/rust-frontend-profile.example.toml` only as an inactive personal-profile example; review and update every entry before activation.
 
@@ -49,3 +51,4 @@ Add `--write` when the current request already authorizes that exact profile act
 - Do not store exact installed versions, advisories, popularity, or “latest” claims as durable preferences.
 - Do not let personal route preferences weaken team/project native checks.
 - Do not name one vendor Skill as the only acceptable quality outcome.
+- Do not infer or persist personal values from task history, dogfood aggregates, or ordinary conversations, and never let a personal layer weaken team/project `must` controls.

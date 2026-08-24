@@ -21,6 +21,7 @@ COMPATIBILITY_PATTERNS = (
     "skills/dev-flow/scripts/**",
     "skills/dev-flow/agents/**",
     "skills/dev-flow/assets/agent-configs/**",
+    "skills/repository-knowledge/scripts/**",
     "governance/agent-roles.json",
     "governance/agent-routing.json",
     "governance/codex-host-adapter.json",
@@ -28,6 +29,7 @@ COMPATIBILITY_PATTERNS = (
     "evals/test_agent_dispatch.py",
     "evals/test_ci_change_scope.py",
     "evals/test_release_artifacts.py",
+    "evals/test_repository_knowledge.py",
     "evals/test_scripts.py",
     "tools/ci_change_scope.py",
 )

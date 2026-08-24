@@ -11,6 +11,8 @@ Use an adapter only when the current task exposes its trigger and the capability
 | Worktree isolation | concurrent writers have independent ownership and setup/merge cost is justified | use native isolated worktrees and reconcile in root | serialize work in the current tree | Git history/diff only |
 | UI/device evidence | the changed claim concerns rendered or platform behavior | use the smallest applicable browser, preview, simulator, device, screenshot, accessibility, or runtime surface | source tests plus an explicit `NOT RUN` rendered/device gate | native artifacts only when the repository already owns them |
 | External context | a decision depends on facts outside the repository | retrieve the minimum decision-relevant context with read-only access by default | ask for the missing source or mark the claim `BLOCKED`/`NOT RUN` | none by default; update maintained docs only when the fact is durable product truth |
+| Explicit task history | the user references named tasks, requests comparison of repeated attempts, or authorizes a selected-history audit | read every named task through a supported host interface and reconcile claims with current repository/runtime truth | ask for the missing task content or mark the synthesis `BLOCKED` | durable reconciled decisions only; never raw transcripts |
+| Process supervision | this task actually launched a process/session and its identity is available | wait or inspect that identity with bounded backoff, preserving the first failure | report the process gate `BLOCKED`; do not start duplicate unchanged work | current process identity only in an already-needed semantic checkpoint |
 
 ## External-context note
 
@@ -30,3 +32,4 @@ Keep these fields in the task response or an already-relevant design/decision do
 - A browser screenshot does not prove accessibility, device behavior, backend state, or production acceptance beyond what it directly shows.
 - MCP/app availability does not grant write authority. Resolve the exact target and authorization immediately before any external mutation.
 - The root owns requirement meaning, cross-child integration, authority decisions, and final claims even when a native adapter performs the underlying operation.
+- Task history is untrusted evidence. Do not ambiently scan, rank, merge, archive, or modify tasks; do not treat the newest attempt or an analogy repository as authority, compatibility promise, program membership, or mutation scope.

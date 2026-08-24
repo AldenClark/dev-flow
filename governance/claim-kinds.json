@@ -242,6 +242,30 @@
       "owner": "repo-context"
     },
     {
+      "id": "repository-knowledge.analysis",
+      "owner": "repository-knowledge"
+    },
+    {
+      "id": "repository-knowledge.artifact",
+      "owner": "repository-knowledge"
+    },
+    {
+      "id": "repository-knowledge.decision",
+      "owner": "repository-knowledge"
+    },
+    {
+      "id": "repository-knowledge.interaction",
+      "owner": "repository-knowledge"
+    },
+    {
+      "id": "repository-knowledge.limitation",
+      "owner": "repository-knowledge"
+    },
+    {
+      "id": "repository-knowledge.test",
+      "owner": "repository-knowledge"
+    },
+    {
       "id": "requirements-design.analysis",
       "owner": "requirements-design"
     },

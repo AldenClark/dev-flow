@@ -31,6 +31,8 @@ Maintain the suite as a versioned product whose core workflow quality comes firs
 
 Use `scripts/validate-suite.py` for the maintainer-specific inventory and dangling-route gate before the repository-wide checks.
 
+For an explicitly authorized local dogfood audit, pass only the aggregate-safe observation schema to `scripts/analyze_dogfood.py`. The analyzer accepts no transcript text, task/session IDs, absolute paths, credentials, personal values, or free-form notes; it reports task shapes, transitions, correction categories, scope conformance, and the method eligibility/activation/selection/readiness/disposition/realization funnel without a person, repository, productivity, or composite quality score. Unsupported direct host-history access is `BLOCKED`; do not read private host storage or persist a profile from aggregates.
+
 ## Boundaries
 
 - Never edit or promote personal/team/project profile values as suite maintenance.

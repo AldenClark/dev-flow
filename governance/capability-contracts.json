@@ -20,8 +20,19 @@
       "owner": "roots, instructions, path-specific artifact facts, current behavior, repository controls, bounded specialist discovery, neutral capability outcomes, and context gaps",
       "consumes": ["task objective", "candidate paths", "observed risks"],
       "stops": ["repository fact cannot be resolved safely", "user-owned change conflicts with scope"],
-      "handoff_to": ["requirements-design", "product-ux-discovery", "systematic-debugging", "architecture-decisions", "dependency-decisions", "manage-engineering-profiles", "verification"],
+      "handoff_to": ["requirements-design", "product-ux-discovery", "systematic-debugging", "architecture-decisions", "dependency-decisions", "manage-engineering-profiles", "repository-knowledge", "verification"],
       "orchestrated_conditions": ["repository-task"]
+    },
+    {
+      "skill": "repository-knowledge",
+      "direct_trigger": "Audit, plan, map, bootstrap, repair, or check a repository-owned documentation and knowledge system.",
+      "negative_trigger": "An ordinary task only updates one already-owned nearby document, or the request is release execution.",
+      "primary_outputs": ["repository knowledge inventory", "knowledge topology and disposition plan", "task-specific repository map", "repository knowledge bootstrap", "knowledge drift findings"],
+      "owner": "repository shape, documentation inventory, knowledge placement, progressive disclosure, human-and-agent readability, bootstrap disposition, and deterministic knowledge drift",
+      "consumes": ["repository fact set", "existing documentation and instruction conventions", "knowledge owner and workspace authority decisions"],
+      "stops": ["unapproved maintained-document replacement", "inferred rule promotion", "unconfirmed program-level authority", "external delivery action"],
+      "handoff_to": ["manage-engineering-profiles", "architecture-decisions", "verification", "dev-flow"],
+      "orchestrated_conditions": ["explicit-repository-knowledge-operation"]
     },
     {
       "skill": "manage-engineering-profiles",

@@ -377,7 +377,6 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "architecture-decisions",
           "verification"
         ],
@@ -417,7 +416,6 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "verification",
           "change-review"
         ],
@@ -455,7 +453,6 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "architecture-decisions",
           "verification"
         ],
@@ -564,7 +561,6 @@
           "architecture-decisions",
           "verification"
         ],
-        "risk_overlays": "migration",
         "capability_activation.method.signal_normalization.canonical": "state-lifecycle"
       }
     },
@@ -648,14 +644,12 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "architecture-decisions",
           "verification",
           "change-review"
         ],
         "risk_overlays": [
-          "external-system",
-          "migration"
+          "external-system"
         ],
         "capability_activation.method.selection.selected": [
           "data-lineage-provenance",
@@ -750,13 +744,11 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "architecture-decisions",
           "verification"
         ],
         "risk_overlays": [
-          "external-system",
-          "migration"
+          "external-system"
         ]
       }
     },
@@ -801,8 +793,7 @@
         ],
         "risk_overlays": [
           "security",
-          "external-system",
-          "migration"
+          "external-system"
         ],
         "capability_activation.method.signal_normalization.canonical": [
           "state-lifecycle",
@@ -898,7 +889,6 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "architecture-decisions",
           "verification"
         ]
@@ -932,7 +922,6 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "architecture-decisions",
           "verification"
         ]
@@ -1164,7 +1153,6 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "architecture-decisions",
           "verification"
         ],
@@ -1243,13 +1231,11 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "architecture-decisions",
           "verification"
         ],
         "risk_overlays": [
-          "external-system",
-          "migration"
+          "external-system"
         ],
         "capability_activation.method.signal_normalization.canonical": "state-lifecycle"
       }
@@ -1289,7 +1275,6 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "architecture-decisions",
           "verification"
         ],
@@ -1382,7 +1367,6 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "architecture-decisions",
           "verification"
         ],
@@ -1479,7 +1463,6 @@
           "data-lineage-provenance"
         ],
         "routes": [
-          "requirements-design",
           "architecture-decisions",
           "verification",
           "change-review"
@@ -1560,7 +1543,6 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "architecture-decisions",
           "verification"
         ],
@@ -1610,7 +1592,6 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "architecture-decisions",
           "verification",
           "change-review"
@@ -1691,7 +1672,6 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "dependency-decisions",
           "architecture-decisions",
           "verification",
@@ -1730,7 +1710,6 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "dependency-decisions",
           "verification"
         ]
@@ -1835,8 +1814,7 @@
           "architecture-decisions"
         ],
         "risk_overlays": [
-          "security",
-          "migration"
+          "security"
         ],
         "capability_activation.method.selection.selected": "linddun-privacy-model"
       }
@@ -2224,7 +2202,6 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "verification"
         ]
       },
@@ -2762,8 +2739,7 @@
           "verification"
         ],
         "risk_overlays": [
-          "external-system",
-          "migration"
+          "external-system"
         ]
       }
     },
@@ -2979,7 +2955,6 @@
         ],
         "continuity.resume": "reconcile-changed-paths-and-parallel-changes",
         "routes": [
-          "requirements-design",
           "architecture-decisions",
           "verification",
           "change-review"
@@ -3028,7 +3003,6 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "dependency-decisions",
           "architecture-decisions",
           "verification"
@@ -3071,7 +3045,6 @@
       },
       "contains": {
         "routes": [
-          "requirements-design",
           "architecture-decisions",
           "verification"
         ],

@@ -34,6 +34,62 @@ Re-run the scan when:
 
 Escalation adds only the missing control. It does not change direct work into managed work unless continuity also changed.
 
+An intent change, interruption/resume, fork, new repository or platform, delegated repair, final-diff expansion, or edit that invalidates an affected oracle also requires a bounded recalibration of only the decisions and evidence it changes. An unchanged follow-up within the same objective and boundaries does not justify repeating the route or broadening specialists.
+
+## Scope envelope and convergence
+
+Before substantial discovery or mutation, keep one ephemeral scope envelope in working context:
+
+- observable outcome and terminal condition;
+- protected behavior, explicit non-goals, and already rejected expansions;
+- discovery mode: `closed`, `bounded`, or `open`;
+- separate read, mutation, verification, action, external, dependency, and delegation boundaries;
+- facts that permit expansion and facts that require stopping or returning to the user.
+
+Implementation and repair default to `closed`: inspect causal callers, consumers, generated surfaces, and affected tests as needed, but mutate only admitted work. Diagnosis and review default to `bounded`: inspect enough adjacent context to establish cause or impact, while reporting rather than implementing optional findings. `Open` exploration requires an explicit breadth request such as surveying alternatives, discovering opportunities, or designing beyond a fixed deliverable. `Deep`, red/blue analysis, formal rigor, managed mode, model capability, reasoning effort, or method count never changes the discovery mode.
+
+Classify a newly discovered material item before acting:
+
+- `required defect`: directly violates the admitted outcome or protected behavior;
+- `necessary enabler`: the outcome cannot be completed or honestly verified without it; recalibrate when it crosses a material boundary;
+- `optional opportunity`: useful but not required; report or defer it;
+- `unrelated`: leave it untouched.
+
+Reading broadly enough to prove causality and running affected integration checks do not grant broad mutation. Reconcile the final diff, new dependencies, generated files, tools, repositories, and external actions against the envelope. Stop or seek confirmation when a material enabler changes product semantics, platform/repository scope, public contracts, dependencies, destructive/external authority, or another user-owned boundary.
+
+### Auxiliary-mechanism convergence
+
+Evaluation tooling, graders, test harnesses, scanners, documentation generators, release helpers, and other auxiliary mechanisms remain subordinate to the requested outcome. Count cumulative progress against the primary terminal condition, not merely whether each local repair changed a variable. After two consecutive repairs to the same auxiliary mechanism without advancing that primary terminal condition, pause for a mandatory convergence checkpoint: decide whether the mechanism is an indispensable blocker, whether a simpler fallback can support a narrower honest claim, or whether the gate should be deferred.
+
+Unless the user explicitly asks for continued exploration or current evidence proves that no simpler valid fallback exists, simplify or replace the mechanism, use a qualified manual/native assessment, or mark the gate `BLOCKED`/`NOT RUN`; do not make a third tweak. A changed rubric, prompt, wrapper, retry parameter, or implementation detail does not reset this counter when the primary outcome is still unchanged. Preserve the original failure and report the narrower evidence limit instead of turning auxiliary perfection into a new objective.
+
+## Capability failure isolation
+
+Preserve the first capability failure and classify its blocking mechanism before retrying:
+
+- `transient`: the same operation may succeed after bounded time or service recovery;
+- `invariant`: the current tool, platform, configuration, or repository shape cannot satisfy the gate;
+- `authority`: permission, approval, credentials, budget, or external-write authority is absent;
+- `external`: a required remote service, device, account, or controlled environment is unavailable.
+
+Do not retry an invariant, authority, or external failure while its observable readiness facts are unchanged. Retry once when a relevant fact changes, such as a newly callable tool, changed permission profile, available device/service, repaired configuration, or explicit budget/authority. A time-bounded transient retry must preserve the first failure and must not relabel a repeated or flaky outcome as `PASSED`.
+
+Isolate the blocked gate and continue unrelated safe repository-native checks. A fallback may support a narrower claim only: same-context inspection is not independent review, a native lint is not an unavailable deep scanner, and synthetic evidence is not real-system evidence. Report the original gate as `BLOCKED` or `NOT RUN`, the qualified fallback separately, and the exact claim limit. This classification is turn-local reasoning; do not add a readiness registry, circuit-breaker record, route field, or persisted task state.
+
+## Evidence freshness
+
+Bind an evidence conclusion to the relevant bytes, scope, environment, platform, and compatibility direction it actually observed. An affected source/config/generated-file edit after a PASS invalidates that PASS until the smallest affected-scope freshness check runs again. The same rule applies after delegated edits, review repairs, new platform/repository scope, final-diff expansion, and delivery preparation.
+
+Do not rerun an irrelevant oracle merely because any file changed: an unrelated documentation edit leaves unaffected runtime evidence current. At resume or fork, compare current Git roots and changed paths with the prior semantic checkpoint; mark only affected claims stale, carry forward clearly unaffected evidence, and choose the smallest ready next slice.
+
+## Semantic continuation checkpoint
+
+Before interruption/handoff and after a material objective, repository, platform, or delivery-boundary change, record only completed/current/next outcomes, the terminal condition, discovery mode, mutation/action boundary, non-goals and rejected expansions, affected Git roots, user-owned changes, active process identity when one exists, stale evidence, blockers or unrun gates, the recommended next slice, and worktree/parallel-change state. This is repository-owned continuity, not a transcript, task database, or authority to create a host task/worktree.
+
+At resume, compaction, fork, or handoff, reconcile that checkpoint against current workstream, Git, runtime, and process facts. Conversation summaries and referenced task prose are recovery hints, not repository authority. Terminal language such as “implement fully” or “keep going” means persist through safe ready slices inside the existing envelope; it does not authorize dependencies, broader discovery, delivery, deployment, destructive/external action, or indefinite retry. Stop at the terminal outcome, a genuine blocker, a material expansion, missing authority, or a predeclared attempt/exploration limit.
+
+Supervise only a process or session that was actually launched and whose identity is known. Preserve its first failure, use bounded backoff, distinguish running/failure/completion, and never start duplicate unchanged work merely because an observation timed out. If the host loses the process identity, mark the gate `BLOCKED` instead of guessing or relaunching.
+
 ## Capability activation
 
 Use the effective Skills and tools exposed in the current turn as the capability surface. Match them against affected technology, framework, behavior, and risk discovered from relevant manifests, paths, call/data/state/artifact flow, confirmed requirements, current diff, and failures. An installed file, registry entry, remembered session, version, or feature flag is not proof that a capability is callable now.
@@ -84,7 +140,13 @@ python3 skills/dev-flow/scripts/dev-flow.py route-task \
 
 The command path is resolved from the loaded Dev Flow Skill/plugin, not from the target repository. Do not use the lower-level `select-methods` maintenance interface from ordinary task execution, and do not pass the target repository as its methodology source root.
 
-Perform at most one selection for the current decision. Apply at most one-to-three selected methods whose steps can change that decision. If a method is blocked, use the returned bounded fallback or state the evidence limit; do not browse, load the full method pool, or invent prerequisites merely to obtain a named method. Re-run only after a material requirement, boundary, or evidence change. The selection is advisory and non-persisted; code, design, tests, review findings, and runtime evidence remain authoritative.
+Separate five questions: whether the observed failure mechanism makes a method eligible; which candidate fits; whether its prerequisites make it ready; which disposition is taken; and whether realization changed an owned decision or evidence surface. A valid disposition is exactly one of: execute a ready method, execute the explicit fallback for a blocked method while retaining its limitation, or abstain because the owning specialist already supplies a sufficient discriminating procedure. Selection without a disposition is incomplete; absence of a method name is not itself a defect.
+
+Perform at most one selection for the current decision and prefer one directly relevant, ready, lower-cost method. Apply at most three only when each addresses a distinct failure mechanism and has a concrete evidence obligation. Recheck readiness after repository discovery, material requirement confirmation, an oracle-breaking first failure, repeated non-progress, and before material verification/review; do not repeat when the decision, facts, and prerequisites are unchanged. Never invent a repository fact, stable contract, independent implementation, user example, live environment, or authority merely to make a method ready.
+
+If a candidate is blocked, use its bounded fallback or retain the evidence limit; do not browse, load the full method pool, or broaden discovery merely to obtain a ready method name.
+
+A ready method or fallback is realized only when it changes an owned surface: a test/property/mutation, counterexample, state/decision/compatibility model, review attack surface, evidence matrix, or explicit claim limitation. A selected ID, method mention, generated method artifact, or invocation count is not realization or quality evidence. Method depth remains subordinate to the active scope envelope. The selection is advisory and non-persisted; code, design, tests, review findings, and runtime evidence remain authoritative.
 
 ## Independent review
 
