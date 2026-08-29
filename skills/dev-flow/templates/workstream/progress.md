@@ -1,8 +1,11 @@
+<!-- dev-flow-workstream-contract: v1 -->
 # <workstream> progress
 
 ## Status
 
 - State: active
+- Current slice: S1
+- Terminal condition: <all required slices and applicable hard conditions close>
 - Updated: <updated>
 
 ## Completed outcomes
@@ -17,9 +20,15 @@
 
 <Next outcome and its readiness condition.>
 
-## Blockers and decisions needed
+## Hard conditions
 
-- None.
+| ID | Condition | Gate | Status | Closure/decision |
+|---|---|---|---|---|
+| HC1 | <implementation completion condition> | implementation | open | S1 |
+
+## Active convergence checkpoint
+
+None.
 
 ## Evidence limits
 

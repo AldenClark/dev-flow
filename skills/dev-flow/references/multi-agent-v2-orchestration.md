@@ -21,6 +21,8 @@ Every delegated task states:
 
 Every child boundary is a subset of the parent envelope. Carry the intersection of all ancestor outcome, read/write, tool, dependency, external-action, resource, and re-delegation limits into nested work. A child may narrow its own work but cannot restore authority removed by an ancestor, promote an optional finding, add a platform/repository/dependency, reinterpret product semantics, or expand a public contract. When the subset is insufficient, stop the affected branch and return a bounded expansion request or finding to the root.
 
+The root must not execute that expansion merely because the child requested it. Continue beyond the original envelope only after explicit renewed authority from the user or already-admitted owner for the exact added repository, path, dependency, platform, external action, or semantic scope; otherwise narrow, defer, or block the branch.
+
 Do not require packet IDs, AC/SC/VO mappings, context fingerprints, generated reports, profile IDs, lease epochs, or copied parent history unless a repository-native system genuinely consumes them.
 
 ## Isolation and integration

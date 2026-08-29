@@ -722,6 +722,7 @@ class RoutingTests(unittest.TestCase):
                 "--repository-fact",
                 "--repository-facts",
                 "--waive-understanding-confirmation",
+                "--previous-route",
                 "--compact",
             }
         )
@@ -1062,6 +1063,7 @@ class RoutingTests(unittest.TestCase):
                 "method",
                 "independent_review",
                 "knowledge",
+                "route_basis",
             },
         )
         self.assertEqual(payload["intent"], "review")

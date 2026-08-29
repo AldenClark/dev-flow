@@ -1,0 +1,84 @@
+{
+  "schema_version": "dev-flow.rc4.traceability.v1",
+  "required_requirement_ids": [
+    "RC4-COMPAT",
+    "RC4-DIRTY",
+    "RC4-DOGFOOD",
+    "RC4-HISTORY",
+    "RC4-IDENTITY",
+    "RC4-RESOURCE",
+    "RC4-ROUTE",
+    "RC4-SCAN",
+    "RC4-TEST-SYSTEM",
+    "RC4-TRUTH",
+    "RC4-WAIVERS"
+  ],
+  "requirements": [
+    {
+      "id": "RC4-ROUTE",
+      "decisions": ["D2"],
+      "implementation": ["skills/dev-flow/scripts/route_incremental.py", "skills/dev-flow/scripts/dev_flow.py", "skills/dev-flow/SKILL.md", "skills/dev-flow/references/core-lifecycle.md"],
+      "tests": ["evals/test_rc4_convergence.py::IncrementalRouteTests"]
+    },
+    {
+      "id": "RC4-TRUTH",
+      "decisions": ["D3", "D4"],
+      "implementation": ["skills/dev-flow/scripts/workstream_contract.py", "skills/dev-flow/templates/workstream/"],
+      "tests": ["evals/test_rc4_convergence.py::WorkstreamContractTests", "evals/test_rc4_theoretical_models.py::WorkstreamStateModelCheckingTests"]
+    },
+    {
+      "id": "RC4-RESOURCE",
+      "decisions": ["D5", "D6"],
+      "implementation": ["skills/dev-flow/scripts/resource_coordination.py", "skills/verification/references/test-environments.md"],
+      "tests": ["evals/test_resource_coordination.py::ResourceLeaseTests", "evals/test_rc4_theoretical_models.py::ResourceLeaseModelCheckingTests"]
+    },
+    {
+      "id": "RC4-TEST-SYSTEM",
+      "decisions": ["D7"],
+      "implementation": ["skills/test-system-engineering/", "governance/capability-contracts.json", "governance/claim-kinds.json", "skills/dev-flow-maintainer/references/capability-registry.json", "skills/dev-flow-maintainer/scripts/validate-suite.py", "evals/skill-routing-cases.json", "evals/run_contract_checks.py"],
+      "tests": ["evals/test_test_system_engineering_rc4.py::TestSystemIntegrityFixtures", "evals/skill-routing-cases.json::ROUTE-TEST-SYSTEM-EXPLICIT"]
+    },
+    {
+      "id": "RC4-DIRTY",
+      "decisions": ["D8"],
+      "implementation": ["skills/dev-flow/scripts/workstream_contract.py"],
+      "tests": ["evals/test_rc4_convergence.py::test_worktree_reconciliation_reports_without_mutating"]
+    },
+    {
+      "id": "RC4-HISTORY",
+      "decisions": ["D9"],
+      "implementation": ["skills/dev-flow/references/codex-native-adapters.md"],
+      "tests": ["evals/test_rc3_extensions.py::test_task_history_and_process_adapters_have_negative_boundaries"]
+    },
+    {
+      "id": "RC4-DOGFOOD",
+      "decisions": ["D10"],
+      "implementation": ["skills/dev-flow-maintainer/scripts/analyze_dogfood.py"],
+      "tests": ["evals/test_rc3_extensions.py::test_v2_adds_bounded_rc4_funnels_without_changing_v1", "evals/test_rc3_extensions.py::test_v2_rejects_content_fields_and_composite_scores"]
+    },
+    {
+      "id": "RC4-COMPAT",
+      "decisions": ["D11"],
+      "implementation": [".github/workflows/ci.yml", ".github/workflows/release-candidate.yml", ".codex-plugin/plugin.json", "README.md", "CHANGELOG.md", "docs/", "skills/company-data-security/assets/surface-attestation.example.json"],
+      "tests": ["evals/test_dev_flow_v2.py::RoutingTests", "evals/test_release_artifacts.py::ReleaseArtifactTests"]
+    },
+    {
+      "id": "RC4-IDENTITY",
+      "decisions": ["D12", "D14"],
+      "implementation": ["evals/candidate_identity.py", "evals/run_transition_trials.py"],
+      "tests": ["evals/test_candidate_identity_rc4.py::CandidateIdentityTests", "evals/test_transition_runner.py::TransitionRunnerTests"]
+    },
+    {
+      "id": "RC4-WAIVERS",
+      "decisions": ["D13"],
+      "implementation": ["skills/dev-flow/references/multi-agent-v2-orchestration.md", "skills/dev-flow/references/codex-native-adapters.md", "evals/flow-transition-semantic-cases.json"],
+      "tests": ["evals/test_rc3_extensions.py::test_task_history_and_process_adapters_have_negative_boundaries", "evals/flow-transition-semantic-cases.json::DELEGATION-EXPANSION-REQUIRES-RENEWED-AUTHORITY", "evals/flow-transition-semantic-cases.json::CONTEXT-REFERENCE-REPOSITORY-BOUNDARY"]
+    },
+    {
+      "id": "RC4-SCAN",
+      "decisions": ["D1", "D7"],
+      "implementation": ["governance/rc4-traceability.json", "tools/validate_rc4_coverage.py", "tools/static_scan_rc4.py", "evals/test_rc4_static_coverage.py"],
+      "tests": ["evals/test_rc4_static_coverage.py::RC4StaticCoverageTests", "evals/test_rc4_theoretical_models.py::CurrentTruthModelTests"]
+    }
+  ]
+}

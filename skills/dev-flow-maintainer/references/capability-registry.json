@@ -161,6 +161,15 @@
       "native_evidence": ["tests/**", "test/**", "test_*.py", "**/test_*.py", "*_test.py", "**/*_test.py", "*_test.rs", "**/*_test.rs", "*.test.ts", "**/*.test.ts", "*.spec.ts", "**/*.spec.ts", "*Tests.swift", "**/*Tests.swift"],
       "route_names": [],
       "manual_fallback": "explicit-behavioral-reproduction-and-review"
+    },
+    {
+      "id": "quality.test-system.integrity",
+      "outcome": "Test discovery, selection, harness sensitivity, fixture isolation, runner interpretation, and representativeness are proven before product evidence is trusted.",
+      "selectors": ["risk=weak-tests"],
+      "native_evidence": ["test/**", "tests/**", "evals/**", "**/*test*", "**/*runner*", "**/*fixture*"],
+      "route_names": ["test-system-engineering"],
+      "preferred_route": "test-system-engineering",
+      "manual_fallback": "explicit-discovery-selection-sensitivity-isolation-review"
     }
   ]
 }

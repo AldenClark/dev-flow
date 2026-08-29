@@ -41,6 +41,8 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -56,6 +58,12 @@ jobs:
 
       - name: Run structural contracts
         run: python evals/run_contract_checks.py
+
+      - name: Validate RC.4 bidirectional static coverage
+        run: python tools/validate_rc4_coverage.py --root . --check-event
+
+      - name: Run RC.4 static drift and safety scan
+        run: python tools/static_scan_rc4.py --root . --check-event
 
       - name: Validate shipped legacy methodology data
         run: python skills/dev-flow/scripts/dev-flow.py validate-methods --root .
@@ -120,6 +128,7 @@ jobs:
           evals.test_scripts.RuntimeInstallerTests
           evals.test_release_artifacts.RuntimeLifecycleSmokeTests
           evals.test_repository_knowledge
+          evals.test_resource_coordination
           -v
 
       - name: Confirm tests did not modify tracked files

@@ -49,6 +49,23 @@ The first surprising failure triggers a focused assumption/risk recheck. Two fai
 
 Escalation adds the specific missing control. It does not recreate a full governance lifecycle or automatically change direct work into managed work.
 
+## Incremental route continuity
+
+The caller may retain one full RC.4 route result in active context. When outcome, roots, discovery mode, authority/mutation boundary, risks, needs, method prerequisites, repository facts, review requirement, and terminal condition are unchanged, continue without another route call. Dev Flow does not write, discover, or cache that result.
+
+After a material fact changes, pass the caller-owned prior JSON with `route-task --previous-route <file>`. The returned route is always a complete current route; `recalibration` states whether the prior basis was unchanged, changed with bounded invalidated decision classes, or incompatible. A malformed, oversized, symlinked, or semantically incompatible prior route never grants reuse: continue from the full current route and retain the reported comparison limitation. Do not treat formatting-only changes or repeated narration as a material transition.
+
+## Managed contract check
+
+Workstreams carrying `<!-- dev-flow-workstream-contract: v1 -->` opt into structural checking. Before completing a slice and before a terminal claim, run:
+
+```text
+python3 <dev-flow-skill-dir>/scripts/dev-flow.py check-workstream \
+  --root <git-root> --path <workstream-directory> --check-worktree
+```
+
+The checker may reject contradictory state, gates, convergence disposition, unsafe prefixes, or undeclared changed paths. Its claim is `structural-consistency-only`: it never edits files, infers authorship, proves semantics/evidence freshness, or authorizes delivery. Older unmarked workstreams remain readable and are not silently migrated.
+
 ## Evidence status
 
 Keep `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, and `WAIVED` distinct. A later green result does not erase an unresolved earlier cause, and evidence from one OS, device, account, environment, or compatibility direction does not prove another.

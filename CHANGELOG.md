@@ -4,6 +4,32 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2.0.0-rc.4] - 2026-08-29
+
+Release identity: `2.0.0-rc.4` source candidate; publication, tag, installation, hosted artifacts, and live model qualification remain separate gates.
+
+### Added
+
+- Added privacy-minimized stateless route identity and caller-supplied prior-route comparison across every route-affecting input.
+- Added an opted-in managed-workstream contract and read-only checker for slice/gate/current-state/convergence/path contradictions with an explicit structural-only claim limit.
+- Added cooperative single-host resource leases and measurement-only resource preflight with token-bound ownership, expiry/recovery, bounded atomic guards, private state, and no cleanup authority.
+- Added `test-system-engineering` for discovery, selection, sensitivity, isolation, interpretation, and representativeness failures without displacing verification's product-claim ownership.
+- Added privacy-safe dogfood v2 route/convergence/resource/workstream/test-system funnels while preserving v1 behavior and rejecting content, identifiers, paths, and scores.
+- Added semantic-runtime and qualification-execution identities, including the transition runner's repository-local dependency closure and frozen execution configuration.
+- Added machine-checked RC.4 bidirectional traceability covering every requirement, D1-D14, implementation path, test oracle, and changed worktree path.
+
+### Changed
+
+- Managed workstream templates now carry a strict versioned table contract with separate implementation and qualification gates.
+- Dirty-worktree reconciliation accounts for accumulated completed/current slice prefixes without attributing authorship or mutating user files.
+- Task-history retry requires a changed host/task fact, delegation expansion requires explicit renewed authority, and reference-repository comparison requires an explicit disposition.
+- Final R4 policy retains three complete-catalog independent first attempts on one frozen candidate and forbids subset-only repetition, content retries, post-hoc rescoring, and evaluator tuning.
+- Capability description budget increased from 2,500 to 2,660 only for the measured 138-character specialist admission plus 22 characters of margin; the 18,000-byte ordinary-static cap is unchanged.
+
+### Verification
+
+- RC.4 source validation is recorded in `docs/workstreams/dev-flow-2.0-rc.4/audit.md`; unavailable hosted, cross-platform, independent-review, model-spend, artifact, install, and publication gates remain distinct from local implementation evidence.
+
 ## [2.0.0-rc.3] - 2026-08-24
 
 Release identity: `2.0.0-rc.3`.

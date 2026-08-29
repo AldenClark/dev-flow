@@ -55,11 +55,11 @@ docs/workstreams/<slug>/
 
 `implementation.md` owns scope, acceptance, slices, ordering, affected areas, and completion evidence. `progress.md` owns status, completed/current/next outcomes, blockers, and evidence limits. Add `requirements.md` only for confirmed complex semantics; an unknown baseline does not justify a stub requirements file. Add `design.md` for real trade-offs and `decisions.md` for durable rationale without an ADR home. `init-workstream` creates only the first two by default.
 
-At start/resume/fork, reconcile the workstream, Git/worktree/user changes, and terminal/non-goal/process/evidence facts; summaries are not authority. Update progress at material change, slice completion, blocker, first failure, handoff, or closure. Before an incomplete yield, leave the semantic checkpoint in `references/quality-calibration.md`. Git owns chronology; continuity never automatically creates a host task or worktree.
+At start/resume/fork, reconcile the workstream, Git/worktree/user changes, and terminal/non-goal/process/evidence facts; summaries are not authority. For a marked RC.4 workstream, run `check-workstream --root <git-root> --path <workstream> --check-worktree` before slice completion. Update progress at material change, slice completion, blocker, first failure, handoff, or closure. Before an incomplete yield, leave the semantic checkpoint in `references/quality-calibration.md`. Git owns chronology; continuity never automatically creates a host task or worktree.
 
 ## Quality spine
 
-Calibrate outcome, facts/assumptions, affected boundaries, smallest slice/oracle, knowledge impact, and evidence limits. Recalibrate after a material transition, failure, evidence invalidation, or delivery boundary; an unchanged narrow follow-up does not reroute. Read `references/quality-calibration.md` for substantial managed work, material risk, delegation, or repeated failure.
+Calibrate outcome, facts/assumptions, affected boundaries, smallest slice/oracle, knowledge impact, and evidence limits. Keep the last route in active caller context: an unchanged narrow follow-up does not reroute; after a material transition, pass it through `--previous-route` to invalidate only affected decisions. Read `references/quality-calibration.md` for substantial managed work, material risk, delegation, or repeated failure.
 
 After repository discovery and material requirement confirmation, use `references/quality-calibration.md` to decide specialist, method, independent review, and child route separately. Recheck only an affected decision after boundary/failure/final-diff/delivery changes; never persist activation decisions.
 

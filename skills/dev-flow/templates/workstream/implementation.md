@@ -1,3 +1,4 @@
+<!-- dev-flow-workstream-contract: v1 -->
 # <workstream> implementation
 
 ## Outcome
@@ -10,11 +11,11 @@
 - Protected behavior: <important behavior that must not regress>
 - Observable completion: <business result and native evidence that will demonstrate it>
 
-## Slices
+## Slice plan
 
-| Slice | Outcome | Affected areas | Native completion evidence | Status |
-|---|---|---|---|---|
-| S1 | <coherent outcome> | <modules or paths> | <tests, build, runtime, or review> | pending |
+| Slice | Outcome | Write prefixes | Protected paths | Evidence | Status | Decision |
+|---|---|---|---|---|---|---|
+| S1 | <coherent outcome> | `src/` | - | <tests, build, runtime, or review> | ready | - |
 
 ## Ordering and dependencies
 

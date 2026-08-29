@@ -79,6 +79,40 @@ def dogfood_payload() -> dict[str, object]:
     }
 
 
+def dogfood_v2_payload() -> dict[str, object]:
+    payload = dogfood_payload()
+    payload["schema_version"] = "dev-flow.dogfood.observations.v2"
+    for index, observation in enumerate(payload["observations"]):
+        observation["rc4"] = {
+            "route": {
+                "initial": 1 if index == 0 else 0,
+                "material_transitions": 1 if index == 0 else 0,
+                "delta_routes": 1 if index == 0 else 0,
+                "unchanged_routes": 0,
+            },
+            "convergence": {
+                "checkpoint_required": index == 0,
+                "checkpoint_resolved": index == 0,
+                "third_tweak": False,
+            },
+            "resource": {
+                "preflight": "passed" if index == 0 else "not-run",
+                "lease": "conflict" if index == 0 else "none",
+            },
+            "workstream": {
+                "check": "failed" if index == 0 else "not-applicable",
+                "contradictions": ["open-hard-condition"] if index == 0 else [],
+            },
+            "test_system": {
+                "eligible": index == 0,
+                "activated": index == 0,
+                "negative_control": "failed-as-expected" if index == 0 else "not-run",
+            },
+            "evidence_status": "passed" if index == 0 else "not-run",
+        }
+    return payload
+
+
 class ScopeAndContinuationContracts(unittest.TestCase):
     def test_scope_envelope_keeps_depth_separate_from_breadth(self) -> None:
         guidance = QUALITY.read_text(encoding="utf-8")
@@ -158,8 +192,15 @@ class ScopeAndContinuationContracts(unittest.TestCase):
             "do not start duplicate unchanged work",
             "Do not ambiently scan, rank, merge, archive, or modify tasks",
             "analogy repository",
+            "Do not retry while task identity, host connection, tool availability, and user request are unchanged",
+            "One bounded retry is allowed only after one of those facts changes",
+            "Silent omission and analogy-based contract invention do not pass",
         ):
             self.assertIn(phrase, guidance)
+
+        orchestration = ORCHESTRATION.read_text(encoding="utf-8")
+        self.assertIn("explicit renewed authority", orchestration)
+        self.assertIn("must not execute that expansion merely because the child requested it", orchestration)
 
 
 class MethodDispositionContracts(unittest.TestCase):
@@ -311,6 +352,27 @@ class DogfoodContracts(unittest.TestCase):
                 completed = self.run_analyzer(payload)
                 self.assertEqual(completed.returncode, 2)
                 self.assertIn("forbidden", completed.stdout)
+
+    def test_v2_adds_bounded_rc4_funnels_without_changing_v1(self) -> None:
+        v1 = json.loads(self.run_analyzer(dogfood_payload()).stdout)
+        completed = self.run_analyzer(dogfood_v2_payload())
+        self.assertEqual(completed.returncode, 0, completed.stderr or completed.stdout)
+        v2 = json.loads(completed.stdout)
+        self.assertEqual(v1["schema_version"], "dev-flow.dogfood.aggregate.v1")
+        self.assertNotIn("rc4", v1)
+        self.assertEqual(v2["schema_version"], "dev-flow.dogfood.aggregate.v2")
+        self.assertEqual(v2["rc4"]["route"]["delta_routes"], 1)
+        self.assertEqual(v2["rc4"]["resource"]["lease"]["conflict"], 1)
+        self.assertIsNone(v2["aggregate_score"])
+
+    def test_v2_rejects_content_fields_and_composite_scores(self) -> None:
+        for field, value in (("prompt", "private"), ("path", "/private/repo"), ("score", 1)):
+            with self.subTest(field=field):
+                payload = dogfood_v2_payload()
+                payload["observations"][0]["rc4"][field] = value
+                completed = self.run_analyzer(payload)
+                self.assertEqual(completed.returncode, 2)
+                self.assertIn("exact aggregate-safe v2 schema", completed.stdout)
 
     def test_ordinary_conversation_cannot_activate_dev_flow(self) -> None:
         payload = dogfood_payload()

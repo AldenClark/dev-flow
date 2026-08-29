@@ -67,7 +67,7 @@ REGISTERED_SKILLS = frozenset(
     ).get("capabilities", [])
     if isinstance(item, dict) and isinstance(item.get("skill"), str) and item["skill"]
 )
-DESCRIPTION_BUDGET = 2500
+DESCRIPTION_BUDGET = 2660
 ORDINARY_STATIC_BUDGET = 18000
 ORDINARY_STATIC_FILES = (
     "skills/dev-flow/SKILL.md",

@@ -104,6 +104,30 @@
       "expected": ["repo-context", "requirements-design", "architecture-decisions", "dev-flow-maintainer", "verification"],
       "required": ["requirements-design", "architecture-decisions", "dev-flow-maintainer", "verification"],
       "forbidden": ["product-ux-discovery", "systematic-debugging", "dependency-decisions", "change-review", "delivery-readiness", "manage-engineering-profiles"]
+    },
+    {
+      "id": "ROUTE-TEST-SYSTEM-EXPLICIT",
+      "args": ["--intent", "change", "--need", "test-system"],
+      "work_mode": "direct",
+      "expected": ["repo-context", "test-system-engineering", "verification"],
+      "required": ["test-system-engineering", "verification"],
+      "forbidden": ["requirements-design", "product-ux-discovery", "architecture-decisions", "systematic-debugging", "dependency-decisions", "change-review", "delivery-readiness"]
+    },
+    {
+      "id": "ROUTE-TEST-SYSTEM-FALLBACK",
+      "args": ["--intent", "change", "--risk", "weak-tests"],
+      "work_mode": "direct",
+      "expected": ["repo-context", "verification"],
+      "required": ["verification"],
+      "forbidden": ["test-system-engineering", "requirements-design", "product-ux-discovery", "architecture-decisions", "systematic-debugging", "dependency-decisions", "change-review", "delivery-readiness"]
+    },
+    {
+      "id": "ROUTE-TEST-SYSTEM-EFFECTIVE",
+      "args": ["--intent", "change", "--risk", "weak-tests", "--effective-skill", "test-system-engineering"],
+      "work_mode": "direct",
+      "expected": ["repo-context", "test-system-engineering", "verification"],
+      "required": ["test-system-engineering", "verification"],
+      "forbidden": ["requirements-design", "product-ux-discovery", "architecture-decisions", "systematic-debugging", "dependency-decisions", "change-review", "delivery-readiness"]
     }
   ]
 }

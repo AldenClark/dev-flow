@@ -2,7 +2,7 @@
 
 Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是建立第二套工作流引擎，而是用最少的流程成本保持三件事：长期业务工作不漂移、技术结论有原生工程证据、高后果动作保留明确安全边界。
 
-当前发布身份为 `2.0.0-rc.3` transition-hardening RC：它增加结构化路由纠错、精确 owner/overlay 路由、多轮 recalibration、失败隔离、最终字节证据和 `repository-knowledge`。完整 R4 已执行；三轮中的委派续权措辞和参考仓库类比强度未满足严格语义门禁，版本所有者显式接受该残余风险并授权发布。`v2.0.0-rc.2` 保留为上一可固定安装的回滚标签，`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
+当前源码候选身份为 `2.0.0-rc.4` convergence-and-operations hardening RC：它增加无状态增量路由、受管工作流一致性检查、本机协作租约与资源预检、测试系统完整性 owner、隐私安全 dogfood v2，以及语义运行时/资格执行双身份。`v2.0.0-rc.3` 仍是最近已发布、可固定安装和回滚的标签；RC.4 的完整模型资格、不可变制品、tag、发布和安装必须逐项完成后才能声称已发布。`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
 
 ## 2.0 核心模型
 
@@ -184,6 +184,7 @@ Dev Flow 主 Skill 只负责模式、风险和最小路由。按真实决策加�
 - `architecture-decisions`：边界、所有权、状态、并发、FFI、兼容和性能取舍；
 - `dependency-decisions`：新增、更新、移除和供应链影响；
 - `verification`：风险驱动的原生验证与诚实证据状态；
+- `test-system-engineering`：测试发现、选择、敏感性、隔离、runner 解释和代表性完整性；
 - `change-review`：基于当前 source/diff 的独立 finding 验证；
 - `delivery-readiness`：动作级交付身份、证据、回滚和授权；
 - `company-data-security`：跨 Codex/ChatGPT/普通聊天的敏感数据控制；
@@ -227,6 +228,7 @@ codex plugin add dev-flow@dev-flow
 ```bash
 python3 -W error::ResourceWarning -m unittest discover -s evals -v
 python3 evals/run_contract_checks.py
+python3 tools/validate_rc4_coverage.py --root . --check-worktree
 python3 skills/dev-flow/scripts/dev-flow.py validate-methods --root .
 python3 skills/dev-flow/scripts/dev-flow.py validate-knowledge --root .
 python3 skills/dev-flow/scripts/dev-flow.py check --plugin-root .
@@ -236,16 +238,17 @@ python3 -m compileall -q hooks skills evals tools
 git diff --check
 ```
 
-CI 不再在 6 个 OS/Python cell 中重复完整套件：一个 semantic job 执行完整语义/结构检查，focused compatibility matrix 只执行平台和 Python 版本敏感测试。RC.3 的完整 R4 在一个冻结候选上执行三轮 22-case/48-turn 矩阵，共使用 9,092,076 token；机械门禁全部通过，两个严格语义缺口由版本所有者显式标记为 `WAIVED`。模型结果不代表生产力、业务效果或总体质量分数。
+CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job 执行完整语义/结构/静态追踪检查，focused compatibility matrix 只执行平台和 Python 版本敏感测试。RC.4 的 live R4 仍要求对冻结后的完整 catalog 做三次独立首试；在明确模型与 token 预算授权前保持 `NOT RUN`。模型结果不代表生产力、业务效果或总体质量分数。
 
 发版按变更面分为 R1 standard、R2 runtime、R3 artifact/security、R4 model-semantic。`flow-metrics` 只验证分支激活与负向边界，不衡量生产力或效果。具体边界、命令和 `NOT RUN` 规则见 [docs/releasing.md](docs/releasing.md)。
 
 ## 版本和发布状态
 
-- `v2.0.0-rc.3` 是当前发布的 transition-hardening RC，增加结构化路由纠错、transition/fork 观察契约、失败隔离、最终字节证据和仓库知识能力；发布包含明确记录的 R4 语义豁免。
+- `2.0.0-rc.4` 是当前源码候选，增加收敛、资源协调、测试系统完整性、静态追踪和双身份资格绑定；尚不是已发布 tag。
+- `v2.0.0-rc.3` 是最近已发布的 transition-hardening RC，也是 RC.4 的固定安装回滚标签；其发布包含明确记录的 R4 语义豁免。
 - `v2.0.0-rc.2` 是上一 activation-hardening RC，也是 RC.3 的可固定安装回滚标签。
 - `v2.0.0-rc.1` 是上一 RC，包含 Default-mode 需求确认、主动高级能力激活、Luna P0-P2、Codex 原生适配和 Flow Activation Coverage。
 - `v1.1.2` 是最后一个 1.x 稳定标签；1.1.3 只存在于未发布源码历史，2.0 不提供 1.x 兼容或迁移保证。
 - 源码、commit、push、tag、GitHub Release、Marketplace 安装和生产使用是不同状态；只有逐项执行和复核后才能声称完成。
 
-RC.3 的需求、设计、实施拆解、审计和当前资格边界位于 [docs/workstreams/dev-flow-2.0-rc.3](docs/workstreams/dev-flow-2.0-rc.3/)；2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)。历史版本见 [CHANGELOG.md](CHANGELOG.md)。
+RC.4 的需求、设计、实施拆解、审计和当前资格边界位于 [docs/workstreams/dev-flow-2.0-rc.4](docs/workstreams/dev-flow-2.0-rc.4/)；RC.3 的发布证据保留在 [docs/workstreams/dev-flow-2.0-rc.3](docs/workstreams/dev-flow-2.0-rc.3/)。2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)，历史版本见 [CHANGELOG.md](CHANGELOG.md)。

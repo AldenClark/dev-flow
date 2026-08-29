@@ -23,6 +23,9 @@ import sys
 import tempfile
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import candidate_identity  # noqa: E402
+
 try:
     import resource
 except ImportError:  # pragma: no cover - Windows compatibility
@@ -1049,7 +1052,13 @@ def command_output(command: list[str], label: str, cwd: Path | None = None) -> s
 
 
 def qualification_identity(
-    *, plugin_root: Path, catalog: Path, codex: str
+    *,
+    plugin_root: Path,
+    catalog: Path,
+    codex: str,
+    model: str,
+    reasoning_effort: str,
+    execution_policy: dict[str, Any],
 ) -> dict[str, Any]:
     codex_path = shutil.which(codex)
     if codex_path is None:
@@ -1057,8 +1066,19 @@ def qualification_identity(
     git_status = command_output(
         ["git", "status", "--porcelain=v1", "-z"], "candidate Git status", plugin_root
     )
+    executable_sha256 = file_sha256(Path(codex_path).resolve())
+    rc4_identities = candidate_identity.build_identities(
+        plugin_root,
+        runner=Path(__file__).resolve(),
+        catalog=catalog,
+        codex_executable_sha256=executable_sha256,
+        model=model,
+        reasoning_effort=reasoning_effort,
+        environment_policy=SHELL_ENVIRONMENT_POLICY,
+        execution_policy=execution_policy,
+    )
     return {
-        "schema_version": "flow.transition.qualification-identity.v1",
+        "schema_version": "flow.transition.qualification-identity.v2",
         "candidate_tree_sha256": candidate_source_sha256(plugin_root),
         "candidate_git_head": command_output(
             ["git", "rev-parse", "HEAD"], "candidate Git HEAD", plugin_root
@@ -1067,8 +1087,12 @@ def qualification_identity(
         "catalog_sha256": file_sha256(catalog),
         "runner_sha256": file_sha256(Path(__file__).resolve()),
         "codex_path_sha256": sha256_text(str(Path(codex_path).resolve())),
-        "codex_executable_sha256": file_sha256(Path(codex_path).resolve()),
+        "codex_executable_sha256": executable_sha256,
         "codex_version": command_output([codex_path, "--version"], "Codex version"),
+        "semantic_runtime_identity": rc4_identities["semantic_runtime"],
+        "qualification_execution_identity": rc4_identities[
+            "qualification_execution"
+        ],
     }
 
 
@@ -1559,7 +1583,19 @@ def main(argv: list[str] | None = None) -> int:
             raise TrialError("--output-dir must be absent or empty")
         args.output_dir.mkdir(parents=True, exist_ok=True)
         identity = qualification_identity(
-            plugin_root=plugin_root, catalog=args.catalog.resolve(), codex=args.codex
+            plugin_root=plugin_root,
+            catalog=args.catalog.resolve(),
+            codex=args.codex,
+            model=args.model,
+            reasoning_effort=args.reasoning_effort,
+            execution_policy={
+                "qualification_requested": args.qualification,
+                "case_ids": [case["id"] for case in selected],
+                "attempts": args.attempts,
+                "maximum_total_tokens": args.max_total_tokens,
+                "per_call_token_limit": args.per_call_token_limit,
+                "per_call_timeout_seconds": args.per_call_timeout_seconds,
+            },
         )
         (args.output_dir / "qualification-identity.json").write_text(
             json.dumps(identity, indent=2, sort_keys=True) + "\n", encoding="utf-8"
@@ -1587,7 +1623,19 @@ def main(argv: list[str] | None = None) -> int:
                     / f"evidence-in-progress-{attempt:03d}.json",
                 )
                 if qualification_identity(
-                    plugin_root=plugin_root, catalog=args.catalog.resolve(), codex=args.codex
+                    plugin_root=plugin_root,
+                    catalog=args.catalog.resolve(),
+                    codex=args.codex,
+                    model=args.model,
+                    reasoning_effort=args.reasoning_effort,
+                    execution_policy={
+                        "qualification_requested": args.qualification,
+                        "case_ids": [case["id"] for case in selected],
+                        "attempts": args.attempts,
+                        "maximum_total_tokens": args.max_total_tokens,
+                        "per_call_token_limit": args.per_call_token_limit,
+                        "per_call_timeout_seconds": args.per_call_timeout_seconds,
+                    },
                 ) != identity:
                     raise TrialError("qualification identity changed during execution")
             except (OSError, TrialError) as exc:

@@ -314,6 +314,30 @@
       "owner": "systematic-debugging"
     },
     {
+      "id": "test-system-engineering.analysis",
+      "owner": "test-system-engineering"
+    },
+    {
+      "id": "test-system-engineering.artifact",
+      "owner": "test-system-engineering"
+    },
+    {
+      "id": "test-system-engineering.decision",
+      "owner": "test-system-engineering"
+    },
+    {
+      "id": "test-system-engineering.interaction",
+      "owner": "test-system-engineering"
+    },
+    {
+      "id": "test-system-engineering.limitation",
+      "owner": "test-system-engineering"
+    },
+    {
+      "id": "test-system-engineering.test",
+      "owner": "test-system-engineering"
+    },
+    {
       "id": "verification.analysis",
       "owner": "verification"
     },

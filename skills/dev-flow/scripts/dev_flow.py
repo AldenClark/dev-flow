@@ -26,6 +26,9 @@ import engineering_context
 import flow_metrics
 import knowledge_system
 import methodology_system
+import resource_coordination
+import route_incremental
+import workstream_contract
 from dependency_contracts import (
     action_reference_scan,
     approval_binds_file,
@@ -115,6 +118,7 @@ ROUTE_NEEDS = {
     "diagnosis",
     "verification",
     "review",
+    "test-system",
     "delivery",
 }
 ROUTE_NEED_ALIASES = {
@@ -123,6 +127,7 @@ ROUTE_NEED_ALIASES = {
     "dependency-decisions": "dependency",
     "systematic-debugging": "diagnosis",
     "change-review": "review",
+    "test-system-engineering": "test-system",
     "delivery-readiness": "delivery",
 }
 COLLABORATION_PROFILES = {"execute", "checkpointed", "co-design"}
@@ -969,6 +974,8 @@ def corrected_route_command(
         command.extend(("--knowledge-impact", impact))
     for overlay in args.overlay:
         command.extend(("--overlay", overlay))
+    if args.previous_route is not None:
+        command.extend(("--previous-route", str(args.previous_route)))
     if args.compact:
         command.append("--compact")
     return subprocess.list2cmdline(command) if os.name == "nt" else shlex.join(command)
@@ -7232,6 +7239,16 @@ def route_task(args: argparse.Namespace) -> int:
         add("requirements-design", "material or unresolved product, data, security, or compatibility semantics")
     if intent == "diagnose" or args.task_type == "bugfix" or "diagnosis" in needs or risks & DIAGNOSIS_ROUTING_RISKS:
         add("systematic-debugging", "failure reproduction and causal diagnosis")
+    effective_skill_names = {
+        value.rsplit(":", 1)[-1] for value in args.effective_skill
+    }
+    if "test-system" in needs or (
+        "weak-tests" in risks and "test-system-engineering" in effective_skill_names
+    ):
+        add(
+            "test-system-engineering",
+            "explicit harness-integrity need or observed weak-test mechanism",
+        )
     if (
         "architecture" in needs
         or args.task_type in {"large-feature", "large-refactor", "migration", "performance"}
@@ -7347,6 +7364,32 @@ def route_task(args: argparse.Namespace) -> int:
                 "legacy-packets": "unsupported 1.x internals; never created, loaded, or activated by 2.0 routing",
             },
         }
+    try:
+        route_basis = route_incremental.build_basis(
+            args,
+            {
+                "intent": intent,
+                "intent_source": intent_source,
+                "mutation_intent": mutation_intent,
+                "work_mode": work_mode,
+                "understanding": understanding,
+                "needs": needs,
+                "risks": risks,
+                "knowledge": knowledge,
+                "capability_activation": capability_activation,
+            },
+        )
+    except route_incremental.RouteBasisError as exc:
+        return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+    payload["route_basis"] = route_basis
+    recalibration: dict[str, Any] | None = None
+    if args.previous_route is not None:
+        try:
+            previous = route_incremental.load_previous(args.previous_route)
+        except route_incremental.RouteBasisError:
+            previous = {"compatible": False, "reason": "invalid-prior-route"}
+        recalibration = route_incremental.compare(route_basis, previous)
+        payload["recalibration"] = recalibration
     if args.compact:
         payload = {
             "status": payload["status"],
@@ -7361,8 +7404,88 @@ def route_task(args: argparse.Namespace) -> int:
             "method": capability_activation["method"],
             "independent_review": capability_activation["independent_review"],
             "knowledge": payload["knowledge"]["disposition"],
+            "route_basis": route_basis,
         }
+        if recalibration is not None:
+            payload["recalibration"] = recalibration
     return emit(payload)
+
+
+def check_workstream_command(args: argparse.Namespace) -> int:
+    root = args.root.resolve()
+    target = args.path if args.path.is_absolute() else root / args.path
+    try:
+        target = target.resolve()
+        if not target.is_relative_to(root):
+            raise workstream_contract.WorkstreamContractError(
+                "workstream path escaped the repository root"
+            )
+        payload, code = workstream_contract.check(
+            root,
+            target,
+            check_worktree=args.check_worktree,
+            strict=args.strict,
+        )
+    except (OSError, workstream_contract.WorkstreamContractError) as exc:
+        return emit(
+            {
+                "status": "invalid",
+                "claim_limit": "structural-consistency-only",
+                "findings": [
+                    {"code": "workstream-boundary", "line": 1, "message": str(exc)}
+                ],
+            },
+            2,
+        )
+    return emit(payload, code)
+
+
+def resource_lease_command(args: argparse.Namespace) -> int:
+    root = args.runtime_root or resource_coordination.default_runtime_root()
+    try:
+        if args.lease_action == "acquire":
+            payload = resource_coordination.acquire(
+                root, args.kind, args.resource, args.ttl_seconds, args.owner
+            )
+        elif args.lease_action == "inspect":
+            payload = resource_coordination.inspect(root, args.kind, args.resource)
+        elif args.lease_action == "renew":
+            payload = resource_coordination.renew(
+                root, args.kind, args.resource, args.token, args.ttl_seconds
+            )
+        else:
+            payload = resource_coordination.release(
+                root, args.kind, args.resource, args.token
+            )
+    except resource_coordination.ResourceInputError as exc:
+        return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+    except resource_coordination.ResourceCoordinationError as exc:
+        return emit({"status": "unavailable", "errors": [str(exc)]}, 2)
+    successful_statuses = {
+        "acquire": {"acquired", "expired-recovered"},
+        "inspect": {"available", "leased", "expired"},
+        "renew": {"renewed"},
+        "release": {"released", "available"},
+    }
+    return emit(
+        payload,
+        0 if payload.get("status") in successful_statuses[args.lease_action] else 2,
+    )
+
+
+def resource_preflight_command(args: argparse.Namespace) -> int:
+    try:
+        payload = resource_coordination.preflight(
+            args.path,
+            args.estimated_growth_bytes,
+            args.reserve_bytes,
+            args.require_writable,
+        )
+    except resource_coordination.ResourceInputError as exc:
+        return emit({"status": "invalid", "errors": [str(exc)]}, 2)
+    except resource_coordination.ResourceCoordinationError as exc:
+        return emit({"status": "unavailable", "errors": [str(exc)]}, 2)
+    return emit(payload, 0 if payload["status"] in {"observed", "passed"} else 2)
 
 
 def route_agent_command(args: argparse.Namespace) -> int:
@@ -8157,11 +8280,58 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
     )
     route.add_argument(
+        "--previous-route",
+        type=Path,
+        help="Caller-owned bounded prior RC.4 route JSON for stateless recalibration",
+    )
+    route.add_argument(
         "--compact",
         action="store_true",
         help="Emit the bounded runtime decisions without the explanatory route envelope",
     )
     route.set_defaults(func=route_task)
+
+    workstream_check = sub.add_parser(
+        "check-workstream",
+        help="Check an opted-in managed workstream for structural consistency",
+    )
+    workstream_check.add_argument("--root", type=Path, required=True)
+    workstream_check.add_argument("--path", type=Path, required=True)
+    workstream_check.add_argument("--check-worktree", action="store_true")
+    workstream_check.add_argument("--strict", action="store_true")
+    workstream_check.set_defaults(func=check_workstream_command)
+
+    lease = sub.add_parser(
+        "resource-lease",
+        help="Coordinate an allowlisted single-host resource among cooperating tasks",
+    )
+    lease.add_argument("--runtime-root", type=Path)
+    lease_sub = lease.add_subparsers(dest="lease_action", required=True)
+    for action in ("acquire", "inspect", "renew", "release"):
+        lease_action = lease_sub.add_parser(action)
+        lease_action.add_argument(
+            "--kind",
+            required=True,
+            help=f"allowlisted resource kind: {', '.join(sorted(resource_coordination.KINDS))}",
+        )
+        lease_action.add_argument("--resource", required=True)
+        if action in {"acquire", "renew"}:
+            lease_action.add_argument("--ttl-seconds", type=int, required=True)
+        if action == "acquire":
+            lease_action.add_argument("--owner")
+        if action in {"renew", "release"}:
+            lease_action.add_argument("--token", required=True)
+        lease_action.set_defaults(func=resource_lease_command)
+
+    resource_preflight = sub.add_parser(
+        "resource-preflight",
+        help="Measure capacity and optional writability without choosing cleanup policy",
+    )
+    resource_preflight.add_argument("--path", type=Path, required=True)
+    resource_preflight.add_argument("--estimated-growth-bytes", type=int)
+    resource_preflight.add_argument("--reserve-bytes", type=int)
+    resource_preflight.add_argument("--require-writable", action="store_true")
+    resource_preflight.set_defaults(func=resource_preflight_command)
 
     agent_route = sub.add_parser(
         "route-agent",

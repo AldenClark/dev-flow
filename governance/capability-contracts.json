@@ -101,6 +101,17 @@
       "orchestrated_conditions": ["dependency-need", "dependency-risk", "dependency-change"]
     },
     {
+      "skill": "test-system-engineering",
+      "direct_trigger": "Change or diagnose test discovery, selection, harness wiring, oracle sensitivity, fixture isolation, runner interpretation, or false-green behavior.",
+      "negative_trigger": "Ordinary feature tests and verification with no observed harness-integrity mechanism.",
+      "primary_outputs": ["test-system integrity diagnosis", "harness validity evidence and verification handoff"],
+      "owner": "test discovery, selection, harness wiring, fixture isolation, runner interpretation, oracle sensitivity, negative controls, flake discrimination, and test-resource cleanup",
+      "consumes": ["suspect test result or harness change", "repository-native runner contract", "verification claim boundary"],
+      "stops": ["product semantics mistaken for harness semantics", "unsafe negative control", "unresolved shared-resource isolation"],
+      "handoff_to": ["verification", "systematic-debugging", "dev-flow"],
+      "orchestrated_conditions": ["explicit-test-system-need", "weak-test-mechanism"]
+    },
+    {
       "skill": "verification",
       "direct_trigger": "Plan or execute tests and fresh evidence.",
       "negative_trigger": "No product or repository claim requires verification.",

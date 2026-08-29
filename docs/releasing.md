@@ -2,7 +2,13 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
-## 2.0.0-rc.3 transition-hardening release
+## 2.0.0-rc.4 convergence-and-operations candidate
+
+The source manifest identifies the worktree candidate as `2.0.0-rc.4`. Source implementation adds stateless route comparison, managed-workstream checking, host-local resource coordination, test-system integrity ownership, dogfood v2, and separate semantic-runtime/qualification-execution identities. Publication remains R4 because route and Skill behavior are model-facing.
+
+RC.4 source completion requires deterministic and static traceability gates on final relevant bytes, the supported compatibility matrix for resource primitives, a clean-context review, three complete-catalog independent first attempts under a separately authorized model/token budget, exact-commit artifact/install evidence, and explicit delivery authority. A working-tree implementation or local PASS does not satisfy those later gates. `v2.0.0-rc.3` remains the published rollback installation.
+
+## 2.0.0-rc.3 transition-hardening release (historical)
 
 The source manifest identifies the current candidate as `2.0.0-rc.3`. It changes deterministic routing and model-facing transition/failure/freshness guidance, so publication is R4 even when local source gates pass. The opt-in runner in `evals/run_transition_trials.py` exercises isolated candidate loading plus resume/fork lineage, defaults to a non-spending plan, and never grades its own responses. Actual execution requires separate model-budget authorization; bounded first-attempt evidence is assessed afterward through a manual observation manifest and the public transition lane.
 
@@ -77,14 +83,14 @@ For an R3 change, two local builds can establish deterministic behavior before h
 ```bash
 git rev-parse HEAD
 python3 tools/build_release.py build \
-  --root . --output dist-a --version 2.0.0-rc.3 --commit FULL_COMMIT_SHA
+  --root . --output dist-a --version 2.0.0-rc.4 --commit FULL_COMMIT_SHA
 python3 tools/build_release.py build \
-  --root . --output dist-b --version 2.0.0-rc.3 --commit FULL_COMMIT_SHA
-cmp dist-a/dev-flow-2.0.0-rc.3.tar.gz dist-b/dev-flow-2.0.0-rc.3.tar.gz
+  --root . --output dist-b --version 2.0.0-rc.4 --commit FULL_COMMIT_SHA
+cmp dist-a/dev-flow-2.0.0-rc.4.tar.gz dist-b/dev-flow-2.0.0-rc.4.tar.gz
 cmp dist-a/release-manifest.json dist-b/release-manifest.json
 cmp dist-a/SHA256SUMS dist-b/SHA256SUMS
 python3 tools/build_release.py verify \
-  --artifact-dir dist-a --expected-version 2.0.0-rc.3 --expected-commit FULL_COMMIT_SHA
+  --artifact-dir dist-a --expected-version 2.0.0-rc.4 --expected-commit FULL_COMMIT_SHA
 ```
 
 Determinism is asserted within the pinned environment. Promotion reuses attested bytes instead of rebuilding on another zlib/toolchain version.
@@ -95,17 +101,17 @@ After applicable exact-SHA CI is green:
 
 ```bash
 gh workflow run release-candidate.yml \
-  --ref main -f version=2.0.0-rc.3 -f expected_sha=FULL_COMMIT_SHA
+  --ref main -f version=2.0.0-rc.4 -f expected_sha=FULL_COMMIT_SHA
 ```
 
 The workflow has `contents: read`, `id-token: write`, and `attestations: write`. It has no release-publication permission. After download:
 
 ```bash
 python3 tools/build_release.py verify \
-  --artifact-dir dist --expected-version 2.0.0-rc.3 --expected-commit FULL_COMMIT_SHA
-gh attestation verify dist/dev-flow-2.0.0-rc.3.tar.gz \
+  --artifact-dir dist --expected-version 2.0.0-rc.4 --expected-commit FULL_COMMIT_SHA
+gh attestation verify dist/dev-flow-2.0.0-rc.4.tar.gz \
   --repo AldenClark/dev-flow
-gh attestation verify dist/dev-flow-2.0.0-rc.3.tar.gz \
+gh attestation verify dist/dev-flow-2.0.0-rc.4.tar.gz \
   --repo AldenClark/dev-flow \
   --predicate-type https://spdx.dev/Document/v2.3
 ```
@@ -116,7 +122,7 @@ The SBOM must be SPDX 2.3, name `dev-flow`, contain files, identify the root pac
 
 Use [evaluation-suite.md](evaluation-suite.md). Deterministic Flow Activation Coverage runs first. For a material R4 release/admission decision, predeclare each affected category, use at least three distinct natural-language/repository cases per category, and preserve at least three independent first attempts per case. Report safety/authority, expected versus observed activation, variability, missing or unexpected branches, prerequisites, repair burden, cost, and evidence limits separately. Do not emit an effect, productivity, or composite quality score.
 
-The RC.3 catalog encodes the nine affected categories and minimum coverage directly. Confirm the non-spending qualification plan before authorizing live execution:
+The RC.4 catalog encodes the affected categories and minimum coverage directly. Confirm the non-spending qualification plan before authorizing live execution:
 
 ```bash
 python3 evals/run_transition_trials.py --qualification --attempts 3

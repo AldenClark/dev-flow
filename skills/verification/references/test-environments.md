@@ -8,6 +8,17 @@ Use this reference for shared, stateful, expensive, physical, credentialed, or e
 - Serialize a resource when isolation is not proven, especially physical devices, fixed ports, shared databases, signing/notarization, release credentials, and production-like external systems.
 - Resolve who owns teardown before starting a long-lived or shared resource.
 
+When Dev Flow is active and a cooperating same-user task may contend for an allowlisted host-local resource, use its volatile lease command before launch:
+
+```text
+python3 <dev-flow-skill-dir>/scripts/dev-flow.py resource-lease acquire \
+  --kind <kind> --resource <opaque-resource-id> --ttl-seconds <seconds>
+```
+
+Keep the returned token only in active caller context; use it for bounded renew/release. A conflict means wait, isolate, or serialize. `unavailable` means the root, ownership, permissions, local-filesystem atomicity, or state could not be established and no lease claim exists. A lease coordinates cooperating processes only: it does not authorize process termination, device shutdown, port eviction, cache deletion, or other-task cleanup.
+
+Before high-growth work, `resource-preflight --path <target>` may measure disk and optional writability. It reports only observations unless both caller-supplied estimated growth and reserve are present. It never invents a capacity threshold or grants cleanup authority.
+
 ## Controlled run
 
 1. Check the relevant configuration and prerequisites.
