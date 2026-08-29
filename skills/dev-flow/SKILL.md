@@ -24,7 +24,7 @@ For narrow Git history, authorship, path, or file-fact lookups, use `repo-contex
 7. Identify overlays from repository facts and the request: security/privacy, migration/data, external system, release/delivery, irreversible, or UI/product.
 8. Run the ephemeral capability-activation pass from current request/repository evidence and the effective Codex surface. Load only specialists that own real decisions or evidence.
 
-A named reference repository or source needs explicit scope and repository confirmation to be authoritative. Inspect admitted files before asking for missing source/location. Read target/reference; state comparison, differences, authority. Analogy sets no contract; confirmed authority applies only to the confirmed edge. Choose everything else from target truth. If evidence lacks, abstain with the comparison and limitation; never infer mutation scope.
+A named reference repository or source requires explicit scope and repository confirmation for authority; confirmed authority applies only to the confirmed edge. Choose everything else from target truth. If evidence lacks, abstain with the comparison and limitation; never infer mutation scope.
 
 After repository discovery and before technical design or implementation, one compact `route-task` is mandatory for explicit Dev Flow, managed/cross-boundary work, persistent data/deletion/migration/concurrency/external systems, complete audit/red-blue/delivery certification, or assumption-breaking failure. Do not replace this inspectable activation step with informal reasoning. Run the route as a standalone command; continue only when its JSON says `"status": "routed"`; after an invalid result, use its exact `corrected_command` at most once.
 

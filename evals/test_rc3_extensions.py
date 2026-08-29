@@ -23,6 +23,7 @@ ORCHESTRATION = (
 )
 ADAPTERS = ROOT / "skills" / "dev-flow" / "references" / "codex-native-adapters.md"
 DEV_FLOW_SKILL = ROOT / "skills" / "dev-flow" / "SKILL.md"
+REPO_CONTEXT_SKILL = ROOT / "skills" / "repo-context" / "SKILL.md"
 METHOD_PAIRS = ROOT / "evals" / "method-marginal-utility-cases.json"
 METHOD_POOL = ROOT / "governance" / "methodology-pool.json"
 
@@ -239,12 +240,20 @@ class ScopeAndContinuationContracts(unittest.TestCase):
         for phrase in (
             "named reference repository or source",
             "explicit scope and repository confirmation",
-            "Inspect admitted files before asking for missing source/location",
             "confirmed authority applies only to the confirmed edge",
             "Choose everything else from target truth",
             "abstain with the comparison and limitation",
         ):
             self.assertIn(phrase, active)
+
+        context_owner = REPO_CONTEXT_SKILL.read_text(encoding="utf-8")
+        for phrase in (
+            "Named target/reference comparison is atomic",
+            "inspect both before asking",
+            "state facts from each, difference, authority",
+            "Analogy is non-authoritative",
+        ):
+            self.assertIn(phrase, context_owner)
 
         catalog = json.loads(TRANSITIONS.read_text(encoding="utf-8"))
         case = next(

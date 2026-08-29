@@ -71,8 +71,8 @@
     {
       "id": "RC4-WAIVERS",
       "decisions": ["D13"],
-      "implementation": ["skills/dev-flow/references/multi-agent-v2-orchestration.md", "skills/dev-flow/references/codex-native-adapters.md", "evals/flow-transition-semantic-cases.json"],
-      "tests": ["evals/test_rc3_extensions.py::test_task_history_and_process_adapters_have_negative_boundaries", "evals/flow-transition-semantic-cases.json::DELEGATION-EXPANSION-REQUIRES-RENEWED-AUTHORITY", "evals/flow-transition-semantic-cases.json::CONTEXT-REFERENCE-REPOSITORY-BOUNDARY"]
+      "implementation": ["skills/dev-flow/references/multi-agent-v2-orchestration.md", "skills/dev-flow/references/codex-native-adapters.md", "skills/repo-context/SKILL.md", "evals/flow-transition-semantic-cases.json"],
+      "tests": ["evals/test_rc3_extensions.py::test_task_history_and_process_adapters_have_negative_boundaries", "evals/test_rc3_extensions.py::ScopeAndContinuationContracts.test_reference_comparison_is_active_and_decision_useful", "evals/flow-transition-semantic-cases.json::DELEGATION-EXPANSION-REQUIRES-RENEWED-AUTHORITY", "evals/flow-transition-semantic-cases.json::CONTEXT-REFERENCE-REPOSITORY-BOUNDARY"]
     },
     {
       "id": "RC4-SCAN",
