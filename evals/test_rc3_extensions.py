@@ -181,8 +181,39 @@ class ScopeAndContinuationContracts(unittest.TestCase):
             "successful dispatch returns a non-empty child/receiver identity",
             "Never call `wait` or poll unless",
             "never attribute a result to a child",
+            "Child proposals grant no scope; exact renewed authority is required",
+            "Root reconciliation must state",
+            "even with clean diff",
         ):
             self.assertIn(phrase, active)
+
+        catalog = json.loads(TRANSITIONS.read_text(encoding="utf-8"))
+        case = next(
+            item
+            for item in catalog["cases"]
+            if item["id"] == "DELEGATION-MONOTONIC-NARROWING"
+        )
+        reconciliation = case["turns"][1]["prompt"]
+        self.assertIn("from VALUE = 2 to VALUE = 1", reconciliation)
+        self.assertIn("did not apply that out-of-scope change", reconciliation)
+        self.assertIn("still-useful proposal", reconciliation)
+        self.assertIn("out-of-scope-finding-deferred", case["turns"][1]["expected"])
+        self.assertNotIn("bounded-expansion-request", case["turns"][1]["expected"])
+
+        renewed = next(
+            item
+            for item in catalog["cases"]
+            if item["id"] == "DELEGATION-EXPANSION-REQUIRES-RENEWED-AUTHORITY"
+        )
+        required_expansion = renewed["turns"][0]["prompt"]
+        self.assertIn("cannot meet its required interface compatibility", required_expansion)
+        self.assertIn("exact out-of-scope edge is a necessary enabler", required_expansion)
+        self.assertIn("No user or owner has authorized", required_expansion)
+        self.assertIn(
+            "bounded-expansion-request-preserved",
+            renewed["turns"][0]["expected"],
+        )
+        self.assertIn("renewed-authority-required", renewed["turns"][0]["expected"])
 
     def test_task_history_and_process_adapters_have_negative_boundaries(self) -> None:
         guidance = ADAPTERS.read_text(encoding="utf-8")
@@ -208,6 +239,7 @@ class ScopeAndContinuationContracts(unittest.TestCase):
         for phrase in (
             "named reference repository or source",
             "explicit scope and repository confirmation",
+            "Inspect admitted files before asking for missing source/location",
             "confirmed authority applies only to the confirmed edge",
             "Choose everything else from target truth",
             "abstain with the comparison and limitation",

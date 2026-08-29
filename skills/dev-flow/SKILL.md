@@ -13,7 +13,7 @@ For narrow Git history, authorship, path, or file-fact lookups, use `repo-contex
 
 ## Start
 
-1. Confirm action and authority; implementation does not imply commit, push, publish, deploy, migrate, install, or external communication.
+1. Confirm authority: implementation does not imply commit, push, publish, deploy/migrate/install/external communication. Child proposals grant no scope; exact renewed authority is required.
 2. Resolve Git roots, instructions, current behavior, user changes, and affected paths. Use `repo-context` when unclear.
 3. Identify the primary intent: research, diagnosis, design, change, review, or delivery. Research gathers facts without defect judgment; review judges a target. An explicit audit or review stays review intent even for a plan or design. Intent selects owners, not a lifecycle tier.
 4. Calibrate business meaning, uncertainty, boundaries, consequences, native evidence, and durable knowledge impact without an artifact.
@@ -24,7 +24,7 @@ For narrow Git history, authorship, path, or file-fact lookups, use `repo-contex
 7. Identify overlays from repository facts and the request: security/privacy, migration/data, external system, release/delivery, irreversible, or UI/product.
 8. Run the ephemeral capability-activation pass from current request/repository evidence and the effective Codex surface. Load only specialists that own real decisions or evidence.
 
-A named reference repository or source is non-authoritative unless explicit scope and repository confirmation establishes a shared edge. Read it, compare target facts, and state differences/authority. Unconfirmed analogy cannot impose a contract; confirmed authority applies only to the confirmed edge. Choose everything else from target truth. If evidence lacks, abstain with the comparison and limitation; never omit it or infer mutation scope.
+A named reference repository or source needs explicit scope and repository confirmation to be authoritative. Inspect admitted files before asking for missing source/location. Read target/reference; state comparison, differences, authority. Analogy sets no contract; confirmed authority applies only to the confirmed edge. Choose everything else from target truth. If evidence lacks, abstain with the comparison and limitation; never infer mutation scope.
 
 After repository discovery and before technical design or implementation, one compact `route-task` is mandatory for explicit Dev Flow, managed/cross-boundary work, persistent data/deletion/migration/concurrency/external systems, complete audit/red-blue/delivery certification, or assumption-breaking failure. Do not replace this inspectable activation step with informal reasoning. Run the route as a standalone command; continue only when its JSON says `"status": "routed"`; after an invalid result, use its exact `corrected_command` at most once.
 
@@ -93,7 +93,9 @@ An overlay adds only its relevant controls. It does not force managed mode, a pa
 
 ## Multi-agent work
 
-Single-agent execution is the baseline. Delegate for credible isolation or independent-context value, and run `route-agent` before dispatch. Brief outcome, context, owned/read-only scope, checks/resources, stop condition, and return. Root reconciles the diff and affected checks. Do not require packet IDs, fingerprints, AC/SC/VO, reports, leases, or lifecycle transitions unless the repository does.
+Single-agent baseline. Delegate for isolation/independent context; run `route-agent`. Brief outcome/context, owned/read-only scope, checks/resources, stop/return. No packets, fingerprints, AC/SC/VO, reports/leases/states unless repository-native.
+
+Root reconciliation must state diff, leave out-of-scope work unapplied, report/defer it—even with clean diff.
 
 Delegation exists only after a successful dispatch returns a non-empty child/receiver identity (a non-empty reviewer/receiver identity for review). Never call `wait` or poll unless that child was actually dispatched. An empty receiver list, empty agent state, self-work, or reread proves no delegation: report it unavailable or downgraded and never attribute a result to a child.
 
