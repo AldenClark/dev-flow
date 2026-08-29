@@ -32,11 +32,11 @@
 
 ## Current slice
 
-S8 is blocked by the preserved first hosted failure: exact candidate `e808c1a697ab04617d722e5d8ed8864237cc89a1` passed semantic Ubuntu 3.14 and compatibility on Ubuntu 3.11, macOS 3.11, and Windows 3.11/3.14, but macOS 15/Python 3.14 failed because the release CLI subprocess produced no parseable stdout. Diagnostic candidate `d90c85a` exposed a second integration defect: change-scope omitted `evals/test_resource_coordination.py`, so its matrix was skipped. A red-first scope repair now binds that platform-sensitive test to compatibility execution. The theoretical-validation diff also lacks a new clean-context review. Live three-attempt R4 model evidence and final hosted artifacts have not run.
+S8 remains blocked by contradictory hosted evidence. Exact candidate `e808c1a697ab04617d722e5d8ed8864237cc89a1` passed semantic Ubuntu 3.14 and four compatibility cells, but macOS 15/Python 3.14 failed because the release CLI subprocess produced no parseable stdout. After diagnostic assertion `d90c85a` exposed a compatibility-scope omission, red-first repair candidate `75150a3800626039d9d3807963fdb64f13be98aa` ran the complete matrix: semantic Ubuntu 3.14 and all five compatibility cells passed. The product lease implementation did not change between the failed and passing macOS 15/Python 3.14 observations, so that cell is classified `flaky`, not repaired or stably passed. The theoretical-validation diff also lacks a new clean-context review. Live three-attempt R4 model evidence and final hosted artifacts have not run.
 
 ## Next
 
-Push the change-scope repair as a new candidate and use its automatically triggered compatibility matrix to obtain the missing macOS 15/Python 3.14 release-subprocess return code/stderr. Do not manually retry either unchanged SHA. Do not execute model qualification without a separately explicit model/token budget, and do not claim hosted artifact evidence before all prerequisite gates pass.
+Diagnose the macOS 15/Python 3.14 subprocess flake with a bounded, hypothesis-bearing change or record an explicit owner waiver; repeated unchanged-SHA runs cannot convert the contradictory evidence into a stable pass. Then obtain a clean-context review of the frozen bytes and separately authorize the three-attempt model/token budget before S9. Do not dispatch hosted artifacts, tag, publish, or install while these prerequisite gates remain open.
 
 ## Hard conditions
 
@@ -45,7 +45,7 @@ Push the change-scope repair as a new candidate and use its automatically trigge
 | HC1 | Technology-neutral RC.4 requirement baseline confirmed | implementation | passed | User confirmed on 2026-08-28 |
 | HC2 | Implementation-ready architecture and slice plan passed traceability, feasibility, counterexample, and internal-consistency review | implementation | passed | Same-context pre-implementation validation completed 2026-08-29 in `audit.md`; `common-mode-risk` retained |
 | HC3 | RC.3 public compatibility and current context budgets frozen before source behavior changes | implementation | passed | Baseline captured; current measured budgets are 2,634/2,660 description characters and 17,999/18,000 ordinary static bytes |
-| HC4 | Resource lease/preflight behavior passes the supported Ubuntu/macOS/Windows matrix or unsupported cells remain release-blocking | implementation | failed | Candidate `e808c1a` CI passed five observed cells but macOS 15/Python 3.14 failed; first failure preserved, diagnostic stderr/return-code evidence absent |
+| HC4 | Resource lease/preflight behavior passes the supported Ubuntu/macOS/Windows matrix or unsupported cells remain release-blocking | implementation | flaky | `e808c1a` failed macOS 15/Python 3.14; complete-matrix repair candidate `75150a3` passed all cells without a product lease change, so the contradictory observation remains release-blocking |
 | HC5 | RC.3 renewed-authority and reference-comparison waivers closed or explicitly re-waived | qualification | open | S7/S9 |
 | HC6 | Independent clean-context review completed against frozen candidate | qualification | blocked | Prior implementation review closed four findings, but the later theoretical-validation diff has only same-context review; new delegation authority is absent and `common-mode-risk` remains |
 | HC7 | Three complete-catalog model-semantic attempts completed within separately authorized budget | qualification | not-run | Requires model/token authority at S9 |
@@ -63,13 +63,13 @@ None.
 - Current task writes: the accumulated S0-S8 prefixes declared in `implementation.md`; S9 is evidence-only unless a reviewed repair reopens S8.
 - User-owned pre-existing changes observed at planning start: none.
 - Protected current paths: all released source, RC.3 workstream evidence, tags, and external installations.
-- No staging, commit, push, tag, publication, installation, external mutation, or model execution is authorized. The confirmed pre-implementation quality gate authorizes one read-only clean-context review of the frozen candidate.
+- User authorized starting the release process on 2026-08-29; candidate staging, commits, pushes, and hosted CI have occurred. Tagging, publication, installation, unrelated external mutation, and model execution remain unauthorized. A new independent frozen-byte review still needs explicit delegation authority.
 
 ## Evidence limits
 
 - Independent implementation-byte review passed after one repair/recheck cycle; the later theoretical-validation diff has only same-context review and does not satisfy frozen-candidate independence.
 - RC.4 source behavior exists and local deterministic evidence is being finalized; implementation completion is not release qualification.
-- No model-semantic, hosted cross-platform lease, live shared-resource, artifact, install, or delivery evidence has run; independent current-byte review has passed as recorded above.
+- Hosted semantic and complete cross-platform lease evidence has run, but macOS 15/Python 3.14 is contradictory across candidates with unchanged product logic and therefore `flaky`. No model-semantic, live shared-resource, hosted artifact, publication, or install evidence has run; the prior independent review does not cover the final theoretical-validation bytes.
 - Static repository search may miss external or runtime-only consumers.
 - The installed Codex CLI no longer exposes the historical `codex plugin check` subcommand; manifest, inventory, isolated lifecycle, release-artifact, and suite validators pass as the bounded fallback, while the removed CLI surface is `NOT RUN` rather than inferred.
 - Stable 2.0 soak remains future separately authorized work after RC.4 release.
