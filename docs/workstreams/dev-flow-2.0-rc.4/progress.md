@@ -32,11 +32,11 @@
 
 ## Current slice
 
-S8 is blocked at two release-evidence boundaries: repository-local RC.4 behavior and local verification are complete, but the configured Ubuntu/macOS/Windows compatibility matrix has not executed on these candidate bytes, and the theoretical-validation diff has not received a new clean-context review. Live three-attempt R4 model evidence and exact final-commit artifact/install evidence have not run.
+S8 is blocked by the preserved first hosted failure: exact candidate `e808c1a697ab04617d722e5d8ed8864237cc89a1` passed semantic Ubuntu 3.14 and compatibility on Ubuntu 3.11, macOS 3.11, and Windows 3.11/3.14, but macOS 15/Python 3.14 failed because the release CLI subprocess produced no parseable stdout. The original test did not expose its return code/stderr, so a diagnostic-only oracle repair is required before causal product judgment. The theoretical-validation diff also lacks a new clean-context review. Live three-attempt R4 model evidence and final hosted artifacts have not run.
 
 ## Next
 
-Hosted compatibility remains `BLOCKED` without an authorized commit/push or equivalent supported runners. Do not execute model qualification without a separately explicit model/token budget, and do not claim exact-commit artifact evidence before those environments/actions actually run.
+Preserve the macOS 15/Python 3.14 failure and make one diagnostic-only oracle repair that reports the release subprocess return code/stderr; push a new candidate and rerun the invalidated hosted compatibility lane without manually retrying the unchanged SHA. Do not execute model qualification without a separately explicit model/token budget, and do not claim hosted artifact evidence before all prerequisite gates pass.
 
 ## Hard conditions
 
@@ -45,7 +45,7 @@ Hosted compatibility remains `BLOCKED` without an authorized commit/push or equi
 | HC1 | Technology-neutral RC.4 requirement baseline confirmed | implementation | passed | User confirmed on 2026-08-28 |
 | HC2 | Implementation-ready architecture and slice plan passed traceability, feasibility, counterexample, and internal-consistency review | implementation | passed | Same-context pre-implementation validation completed 2026-08-29 in `audit.md`; `common-mode-risk` retained |
 | HC3 | RC.3 public compatibility and current context budgets frozen before source behavior changes | implementation | passed | Baseline captured; current measured budgets are 2,634/2,660 description characters and 17,999/18,000 ordinary static bytes |
-| HC4 | Resource lease/preflight behavior passes the supported Ubuntu/macOS/Windows matrix or unsupported cells remain release-blocking | implementation | blocked | CI matrix is configured, but these uncommitted candidate bytes have not run on hosted Ubuntu/Windows; no commit/push authority |
+| HC4 | Resource lease/preflight behavior passes the supported Ubuntu/macOS/Windows matrix or unsupported cells remain release-blocking | implementation | failed | Candidate `e808c1a` CI passed five observed cells but macOS 15/Python 3.14 failed; first failure preserved, diagnostic stderr/return-code evidence absent |
 | HC5 | RC.3 renewed-authority and reference-comparison waivers closed or explicitly re-waived | qualification | open | S7/S9 |
 | HC6 | Independent clean-context review completed against frozen candidate | qualification | blocked | Prior implementation review closed four findings, but the later theoretical-validation diff has only same-context review; new delegation authority is absent and `common-mode-risk` remains |
 | HC7 | Three complete-catalog model-semantic attempts completed within separately authorized budget | qualification | not-run | Requires model/token authority at S9 |

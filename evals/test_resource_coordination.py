@@ -73,6 +73,11 @@ class ResourceLeaseTests(unittest.TestCase):
                 text=True,
                 check=False,
             )
+            self.assertEqual(
+                released.returncode,
+                0,
+                f"release failed with return code {released.returncode}: {released.stderr or released.stdout}",
+            )
             self.assertEqual(json.loads(released.stdout)["status"], "released")
 
     def test_cli_exit_status_never_turns_conflict_or_expiry_into_success(self) -> None:
