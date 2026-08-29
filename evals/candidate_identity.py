@@ -287,6 +287,17 @@ def identity_errors(identity: Any, label: str) -> list[str]:
                         )
                 if not isinstance(execution_inputs["execution_policy"], dict):
                     errors.append(f"{label} qualification execution policy is invalid")
+                expected_execution_sha = "sha256:" + hashlib.sha256(
+                    json.dumps(
+                        execution_inputs,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode("utf-8")
+                ).hexdigest()
+                if value.get("sha256") != expected_execution_sha:
+                    errors.append(
+                        f"{label} qualification execution digest is inconsistent"
+                    )
     return errors
 
 
@@ -298,13 +309,12 @@ def verify_frozen(
     identities_valid = not errors
     semantic_unchanged = bool(
         identities_valid
-        and previous["semantic_runtime"]["sha256"]
-        == current["semantic_runtime"]["sha256"]
+        and previous["semantic_runtime"] == current["semantic_runtime"]
     )
     execution_unchanged = bool(
         identities_valid
-        and previous["qualification_execution"]["sha256"]
-        == current["qualification_execution"]["sha256"]
+        and previous["qualification_execution"]
+        == current["qualification_execution"]
     )
     if not allowed:
         errors.append(f"post-observation changes are not evidence-only: {rejected}")

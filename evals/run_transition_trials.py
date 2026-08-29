@@ -163,6 +163,45 @@ class _JobObjectExtendedLimitInformation(ctypes.Structure):
     )
 
 
+class _StartupInfoW(ctypes.Structure):
+    _fields_ = (
+        ("cb", wintypes.DWORD),
+        ("lpReserved", wintypes.LPWSTR),
+        ("lpDesktop", wintypes.LPWSTR),
+        ("lpTitle", wintypes.LPWSTR),
+        ("dwX", wintypes.DWORD),
+        ("dwY", wintypes.DWORD),
+        ("dwXSize", wintypes.DWORD),
+        ("dwYSize", wintypes.DWORD),
+        ("dwXCountChars", wintypes.DWORD),
+        ("dwYCountChars", wintypes.DWORD),
+        ("dwFillAttribute", wintypes.DWORD),
+        ("dwFlags", wintypes.DWORD),
+        ("wShowWindow", wintypes.WORD),
+        ("cbReserved2", wintypes.WORD),
+        ("lpReserved2", ctypes.POINTER(wintypes.BYTE)),
+        ("hStdInput", wintypes.HANDLE),
+        ("hStdOutput", wintypes.HANDLE),
+        ("hStdError", wintypes.HANDLE),
+    )
+
+
+class _StartupInfoExW(ctypes.Structure):
+    _fields_ = (
+        ("StartupInfo", _StartupInfoW),
+        ("lpAttributeList", ctypes.c_void_p),
+    )
+
+
+class _ProcessInformation(ctypes.Structure):
+    _fields_ = (
+        ("hProcess", wintypes.HANDLE),
+        ("hThread", wintypes.HANDLE),
+        ("dwProcessId", wintypes.DWORD),
+        ("dwThreadId", wintypes.DWORD),
+    )
+
+
 class _WindowsProcessJob:
     """Own one Windows process lineage through kill-on-close Job Object semantics."""
 
@@ -182,8 +221,6 @@ class _WindowsProcessJob:
             wintypes.DWORD,
         )
         kernel32.SetInformationJobObject.restype = wintypes.BOOL
-        kernel32.AssignProcessToJobObject.argtypes = (wintypes.HANDLE, wintypes.HANDLE)
-        kernel32.AssignProcessToJobObject.restype = wintypes.BOOL
         kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
         kernel32.CloseHandle.restype = wintypes.BOOL
         handle = kernel32.CreateJobObjectW(None, None)
@@ -205,20 +242,287 @@ class _WindowsProcessJob:
         self.kernel32 = kernel32
         self.handle: int | None = handle
 
-    def assign(self, process: subprocess.Popen[str]) -> None:
-        if self.handle is None or not hasattr(process, "_handle"):
-            raise TrialError("Windows process job cannot bind the child process")
-        if not self.kernel32.AssignProcessToJobObject(
-            self.handle, wintypes.HANDLE(int(process._handle))
-        ):
-            raise TrialError(
-                f"cannot assign child to Windows process job: {ctypes.get_last_error()}"
-            )
-
     def close(self) -> None:
         if self.handle is not None:
             self.kernel32.CloseHandle(self.handle)
             self.handle = None
+
+
+class _WindowsJobProcess:
+    """Minimal Popen-compatible process created inside a Job Object atomically."""
+
+    EXTENDED_STARTUPINFO_PRESENT = 0x00080000
+    CREATE_UNICODE_ENVIRONMENT = 0x00000400
+    CREATE_NEW_PROCESS_GROUP = 0x00000200
+    STARTF_USESTDHANDLES = 0x00000100
+    PROC_THREAD_ATTRIBUTE_HANDLE_LIST = 0x00020002
+    PROC_THREAD_ATTRIBUTE_JOB_LIST = 0x0002000D
+    WAIT_OBJECT_0 = 0
+    WAIT_TIMEOUT = 258
+    INFINITE = 0xFFFFFFFF
+
+    def __init__(
+        self,
+        command: list[str],
+        kernel32: Any,
+        process_handle: int,
+        pid: int,
+    ) -> None:
+        self.args = command
+        self.kernel32 = kernel32
+        self._handle: int | None = process_handle
+        self.pid = pid
+        self.returncode: int | None = None
+
+    @classmethod
+    def launch(
+        cls,
+        command: list[str],
+        windows_job: _WindowsProcessJob,
+        *,
+        input_text: str | None,
+        **kwargs: Any,
+    ) -> "_WindowsJobProcess":
+        if os.name != "nt" or windows_job.handle is None:
+            raise TrialError("Windows creation-time process containment is unavailable")
+        import msvcrt
+
+        stdout = kwargs.pop("stdout", None)
+        stderr = kwargs.pop("stderr", None)
+        text_mode = kwargs.pop("text", False)
+        environment = kwargs.pop("env", None)
+        cwd = kwargs.pop("cwd", None)
+        if kwargs:
+            raise TrialError(
+                f"unsupported Windows bounded-process options: {sorted(kwargs)}"
+            )
+        if stdout is None or stderr is None:
+            raise TrialError("Windows bounded processes require explicit output captures")
+        if not text_mode:
+            raise TrialError("Windows bounded processes require UTF-8 text mode")
+
+        if input_text is None:
+            stdin = open(os.devnull, "rb")
+        else:
+            stdin = tempfile.TemporaryFile(mode="w+b")
+            stdin.write(input_text.encode("utf-8"))
+            stdin.seek(0)
+        try:
+            handles = [
+                int(msvcrt.get_osfhandle(stream.fileno()))
+                for stream in (stdin, stdout, stderr)
+            ]
+            previous_inheritance = [
+                os.get_handle_inheritable(handle) for handle in handles
+            ]
+            for handle in handles:
+                os.set_handle_inheritable(handle, True)
+            kernel32 = windows_job.kernel32
+            kernel32.InitializeProcThreadAttributeList.argtypes = (
+                ctypes.c_void_p,
+                wintypes.DWORD,
+                wintypes.DWORD,
+                ctypes.POINTER(ctypes.c_size_t),
+            )
+            kernel32.InitializeProcThreadAttributeList.restype = wintypes.BOOL
+            kernel32.UpdateProcThreadAttribute.argtypes = (
+                ctypes.c_void_p,
+                wintypes.DWORD,
+                ctypes.c_size_t,
+                ctypes.c_void_p,
+                ctypes.c_size_t,
+                ctypes.c_void_p,
+                ctypes.POINTER(ctypes.c_size_t),
+            )
+            kernel32.UpdateProcThreadAttribute.restype = wintypes.BOOL
+            kernel32.DeleteProcThreadAttributeList.argtypes = (ctypes.c_void_p,)
+            kernel32.DeleteProcThreadAttributeList.restype = None
+            kernel32.CreateProcessW.argtypes = (
+                wintypes.LPCWSTR,
+                wintypes.LPWSTR,
+                ctypes.c_void_p,
+                ctypes.c_void_p,
+                wintypes.BOOL,
+                wintypes.DWORD,
+                ctypes.c_void_p,
+                wintypes.LPCWSTR,
+                ctypes.c_void_p,
+                ctypes.POINTER(_ProcessInformation),
+            )
+            kernel32.CreateProcessW.restype = wintypes.BOOL
+            kernel32.WaitForSingleObject.argtypes = (
+                wintypes.HANDLE,
+                wintypes.DWORD,
+            )
+            kernel32.WaitForSingleObject.restype = wintypes.DWORD
+            kernel32.GetExitCodeProcess.argtypes = (
+                wintypes.HANDLE,
+                ctypes.POINTER(wintypes.DWORD),
+            )
+            kernel32.GetExitCodeProcess.restype = wintypes.BOOL
+
+            attribute_size = ctypes.c_size_t()
+            kernel32.InitializeProcThreadAttributeList(
+                None, 2, 0, ctypes.byref(attribute_size)
+            )
+            attribute_buffer = ctypes.create_string_buffer(attribute_size.value)
+            attribute_list = ctypes.cast(attribute_buffer, ctypes.c_void_p)
+            if not kernel32.InitializeProcThreadAttributeList(
+                attribute_list, 2, 0, ctypes.byref(attribute_size)
+            ):
+                raise TrialError(
+                    "cannot initialize Windows process attributes: "
+                    f"{ctypes.get_last_error()}"
+                )
+            try:
+                inherited_handles = (wintypes.HANDLE * len(handles))(*handles)
+                job_handles = (wintypes.HANDLE * 1)(windows_job.handle)
+                if not kernel32.UpdateProcThreadAttribute(
+                    attribute_list,
+                    0,
+                    cls.PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+                    ctypes.cast(inherited_handles, ctypes.c_void_p),
+                    ctypes.sizeof(inherited_handles),
+                    None,
+                    None,
+                ):
+                    raise TrialError(
+                        "cannot restrict Windows inherited handles: "
+                        f"{ctypes.get_last_error()}"
+                    )
+                if not kernel32.UpdateProcThreadAttribute(
+                    attribute_list,
+                    0,
+                    cls.PROC_THREAD_ATTRIBUTE_JOB_LIST,
+                    ctypes.cast(job_handles, ctypes.c_void_p),
+                    ctypes.sizeof(job_handles),
+                    None,
+                    None,
+                ):
+                    raise TrialError(
+                        "cannot bind Windows process at creation time: "
+                        f"{ctypes.get_last_error()}"
+                    )
+                startup = _StartupInfoExW()
+                startup.StartupInfo.cb = ctypes.sizeof(_StartupInfoExW)
+                startup.StartupInfo.dwFlags = cls.STARTF_USESTDHANDLES
+                startup.StartupInfo.hStdInput = wintypes.HANDLE(handles[0])
+                startup.StartupInfo.hStdOutput = wintypes.HANDLE(handles[1])
+                startup.StartupInfo.hStdError = wintypes.HANDLE(handles[2])
+                startup.lpAttributeList = attribute_list
+                process_information = _ProcessInformation()
+                command_line = ctypes.create_unicode_buffer(
+                    subprocess.list2cmdline(command)
+                )
+                environment_buffer = None
+                if environment is not None:
+                    environment_text = "\0".join(
+                        f"{key}={value}"
+                        for key, value in sorted(
+                            environment.items(), key=lambda item: item[0].upper()
+                        )
+                    ) + "\0\0"
+                    environment_buffer = ctypes.create_unicode_buffer(environment_text)
+                flags = (
+                    cls.EXTENDED_STARTUPINFO_PRESENT
+                    | cls.CREATE_UNICODE_ENVIRONMENT
+                    | cls.CREATE_NEW_PROCESS_GROUP
+                )
+                if not kernel32.CreateProcessW(
+                    None,
+                    command_line,
+                    None,
+                    None,
+                    True,
+                    flags,
+                    ctypes.cast(environment_buffer, ctypes.c_void_p)
+                    if environment_buffer is not None
+                    else None,
+                    os.fspath(cwd) if cwd is not None else None,
+                    ctypes.byref(startup),
+                    ctypes.byref(process_information),
+                ):
+                    raise TrialError(
+                        "cannot create contained Windows process: "
+                        f"{ctypes.get_last_error()}"
+                    )
+                kernel32.CloseHandle(process_information.hThread)
+                return cls(
+                    command,
+                    kernel32,
+                    process_information.hProcess,
+                    process_information.dwProcessId,
+                )
+            finally:
+                kernel32.DeleteProcThreadAttributeList(attribute_list)
+        finally:
+            for handle, inherited in zip(
+                locals().get("handles", []),
+                locals().get("previous_inheritance", []),
+            ):
+                os.set_handle_inheritable(handle, inherited)
+            stdin.close()
+
+    def _observe_exit(self) -> int:
+        if self._handle is None:
+            if self.returncode is None:
+                raise TrialError("Windows process handle closed before exit")
+            return self.returncode
+        exit_code = wintypes.DWORD()
+        if not self.kernel32.GetExitCodeProcess(
+            self._handle, ctypes.byref(exit_code)
+        ):
+            raise TrialError(
+                f"cannot read Windows process exit code: {ctypes.get_last_error()}"
+            )
+        self.returncode = ctypes.c_int32(exit_code.value).value
+        return self.returncode
+
+    def poll(self) -> int | None:
+        if self.returncode is not None:
+            return self.returncode
+        if self._handle is None:
+            return None
+        result = self.kernel32.WaitForSingleObject(self._handle, 0)
+        if result == self.WAIT_TIMEOUT:
+            return None
+        if result != self.WAIT_OBJECT_0:
+            raise TrialError(
+                f"cannot poll Windows process: {ctypes.get_last_error()}"
+            )
+        return self._observe_exit()
+
+    def wait(self, timeout: float | None = None) -> int:
+        if self.returncode is not None:
+            return self.returncode
+        if self._handle is None:
+            raise TrialError("Windows process handle is unavailable")
+        milliseconds = (
+            self.INFINITE
+            if timeout is None
+            else min(self.INFINITE - 1, max(0, int(timeout * 1000)))
+        )
+        result = self.kernel32.WaitForSingleObject(self._handle, milliseconds)
+        if result == self.WAIT_TIMEOUT:
+            raise subprocess.TimeoutExpired(self.args, timeout)
+        if result != self.WAIT_OBJECT_0:
+            raise TrialError(
+                f"cannot wait for Windows process: {ctypes.get_last_error()}"
+            )
+        return self._observe_exit()
+
+    def communicate(
+        self, input: str | None = None, timeout: float | None = None
+    ) -> tuple[None, None]:
+        if input is not None:
+            raise TrialError("Windows process input must be staged before creation")
+        self.wait(timeout)
+        return None, None
+
+    def close(self) -> None:
+        if self._handle is not None:
+            self.kernel32.CloseHandle(self._handle)
+            self._handle = None
 
 
 def sha256_bytes(value: bytes) -> str:
@@ -254,7 +558,7 @@ def controlled_environment(**extra: str) -> dict[str, str]:
 
 
 def terminate_process_tree(
-    process: subprocess.Popen[str], windows_job: _WindowsProcessJob | None = None
+    process: Any, windows_job: _WindowsProcessJob | None = None
 ) -> None:
     if os.name == "posix":
         process_group = process.pid
@@ -318,32 +622,27 @@ def run_bounded_process(
             kwargs["preexec_fn"] = lambda: resource.setrlimit(
                 resource.RLIMIT_FSIZE, (MAX_CHILD_FILE_BYTES, MAX_CHILD_FILE_BYTES)
             )
-    else:  # pragma: no cover - exercised by hosted Windows compatibility
-        kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
     windows_job = _WindowsProcessJob() if os.name == "nt" else None
     try:
-        process = subprocess.Popen(command, **kwargs)
+        if windows_job is not None:  # pragma: no cover - hosted Windows compatibility
+            process = _WindowsJobProcess.launch(
+                command,
+                windows_job,
+                input_text=input_text,
+                **kwargs,
+            )
+        else:
+            process = subprocess.Popen(command, **kwargs)
     except Exception:
         if windows_job is not None:
             windows_job.close()
         raise
-    if windows_job is not None:  # pragma: no cover - hosted Windows compatibility
-        try:
-            windows_job.assign(process)
-        except Exception:
-            subprocess.run(
-                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
-                check=False,
-                capture_output=True,
-                timeout=10,
-            )
-            process.wait(timeout=10)
-            windows_job.close()
-            windows_job = None
-            raise
     try:
         try:
-            stdout, stderr = process.communicate(input=input_text, timeout=timeout)
+            stdout, stderr = process.communicate(
+                input=None if windows_job is not None else input_text,
+                timeout=timeout,
+            )
         except subprocess.TimeoutExpired as exc:
             terminate_process_tree(process, windows_job)
             windows_job = None
@@ -352,7 +651,10 @@ def run_bounded_process(
             ) from exc
         terminate_process_tree(process, windows_job)
         windows_job = None
-        return subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
+        returncode = process.returncode
+        if isinstance(process, _WindowsJobProcess):
+            process.close()
+        return subprocess.CompletedProcess(command, returncode, stdout, stderr)
     except subprocess.TimeoutExpired:
         raise
     except Exception:
@@ -362,6 +664,8 @@ def run_bounded_process(
     finally:
         if windows_job is not None:
             windows_job.close()
+        if isinstance(locals().get("process"), _WindowsJobProcess):
+            process.close()
 
 
 def read_bounded_capture(handle: Any, maximum: int, label: str) -> str:

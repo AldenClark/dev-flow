@@ -80,6 +80,48 @@ class ResourceLeaseTests(unittest.TestCase):
             )
             self.assertEqual(json.loads(released.stdout)["status"], "released")
 
+    def test_issued_token_is_safe_as_a_separate_cli_argument(self) -> None:
+        import resource_coordination
+
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.object(
+            resource_coordination.secrets,
+            "token_urlsafe",
+            return_value="-option-shaped-token",
+        ):
+            runtime = Path(temporary) / "runtime"
+            acquired = resource_coordination.acquire(
+                runtime, "device", "synthetic-leading-dash", 30
+            )
+            self.assertEqual(acquired["status"], "acquired")
+            self.assertEqual(acquired["token"], "lease_-option-shaped-token")
+            flow = ROOT / "skills" / "dev-flow" / "scripts" / "dev-flow.py"
+            released = subprocess.run(
+                [
+                    sys.executable,
+                    str(flow),
+                    "resource-lease",
+                    "--runtime-root",
+                    str(runtime),
+                    "release",
+                    "--kind",
+                    "device",
+                    "--resource",
+                    "synthetic-leading-dash",
+                    "--token",
+                    acquired["token"],
+                ],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(
+                released.returncode,
+                0,
+                released.stderr or released.stdout,
+            )
+            self.assertEqual(json.loads(released.stdout)["status"], "released")
+
     def test_cli_exit_status_never_turns_conflict_or_expiry_into_success(self) -> None:
         flow = ROOT / "skills" / "dev-flow" / "scripts" / "dev-flow.py"
         with tempfile.TemporaryDirectory() as temporary:

@@ -312,7 +312,9 @@ def acquire(root: Path, kind: str, resource: str, ttl: int, owner: str | None = 
                 if moment < current["expires_at"]:
                     return {"status": "conflict", "kind": kind, "generation": current["generation"], "expires_at": current["expires_at"], "claim_limit": "cooperating-same-user-local-filesystem-only"}
             generation = (current["generation"] if current else 0) + 1
-            token = secrets.token_urlsafe(32)
+            # Prefix issued capability tokens so argparse never interprets a
+            # leading '-' from the URL-safe alphabet as another CLI option.
+            token = "lease_" + secrets.token_urlsafe(32)
             recovered = bool(current and current["status"] == "active")
             payload = {"schema": SCHEMA, "status": "active", "kind": kind, "resource_digest": _digest(resource), "owner_digest": _digest(owner), "token_digest": _digest(token), "generation": generation, "created_at": moment, "renewed_at": moment, "expires_at": moment + ttl, "pid": os.getpid()}
             _atomic_json(runtime, state_path, payload)

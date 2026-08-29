@@ -133,6 +133,11 @@ class CandidateIdentityTests(unittest.TestCase):
             "platform": "darwin",
             "execution_policy": {},
         }
+        execution_sha = "sha256:" + candidate_identity.hashlib.sha256(
+            candidate_identity.json.dumps(
+                execution_inputs, sort_keys=True, separators=(",", ":")
+            ).encode("utf-8")
+        ).hexdigest()
         frozen = {
             "schema": candidate_identity.IDENTITY_SCHEMA,
             "semantic_runtime": {
@@ -142,7 +147,7 @@ class CandidateIdentityTests(unittest.TestCase):
                 "total_bytes": 1,
             },
             "qualification_execution": {
-                "sha256": "sha256:" + "2" * 64,
+                "sha256": execution_sha,
                 "files": ["tool/evals/run_transition_trials.py"],
                 "file_count": 1,
                 "total_bytes": 1,
@@ -181,6 +186,11 @@ class CandidateIdentityTests(unittest.TestCase):
             "platform": "darwin",
             "execution_policy": {},
         }
+        execution_sha = "sha256:" + candidate_identity.hashlib.sha256(
+            candidate_identity.json.dumps(
+                execution_inputs, sort_keys=True, separators=(",", ":")
+            ).encode("utf-8")
+        ).hexdigest()
         valid = {
             "schema": candidate_identity.IDENTITY_SCHEMA,
             "semantic_runtime": {
@@ -190,7 +200,7 @@ class CandidateIdentityTests(unittest.TestCase):
                 "total_bytes": 1,
             },
             "qualification_execution": {
-                "sha256": "sha256:" + "2" * 64,
+                "sha256": execution_sha,
                 "files": ["tool/evals/run_transition_trials.py"],
                 "file_count": 1,
                 "total_bytes": 1,
@@ -244,6 +254,52 @@ class CandidateIdentityTests(unittest.TestCase):
                 self.assertEqual(result["status"], "invalid")
                 self.assertTrue(result["errors"])
 
-
+    def test_frozen_identity_verifier_rejects_structural_tampering_with_stale_digest(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            runner = root / "evals" / "run_transition_trials.py"
+            helper = root / "evals" / "flow_metrics.py"
+            catalog = root / "catalog.json"
+            semantic = root / "skills" / "example" / "SKILL.md"
+            runner.parent.mkdir(parents=True)
+            semantic.parent.mkdir(parents=True)
+            runner.write_text("import flow_metrics\n", encoding="utf-8")
+            helper.write_text("VALUE = 1\n", encoding="utf-8")
+            catalog.write_text("{}\n", encoding="utf-8")
+            semantic.write_text("# Example\n", encoding="utf-8")
+            (root / ".codex-plugin").mkdir()
+            (root / ".codex-plugin" / "plugin.json").write_text("{}\n", encoding="utf-8")
+            (root / "hooks").mkdir()
+            (root / "governance").mkdir()
+            valid = candidate_identity.build_identities(
+                root,
+                runner=runner,
+                catalog=catalog,
+                codex_executable_sha256="sha256:" + "c" * 64,
+                model="gpt-test",
+                reasoning_effort="medium",
+                environment_policy="isolated",
+                execution_policy={"attempts": 3},
+            )
+        stale_execution = candidate_identity.json.loads(
+            candidate_identity.json.dumps(valid)
+        )
+        stale_execution["qualification_execution"]["execution_inputs"]["model"] = "tampered"
+        result = candidate_identity.verify_frozen(
+            valid,
+            stale_execution,
+            ["docs/workstreams/dev-flow-2.0-rc.4/audit.md"],
+        )
+        self.assertEqual(result["status"], "invalid")
+        self.assertFalse(result["qualification_execution_unchanged"])
+        stale_manifest = candidate_identity.json.loads(candidate_identity.json.dumps(valid))
+        stale_manifest["semantic_runtime"]["files"][0] = "skills/tampered/SKILL.md"
+        result = candidate_identity.verify_frozen(
+            valid,
+            stale_manifest,
+            ["docs/workstreams/dev-flow-2.0-rc.4/audit.md"],
+        )
+        self.assertEqual(result["status"], "invalid")
+        self.assertFalse(result["semantic_runtime_unchanged"])
 if __name__ == "__main__":
     unittest.main()

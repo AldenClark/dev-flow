@@ -172,7 +172,7 @@ class TransitionRunnerTests(unittest.TestCase):
             ],
         )
 
-    def test_successful_windows_parent_is_bound_to_kill_on_close_job(self) -> None:
+    def test_windows_process_uses_creation_time_job_containment(self) -> None:
         runner = load_runner_module()
         process = mock.Mock()
         process.pid = 43212
@@ -180,21 +180,23 @@ class TransitionRunnerTests(unittest.TestCase):
         process.poll.return_value = 0
         process.communicate.return_value = ("stdout", "stderr")
         windows_job = mock.Mock()
+        windows_job.handle = 123
         with (
             mock.patch.object(runner.os, "name", "nt"),
-            mock.patch.object(
-                runner.subprocess, "CREATE_NEW_PROCESS_GROUP", 512, create=True
-            ),
             mock.patch.object(runner, "_WindowsProcessJob", return_value=windows_job),
-            mock.patch.object(runner.subprocess, "Popen", return_value=process) as popen,
+            mock.patch.object(
+                runner._WindowsJobProcess,
+                "launch",
+                return_value=process,
+            ) as launch,
         ):
             completed = runner.run_bounded_process(
                 ["codex"], timeout=1, capture_output=True, text=True
             )
         self.assertEqual(completed.returncode, 0)
-        windows_job.assign.assert_called_once_with(process)
         windows_job.close.assert_called_once_with()
-        self.assertEqual(popen.call_args.kwargs["creationflags"], 512)
+        launch.assert_called_once()
+        self.assertEqual(launch.call_args.args[:2], (["codex"], windows_job))
 
     def test_windows_timeout_closes_job_even_when_parent_has_exited(self) -> None:
         runner = load_runner_module()
@@ -203,32 +205,35 @@ class TransitionRunnerTests(unittest.TestCase):
         process.poll.return_value = 0
         process.communicate.side_effect = subprocess.TimeoutExpired(["codex"], 1)
         windows_job = mock.Mock()
+        windows_job.handle = 123
         with (
             mock.patch.object(runner.os, "name", "nt"),
-            mock.patch.object(
-                runner.subprocess, "CREATE_NEW_PROCESS_GROUP", 512, create=True
-            ),
             mock.patch.object(runner, "_WindowsProcessJob", return_value=windows_job),
-            mock.patch.object(runner.subprocess, "Popen", return_value=process),
+            mock.patch.object(
+                runner._WindowsJobProcess,
+                "launch",
+                return_value=process,
+            ),
             self.assertRaises(subprocess.TimeoutExpired),
         ):
             runner.run_bounded_process(
                 ["codex"], timeout=1, capture_output=True, text=True
             )
-        windows_job.assign.assert_called_once_with(process)
         windows_job.close.assert_called_once_with()
 
     def test_windows_job_is_closed_when_process_creation_fails(self) -> None:
         runner = load_runner_module()
         windows_job = mock.Mock()
+        windows_job.handle = 123
         with (
             mock.patch.object(runner.os, "name", "nt"),
-            mock.patch.object(
-                runner.subprocess, "CREATE_NEW_PROCESS_GROUP", 512, create=True
-            ),
             mock.patch.object(runner, "_WindowsProcessJob", return_value=windows_job),
-            mock.patch.object(runner.subprocess, "Popen", side_effect=OSError("boom")),
-            self.assertRaises(OSError),
+            mock.patch.object(
+                runner._WindowsJobProcess,
+                "launch",
+                side_effect=runner.TrialError("boom"),
+            ),
+            self.assertRaises(runner.TrialError),
         ):
             runner.run_bounded_process(
                 ["codex"], timeout=1, capture_output=True, text=True
@@ -240,18 +245,10 @@ class TransitionRunnerTests(unittest.TestCase):
         if runner.os.name != "nt":
             self.skipTest("hosted Windows Job Object integration")
         parent = (
-            "import subprocess,sys,time; time.sleep(0.25); "
+            "import subprocess,sys; "
             "child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)']); "
             "print(child.pid, flush=True)"
         )
-        completed = runner.run_bounded_process(
-            [sys.executable, "-c", parent],
-            timeout=10,
-            capture_output=True,
-            text=True,
-        )
-        self.assertEqual(completed.returncode, 0, completed.stderr)
-        child_pid = int(completed.stdout.strip())
         kernel32 = runner.ctypes.WinDLL("kernel32", use_last_error=True)
         kernel32.OpenProcess.argtypes = (
             runner.wintypes.DWORD,
@@ -266,17 +263,27 @@ class TransitionRunnerTests(unittest.TestCase):
         kernel32.WaitForSingleObject.restype = runner.wintypes.DWORD
         kernel32.CloseHandle.argtypes = (runner.wintypes.HANDLE,)
         kernel32.CloseHandle.restype = runner.wintypes.BOOL
-        handle = kernel32.OpenProcess(0x00100000, False, child_pid)
-        if not handle:
-            return
-        try:
-            self.assertEqual(
-                kernel32.WaitForSingleObject(handle, 2000),
-                0,
-                "descendant remained active after Job Object close",
-            )
-        finally:
-            kernel32.CloseHandle(handle)
+        for attempt in range(10):
+            with self.subTest(attempt=attempt):
+                completed = runner.run_bounded_process(
+                    [sys.executable, "-c", parent],
+                    timeout=10,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                child_pid = int(completed.stdout.strip())
+                handle = kernel32.OpenProcess(0x00100000, False, child_pid)
+                if not handle:
+                    continue
+                try:
+                    self.assertEqual(
+                        kernel32.WaitForSingleObject(handle, 2000),
+                        0,
+                        "descendant remained active after Job Object close",
+                    )
+                finally:
+                    kernel32.CloseHandle(handle)
 
     def test_capture_output_is_bounded_without_pipes(self) -> None:
         runner = load_runner_module()
@@ -1134,7 +1141,7 @@ class TransitionRunnerTests(unittest.TestCase):
             link = root / "link.txt"
             link.symlink_to(target)
             with (
-                mock.patch.object(runner.os, "O_NOFOLLOW", 0),
+                mock.patch.object(runner.os, "O_NOFOLLOW", 0, create=True),
                 self.assertRaisesRegex(runner.TrialError, "regular file"),
             ):
                 runner.bounded_file_bytes(StalePrecheckPath(link), 10, "symlink input")
