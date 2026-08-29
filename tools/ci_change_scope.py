@@ -29,6 +29,7 @@ COMPATIBILITY_PATTERNS = (
     "evals/test_agent_dispatch.py",
     "evals/test_ci_change_scope.py",
     "evals/test_release_artifacts.py",
+    "evals/test_resource_coordination.py",
     "evals/test_repository_knowledge.py",
     "evals/test_scripts.py",
     "tools/ci_change_scope.py",

@@ -59,8 +59,8 @@
     {
       "id": "RC4-COMPAT",
       "decisions": ["D11"],
-      "implementation": [".github/workflows/ci.yml", ".github/workflows/release-candidate.yml", ".codex-plugin/plugin.json", "README.md", "CHANGELOG.md", "docs/", "skills/company-data-security/assets/surface-attestation.example.json"],
-      "tests": ["evals/test_dev_flow_v2.py::RoutingTests", "evals/test_release_artifacts.py::ReleaseArtifactTests"]
+      "implementation": [".github/workflows/ci.yml", ".github/workflows/release-candidate.yml", ".codex-plugin/plugin.json", "README.md", "CHANGELOG.md", "docs/", "skills/company-data-security/assets/surface-attestation.example.json", "tools/ci_change_scope.py"],
+      "tests": ["evals/test_dev_flow_v2.py::RoutingTests", "evals/test_release_artifacts.py::ReleaseArtifactTests", "evals/test_ci_change_scope.py::CompatibilityChangeScopeTests"]
     },
     {
       "id": "RC4-IDENTITY",

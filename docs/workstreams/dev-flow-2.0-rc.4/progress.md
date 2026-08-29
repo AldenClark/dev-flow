@@ -32,11 +32,11 @@
 
 ## Current slice
 
-S8 is blocked by the preserved first hosted failure: exact candidate `e808c1a697ab04617d722e5d8ed8864237cc89a1` passed semantic Ubuntu 3.14 and compatibility on Ubuntu 3.11, macOS 3.11, and Windows 3.11/3.14, but macOS 15/Python 3.14 failed because the release CLI subprocess produced no parseable stdout. The original test did not expose its return code/stderr, so a diagnostic-only oracle repair is required before causal product judgment. The theoretical-validation diff also lacks a new clean-context review. Live three-attempt R4 model evidence and final hosted artifacts have not run.
+S8 is blocked by the preserved first hosted failure: exact candidate `e808c1a697ab04617d722e5d8ed8864237cc89a1` passed semantic Ubuntu 3.14 and compatibility on Ubuntu 3.11, macOS 3.11, and Windows 3.11/3.14, but macOS 15/Python 3.14 failed because the release CLI subprocess produced no parseable stdout. Diagnostic candidate `d90c85a` exposed a second integration defect: change-scope omitted `evals/test_resource_coordination.py`, so its matrix was skipped. A red-first scope repair now binds that platform-sensitive test to compatibility execution. The theoretical-validation diff also lacks a new clean-context review. Live three-attempt R4 model evidence and final hosted artifacts have not run.
 
 ## Next
 
-Preserve the macOS 15/Python 3.14 failure and make one diagnostic-only oracle repair that reports the release subprocess return code/stderr; push a new candidate and rerun the invalidated hosted compatibility lane without manually retrying the unchanged SHA. Do not execute model qualification without a separately explicit model/token budget, and do not claim hosted artifact evidence before all prerequisite gates pass.
+Push the change-scope repair as a new candidate and use its automatically triggered compatibility matrix to obtain the missing macOS 15/Python 3.14 release-subprocess return code/stderr. Do not manually retry either unchanged SHA. Do not execute model qualification without a separately explicit model/token budget, and do not claim hosted artifact evidence before all prerequisite gates pass.
 
 ## Hard conditions
 

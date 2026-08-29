@@ -30,6 +30,7 @@ class CompatibilityChangeScopeTests(unittest.TestCase):
             "hooks/hooks.json",
             "skills/dev-flow/assets/agent-configs/dev-flow-worker.toml",
             "evals/test_agent_dispatch.py",
+            "evals/test_resource_coordination.py",
             ".github/workflows/ci.yml",
         ):
             with self.subTest(path=path):
