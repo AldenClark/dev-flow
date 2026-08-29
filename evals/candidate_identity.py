@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 from pathlib import Path
 import sys
 from typing import Any, Iterable
@@ -17,11 +18,23 @@ MAX_FILES = 8192
 MAX_FILE_BYTES = 32 * 1024 * 1024
 MAX_TOTAL_BYTES = 128 * 1024 * 1024
 SEMANTIC_ROOTS = (".codex-plugin/plugin.json", "hooks", "skills", "governance")
-EVIDENCE_ONLY_PREFIXES = (
-    "docs/workstreams/dev-flow-2.0-rc.4/",
-    "docs/releasing.md",
+EVIDENCE_ONLY_PATHS = (
+    "docs/workstreams/dev-flow-2.0-rc.4/audit.md",
+    "docs/workstreams/dev-flow-2.0-rc.4/progress.md",
     "CHANGELOG.md",
 )
+DIGEST_PATTERN = re.compile(r"sha256:[0-9a-f]{64}")
+EXECUTION_INPUT_KEYS = {
+    "repository_dependencies_sha256",
+    "codex_executable_sha256",
+    "model",
+    "reasoning_effort",
+    "environment_policy",
+    "python_implementation",
+    "python_version",
+    "platform",
+    "execution_policy",
+}
 
 
 class CandidateIdentityError(ValueError):
@@ -186,26 +199,113 @@ def build_identities(
 
 
 def evidence_only_changes(paths: Iterable[str]) -> tuple[bool, list[str]]:
-    rejected = sorted(
-        path
-        for path in paths
-        if not any(
-            path.startswith(prefix)
-            if prefix.endswith("/")
-            else path == prefix
-            for prefix in EVIDENCE_ONLY_PREFIXES
-        )
-    )
+    rejected = sorted(path for path in paths if path not in EVIDENCE_ONLY_PATHS)
     return not rejected, rejected
+
+
+def identity_errors(identity: Any, label: str) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(identity, dict):
+        return [f"{label} identity must be an object"]
+    if set(identity) != {"schema", "semantic_runtime", "qualification_execution"}:
+        errors.append(f"{label} identity must use the exact top-level schema")
+    if identity.get("schema") != IDENTITY_SCHEMA:
+        errors.append(f"{label} identity schema is invalid")
+    section_keys = {
+        "semantic_runtime": {"sha256", "files", "file_count", "total_bytes"},
+        "qualification_execution": {
+            "sha256",
+            "files",
+            "file_count",
+            "total_bytes",
+            "execution_inputs",
+        },
+    }
+    for section, required_keys in section_keys.items():
+        value = identity.get(section)
+        if not isinstance(value, dict):
+            errors.append(f"{label} {section} identity must be an object")
+            continue
+        if set(value) != required_keys:
+            errors.append(f"{label} {section} identity must use the exact schema")
+        digest = value.get("sha256")
+        if not isinstance(digest, str) or DIGEST_PATTERN.fullmatch(digest) is None:
+            errors.append(f"{label} {section} identity digest is invalid")
+        files = value.get("files")
+        file_count = value.get("file_count")
+        total_bytes = value.get("total_bytes")
+        if (
+            not isinstance(files, list)
+            or not all(
+                isinstance(path, str)
+                and path
+                and not path.startswith("/")
+                and ".." not in Path(path).parts
+                and len(path) <= 1024
+                for path in files
+            )
+            or len(files) != len(set(files))
+            or files != sorted(files)
+        ):
+            errors.append(f"{label} {section} file manifest is invalid")
+        if not isinstance(file_count, int) or isinstance(file_count, bool) or file_count < 1:
+            errors.append(f"{label} {section} file count is invalid")
+        elif isinstance(files, list) and file_count != len(files):
+            errors.append(f"{label} {section} file count does not match its manifest")
+        if not isinstance(total_bytes, int) or isinstance(total_bytes, bool) or total_bytes < 1:
+            errors.append(f"{label} {section} total bytes is invalid")
+        if section == "qualification_execution":
+            execution_inputs = value.get("execution_inputs")
+            if not isinstance(execution_inputs, dict) or set(execution_inputs) != EXECUTION_INPUT_KEYS:
+                errors.append(
+                    f"{label} qualification execution inputs must use the exact schema"
+                )
+            else:
+                for digest_key in (
+                    "repository_dependencies_sha256",
+                    "codex_executable_sha256",
+                ):
+                    digest_value = execution_inputs[digest_key]
+                    if (
+                        not isinstance(digest_value, str)
+                        or DIGEST_PATTERN.fullmatch(digest_value) is None
+                    ):
+                        errors.append(
+                            f"{label} qualification {digest_key} is invalid"
+                        )
+                for text_key in (
+                    "model",
+                    "reasoning_effort",
+                    "environment_policy",
+                    "python_implementation",
+                    "python_version",
+                    "platform",
+                ):
+                    if not isinstance(execution_inputs[text_key], str) or not execution_inputs[text_key]:
+                        errors.append(
+                            f"{label} qualification {text_key} is invalid"
+                        )
+                if not isinstance(execution_inputs["execution_policy"], dict):
+                    errors.append(f"{label} qualification execution policy is invalid")
+    return errors
 
 
 def verify_frozen(
     previous: dict[str, Any], current: dict[str, Any], changed_paths: Iterable[str]
 ) -> dict[str, Any]:
     allowed, rejected = evidence_only_changes(changed_paths)
-    semantic_unchanged = previous.get("semantic_runtime", {}).get("sha256") == current.get("semantic_runtime", {}).get("sha256")
-    execution_unchanged = previous.get("qualification_execution", {}).get("sha256") == current.get("qualification_execution", {}).get("sha256")
-    errors: list[str] = []
+    errors = identity_errors(previous, "previous") + identity_errors(current, "current")
+    identities_valid = not errors
+    semantic_unchanged = bool(
+        identities_valid
+        and previous["semantic_runtime"]["sha256"]
+        == current["semantic_runtime"]["sha256"]
+    )
+    execution_unchanged = bool(
+        identities_valid
+        and previous["qualification_execution"]["sha256"]
+        == current["qualification_execution"]["sha256"]
+    )
     if not allowed:
         errors.append(f"post-observation changes are not evidence-only: {rejected}")
     if not semantic_unchanged:

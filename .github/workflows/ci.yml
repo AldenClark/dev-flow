@@ -129,6 +129,7 @@ jobs:
           evals.test_release_artifacts.RuntimeLifecycleSmokeTests
           evals.test_repository_knowledge
           evals.test_resource_coordination
+          evals.test_transition_runner.TransitionRunnerTests
           -v
 
       - name: Characterize macOS 15 Python 3.14 resource subprocess variance

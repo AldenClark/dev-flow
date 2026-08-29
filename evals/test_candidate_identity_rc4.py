@@ -47,7 +47,11 @@ class CandidateIdentityTests(unittest.TestCase):
 
     def test_evidence_allowlist_rejects_runtime_and_accepts_release_records(self) -> None:
         allowed, rejected = candidate_identity.evidence_only_changes(
-            ["docs/workstreams/dev-flow-2.0-rc.4/audit.md", "CHANGELOG.md"]
+            [
+                "docs/workstreams/dev-flow-2.0-rc.4/audit.md",
+                "docs/workstreams/dev-flow-2.0-rc.4/progress.md",
+                "CHANGELOG.md",
+            ]
         )
         self.assertTrue(allowed)
         self.assertEqual(rejected, [])
@@ -61,6 +65,16 @@ class CandidateIdentityTests(unittest.TestCase):
         )
         self.assertFalse(allowed)
         self.assertEqual(rejected, ["CHANGELOG.md.untrusted", "docs/releasing.md.backup"])
+        policy_paths = [
+            "docs/releasing.md",
+            "docs/workstreams/dev-flow-2.0-rc.4/requirements.md",
+            "docs/workstreams/dev-flow-2.0-rc.4/design.md",
+            "docs/workstreams/dev-flow-2.0-rc.4/decisions.md",
+            "docs/workstreams/dev-flow-2.0-rc.4/implementation.md",
+        ]
+        allowed, rejected = candidate_identity.evidence_only_changes(policy_paths)
+        self.assertFalse(allowed)
+        self.assertEqual(rejected, sorted(policy_paths))
 
     def test_execution_policy_changes_qualification_identity(self) -> None:
         common = {
@@ -108,9 +122,32 @@ class CandidateIdentityTests(unittest.TestCase):
         self.assertIn("catalog/input.json", files)
 
     def test_frozen_identity_verifier_requires_both_identities_and_allowlist(self) -> None:
+        execution_inputs = {
+            "repository_dependencies_sha256": "sha256:" + "4" * 64,
+            "codex_executable_sha256": "sha256:" + "5" * 64,
+            "model": "gpt-5.6-terra",
+            "reasoning_effort": "medium",
+            "environment_policy": "isolated",
+            "python_implementation": "CPython",
+            "python_version": "3.14.7",
+            "platform": "darwin",
+            "execution_policy": {},
+        }
         frozen = {
-            "semantic_runtime": {"sha256": "sha256:semantic"},
-            "qualification_execution": {"sha256": "sha256:execution"},
+            "schema": candidate_identity.IDENTITY_SCHEMA,
+            "semantic_runtime": {
+                "sha256": "sha256:" + "1" * 64,
+                "files": ["skills/example/SKILL.md"],
+                "file_count": 1,
+                "total_bytes": 1,
+            },
+            "qualification_execution": {
+                "sha256": "sha256:" + "2" * 64,
+                "files": ["tool/evals/run_transition_trials.py"],
+                "file_count": 1,
+                "total_bytes": 1,
+                "execution_inputs": execution_inputs,
+            },
         }
         valid = candidate_identity.verify_frozen(
             frozen,
@@ -119,8 +156,11 @@ class CandidateIdentityTests(unittest.TestCase):
         )
         self.assertEqual(valid["status"], "valid")
         changed = {
-            "semantic_runtime": {"sha256": "sha256:changed"},
-            "qualification_execution": {"sha256": "sha256:execution"},
+            **frozen,
+            "semantic_runtime": {
+                **frozen["semantic_runtime"],
+                "sha256": "sha256:" + "3" * 64,
+            },
         }
         invalid = candidate_identity.verify_frozen(
             frozen, changed, ["skills/dev-flow/SKILL.md"]
@@ -128,6 +168,81 @@ class CandidateIdentityTests(unittest.TestCase):
         self.assertEqual(invalid["status"], "invalid")
         self.assertFalse(invalid["semantic_runtime_unchanged"])
         self.assertEqual(invalid["rejected_paths"], ["skills/dev-flow/SKILL.md"])
+
+    def test_frozen_identity_verifier_fails_closed_on_missing_or_malformed_identity(self) -> None:
+        execution_inputs = {
+            "repository_dependencies_sha256": "sha256:" + "4" * 64,
+            "codex_executable_sha256": "sha256:" + "5" * 64,
+            "model": "gpt-5.6-terra",
+            "reasoning_effort": "medium",
+            "environment_policy": "isolated",
+            "python_implementation": "CPython",
+            "python_version": "3.14.7",
+            "platform": "darwin",
+            "execution_policy": {},
+        }
+        valid = {
+            "schema": candidate_identity.IDENTITY_SCHEMA,
+            "semantic_runtime": {
+                "sha256": "sha256:" + "1" * 64,
+                "files": ["skills/example/SKILL.md"],
+                "file_count": 1,
+                "total_bytes": 1,
+            },
+            "qualification_execution": {
+                "sha256": "sha256:" + "2" * 64,
+                "files": ["tool/evals/run_transition_trials.py"],
+                "file_count": 1,
+                "total_bytes": 1,
+                "execution_inputs": execution_inputs,
+            },
+        }
+        malformed = [
+            {},
+            {"schema": candidate_identity.IDENTITY_SCHEMA},
+            {
+                "schema": "wrong",
+                "semantic_runtime": valid["semantic_runtime"],
+                "qualification_execution": valid["qualification_execution"],
+            },
+            {
+                **valid,
+                "semantic_runtime": {
+                    **valid["semantic_runtime"],
+                    "sha256": "not-a-digest",
+                },
+            },
+            {
+                "schema": candidate_identity.IDENTITY_SCHEMA,
+                "semantic_runtime": {"sha256": "sha256:" + "1" * 64},
+                "qualification_execution": valid["qualification_execution"],
+            },
+            {
+                **valid,
+                "qualification_execution": {
+                    **valid["qualification_execution"],
+                    "execution_inputs": {},
+                },
+            },
+        ]
+        both_missing = candidate_identity.verify_frozen(
+            {}, {}, ["docs/workstreams/dev-flow-2.0-rc.4/audit.md"]
+        )
+        self.assertEqual(both_missing["status"], "invalid")
+        self.assertFalse(both_missing["semantic_runtime_unchanged"])
+        self.assertFalse(both_missing["qualification_execution_unchanged"])
+        for identity in malformed:
+            with self.subTest(identity=identity):
+                result = candidate_identity.verify_frozen(
+                    identity, valid, ["docs/workstreams/dev-flow-2.0-rc.4/audit.md"]
+                )
+                self.assertEqual(result["status"], "invalid")
+                self.assertTrue(result["errors"])
+                result = candidate_identity.verify_frozen(
+                    valid, identity, ["docs/workstreams/dev-flow-2.0-rc.4/audit.md"]
+                )
+                self.assertEqual(result["status"], "invalid")
+                self.assertTrue(result["errors"])
 
 
 if __name__ == "__main__":

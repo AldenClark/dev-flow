@@ -32,6 +32,8 @@ COMPATIBILITY_PATTERNS = (
     "evals/test_resource_coordination.py",
     "evals/test_repository_knowledge.py",
     "evals/test_scripts.py",
+    "evals/run_transition_trials.py",
+    "evals/test_transition_runner.py",
     "tools/ci_change_scope.py",
 )
 ZERO_SHA = "0" * 40

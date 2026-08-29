@@ -259,6 +259,7 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
         self.assertIn("validate-knowledge --root .", workflow)
         self.assertIn("doctor.py --plugin-root .", workflow)
         self.assertIn("evals.test_agent_dispatch", workflow)
+        self.assertIn("evals.test_transition_runner.TransitionRunnerTests", workflow)
         self.assertIn('PYTHONUTF8: "1"', workflow)
         self.assertIn("PYTHONIOENCODING: utf-8", workflow)
         self.assertNotIn("shell: bash", workflow)

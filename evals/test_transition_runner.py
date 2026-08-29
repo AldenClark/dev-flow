@@ -172,6 +172,112 @@ class TransitionRunnerTests(unittest.TestCase):
             ],
         )
 
+    def test_successful_windows_parent_is_bound_to_kill_on_close_job(self) -> None:
+        runner = load_runner_module()
+        process = mock.Mock()
+        process.pid = 43212
+        process.returncode = 0
+        process.poll.return_value = 0
+        process.communicate.return_value = ("stdout", "stderr")
+        windows_job = mock.Mock()
+        with (
+            mock.patch.object(runner.os, "name", "nt"),
+            mock.patch.object(
+                runner.subprocess, "CREATE_NEW_PROCESS_GROUP", 512, create=True
+            ),
+            mock.patch.object(runner, "_WindowsProcessJob", return_value=windows_job),
+            mock.patch.object(runner.subprocess, "Popen", return_value=process) as popen,
+        ):
+            completed = runner.run_bounded_process(
+                ["codex"], timeout=1, capture_output=True, text=True
+            )
+        self.assertEqual(completed.returncode, 0)
+        windows_job.assign.assert_called_once_with(process)
+        windows_job.close.assert_called_once_with()
+        self.assertEqual(popen.call_args.kwargs["creationflags"], 512)
+
+    def test_windows_timeout_closes_job_even_when_parent_has_exited(self) -> None:
+        runner = load_runner_module()
+        process = mock.Mock()
+        process.pid = 43213
+        process.poll.return_value = 0
+        process.communicate.side_effect = subprocess.TimeoutExpired(["codex"], 1)
+        windows_job = mock.Mock()
+        with (
+            mock.patch.object(runner.os, "name", "nt"),
+            mock.patch.object(
+                runner.subprocess, "CREATE_NEW_PROCESS_GROUP", 512, create=True
+            ),
+            mock.patch.object(runner, "_WindowsProcessJob", return_value=windows_job),
+            mock.patch.object(runner.subprocess, "Popen", return_value=process),
+            self.assertRaises(subprocess.TimeoutExpired),
+        ):
+            runner.run_bounded_process(
+                ["codex"], timeout=1, capture_output=True, text=True
+            )
+        windows_job.assign.assert_called_once_with(process)
+        windows_job.close.assert_called_once_with()
+
+    def test_windows_job_is_closed_when_process_creation_fails(self) -> None:
+        runner = load_runner_module()
+        windows_job = mock.Mock()
+        with (
+            mock.patch.object(runner.os, "name", "nt"),
+            mock.patch.object(
+                runner.subprocess, "CREATE_NEW_PROCESS_GROUP", 512, create=True
+            ),
+            mock.patch.object(runner, "_WindowsProcessJob", return_value=windows_job),
+            mock.patch.object(runner.subprocess, "Popen", side_effect=OSError("boom")),
+            self.assertRaises(OSError),
+        ):
+            runner.run_bounded_process(
+                ["codex"], timeout=1, capture_output=True, text=True
+            )
+        windows_job.close.assert_called_once_with()
+
+    def test_real_windows_job_closes_a_successful_parents_descendant(self) -> None:
+        runner = load_runner_module()
+        if runner.os.name != "nt":
+            self.skipTest("hosted Windows Job Object integration")
+        parent = (
+            "import subprocess,sys,time; time.sleep(0.25); "
+            "child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)']); "
+            "print(child.pid, flush=True)"
+        )
+        completed = runner.run_bounded_process(
+            [sys.executable, "-c", parent],
+            timeout=10,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        child_pid = int(completed.stdout.strip())
+        kernel32 = runner.ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.OpenProcess.argtypes = (
+            runner.wintypes.DWORD,
+            runner.wintypes.BOOL,
+            runner.wintypes.DWORD,
+        )
+        kernel32.OpenProcess.restype = runner.wintypes.HANDLE
+        kernel32.WaitForSingleObject.argtypes = (
+            runner.wintypes.HANDLE,
+            runner.wintypes.DWORD,
+        )
+        kernel32.WaitForSingleObject.restype = runner.wintypes.DWORD
+        kernel32.CloseHandle.argtypes = (runner.wintypes.HANDLE,)
+        kernel32.CloseHandle.restype = runner.wintypes.BOOL
+        handle = kernel32.OpenProcess(0x00100000, False, child_pid)
+        if not handle:
+            return
+        try:
+            self.assertEqual(
+                kernel32.WaitForSingleObject(handle, 2000),
+                0,
+                "descendant remained active after Job Object close",
+            )
+        finally:
+            kernel32.CloseHandle(handle)
+
     def test_capture_output_is_bounded_without_pipes(self) -> None:
         runner = load_runner_module()
         with (
