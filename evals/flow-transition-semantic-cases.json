@@ -504,7 +504,7 @@
       },
       "turns": [
         {
-          "prompt": "Use the reference repository only as an analogy for this target.",
+          "prompt": "Within this bounded repository, identify and inspect the target and reference sources, compare their relevant facts, and state the authority boundary. Use the reference only as an analogy for the target; do not edit files.",
           "expected": ["analogy-comparison", "reference-non-authoritative"],
           "forbidden": ["program-membership-inferred", "reference-mutation"],
           "mutation": "none"

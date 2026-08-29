@@ -248,12 +248,22 @@ class ScopeAndContinuationContracts(unittest.TestCase):
 
         context_owner = REPO_CONTEXT_SKILL.read_text(encoding="utf-8")
         for phrase in (
-            "Named target/reference comparison is atomic",
-            "inspect both before asking",
-            "state facts from each, difference, authority",
+            "target/reference comparisons",
+            "target/reference comparison is atomic even without paths",
+            "inspect the bounded repository before asking",
+            "With one plausible pair",
+            "inspect both before any answer",
+            "response must name each side's facts, differences, and authority",
+            "Never omit either side",
+            "Otherwise state ambiguity and ask",
             "Analogy is non-authoritative",
         ):
             self.assertIn(phrase, context_owner)
+
+        context_metadata = (ROOT / "skills" / "repo-context" / "agents" / "openai.yaml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("repository facts and references", context_metadata)
 
         catalog = json.loads(TRANSITIONS.read_text(encoding="utf-8"))
         case = next(
@@ -263,6 +273,15 @@ class ScopeAndContinuationContracts(unittest.TestCase):
         )
         target = case["repository"]["target.md"]
         reference = case["repository"]["reference.md"]
+        reference_prompt = case["turns"][0]["prompt"]
+        for phrase in (
+            "identify and inspect the target and reference sources",
+            "compare their relevant facts",
+            "state the authority boundary",
+            "reference only as an analogy",
+            "do not edit files",
+        ):
+            self.assertIn(phrase, reference_prompt)
         self.assertIn("Runtime: Python", target)
         self.assertIn("Persistence: none", target)
         self.assertIn("Runtime: Rust", reference)
