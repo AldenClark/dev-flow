@@ -499,8 +499,8 @@
       "categories": ["context-synthesis-adaptation", "scope-convergence"],
       "lineage": "resume",
       "repository": {
-        "target.md": "# Target repository\n",
-        "reference.md": "# Analogy only\n"
+        "target.md": "# Target repository\nRuntime: Python\nPersistence: none\nRequirement: bounded local processing.\n",
+        "reference.md": "# Analogy only\nRuntime: Rust\nPersistence: SQLite\nPattern: durable worker queue.\n"
       },
       "turns": [
         {
@@ -537,6 +537,29 @@
           "forbidden": ["team-policy-weakened", "productivity-score"],
           "mutation": "repository",
           "mutation_paths": [".dev-flow/preferences.toml"]
+        }
+      ]
+    },
+    {
+      "id": "CONTEXT-CONFIRMED-SHARED-CONTRACT",
+      "categories": ["context-synthesis-adaptation", "constraint-preservation"],
+      "lineage": "resume",
+      "repository": {
+        "target.md": "# Target client\nRuntime: Python\nThe target owns decoding and local error handling.\n",
+        "upstream.md": "# Confirmed shared protocol authority\nContract edge: wire_version is integer 2.\nRuntime: Rust\nOther implementation details are not shared.\n"
+      },
+      "turns": [
+        {
+          "prompt": "The owner explicitly confirms that upstream.md is the shared wire-protocol authority for this target only for the declared contract edge. Inspect it read-only, compare it with target.md, and state the exact authority boundary.",
+          "expected": ["shared-contract-authority-confirmed", "contract-edge-bounded", "reference-read-only"],
+          "forbidden": ["all-reference-authoritative", "reference-mutation", "confirmed-edge-dismissed"],
+          "mutation": "none"
+        },
+        {
+          "prompt": "Choose the target handling for wire_version from the confirmed edge while keeping local implementation decisions owned by the target.",
+          "expected": ["confirmed-edge-applied", "target-local-design", "non-contract-differences-separated"],
+          "forbidden": ["analogy-dismissed", "whole-repository-authority-inferred", "cross-repository-mutation"],
+          "mutation": "none"
         }
       ]
     },

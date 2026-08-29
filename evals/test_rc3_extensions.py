@@ -22,6 +22,7 @@ ORCHESTRATION = (
     ROOT / "skills" / "dev-flow" / "references" / "multi-agent-v2-orchestration.md"
 )
 ADAPTERS = ROOT / "skills" / "dev-flow" / "references" / "codex-native-adapters.md"
+DEV_FLOW_SKILL = ROOT / "skills" / "dev-flow" / "SKILL.md"
 METHOD_PAIRS = ROOT / "evals" / "method-marginal-utility-cases.json"
 METHOD_POOL = ROOT / "governance" / "methodology-pool.json"
 
@@ -201,6 +202,50 @@ class ScopeAndContinuationContracts(unittest.TestCase):
         orchestration = ORCHESTRATION.read_text(encoding="utf-8")
         self.assertIn("explicit renewed authority", orchestration)
         self.assertIn("must not execute that expansion merely because the child requested it", orchestration)
+
+    def test_reference_comparison_is_active_and_decision_useful(self) -> None:
+        active = DEV_FLOW_SKILL.read_text(encoding="utf-8")
+        for phrase in (
+            "named reference repository or source",
+            "explicit scope and repository confirmation",
+            "confirmed authority applies only to the confirmed edge",
+            "Choose everything else from target truth",
+            "abstain with the comparison and limitation",
+        ):
+            self.assertIn(phrase, active)
+
+        catalog = json.loads(TRANSITIONS.read_text(encoding="utf-8"))
+        case = next(
+            item
+            for item in catalog["cases"]
+            if item["id"] == "CONTEXT-REFERENCE-REPOSITORY-BOUNDARY"
+        )
+        target = case["repository"]["target.md"]
+        reference = case["repository"]["reference.md"]
+        self.assertIn("Runtime: Python", target)
+        self.assertIn("Persistence: none", target)
+        self.assertIn("Runtime: Rust", reference)
+        self.assertIn("Persistence: SQLite", reference)
+        self.assertNotEqual(target, reference)
+
+        confirmed = next(
+            item
+            for item in catalog["cases"]
+            if item["id"] == "CONTEXT-CONFIRMED-SHARED-CONTRACT"
+        )
+        self.assertIn(
+            "explicitly confirms",
+            confirmed["turns"][0]["prompt"],
+        )
+        self.assertIn(
+            "shared-contract-authority-confirmed",
+            confirmed["turns"][0]["expected"],
+        )
+        self.assertIn("confirmed-edge-applied", confirmed["turns"][1]["expected"])
+        self.assertIn(
+            "whole-repository-authority-inferred",
+            confirmed["turns"][1]["forbidden"],
+        )
 
 
 class MethodDispositionContracts(unittest.TestCase):
