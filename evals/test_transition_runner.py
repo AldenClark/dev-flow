@@ -715,6 +715,24 @@ class TransitionRunnerTests(unittest.TestCase):
                     semantic_runtime_sha256="sha256:" + "1" * 64,
                     qualification_execution_sha256="sha256:" + "2" * 64,
                 )
+            ledger.with_name("campaign.json.guard").unlink()
+            with (
+                mock.patch.object(
+                    runner.os,
+                    "open",
+                    side_effect=PermissionError("synthetic sharing violation"),
+                ),
+                self.assertRaisesRegex(runner.TrialError, "locked or inaccessible"),
+            ):
+                runner.reserve_campaign_budget(
+                    ledger,
+                    campaign_id="rc4-release",
+                    maximum_tokens=100,
+                    run_id="run-one",
+                    requested_tokens=10,
+                    semantic_runtime_sha256="sha256:" + "1" * 64,
+                    qualification_execution_sha256="sha256:" + "2" * 64,
+                )
 
     def test_campaign_budget_rejects_boolean_token_values(self) -> None:
         runner = load_runner_module()
@@ -736,19 +754,41 @@ class TransitionRunnerTests(unittest.TestCase):
         process.pid = 12345
         process.communicate.side_effect = KeyboardInterrupt
         process.returncode = None
-        with (
-            mock.patch.object(runner.subprocess, "Popen", return_value=process),
-            mock.patch.object(runner, "terminate_process_tree") as terminate,
-            self.assertRaises(KeyboardInterrupt),
-        ):
-            runner.run_bounded_process(
-                ["synthetic"],
-                timeout=1,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-        terminate.assert_called_once_with(process, None)
+        if runner.os.name == "nt":
+            windows_job = mock.Mock()
+            windows_job.handle = 123
+            with (
+                mock.patch.object(
+                    runner, "_WindowsProcessJob", return_value=windows_job
+                ),
+                mock.patch.object(
+                    runner._WindowsJobProcess, "launch", return_value=process
+                ),
+                mock.patch.object(runner, "terminate_process_tree") as terminate,
+                self.assertRaises(KeyboardInterrupt),
+            ):
+                runner.run_bounded_process(
+                    ["synthetic"],
+                    timeout=1,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                )
+            terminate.assert_called_once_with(process, windows_job)
+        else:
+            with (
+                mock.patch.object(runner.subprocess, "Popen", return_value=process),
+                mock.patch.object(runner, "terminate_process_tree") as terminate,
+                self.assertRaises(KeyboardInterrupt),
+            ):
+                runner.run_bounded_process(
+                    ["synthetic"],
+                    timeout=1,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                )
+            terminate.assert_called_once_with(process, None)
 
     def test_pre_attempt_interrupt_closes_reserved_campaign(self) -> None:
         runner = load_runner_module()

@@ -665,6 +665,12 @@ def _with_campaign_guard(path: Path, operation: Any) -> dict[str, Any]:
         descriptor = os.open(guard, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     except FileExistsError as exc:
         raise TrialError("campaign budget ledger is locked by another or interrupted writer") from exc
+    except PermissionError as exc:
+        # Windows can report sharing violations for an existing O_EXCL guard as
+        # EACCES rather than EEXIST.  Keep the admission path fail-closed while
+        # allowing bounded contenders to classify the condition as lock
+        # contention and retry it.
+        raise TrialError("campaign budget ledger is locked or inaccessible") from exc
     try:
         os.close(descriptor)
         return operation()
