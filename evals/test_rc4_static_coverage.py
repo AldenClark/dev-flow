@@ -25,7 +25,7 @@ class RC4StaticCoverageTests(unittest.TestCase):
         result = load_validator().validate(ROOT, check_worktree=False)
         self.assertEqual(result["status"], "valid", result["errors"])
         self.assertEqual(result["coverage_percent"], 100)
-        self.assertEqual(result["decisions_covered"], 14)
+        self.assertEqual(result["decisions_covered"], 15)
 
     def test_worktree_has_no_unowned_rc4_change(self) -> None:
         result = load_validator().validate(ROOT, check_worktree=True)

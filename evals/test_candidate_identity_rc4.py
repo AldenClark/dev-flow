@@ -9,13 +9,14 @@ from evals import candidate_identity
 
 
 ROOT = Path(__file__).resolve().parents[1]
+COPY_IGNORE = shutil.ignore_patterns(".git", ".codex", "tmp", "__pycache__", "*.pyc")
 
 
 class CandidateIdentityTests(unittest.TestCase):
     def test_semantic_runtime_excludes_evidence_docs_but_includes_runtime(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "repo"
-            shutil.copytree(ROOT, root, ignore=shutil.ignore_patterns(".git", "__pycache__", "*.pyc"))
+            shutil.copytree(ROOT, root, ignore=COPY_IGNORE)
             root = root.resolve()
             first = candidate_identity.hash_files(root, candidate_identity.semantic_runtime_files(root))["sha256"]
             audit = root / "docs" / "workstreams" / "dev-flow-2.0-rc.4" / "audit.md"
@@ -28,7 +29,7 @@ class CandidateIdentityTests(unittest.TestCase):
     def test_qualification_identity_includes_transitive_flow_metrics(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "repo"
-            shutil.copytree(ROOT, root, ignore=shutil.ignore_patterns(".git", "__pycache__", "*.pyc"))
+            shutil.copytree(ROOT, root, ignore=COPY_IGNORE)
             root = root.resolve()
             runner = root / "evals" / "run_transition_trials.py"
             catalog = root / "evals" / "flow-transition-semantic-cases.json"
@@ -103,7 +104,7 @@ class CandidateIdentityTests(unittest.TestCase):
             shutil.copytree(
                 ROOT,
                 candidate,
-                ignore=shutil.ignore_patterns(".git", "__pycache__", "*.pyc"),
+                ignore=COPY_IGNORE,
             )
             catalog = base / "external-catalog.json"
             shutil.copy2(ROOT / "evals" / "flow-transition-semantic-cases.json", catalog)

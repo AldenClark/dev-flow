@@ -64,7 +64,7 @@
     },
     {
       "id": "RC4-IDENTITY",
-      "decisions": ["D12", "D14"],
+      "decisions": ["D12", "D14", "D15"],
       "implementation": ["evals/candidate_identity.py", "evals/run_transition_trials.py"],
       "tests": ["evals/test_candidate_identity_rc4.py::CandidateIdentityTests", "evals/test_transition_runner.py::TransitionRunnerTests"]
     },

@@ -15,7 +15,7 @@ Ship an additively compatible RC.4 candidate whose long-task routing, convergenc
 
 | Slice | Outcome | Write prefixes | Protected paths | Evidence | Status | Decision |
 |---|---|---|---|---|---|---|
-| S0 | Confirm requirements and freeze an implementation-ready architecture | `docs/workstreams/dev-flow-2.0-rc.4/`, `docs/index.md` | `docs/workstreams/dev-flow-2.0-rc.3/`, `skills/` | traceability, feasibility, counterexample, link/contract, and same-context design audits | complete | D1-D14 |
+| S0 | Confirm requirements and freeze an implementation-ready architecture | `docs/workstreams/dev-flow-2.0-rc.4/`, `docs/index.md` | `docs/workstreams/dev-flow-2.0-rc.3/`, `skills/` | traceability, feasibility, counterexample, link/contract, and same-context design audits | complete | D1-D15 |
 | S1 | Freeze RC.3 compatibility and add failing RC.4 contract fixtures | `evals/`, `docs/workstreams/dev-flow-2.0-rc.4/` | `skills/dev-flow/`, `docs/workstreams/dev-flow-2.0-rc.3/` | focused fixture/schema tests failed for missing RC.4 behavior while RC.3 regression tests passed | complete | D11 |
 | S2 | Add stateless route basis and incremental comparison | `skills/dev-flow/`, `evals/` | `docs/workstreams/dev-flow-2.0-rc.3/` | route unit/property cases; compact/full compatibility; malformed prior-route tests | complete | D2, D11 |
 | S3 | Add the workstream contract, consistency checker, and convergence guard | `skills/dev-flow/`, `evals/`, `docs/workstreams/dev-flow-2.0-rc.4/` | `docs/workstreams/dev-flow-2.0-rc.3/` | contradiction/acceptance matrix; convergence transition tests; worktree fixtures | complete | D3, D4, D8 |
@@ -23,8 +23,8 @@ Ship an additively compatible RC.4 candidate whose long-task routing, convergenc
 | S5 | Add and route `test-system-engineering` | `skills/test-system-engineering/`, `skills/dev-flow/`, `skills/dev-flow-maintainer/`, `governance/`, `evals/` | `governance/methodology-pool.json`, `skills/verification/` | inventory/routing negative controls; discovery/selector/sensitivity/isolation fixtures | complete | D7 |
 | S6 | Complete dirty-worktree and task-history recovery behavior | `skills/dev-flow/`, `evals/` | - | path-prefix fixtures; changed-fact retry semantic cases | complete | D8, D9 |
 | S7 | Extend privacy-safe dogfood and close RC.3 waived semantics | `skills/dev-flow-maintainer/`, `skills/dev-flow/`, `evals/` | - | v1/v2 analyzer tests; renewed-authority and reference-boundary cases | complete | D10, D13 |
-| S8 | Integrate documentation, packaging, compatibility, and release policy | `README.md`, `CHANGELOG.md`, `docs/`, `.codex-plugin/`, `.github/`, `tools/`, `governance/`, `skills/`, `evals/` | `docs/workstreams/dev-flow-2.0-rc.3/` | suite validator; plugin check; static trace/scan; local regression; hosted compatibility workflow | blocked | D11, D12 |
-| S9 | Freeze and qualify the exact RC.4 candidate | `docs/workstreams/dev-flow-2.0-rc.4/`, `docs/releasing.md`, `CHANGELOG.md` | `docs/workstreams/dev-flow-2.0-rc.3/` | final R1-R3; independent review; three complete R4 attempts; reproducible artifact and exact identity checks | pending | D12-D14 |
+| S8 | Integrate documentation, packaging, compatibility, and release policy | `README.md`, `CHANGELOG.md`, `docs/`, `.codex-plugin/`, `.github/`, `tools/`, `governance/`, `skills/`, `evals/` | `docs/workstreams/dev-flow-2.0-rc.3/` | suite validator; plugin check; static trace/scan; local regression; hosted compatibility workflow | complete | D11, D12, D15 |
+| S9 | Freeze and qualify the exact RC.4 candidate | `docs/workstreams/dev-flow-2.0-rc.4/`, `docs/releasing.md`, `CHANGELOG.md` | `docs/workstreams/dev-flow-2.0-rc.3/` | final R1-R3; independent review; complete R4 evidence or explicit owner waiver; reproducible artifact and exact identity checks | in-progress | D12, D13, D14, D15 |
 
 ## Slice details
 

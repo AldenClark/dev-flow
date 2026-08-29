@@ -16,7 +16,7 @@ from typing import Any
 SCHEMA = "dev-flow.rc4.traceability.v1"
 REQUIREMENT_PATTERN = re.compile(r"<!-- requirement: (RC4-[A-Z-]+) -->")
 DECISION_PATTERN = re.compile(r"^## (D[1-9][0-9]*):", re.MULTILINE)
-IMPLEMENTATION_DECISION_PATTERN = re.compile(r"\bD(?:[1-9]|1[0-4])\b")
+IMPLEMENTATION_DECISION_PATTERN = re.compile(r"\bD(?:[1-9]|1[0-5])\b")
 
 
 def matches(path: str, declaration: str) -> bool:
@@ -203,8 +203,8 @@ def validate(root: Path, *, check_worktree: bool, check_event: bool = False) -> 
     if sorted(observed) != sorted(required):
         errors.append(f"required/observed requirement drift: required={sorted(required)}, observed={sorted(observed)}")
     expected_decisions = set(source_decisions)
-    if expected_decisions != {f"D{index}" for index in range(1, 15)}:
-        errors.append(f"decisions.md D1-D14 source drift: {sorted(expected_decisions)}")
+    if expected_decisions != {f"D{index}" for index in range(1, 16)}:
+        errors.append(f"decisions.md D1-D15 source drift: {sorted(expected_decisions)}")
     implementation_decisions = implementation_decision_ids(implementation_text)
     if implementation_decisions != expected_decisions:
         errors.append(

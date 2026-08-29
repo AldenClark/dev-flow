@@ -204,7 +204,7 @@ Forbidden edges include unchanged `ROUTED -> ROUTED`, unresolved `CONVERGENCE_DE
 ## Static traceability and drift
 <!-- requirement: RC4-SCAN -->
 
-- RC.4 keeps a bidirectional machine-checked trace from stable requirement IDs and D1-D14 decisions to implementation owners and executable test/case IDs.
+- RC.4 keeps a bidirectional machine-checked trace from stable requirement IDs and D1-D15 decisions to implementation owners and executable test/case IDs.
 - Local implementation scans cover every changed worktree path; clean CI scans derive changed files from the immutable event base/head diff rather than an empty checkout worktree.
 - A reported 100% means every declared RC.4 requirement has existing implementation and a structurally verified executable test/case reference, and every changed path is owned. It does not claim branch, statement, semantic, runtime, or cross-platform coverage.
 
@@ -214,6 +214,8 @@ Forbidden edges include unchanged `ROUTED -> ROUTED`, unresolved `CONVERGENCE_DE
 - R1-R3 remain deterministic and repository-native.
 - Development uses focused RC.4 transition and failure cases; failed auxiliary evaluator work obeys the same two-strike convergence rule.
 - Final R4 retains three complete-catalog independent first attempts on one frozen semantic candidate. Spend is bounded by completing dry-run runner/observer/catalog contracts and focused semantic development before freeze; qualification has no content retries or local evaluator tuning.
+- Every live execution reserves its complete allowance from one cumulative campaign ledger before model spend. Unchanged semantic-runtime and qualification-execution identities reject a rerun and reuse prior evidence; changed identity invalidates only the affected claim and does not itself renew spend authority. Interruptions terminate the process tree and preserve bounded partial evidence and known usage.
+- After two auxiliary repairs without primary qualification progress, further execution requires an explicit owner disposition. A bounded release-specific exception is `WAIVED`, not `PASSED`, and cannot support stable-release or population-effectiveness claims.
 - Model evidence binds to the exact semantic runtime inputs and a separate qualification-execution identity covering the runner's transitive repository-local dependencies, complete catalog/fixtures, observer/scoring contracts, Codex executable digest, model/reasoning settings, and environment policy. Bounded evidence-only documentation may be recorded afterward only when an allowlist proves both identities unchanged. Deterministic, artifact, manifest, and install evidence binds to the final release commit.
 - Live model execution requires separate model and token-budget authority. Lack of that authority is `NOT RUN` and cannot qualify the release.
 - Independent review requires an actually dispatched clean-context reviewer. Without that authority, same-context review reports `common-mode-risk` and does not satisfy the independent gate.

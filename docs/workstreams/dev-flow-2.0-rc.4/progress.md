@@ -4,7 +4,7 @@
 ## Status
 
 - State: active
-- Current slice: S8
+- Current slice: S9
 - Terminal condition: S0-S9 are complete; all required deterministic, independent-review, three-attempt complete-catalog R4, semantic-runtime identity, qualification-execution identity, final-release commit, artifact, and compatibility gates pass; every residual condition is honestly disposed; delivery actions remain separately authorized.
 - Updated: 2026-08-29
 
@@ -36,14 +36,17 @@
 - Hosted run `33228235799` converted HC4's unknown flake into a deterministic token/CLI defect: diagnostic attempt 23 generated an opaque URL-safe token beginning with `-`, so argparse rejected the separate `--token VALUE` argument with return code 2. Issued tokens now carry a fixed `lease_` prefix and a forced-leading-dash regression proves CLI release. The same run proved the real Windows Job Object descendant-cleanup test on Python 3.11 and 3.14; its remaining Windows failure was an unrelated test portability error when mocking absent `os.O_NOFOLLOW`, now corrected with an explicit synthetic attribute.
 - Interim independent recheck rejected two incomplete repairs: section digests could remain stale while identity manifests/execution inputs changed, and post-spawn Job assignment left a pre-assignment descendant escape race that the delayed integration test did not exercise. Frozen verification now compares complete identity sections and recomputes the execution-input digest. Windows 10+/Server 2016+ creation uses `PROC_THREAD_ATTRIBUTE_JOB_LIST` plus an explicit inherited-handle list, so containment is established before the initial thread runs; the hosted integration removes the delay and repeats ten immediate-spawn attempts.
 - The resulting local snapshot passed 614/614 tests with only the real Windows test skipped on macOS, followed by all 39 structural contracts, 100% ownership coverage of all eight changed paths, zero static drift findings, methodology/knowledge/plugin/Suite/data-security validators, compilation, and diff checks.
+- Final independent review of the D15 release diff passed with no Major, Moderate, or Minor actionable finding. Its fresh checks produced 628 passes and one macOS-only Windows integration skip, 73 focused runner/identity/static passes with the same skip, an eight-process campaign contention pass, 100% D1-D15 traceability, zero drift, and 16/16 changed paths owned.
 
 ## Current slice
 
-S8 remains active on causal hosted repairs and second-round independent-review corrections. The second 25-attempt diagnostic reproduced release failure on attempt 23 with return code 2 and full stderr, proving that URL-safe token generation could begin with `-` and collide with argparse option parsing. The token prefix, identity-section integrity, creation-time Windows containment, and Windows test-portability repairs are under final deterministic and hosted verification. The earlier post-spawn Job Object integration passed on Python 3.11 and 3.14 but did not cover the assignment race, so only the new no-delay repeated test can close that boundary. Live three-attempt R4 execution and final hosted artifacts have not run.
+S9 is active on the exact release candidate. The causal token/CLI, identity-section, creation-time Windows containment, and portability repairs passed the complete hosted matrix at run `33228757027`; changes through candidate `066c924` did not touch their platform-sensitive implementation. Independent assessment of `066c924` attempt 1 validated all evidence/digest/mutation chains and found 21/24 cases matched, no forbidden branch, authority violation, out-of-scope mutation, or Git HEAD change. The three mismatches and exact-candidate evidence limits are retained in `audit.md`.
+
+The version owner directed formal RC.4 release after identifying repeated R4 execution and unbounded rerun behavior as the controlling process defect. HC7 is therefore a bounded RC-only `WAIVED` decision, not a model-semantic pass. Because the campaign-control implementation and governance record change both qualification-execution and broad semantic-runtime identities after attempt 1, HC8's post-R4 unchanged-identity condition is also explicitly `WAIVED`; no new R4 run is authorized or useful merely to refresh those identities. D15 now makes future live runs cumulative, identity-aware, interrupt-safe, and fail-closed.
 
 ## Next
 
-Complete the deterministic and full hosted verification for the proven token/CLI and Windows test-portability repairs, then obtain the existing independent reviewer's focused recheck of the new exact SHA. No HC4 waiver is now appropriate because the diagnostic established a repairable root cause. Start the already-authorized R4 execution only after S8/HC4 and final-byte review close. Do not dispatch hosted artifacts, tag, publish, or install while these prerequisite gates remain open.
+Complete local final-byte verification and exact-diff independent review, commit and push the candidate, require exact-SHA semantic plus compatibility CI, then build and verify reproducible local and hosted artifacts, provenance, SBOM, isolated plugin lifecycle, annotated tag, and GitHub prerelease. Do not perform any further model execution. Primary-profile installation and stable 2.0 promotion remain outside this release action.
 
 ## Hard conditions
 
@@ -52,11 +55,11 @@ Complete the deterministic and full hosted verification for the proven token/CLI
 | HC1 | Technology-neutral RC.4 requirement baseline confirmed | implementation | passed | User confirmed on 2026-08-28 |
 | HC2 | Implementation-ready architecture and slice plan passed traceability, feasibility, counterexample, and internal-consistency review | implementation | passed | Same-context pre-implementation validation completed 2026-08-29 in `audit.md`; `common-mode-risk` retained |
 | HC3 | RC.3 public compatibility and current context budgets frozen before source behavior changes | implementation | passed | Baseline captured; current measured budgets are 2,634/2,660 description characters and 17,999/18,000 ordinary static bytes |
-| HC4 | Resource lease/preflight behavior passes the supported Ubuntu/macOS/Windows matrix or unsupported cells remain release-blocking | implementation | failed | Run `33228235799` reproduced the release failure on diagnostic attempt 23: a generated token beginning with `-` caused argparse return code 2; causal prefix repair awaits complete hosted proof |
-| HC5 | RC.3 renewed-authority and reference-comparison waivers closed or explicitly re-waived | qualification | open | S7/S9 |
-| HC6 | Independent clean-context review completed against frozen candidate | qualification | open | Review of `5d7b344` blocked on three Major findings; exact repaired bytes require focused recheck before closure |
-| HC7 | Three complete-catalog model-semantic attempts completed within separately authorized budget | qualification | not-run | User delegated budget choice; frozen plan is Terra/medium, 12M aggregate, 600k/call, 900s/call, 23 complete cases × 3 attempts; S8 must close before execution |
-| HC8 | Semantic-runtime identity, qualification-execution dependency closure, and post-R4 evidence-only allowlist are proved | qualification | open | Independent review found fail-open validation and an overbroad allowlist; local fail-closed repairs pass focused tests, while hosted/final-byte review and post-R4 unchanged-identity proof remain open |
+| HC4 | Resource lease/preflight behavior passes the supported Ubuntu/macOS/Windows matrix or unsupported cells remain release-blocking | implementation | passed | Exact implementation passed Ubuntu, macOS, and Windows/Python 3.11/3.14 in run `33228757027`; later `066c924` changes did not touch the platform-sensitive implementation, and final candidate CI must still revalidate the changed runner scope |
+| HC5 | RC.3 renewed-authority and reference-comparison waivers closed or explicitly re-waived | qualification | passed | Independent `066c924` attempt-1 assessment matched both `DELEGATION-EXPANSION-REQUIRES-RENEWED-AUTHORITY` and `CONTEXT-REFERENCE-REPOSITORY-BOUNDARY` |
+| HC6 | Independent clean-context review completed against frozen candidate | qualification | passed | Final independent diff review against `066c924` baseline reported no actionable finding after fault-injection, admission-ownership, first-failure, and multiprocess-budget corrections |
+| HC7 | Three complete-catalog model-semantic attempts completed within separately authorized budget | qualification | waived | Version owner authorized formal RC.4 release after repeated R4 repairs exceeded the intended budget; exact `066c924` attempt 1 is `MISMATCHED` at 21/24 and is retained as bounded evidence, not relabeled as a pass |
+| HC8 | Semantic-runtime identity, qualification-execution dependency closure, and post-R4 evidence-only allowlist are proved | qualification | waived | Identity machinery is deterministically tested, but D15 runner/governance corrections changed both broad identity domains after attempt 1; owner release disposition forbids another identity-refresh R4 and accepts this RC-only freshness gap |
 | HC9 | Exact final-commit artifact/install/delivery readiness established | qualification | not-run | S9; does not authorize publication |
 
 ## Active convergence checkpoint
@@ -70,13 +73,13 @@ None.
 - Current task writes: the accumulated S0-S8 prefixes declared in `implementation.md`; S9 is evidence-only unless a reviewed repair reopens S8.
 - User-owned pre-existing changes observed at planning start: none.
 - Protected current paths: all released source, RC.3 workstream evidence, tags, and external installations.
-- User authorized starting the release process, continuing the bounded macOS diagnostic, dispatching the new independent review, and choosing/executing the R4 model budget on 2026-08-29. Candidate staging, commits, pushes, hosted CI, the review dispatch, and the non-spending R4 plan have occurred. Tagging, publication, installation, and unrelated external mutation remain unauthorized.
+- User authorized continuing through formal RC.4 release on 2026-08-29, including final candidate commit/push, hosted CI/artifacts, annotated tag, and GitHub prerelease publication. Isolated install/uninstall verification is in scope; primary-profile installation, stable promotion, deployment, and unrelated external mutation remain unauthorized.
 
 ## Evidence limits
 
-- Independent implementation-byte review passed after one early repair/recheck cycle; the later frozen-candidate review blocked on three new Major findings, whose corrections have not yet passed final-byte recheck.
+- Independent implementation-byte review passed for the final D15 diff. Independent attempt-1 assessment is exact-candidate evidence for `066c924`, not a complete three-attempt R4 pass.
 - RC.4 source behavior exists and local deterministic evidence is being finalized; implementation completion is not release qualification.
-- Hosted semantic and complete cross-platform lease evidence has run, including the bounded 25-attempt target-cell diagnostic, but macOS 15/Python 3.14 is contradictory across candidates with unchanged product logic and therefore `flaky`. No model-semantic, live shared-resource, hosted artifact, publication, or install evidence has run; the current repair bytes still require hosted and independent proof.
+- Hosted semantic and complete cross-platform lease evidence passed after the causal token fix. The exact final campaign-control bytes still require hosted CI, artifact/provenance/SBOM, isolated lifecycle, and independent-diff proof. RC.4 retains an explicit model-semantic waiver and makes no stable-release or population-effectiveness claim.
 - Static repository search may miss external or runtime-only consumers.
 - The installed Codex CLI no longer exposes the historical `codex plugin check` subcommand; manifest, inventory, isolated lifecycle, release-artifact, and suite validators pass as the bounded fallback, while the removed CLI surface is `NOT RUN` rather than inferred.
 - Stable 2.0 soak remains future separately authorized work after RC.4 release.

@@ -16,6 +16,8 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
+import secrets
 import shlex
 import shutil
 import signal
@@ -122,6 +124,18 @@ TRUSTED_SHELL_WRAPPERS = {
 
 class TrialError(RuntimeError):
     """Raised for a non-retryable trial setup or execution failure."""
+
+
+CAMPAIGN_BUDGET_SCHEMA = "flow.transition.campaign-budget.v1"
+CAMPAIGN_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
+CAMPAIGN_STATUSES = {
+    "reserved",
+    "running",
+    "failed",
+    "interrupted",
+    "awaiting-manual-assessment",
+}
+MAX_CAMPAIGN_LEDGER_BYTES = 1024 * 1024
 
 
 class _JobObjectBasicLimitInformation(ctypes.Structure):
@@ -533,6 +547,244 @@ def sha256_text(value: str) -> str:
     return sha256_bytes(value.encode("utf-8"))
 
 
+def _validate_campaign_ledger(payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, dict) or set(payload) != {
+        "schema_version",
+        "campaign_id",
+        "maximum_tokens",
+        "allocated_tokens",
+        "runs",
+    }:
+        raise TrialError("campaign budget ledger must use the exact schema")
+    if payload["schema_version"] != CAMPAIGN_BUDGET_SCHEMA:
+        raise TrialError("campaign budget ledger schema is invalid")
+    campaign_id = payload["campaign_id"]
+    if not isinstance(campaign_id, str) or CAMPAIGN_ID_PATTERN.fullmatch(campaign_id) is None:
+        raise TrialError("campaign budget id is invalid")
+    maximum = payload["maximum_tokens"]
+    allocated = payload["allocated_tokens"]
+    if (
+        not isinstance(maximum, int)
+        or isinstance(maximum, bool)
+        or maximum < 1
+        or not isinstance(allocated, int)
+        or isinstance(allocated, bool)
+        or allocated < 0
+        or allocated > maximum
+    ):
+        raise TrialError("campaign budget totals are invalid")
+    runs = payload["runs"]
+    if not isinstance(runs, list):
+        raise TrialError("campaign budget runs must be a list")
+    run_ids: set[str] = set()
+    computed_allocated = 0
+    for run in runs:
+        if not isinstance(run, dict) or set(run) != {
+            "run_id",
+            "semantic_runtime_sha256",
+            "qualification_execution_sha256",
+            "authorized_tokens",
+            "known_consumed_tokens",
+            "status",
+        }:
+            raise TrialError("campaign budget run must use the exact schema")
+        run_id = run["run_id"]
+        if (
+            not isinstance(run_id, str)
+            or re.fullmatch(r"sha256:[0-9a-f]{64}|[A-Za-z0-9][A-Za-z0-9._-]{0,127}", run_id)
+            is None
+            or run_id in run_ids
+        ):
+            raise TrialError("campaign budget run id is invalid or duplicated")
+        run_ids.add(run_id)
+        for key in ("semantic_runtime_sha256", "qualification_execution_sha256"):
+            value = run[key]
+            if not isinstance(value, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", value) is None:
+                raise TrialError(f"campaign budget {key} is invalid")
+        authorized = run["authorized_tokens"]
+        consumed = run["known_consumed_tokens"]
+        if (
+            not isinstance(authorized, int)
+            or isinstance(authorized, bool)
+            or authorized < 1
+            or not isinstance(consumed, int)
+            or isinstance(consumed, bool)
+            or consumed < 0
+            or consumed > authorized
+            or run["status"] not in CAMPAIGN_STATUSES
+        ):
+            raise TrialError("campaign budget run totals or status are invalid")
+        computed_allocated += authorized
+    if computed_allocated != allocated:
+        raise TrialError("campaign budget allocated total is inconsistent")
+    return payload
+
+
+def _read_campaign_ledger(path: Path) -> dict[str, Any] | None:
+    if path.is_symlink():
+        raise TrialError("campaign budget ledger must not be a symlink")
+    if not path.exists():
+        return None
+    try:
+        content = bounded_file_bytes(
+            path, MAX_CAMPAIGN_LEDGER_BYTES, "campaign budget ledger"
+        ).decode("utf-8")
+        payload = json.loads(content)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise TrialError(f"campaign budget ledger is unreadable: {exc}") from exc
+    return _validate_campaign_ledger(payload)
+
+
+def _write_campaign_ledger(path: Path, payload: dict[str, Any]) -> None:
+    _validate_campaign_ledger(payload)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    if temporary.exists() or temporary.is_symlink():
+        raise TrialError("campaign budget temporary path already exists")
+    encoded = (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    if len(encoded) > MAX_CAMPAIGN_LEDGER_BYTES:
+        raise TrialError("campaign budget ledger exceeded its bounded size")
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(encoded)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
+def _with_campaign_guard(path: Path, operation: Any) -> dict[str, Any]:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    guard = path.with_name(path.name + ".guard")
+    if guard.is_symlink():
+        raise TrialError("campaign budget guard must not be a symlink")
+    try:
+        descriptor = os.open(guard, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError as exc:
+        raise TrialError("campaign budget ledger is locked by another or interrupted writer") from exc
+    try:
+        os.close(descriptor)
+        return operation()
+    finally:
+        try:
+            guard.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def reserve_campaign_budget(
+    path: Path,
+    *,
+    campaign_id: str,
+    maximum_tokens: int,
+    run_id: str,
+    requested_tokens: int,
+    semantic_runtime_sha256: str,
+    qualification_execution_sha256: str,
+) -> dict[str, Any]:
+    if not isinstance(campaign_id, str) or CAMPAIGN_ID_PATTERN.fullmatch(campaign_id) is None:
+        raise TrialError("campaign budget id is invalid")
+    if (
+        not isinstance(maximum_tokens, int)
+        or isinstance(maximum_tokens, bool)
+        or not isinstance(requested_tokens, int)
+        or isinstance(requested_tokens, bool)
+        or maximum_tokens < 1
+        or requested_tokens < 1
+        or requested_tokens > maximum_tokens
+    ):
+        raise TrialError("campaign token budget request is invalid")
+
+    def reserve() -> dict[str, Any]:
+        ledger = _read_campaign_ledger(path)
+        if ledger is None:
+            ledger = {
+                "schema_version": CAMPAIGN_BUDGET_SCHEMA,
+                "campaign_id": campaign_id,
+                "maximum_tokens": maximum_tokens,
+                "allocated_tokens": 0,
+                "runs": [],
+            }
+        if ledger["campaign_id"] != campaign_id or ledger["maximum_tokens"] != maximum_tokens:
+            raise TrialError("campaign budget identity or maximum changed")
+        if any(run["run_id"] == run_id for run in ledger["runs"]):
+            raise TrialError("campaign budget run id already exists")
+        if any(
+            run["semantic_runtime_sha256"] == semantic_runtime_sha256
+            and run["qualification_execution_sha256"]
+            == qualification_execution_sha256
+            for run in ledger["runs"]
+        ):
+            raise TrialError(
+                "candidate identities already have campaign evidence; reuse it instead of rerunning"
+            )
+        if ledger["allocated_tokens"] + requested_tokens > maximum_tokens:
+            raise TrialError("campaign token budget would be exceeded")
+        ledger["runs"].append(
+            {
+                "run_id": run_id,
+                "semantic_runtime_sha256": semantic_runtime_sha256,
+                "qualification_execution_sha256": qualification_execution_sha256,
+                "authorized_tokens": requested_tokens,
+                "known_consumed_tokens": 0,
+                "status": "reserved",
+            }
+        )
+        ledger["allocated_tokens"] += requested_tokens
+        _write_campaign_ledger(path, ledger)
+        return ledger
+
+    return _with_campaign_guard(path, reserve)
+
+
+def update_campaign_budget(
+    path: Path,
+    *,
+    run_id: str,
+    known_consumed_tokens: int,
+    status: str,
+) -> dict[str, Any]:
+    if status not in CAMPAIGN_STATUSES - {"reserved"}:
+        raise TrialError("campaign budget update status is invalid")
+    if not isinstance(known_consumed_tokens, int) or isinstance(
+        known_consumed_tokens, bool
+    ):
+        raise TrialError("campaign known consumption is invalid")
+
+    def update() -> dict[str, Any]:
+        ledger = _read_campaign_ledger(path)
+        if ledger is None:
+            raise TrialError("campaign budget ledger is missing")
+        matches = [run for run in ledger["runs"] if run["run_id"] == run_id]
+        if len(matches) != 1:
+            raise TrialError("campaign budget run is missing or duplicated")
+        run = matches[0]
+        if (
+            known_consumed_tokens < run["known_consumed_tokens"]
+            or known_consumed_tokens > run["authorized_tokens"]
+        ):
+            raise TrialError("campaign known consumption is non-monotonic or exceeds authority")
+        run["known_consumed_tokens"] = known_consumed_tokens
+        run["status"] = status
+        _write_campaign_ledger(path, ledger)
+        return ledger
+
+    return _with_campaign_guard(path, update)
+
+
+def campaign_reservation_was_persisted(path: Path, run_id: str) -> bool:
+    guard = path.with_name(path.name + ".guard")
+    if guard.exists() or guard.is_symlink():
+        raise TrialError("campaign reservation state is still guarded or requires recovery")
+    ledger = _read_campaign_ledger(path)
+    if ledger is None:
+        return False
+    return any(run["run_id"] == run_id for run in ledger["runs"])
+
+
 def file_sha256(path: Path) -> str:
     if path.stat().st_size > MAX_IDENTITY_FILE_BYTES:
         raise TrialError("qualification identity file exceeded its bounded size")
@@ -633,7 +885,7 @@ def run_bounded_process(
             )
         else:
             process = subprocess.Popen(command, **kwargs)
-    except Exception:
+    except BaseException:
         if windows_job is not None:
             windows_job.close()
         raise
@@ -657,7 +909,7 @@ def run_bounded_process(
         return subprocess.CompletedProcess(command, returncode, stdout, stderr)
     except subprocess.TimeoutExpired:
         raise
-    except Exception:
+    except BaseException:
         terminate_process_tree(process, windows_job)
         windows_job = None
         raise
@@ -1916,6 +2168,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--plugin-root", type=Path, default=ROOT)
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--max-total-tokens", type=int)
+    parser.add_argument("--campaign-budget-file", type=Path)
+    parser.add_argument("--campaign-id")
+    parser.add_argument("--campaign-max-total-tokens", type=int)
     parser.add_argument("--per-call-token-limit", type=int)
     parser.add_argument("--per-call-timeout-seconds", type=int)
     parser.add_argument(
@@ -1928,8 +2183,92 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def close_campaign_run_after_failure(
+    *,
+    campaign_budget_file: Path,
+    run_id: str,
+    output_dir: Path,
+    attempt: int,
+    consumed_tokens: int,
+    pending_usage_tokens: int,
+    attempt_usage_committed: bool,
+    interrupted: bool,
+    error: BaseException,
+) -> dict[str, Any]:
+    failure: dict[str, Any] = {
+        "status": "interrupted" if interrupted else "failed",
+        "phase": "pre-attempt" if attempt < 1 else "attempt",
+        "attempt": attempt,
+        "first_failure": "user interrupt" if interrupted else str(error)[:512],
+        "retry_performed": False,
+    }
+    partial_tokens = 0
+    if attempt >= 1 and not attempt_usage_committed:
+        checkpoint = output_dir / f"usage-in-progress-{attempt:03d}.json"
+        if checkpoint.is_file() and not checkpoint.is_symlink():
+            failure["usage_checkpoint"] = checkpoint.name
+            try:
+                checkpoint_payload = json.loads(
+                    bounded_file_bytes(
+                        checkpoint, MAX_IDENTITY_FILE_BYTES, "usage checkpoint"
+                    ).decode("utf-8")
+                )
+                observed = checkpoint_payload.get("consumed_tokens")
+                if isinstance(observed, int) and not isinstance(observed, bool) and observed >= 0:
+                    partial_tokens = observed
+                    failure["known_consumed_tokens"] = observed
+                failure["usage_complete"] = checkpoint_payload.get("usage_complete")
+            except (TrialError, UnicodeDecodeError, json.JSONDecodeError):
+                failure["usage_complete"] = False
+        evidence_checkpoint = output_dir / f"evidence-in-progress-{attempt:03d}.json"
+        if evidence_checkpoint.is_file() and not evidence_checkpoint.is_symlink():
+            failure["evidence_checkpoint"] = evidence_checkpoint.name
+    known_campaign_tokens = consumed_tokens + max(partial_tokens, pending_usage_tokens)
+    failure["campaign_known_consumed_tokens"] = known_campaign_tokens
+    try:
+        update_campaign_budget(
+            campaign_budget_file,
+            run_id=run_id,
+            known_consumed_tokens=known_campaign_tokens,
+            status="interrupted" if interrupted else "failed",
+        )
+        failure["campaign_ledger_closed"] = True
+    except BaseException as ledger_error:
+        failure["campaign_ledger_closed"] = False
+        failure["campaign_recovery_required"] = True
+        failure["campaign_ledger_error"] = (
+            f"{type(ledger_error).__name__}: {str(ledger_error)[:256]}"
+        )
+    try:
+        (output_dir / "first-failure.json").write_text(
+            json.dumps(failure, indent=2) + "\n", encoding="utf-8"
+        )
+    except BaseException as record_error:
+        failure["failure_record_written"] = False
+        failure["failure_record_error"] = type(record_error).__name__
+    else:
+        failure["failure_record_written"] = True
+    return failure
+
+
+def emit_json(payload: dict[str, Any]) -> None:
+    try:
+        print(json.dumps(payload, indent=2))
+    except (BrokenPipeError, OSError):
+        pass
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    campaign_budget_file: Path | None = None
+    run_id: str | None = None
+    campaign_reservation_started = False
+    campaign_reserved = False
+    output_dir: Path | None = None
+    current_attempt = 0
+    consumed_tokens = 0
+    pending_usage_tokens = 0
+    attempt_usage_committed = False
     try:
         catalog = validate_transition_catalog(
             json.loads(args.catalog.resolve().read_text(encoding="utf-8"))
@@ -1938,6 +2277,11 @@ def main(argv: list[str] | None = None) -> int:
             raise TrialError("--attempts must be positive")
         if args.max_total_tokens is not None and args.max_total_tokens < 1:
             raise TrialError("--max-total-tokens must be positive")
+        if (
+            args.campaign_max_total_tokens is not None
+            and args.campaign_max_total_tokens < 1
+        ):
+            raise TrialError("--campaign-max-total-tokens must be positive")
         if args.per_call_token_limit is not None and args.per_call_token_limit < 1:
             raise TrialError("--per-call-token-limit must be positive")
         if args.per_call_timeout_seconds is not None and args.per_call_timeout_seconds < 1:
@@ -1995,6 +2339,7 @@ def main(argv: list[str] | None = None) -> int:
                 "maximum_total_tokens": args.max_total_tokens,
                 "per_call_token_limit": args.per_call_token_limit,
                 "per_call_timeout_seconds": args.per_call_timeout_seconds,
+                "campaign_maximum_total_tokens": args.campaign_max_total_tokens,
             },
         }
         if not args.execute:
@@ -2017,6 +2362,19 @@ def main(argv: list[str] | None = None) -> int:
             raise TrialError("--per-call-token-limit cannot exceed --max-total-tokens")
         if args.output_dir is None:
             raise TrialError("--execute requires --output-dir")
+        if (
+            args.campaign_budget_file is None
+            or args.campaign_id is None
+            or args.campaign_max_total_tokens is None
+        ):
+            raise TrialError(
+                "--execute requires --campaign-budget-file, --campaign-id, "
+                "and --campaign-max-total-tokens"
+            )
+        if args.max_total_tokens > args.campaign_max_total_tokens:
+            raise TrialError(
+                "--max-total-tokens cannot exceed --campaign-max-total-tokens"
+            )
         plugin_root = args.plugin_root.resolve()
         output_dir = args.output_dir.resolve()
         if output_dir == plugin_root or plugin_root in output_dir.parents:
@@ -2024,28 +2382,64 @@ def main(argv: list[str] | None = None) -> int:
         if args.output_dir.exists() and any(args.output_dir.iterdir()):
             raise TrialError("--output-dir must be absent or empty")
         args.output_dir.mkdir(parents=True, exist_ok=True)
+        execution_policy = {
+            "qualification_requested": args.qualification,
+            "case_ids": [case["id"] for case in selected],
+            "attempts": args.attempts,
+            "maximum_total_tokens": args.max_total_tokens,
+            "per_call_token_limit": args.per_call_token_limit,
+            "per_call_timeout_seconds": args.per_call_timeout_seconds,
+            "campaign_id": args.campaign_id,
+            "campaign_maximum_total_tokens": args.campaign_max_total_tokens,
+        }
         identity = qualification_identity(
             plugin_root=plugin_root,
             catalog=args.catalog.resolve(),
             codex=args.codex,
             model=args.model,
             reasoning_effort=args.reasoning_effort,
-            execution_policy={
-                "qualification_requested": args.qualification,
-                "case_ids": [case["id"] for case in selected],
-                "attempts": args.attempts,
-                "maximum_total_tokens": args.max_total_tokens,
-                "per_call_token_limit": args.per_call_token_limit,
-                "per_call_timeout_seconds": args.per_call_timeout_seconds,
-            },
+            execution_policy=execution_policy,
         )
+        reservation_nonce = secrets.token_hex(16)
+        run_id = sha256_text(
+            json.dumps(
+                {
+                    "output_dir_sha256": sha256_text(str(output_dir)),
+                    "reservation_nonce": reservation_nonce,
+                    "semantic_runtime_sha256": identity["semantic_runtime_identity"][
+                        "sha256"
+                    ],
+                    "qualification_execution_sha256": identity[
+                        "qualification_execution_identity"
+                    ]["sha256"],
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        )
+        campaign_budget_file = args.campaign_budget_file.resolve()
+        campaign_reservation_started = True
+        reserve_campaign_budget(
+            campaign_budget_file,
+            campaign_id=args.campaign_id,
+            maximum_tokens=args.campaign_max_total_tokens,
+            run_id=run_id,
+            requested_tokens=args.max_total_tokens,
+            semantic_runtime_sha256=identity["semantic_runtime_identity"]["sha256"],
+            qualification_execution_sha256=identity[
+                "qualification_execution_identity"
+            ]["sha256"],
+        )
+        campaign_reserved = True
         (args.output_dir / "qualification-identity.json").write_text(
             json.dumps(identity, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
         usage_results: list[dict[str, Any]] = []
         evidence_results: list[dict[str, Any]] = []
-        consumed_tokens = 0
         for attempt in range(1, args.attempts + 1):
+            current_attempt = attempt
+            pending_usage_tokens = 0
+            attempt_usage_committed = False
             try:
                 remaining_tokens = args.max_total_tokens - consumed_tokens
                 if remaining_tokens <= 0:
@@ -2064,59 +2458,42 @@ def main(argv: list[str] | None = None) -> int:
                     evidence_checkpoint=args.output_dir
                     / f"evidence-in-progress-{attempt:03d}.json",
                 )
+                observed_usage = usage.get("consumed_tokens")
+                if (
+                    not isinstance(observed_usage, int)
+                    or isinstance(observed_usage, bool)
+                    or observed_usage < 0
+                ):
+                    raise TrialError("attempt usage is invalid")
+                pending_usage_tokens = observed_usage
                 if qualification_identity(
                     plugin_root=plugin_root,
                     catalog=args.catalog.resolve(),
                     codex=args.codex,
                     model=args.model,
                     reasoning_effort=args.reasoning_effort,
-                    execution_policy={
-                        "qualification_requested": args.qualification,
-                        "case_ids": [case["id"] for case in selected],
-                        "attempts": args.attempts,
-                        "maximum_total_tokens": args.max_total_tokens,
-                        "per_call_token_limit": args.per_call_token_limit,
-                        "per_call_timeout_seconds": args.per_call_timeout_seconds,
-                    },
+                    execution_policy=execution_policy,
                 ) != identity:
                     raise TrialError("qualification identity changed during execution")
-            except (OSError, TrialError) as exc:
-                failure = {
-                    "status": "failed",
-                    "attempt": attempt,
-                    "first_failure": str(exc),
-                    "retry_performed": False,
-                }
-                checkpoint = (
-                    args.output_dir / f"usage-in-progress-{attempt:03d}.json"
+            except (OSError, TrialError, KeyboardInterrupt) as exc:
+                failure = close_campaign_run_after_failure(
+                    campaign_budget_file=campaign_budget_file,
+                    run_id=run_id,
+                    output_dir=output_dir,
+                    attempt=current_attempt,
+                    consumed_tokens=consumed_tokens,
+                    pending_usage_tokens=pending_usage_tokens,
+                    attempt_usage_committed=attempt_usage_committed,
+                    interrupted=isinstance(exc, KeyboardInterrupt),
+                    error=exc,
                 )
-                if checkpoint.is_file() and not checkpoint.is_symlink():
-                    failure["usage_checkpoint"] = checkpoint.name
-                    try:
-                        checkpoint_payload = json.loads(
-                            checkpoint.read_text(encoding="utf-8")
-                        )
-                        failure["known_consumed_tokens"] = checkpoint_payload.get(
-                            "consumed_tokens"
-                        )
-                        failure["usage_complete"] = checkpoint_payload.get(
-                            "usage_complete"
-                        )
-                    except (OSError, json.JSONDecodeError):
-                        failure["usage_complete"] = False
-                evidence_checkpoint = (
-                    args.output_dir / f"evidence-in-progress-{attempt:03d}.json"
-                )
-                if evidence_checkpoint.is_file() and not evidence_checkpoint.is_symlink():
-                    failure["evidence_checkpoint"] = evidence_checkpoint.name
-                (args.output_dir / "first-failure.json").write_text(
-                    json.dumps(failure, indent=2) + "\n", encoding="utf-8"
-                )
-                print(json.dumps(failure, indent=2))
-                return 1
+                emit_json(failure)
+                return 130 if isinstance(exc, KeyboardInterrupt) else 1
             target = args.output_dir / f"attempt-{attempt:03d}-evidence.json"
             target.write_text(json.dumps(evidence, indent=2) + "\n", encoding="utf-8")
             consumed_tokens += usage["consumed_tokens"]
+            pending_usage_tokens = 0
+            attempt_usage_committed = True
             usage["attempt"] = attempt
             usage["aggregate_maximum_tokens"] = args.max_total_tokens
             usage["aggregate_consumed_tokens"] = consumed_tokens
@@ -2132,6 +2509,12 @@ def main(argv: list[str] | None = None) -> int:
             if evidence_checkpoint.exists():
                 evidence_checkpoint.unlink()
             usage_results.append(usage)
+            update_campaign_budget(
+                campaign_budget_file,
+                run_id=run_id,
+                known_consumed_tokens=consumed_tokens,
+                status="running",
+            )
             evidence_results.append(
                 {
                     "attempt": attempt,
@@ -2151,10 +2534,79 @@ def main(argv: list[str] | None = None) -> int:
         }
         summary = args.output_dir / "qualification-summary.json"
         summary.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-        print(json.dumps(result, indent=2))
+        update_campaign_budget(
+            campaign_budget_file,
+            run_id=run_id,
+            known_consumed_tokens=consumed_tokens,
+            status="awaiting-manual-assessment",
+        )
+        emit_json(result)
         return 0
-    except (OSError, json.JSONDecodeError, ActivationContractError, TrialError) as exc:
-        print(json.dumps({"status": "invalid", "errors": [str(exc)]}, indent=2))
+    except (Exception, KeyboardInterrupt) as exc:
+        admission_recovery_error: BaseException | None = None
+        if (
+            campaign_reservation_started
+            and not campaign_reserved
+            and not isinstance(exc, TrialError)
+            and campaign_budget_file is not None
+            and run_id is not None
+        ):
+            try:
+                campaign_reserved = campaign_reservation_was_persisted(
+                    campaign_budget_file, run_id
+                )
+            except BaseException as recovery_error:
+                admission_recovery_error = recovery_error
+        if (
+            campaign_reserved
+            and campaign_budget_file is not None
+            and run_id is not None
+            and output_dir is not None
+        ):
+            failure = close_campaign_run_after_failure(
+                campaign_budget_file=campaign_budget_file,
+                run_id=run_id,
+                output_dir=output_dir,
+                attempt=current_attempt,
+                consumed_tokens=consumed_tokens,
+                pending_usage_tokens=pending_usage_tokens,
+                attempt_usage_committed=attempt_usage_committed,
+                interrupted=isinstance(exc, KeyboardInterrupt),
+                error=exc,
+            )
+            emit_json(failure)
+            return 130 if isinstance(exc, KeyboardInterrupt) else 1
+        if admission_recovery_error is not None and output_dir is not None:
+            failure = {
+                "status": "interrupted" if isinstance(exc, KeyboardInterrupt) else "failed",
+                "phase": "campaign-admission",
+                "attempt": 0,
+                "first_failure": "user interrupt"
+                if isinstance(exc, KeyboardInterrupt)
+                else str(exc)[:512],
+                "retry_performed": False,
+                "campaign_ledger_closed": False,
+                "campaign_recovery_required": True,
+                "campaign_ledger_error": (
+                    f"{type(admission_recovery_error).__name__}: "
+                    f"{str(admission_recovery_error)[:256]}"
+                ),
+            }
+            try:
+                (output_dir / "first-failure.json").write_text(
+                    json.dumps(failure, indent=2) + "\n", encoding="utf-8"
+                )
+            except BaseException as record_error:
+                failure["failure_record_written"] = False
+                failure["failure_record_error"] = type(record_error).__name__
+            else:
+                failure["failure_record_written"] = True
+            emit_json(failure)
+            return 130 if isinstance(exc, KeyboardInterrupt) else 1
+        if isinstance(exc, KeyboardInterrupt):
+            emit_json({"status": "interrupted", "model_spend_started": False})
+            return 130
+        emit_json({"status": "invalid", "errors": [str(exc)]})
         return 2
 
 

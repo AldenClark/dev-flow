@@ -28,6 +28,40 @@ def load_runner_module():
     return module
 
 
+def fake_qualification_identity(**kwargs):
+    del kwargs
+    return {
+        "schema_version": "synthetic",
+        "semantic_runtime_identity": {"sha256": "sha256:" + "1" * 64},
+        "qualification_execution_identity": {"sha256": "sha256:" + "2" * 64},
+    }
+
+
+def execution_arguments(root: Path) -> list[str]:
+    return [
+        "--execute",
+        "--acknowledge-model-spend",
+        "--model",
+        "test-model",
+        "--reasoning-effort",
+        "low",
+        "--output-dir",
+        str(root / "evidence"),
+        "--max-total-tokens",
+        "100",
+        "--campaign-budget-file",
+        str(root / "campaign.json"),
+        "--campaign-id",
+        "rc4-release",
+        "--campaign-max-total-tokens",
+        "100",
+        "--per-call-token-limit",
+        "100",
+        "--per-call-timeout-seconds",
+        "60",
+    ]
+
+
 class TransitionRunnerTests(unittest.TestCase):
     def test_every_codex_lineage_disables_shell_environment_inheritance(self) -> None:
         runner = load_runner_module()
@@ -112,6 +146,9 @@ class TransitionRunnerTests(unittest.TestCase):
                 "plugin_root",
                 "output_dir",
                 "max_total_tokens",
+                "campaign_budget_file",
+                "campaign_id",
+                "campaign_max_total_tokens",
                 "per_call_token_limit",
                 "per_call_timeout_seconds",
                 "qualification",
@@ -320,6 +357,7 @@ class TransitionRunnerTests(unittest.TestCase):
                 "maximum_total_tokens": None,
                 "per_call_token_limit": None,
                 "per_call_timeout_seconds": None,
+                "campaign_maximum_total_tokens": None,
             },
         )
         self.assertGreaterEqual(len(result["cases"]), 8)
@@ -555,6 +593,458 @@ class TransitionRunnerTests(unittest.TestCase):
             )
         self.assertEqual(completed.returncode, 2)
         self.assertIn("--max-total-tokens, --per-call-token-limit", completed.stdout)
+
+    def test_execute_requires_campaign_budget_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(RUNNER),
+                    "--execute",
+                    "--acknowledge-model-spend",
+                    "--model",
+                    "test-model",
+                    "--reasoning-effort",
+                    "low",
+                    "--output-dir",
+                    str(Path(temporary) / "evidence"),
+                    "--max-total-tokens",
+                    "100",
+                    "--per-call-token-limit",
+                    "100",
+                    "--per-call-timeout-seconds",
+                    "60",
+                ],
+                cwd=ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        self.assertEqual(completed.returncode, 2)
+        self.assertIn("--campaign-budget-file", completed.stdout)
+
+    def test_campaign_budget_is_cumulative_and_identity_aware(self) -> None:
+        runner = load_runner_module()
+        with tempfile.TemporaryDirectory() as temporary:
+            ledger = Path(temporary) / "campaign.json"
+            first = runner.reserve_campaign_budget(
+                ledger,
+                campaign_id="rc4-release",
+                maximum_tokens=100,
+                run_id="run-one",
+                requested_tokens=60,
+                semantic_runtime_sha256="sha256:" + "1" * 64,
+                qualification_execution_sha256="sha256:" + "2" * 64,
+            )
+            self.assertEqual(first["allocated_tokens"], 60)
+            runner.update_campaign_budget(
+                ledger,
+                run_id="run-one",
+                known_consumed_tokens=25,
+                status="interrupted",
+            )
+            with self.assertRaisesRegex(runner.TrialError, "already have campaign evidence"):
+                runner.reserve_campaign_budget(
+                    ledger,
+                    campaign_id="rc4-release",
+                    maximum_tokens=100,
+                    run_id="run-two",
+                    requested_tokens=20,
+                    semantic_runtime_sha256="sha256:" + "1" * 64,
+                    qualification_execution_sha256="sha256:" + "2" * 64,
+                )
+            second = runner.reserve_campaign_budget(
+                ledger,
+                campaign_id="rc4-release",
+                maximum_tokens=100,
+                run_id="run-three",
+                requested_tokens=40,
+                semantic_runtime_sha256="sha256:" + "3" * 64,
+                qualification_execution_sha256="sha256:" + "2" * 64,
+            )
+            self.assertEqual(second["allocated_tokens"], 100)
+            with self.assertRaisesRegex(runner.TrialError, "already have campaign evidence"):
+                runner.reserve_campaign_budget(
+                    ledger,
+                    campaign_id="rc4-release",
+                    maximum_tokens=100,
+                    run_id="run-one-again-after-another-candidate",
+                    requested_tokens=1,
+                    semantic_runtime_sha256="sha256:" + "1" * 64,
+                    qualification_execution_sha256="sha256:" + "2" * 64,
+                )
+            with self.assertRaisesRegex(runner.TrialError, "campaign token budget"):
+                runner.reserve_campaign_budget(
+                    ledger,
+                    campaign_id="rc4-release",
+                    maximum_tokens=100,
+                    run_id="run-four",
+                    requested_tokens=1,
+                    semantic_runtime_sha256="sha256:" + "4" * 64,
+                    qualification_execution_sha256="sha256:" + "2" * 64,
+                )
+            persisted = json.loads(ledger.read_text(encoding="utf-8"))
+        self.assertEqual(persisted["allocated_tokens"], 100)
+        self.assertEqual(persisted["runs"][0]["known_consumed_tokens"], 25)
+        self.assertEqual(persisted["runs"][0]["status"], "interrupted")
+
+    def test_campaign_budget_rejects_malformed_or_locked_state(self) -> None:
+        runner = load_runner_module()
+        with tempfile.TemporaryDirectory() as temporary:
+            ledger = Path(temporary) / "campaign.json"
+            ledger.write_text("{}\n", encoding="utf-8")
+            with self.assertRaisesRegex(runner.TrialError, "exact schema"):
+                runner.reserve_campaign_budget(
+                    ledger,
+                    campaign_id="rc4-release",
+                    maximum_tokens=100,
+                    run_id="run-one",
+                    requested_tokens=10,
+                    semantic_runtime_sha256="sha256:" + "1" * 64,
+                    qualification_execution_sha256="sha256:" + "2" * 64,
+                )
+            ledger.unlink()
+            ledger.with_name("campaign.json.guard").write_text("locked\n", encoding="utf-8")
+            with self.assertRaisesRegex(runner.TrialError, "locked"):
+                runner.reserve_campaign_budget(
+                    ledger,
+                    campaign_id="rc4-release",
+                    maximum_tokens=100,
+                    run_id="run-one",
+                    requested_tokens=10,
+                    semantic_runtime_sha256="sha256:" + "1" * 64,
+                    qualification_execution_sha256="sha256:" + "2" * 64,
+                )
+
+    def test_campaign_budget_rejects_boolean_token_values(self) -> None:
+        runner = load_runner_module()
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaisesRegex(runner.TrialError, "token budget request"):
+                runner.reserve_campaign_budget(
+                    Path(temporary) / "campaign.json",
+                    campaign_id="rc4-release",
+                    maximum_tokens=True,
+                    run_id="run-one",
+                    requested_tokens=1,
+                    semantic_runtime_sha256="sha256:" + "1" * 64,
+                    qualification_execution_sha256="sha256:" + "2" * 64,
+                )
+
+    def test_bounded_process_cleans_up_on_keyboard_interrupt(self) -> None:
+        runner = load_runner_module()
+        process = mock.Mock()
+        process.pid = 12345
+        process.communicate.side_effect = KeyboardInterrupt
+        process.returncode = None
+        with (
+            mock.patch.object(runner.subprocess, "Popen", return_value=process),
+            mock.patch.object(runner, "terminate_process_tree") as terminate,
+            self.assertRaises(KeyboardInterrupt),
+        ):
+            runner.run_bounded_process(
+                ["synthetic"],
+                timeout=1,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+        terminate.assert_called_once_with(process, None)
+
+    def test_pre_attempt_interrupt_closes_reserved_campaign(self) -> None:
+        runner = load_runner_module()
+        original_write_text = Path.write_text
+
+        def interrupt_identity(path, *args, **kwargs):
+            if path.name == "qualification-identity.json":
+                raise KeyboardInterrupt
+            return original_write_text(path, *args, **kwargs)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with (
+                mock.patch.object(
+                    runner, "qualification_identity", side_effect=fake_qualification_identity
+                ),
+                mock.patch.object(Path, "write_text", interrupt_identity),
+            ):
+                result = runner.main(execution_arguments(root))
+            ledger = json.loads((root / "campaign.json").read_text(encoding="utf-8"))
+            failure = json.loads(
+                (root / "evidence" / "first-failure.json").read_text(encoding="utf-8")
+            )
+        self.assertEqual(result, 130)
+        self.assertEqual(ledger["runs"][0]["status"], "interrupted")
+        self.assertEqual(ledger["runs"][0]["known_consumed_tokens"], 0)
+        self.assertTrue(failure["campaign_ledger_closed"])
+        self.assertEqual(failure["phase"], "pre-attempt")
+
+    def test_interrupt_after_persisted_reservation_is_recovered(self) -> None:
+        runner = load_runner_module()
+        original_reserve = runner.reserve_campaign_budget
+
+        def persist_then_interrupt(*args, **kwargs):
+            original_reserve(*args, **kwargs)
+            raise KeyboardInterrupt
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with (
+                mock.patch.object(
+                    runner, "qualification_identity", side_effect=fake_qualification_identity
+                ),
+                mock.patch.object(
+                    runner, "reserve_campaign_budget", side_effect=persist_then_interrupt
+                ),
+            ):
+                result = runner.main(execution_arguments(root))
+            ledger = json.loads((root / "campaign.json").read_text(encoding="utf-8"))
+            failure = json.loads(
+                (root / "evidence" / "first-failure.json").read_text(encoding="utf-8")
+            )
+        self.assertEqual(result, 130)
+        self.assertEqual(ledger["runs"][0]["status"], "interrupted")
+        self.assertEqual(ledger["runs"][0]["known_consumed_tokens"], 0)
+        self.assertTrue(failure["campaign_ledger_closed"])
+
+    def test_preexisting_exact_run_is_not_claimed_by_failed_admission(self) -> None:
+        runner = load_runner_module()
+        nonce = "a" * 32
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output_dir = (root / "evidence").resolve()
+            run_id = runner.sha256_text(
+                json.dumps(
+                    {
+                        "output_dir_sha256": runner.sha256_text(str(output_dir)),
+                        "reservation_nonce": nonce,
+                        "semantic_runtime_sha256": "sha256:" + "1" * 64,
+                        "qualification_execution_sha256": "sha256:" + "2" * 64,
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+            )
+            runner.reserve_campaign_budget(
+                root / "campaign.json",
+                campaign_id="rc4-release",
+                maximum_tokens=100,
+                run_id=run_id,
+                requested_tokens=100,
+                semantic_runtime_sha256="sha256:" + "1" * 64,
+                qualification_execution_sha256="sha256:" + "2" * 64,
+            )
+            with (
+                mock.patch.object(
+                    runner, "qualification_identity", side_effect=fake_qualification_identity
+                ),
+                mock.patch.object(runner.secrets, "token_hex", return_value=nonce),
+            ):
+                result = runner.main(execution_arguments(root))
+            ledger = json.loads((root / "campaign.json").read_text(encoding="utf-8"))
+            failure_exists = (root / "evidence" / "first-failure.json").exists()
+        self.assertEqual(result, 2)
+        self.assertEqual(ledger["runs"][0]["status"], "reserved")
+        self.assertEqual(ledger["runs"][0]["known_consumed_tokens"], 0)
+        self.assertFalse(failure_exists)
+
+    def test_post_model_evidence_failure_preserves_usage_and_closes_campaign(self) -> None:
+        runner = load_runner_module()
+        original_write_text = Path.write_text
+
+        def fail_evidence(path, *args, **kwargs):
+            if path.name == "attempt-001-evidence.json":
+                raise OSError("synthetic evidence write failure")
+            return original_write_text(path, *args, **kwargs)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with (
+                mock.patch.object(
+                    runner, "qualification_identity", side_effect=fake_qualification_identity
+                ),
+                mock.patch.object(
+                    runner,
+                    "run_attempt",
+                    return_value=({"schema_version": "synthetic"}, {"consumed_tokens": 7}),
+                ),
+                mock.patch.object(Path, "write_text", fail_evidence),
+            ):
+                result = runner.main(execution_arguments(root))
+            ledger = json.loads((root / "campaign.json").read_text(encoding="utf-8"))
+            failure = json.loads(
+                (root / "evidence" / "first-failure.json").read_text(encoding="utf-8")
+            )
+        self.assertEqual(result, 1)
+        self.assertEqual(ledger["runs"][0]["status"], "failed")
+        self.assertEqual(ledger["runs"][0]["known_consumed_tokens"], 7)
+        self.assertEqual(failure["campaign_known_consumed_tokens"], 7)
+        self.assertTrue(failure["campaign_ledger_closed"])
+
+    def test_campaign_update_failure_writes_recovery_record(self) -> None:
+        runner = load_runner_module()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with (
+                mock.patch.object(
+                    runner, "qualification_identity", side_effect=fake_qualification_identity
+                ),
+                mock.patch.object(
+                    runner,
+                    "run_attempt",
+                    return_value=({"schema_version": "synthetic"}, {"consumed_tokens": 7}),
+                ),
+                mock.patch.object(
+                    runner,
+                    "update_campaign_budget",
+                    side_effect=runner.TrialError("synthetic ledger failure"),
+                ),
+            ):
+                result = runner.main(execution_arguments(root))
+            failure = json.loads(
+                (root / "evidence" / "first-failure.json").read_text(encoding="utf-8")
+            )
+        self.assertEqual(result, 1)
+        self.assertFalse(failure["campaign_ledger_closed"])
+        self.assertTrue(failure["campaign_recovery_required"])
+        self.assertEqual(failure["campaign_known_consumed_tokens"], 7)
+
+    def test_post_model_usage_and_summary_failures_close_campaign(self) -> None:
+        runner = load_runner_module()
+        original_write_text = Path.write_text
+        for failing_name in ("usage-001.json", "qualification-summary.json"):
+            with self.subTest(failing_name=failing_name), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+
+                def fail_selected(path, *args, **kwargs):
+                    if path.name == failing_name:
+                        raise OSError(f"synthetic {failing_name} failure")
+                    return original_write_text(path, *args, **kwargs)
+
+                with (
+                    mock.patch.object(
+                        runner,
+                        "qualification_identity",
+                        side_effect=fake_qualification_identity,
+                    ),
+                    mock.patch.object(
+                        runner,
+                        "run_attempt",
+                        return_value=(
+                            {"schema_version": "synthetic"},
+                            {"consumed_tokens": 7},
+                        ),
+                    ),
+                    mock.patch.object(Path, "write_text", fail_selected),
+                ):
+                    result = runner.main(execution_arguments(root))
+                ledger = json.loads(
+                    (root / "campaign.json").read_text(encoding="utf-8")
+                )
+                failure = json.loads(
+                    (root / "evidence" / "first-failure.json").read_text(
+                        encoding="utf-8"
+                    )
+                )
+                self.assertEqual(result, 1)
+                self.assertEqual(ledger["runs"][0]["status"], "failed")
+                self.assertEqual(ledger["runs"][0]["known_consumed_tokens"], 7)
+                self.assertEqual(failure["campaign_known_consumed_tokens"], 7)
+                self.assertTrue(failure["campaign_ledger_closed"])
+
+    def test_secondary_broken_pipe_preserves_primary_failure(self) -> None:
+        runner = load_runner_module()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with (
+                mock.patch.object(
+                    runner, "qualification_identity", side_effect=fake_qualification_identity
+                ),
+                mock.patch.object(
+                    runner,
+                    "run_attempt",
+                    side_effect=runner.TrialError("PRIMARY"),
+                ),
+                mock.patch("builtins.print", side_effect=BrokenPipeError("SECONDARY")),
+            ):
+                result = runner.main(execution_arguments(root))
+            failure = json.loads(
+                (root / "evidence" / "first-failure.json").read_text(encoding="utf-8")
+            )
+        self.assertEqual(result, 1)
+        self.assertEqual(failure["first_failure"], "PRIMARY")
+        self.assertTrue(failure["campaign_ledger_closed"])
+
+    def test_concurrent_campaign_reservations_cannot_overspend(self) -> None:
+        worker = r'''
+import importlib.util
+from pathlib import Path
+import sys
+import time
+
+runner_path, ledger_text, start_text, index_text = sys.argv[1:]
+spec = importlib.util.spec_from_file_location("transition_runner_worker", runner_path)
+module = importlib.util.module_from_spec(spec)
+assert spec and spec.loader
+spec.loader.exec_module(module)
+start = Path(start_text)
+while not start.exists():
+    time.sleep(0.005)
+index = int(index_text)
+for _ in range(400):
+    try:
+        module.reserve_campaign_budget(
+            Path(ledger_text),
+            campaign_id="concurrent",
+            maximum_tokens=100,
+            run_id=f"run-{index}",
+            requested_tokens=30,
+            semantic_runtime_sha256="sha256:" + f"{index + 1:064x}",
+            qualification_execution_sha256="sha256:" + "f" * 64,
+        )
+        raise SystemExit(0)
+    except module.TrialError as exc:
+        if "locked" in str(exc):
+            time.sleep(0.005)
+            continue
+        if "would be exceeded" in str(exc):
+            raise SystemExit(0)
+        raise
+raise SystemExit(3)
+'''
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            ledger = root / "campaign.json"
+            start = root / "start"
+            processes = [
+                subprocess.Popen(
+                    [
+                        sys.executable,
+                        "-c",
+                        worker,
+                        str(RUNNER),
+                        str(ledger),
+                        str(start),
+                        str(index),
+                    ],
+                    cwd=ROOT,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                )
+                for index in range(8)
+            ]
+            start.write_text("go\n", encoding="utf-8")
+            results = [process.communicate(timeout=20) for process in processes]
+            payload = json.loads(ledger.read_text(encoding="utf-8"))
+        self.assertTrue(
+            all(process.returncode == 0 for process in processes),
+            [(process.returncode, stderr) for process, (_, stderr) in zip(processes, results)],
+        )
+        self.assertEqual(payload["allocated_tokens"], 90)
+        self.assertEqual(sum(run["authorized_tokens"] for run in payload["runs"]), 90)
+        self.assertEqual(len(payload["runs"]), 3)
+        self.assertEqual(len({run["run_id"] for run in payload["runs"]}), 3)
+        self.assertLessEqual(payload["allocated_tokens"], payload["maximum_tokens"])
 
     def test_usage_parser_is_fail_closed(self) -> None:
         runner = load_runner_module()

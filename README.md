@@ -238,7 +238,7 @@ python3 -m compileall -q hooks skills evals tools
 git diff --check
 ```
 
-CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job 执行完整语义/结构/静态追踪检查，focused compatibility matrix 只执行平台和 Python 版本敏感测试。RC.4 的 live R4 仍要求对冻结后的完整 catalog 做三次独立首试；在明确模型与 token 预算授权前保持 `NOT RUN`。模型结果不代表生产力、业务效果或总体质量分数。
+CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job 执行完整语义/结构/静态追踪检查，focused compatibility matrix 只执行平台和 Python 版本敏感测试。RC.4 的 live R4 默认仍要求对冻结后的完整 catalog 做三次独立首试；所有执行共享一个累计、身份感知的 campaign 预算，语义身份与资格执行身份均未变化时拒绝重跑。显式版本负责人豁免必须记为 `WAIVED`，不能写成通过。模型结果不代表生产力、业务效果或总体质量分数。
 
 发版按变更面分为 R1 standard、R2 runtime、R3 artifact/security、R4 model-semantic。`flow-metrics` 只验证分支激活与负向边界，不衡量生产力或效果。具体边界、命令和 `NOT RUN` 规则见 [docs/releasing.md](docs/releasing.md)。
 

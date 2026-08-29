@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [2.0.0-rc.4] - 2026-08-29
 
-Release identity: `2.0.0-rc.4` source candidate; publication, tag, installation, hosted artifacts, and live model qualification remain separate gates.
+Release identity: `2.0.0-rc.4` source candidate; publication, tag, installation, hosted artifacts, and model qualification/waiver remain separate gates.
 
 ### Added
 
@@ -16,14 +16,15 @@ Release identity: `2.0.0-rc.4` source candidate; publication, tag, installation,
 - Added `test-system-engineering` for discovery, selection, sensitivity, isolation, interpretation, and representativeness failures without displacing verification's product-claim ownership.
 - Added privacy-safe dogfood v2 route/convergence/resource/workstream/test-system funnels while preserving v1 behavior and rejecting content, identifiers, paths, and scores.
 - Added semantic-runtime and qualification-execution identities, including the transition runner's repository-local dependency closure and frozen execution configuration.
-- Added machine-checked RC.4 bidirectional traceability covering every requirement, D1-D14, implementation path, test oracle, and changed worktree path.
+- Added machine-checked RC.4 bidirectional traceability covering every requirement, D1-D15, implementation path, test oracle, and changed worktree path.
+- Added a fail-closed cumulative R4 campaign ledger that reserves complete run allowances, rejects unchanged semantic/execution identities, preserves allocations and partial usage across failures, and cleans process trees on interruption.
 
 ### Changed
 
 - Managed workstream templates now carry a strict versioned table contract with separate implementation and qualification gates.
 - Dirty-worktree reconciliation accounts for accumulated completed/current slice prefixes without attributing authorship or mutating user files.
 - Task-history retry requires a changed host/task fact, delegation expansion requires explicit renewed authority, and reference-repository comparison requires an explicit disposition.
-- Final R4 policy retains three complete-catalog independent first attempts on one frozen candidate and forbids subset-only repetition, content retries, post-hoc rescoring, and evaluator tuning.
+- Final R4 policy retains three complete-catalog independent first attempts as the default, forbids subset-only repetition, content retries, post-hoc rescoring, evaluator tuning, and unchanged-identity reruns, and records any bounded version-owner release exception as `WAIVED` rather than passed.
 - Capability description budget increased from 2,500 to 2,660 only for the measured 138-character specialist admission plus 22 characters of margin; the 18,000-byte ordinary-static cap is unchanged.
 
 ### Verification
