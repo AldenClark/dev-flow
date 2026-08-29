@@ -29,14 +29,15 @@
 - Corrected a final-diff review finding where `resource-lease acquire` returned process success for a JSON `conflict`; action-specific CLI exit contracts now fail conflict, forbidden, unavailable, and expired transitions so shell callers cannot infer false ownership.
 - Corrected the local static-scan change source so staged tracked additions/modifications remain in the release-freeze coverage set; a red-first temporary-repository test proves index-only changes cannot disappear from the 100% ownership check.
 - Applied the selected SSDF release controls: required packaged data-security checks passed, no per-file secret/identifier finding remained, all workflow actions are immutable-SHA pinned, no dependency was added, and RC.3 remains the executable rollback target. Five optional live/manual data-security surfaces remain `not_observed`.
+- Received explicit authority to continue the bounded macOS diagnosis, dispatch the frozen-candidate independent review, and choose/execute the R4 model budget. The selected qualification contract is `gpt-5.6-terra`/`medium`, 12,000,000 aggregate tokens, 600,000 tokens per call, and 900 seconds per call; its non-spending full-catalog dry run is qualification-eligible for 23 cases, 50 turns per attempt, and three attempts.
 
 ## Current slice
 
-S8 remains blocked by contradictory hosted evidence. Exact candidate `e808c1a697ab04617d722e5d8ed8864237cc89a1` passed semantic Ubuntu 3.14 and four compatibility cells, but macOS 15/Python 3.14 failed because the release CLI subprocess produced no parseable stdout. After diagnostic assertion `d90c85a` exposed a compatibility-scope omission, red-first repair candidate `75150a3800626039d9d3807963fdb64f13be98aa` ran the complete matrix: semantic Ubuntu 3.14 and all five compatibility cells passed. The product lease implementation did not change between the failed and passing macOS 15/Python 3.14 observations, so that cell is classified `flaky`, not repaired or stably passed. The theoretical-validation diff also lacks a new clean-context review. Live three-attempt R4 model evidence and final hosted artifacts have not run.
+S8 remains active on the contradictory macOS 15/Python 3.14 evidence. Failed and passing runs used the same macOS 15.7.7 arm64 image, Python 3.14.6, runner version, product lease bytes, synthetic input, and isolated temporary-root design; deterministic version drift and shared-directory contamination are therefore rejected hypotheses. User-authorized convergence now permits one final auxiliary diagnostic after the assertion and change-scope repairs: 25 black-box CLI round trips on only that hosted cell, preserving return code/stderr on recurrence and never treating repetition as a qualification retry. A newly authorized independent frozen-byte review is running. Live three-attempt R4 execution and final hosted artifacts have not run.
 
 ## Next
 
-Diagnose the macOS 15/Python 3.14 subprocess flake with a bounded, hypothesis-bearing change or record an explicit owner waiver; repeated unchanged-SHA runs cannot convert the contradictory evidence into a stable pass. Then obtain a clean-context review of the frozen bytes and separately authorize the three-attempt model/token budget before S9. Do not dispatch hosted artifacts, tag, publish, or install while these prerequisite gates remain open.
+Run the single bounded macOS variance diagnostic and reconcile the independent review against its final diff. If the diagnostic reproduces, preserve its process evidence and repair only a proven cause; if it does not, retain HC4 as `flaky` until the version owner explicitly waives the low-frequency hosted residual risk. Start the already-authorized R4 execution only after S8/HC4 and final-byte review close. Do not dispatch hosted artifacts, tag, publish, or install while these prerequisite gates remain open.
 
 ## Hard conditions
 
@@ -47,8 +48,8 @@ Diagnose the macOS 15/Python 3.14 subprocess flake with a bounded, hypothesis-be
 | HC3 | RC.3 public compatibility and current context budgets frozen before source behavior changes | implementation | passed | Baseline captured; current measured budgets are 2,634/2,660 description characters and 17,999/18,000 ordinary static bytes |
 | HC4 | Resource lease/preflight behavior passes the supported Ubuntu/macOS/Windows matrix or unsupported cells remain release-blocking | implementation | flaky | `e808c1a` failed macOS 15/Python 3.14; complete-matrix repair candidate `75150a3` passed all cells without a product lease change, so the contradictory observation remains release-blocking |
 | HC5 | RC.3 renewed-authority and reference-comparison waivers closed or explicitly re-waived | qualification | open | S7/S9 |
-| HC6 | Independent clean-context review completed against frozen candidate | qualification | blocked | Prior implementation review closed four findings, but the later theoretical-validation diff has only same-context review; new delegation authority is absent and `common-mode-risk` remains |
-| HC7 | Three complete-catalog model-semantic attempts completed within separately authorized budget | qualification | not-run | Requires model/token authority at S9 |
+| HC6 | Independent clean-context review completed against frozen candidate | qualification | open | User authorized dispatch; independent reviewer is checking frozen candidate `5d7b344` and will recheck the bounded diagnostic diff before closure |
+| HC7 | Three complete-catalog model-semantic attempts completed within separately authorized budget | qualification | not-run | User delegated budget choice; frozen plan is Terra/medium, 12M aggregate, 600k/call, 900s/call, 23 complete cases × 3 attempts; S8 must close before execution |
 | HC8 | Semantic-runtime identity, qualification-execution dependency closure, and post-R4 evidence-only allowlist are proved | qualification | not-run | Implementation and deterministic mutation tests exist; post-R4 unchanged-identity proof has not run |
 | HC9 | Exact final-commit artifact/install/delivery readiness established | qualification | not-run | S9; does not authorize publication |
 
@@ -63,7 +64,7 @@ None.
 - Current task writes: the accumulated S0-S8 prefixes declared in `implementation.md`; S9 is evidence-only unless a reviewed repair reopens S8.
 - User-owned pre-existing changes observed at planning start: none.
 - Protected current paths: all released source, RC.3 workstream evidence, tags, and external installations.
-- User authorized starting the release process on 2026-08-29; candidate staging, commits, pushes, and hosted CI have occurred. Tagging, publication, installation, unrelated external mutation, and model execution remain unauthorized. A new independent frozen-byte review still needs explicit delegation authority.
+- User authorized starting the release process, continuing the bounded macOS diagnostic, dispatching the new independent review, and choosing/executing the R4 model budget on 2026-08-29. Candidate staging, commits, pushes, hosted CI, the review dispatch, and the non-spending R4 plan have occurred. Tagging, publication, installation, and unrelated external mutation remain unauthorized.
 
 ## Evidence limits
 

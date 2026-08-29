@@ -263,6 +263,9 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
         self.assertIn("PYTHONIOENCODING: utf-8", workflow)
         self.assertNotIn("shell: bash", workflow)
         self.assertIn("Record environment", workflow)
+        self.assertIn("Characterize macOS 15 Python 3.14 resource subprocess variance", workflow)
+        self.assertIn("for attempt in {1..25}", workflow)
+        self.assertIn("ResourceLeaseTests.test_public_cli_acquire_inspect_release_round_trip", workflow)
         self.assertIn("permissions:\n  contents: read", workflow)
 
     def test_authority_bound_change_documents_keep_lf_on_every_runner(self) -> None:

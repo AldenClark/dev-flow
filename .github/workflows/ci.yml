@@ -131,5 +131,15 @@ jobs:
           evals.test_resource_coordination
           -v
 
+      - name: Characterize macOS 15 Python 3.14 resource subprocess variance
+        if: matrix.os == 'macos-15' && matrix.python == '3.14'
+        run: |
+          for attempt in {1..25}; do
+            echo "resource subprocess diagnostic attempt $attempt/25"
+            python -W error::ResourceWarning -m unittest \
+              evals.test_resource_coordination.ResourceLeaseTests.test_public_cli_acquire_inspect_release_round_trip \
+              -v
+          done
+
       - name: Confirm tests did not modify tracked files
         run: git diff --exit-code
