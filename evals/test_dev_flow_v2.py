@@ -1429,6 +1429,7 @@ class ActiveGuidanceTests(unittest.TestCase):
             "does not authorize discovery, install, or an external call",
             "do not substitute Web, browser, MCP, app, computer-use, image-generation, or dynamic tools",
             "continue safe native checks",
+            "execute them in that turn rather than asking the user to restate the task",
             "Never invent MCP server/tool names or treat unrelated local MCP as authorized",
         ):
             with self.subTest(phrase=phrase):
