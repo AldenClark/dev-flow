@@ -20,6 +20,8 @@ VERSION = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding
 PRODUCT_STATE = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
 PUBLISHED_VERSION = PRODUCT_STATE["published"]["latest_rc"]["version"]
 PUBLISHED_TAG = PRODUCT_STATE["published"]["latest_rc"]["tag"]
+SOURCE_PHASE = PRODUCT_STATE["source"]["phase"]
+ROLLBACK_TAG = PRODUCT_STATE["compatibility"]["rollback_target"]
 
 
 def run(*args: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
@@ -177,18 +179,19 @@ class RuntimeLifecycleSmokeTests(unittest.TestCase):
 
 
 class ReleaseWorkflowContractTests(unittest.TestCase):
-    def test_readme_distinguishes_source_candidate_from_published_rollback(self) -> None:
+    def test_readme_distinguishes_source_identity_from_published_and_rollback(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("`v1.1.2` 是最后一个 1.x 稳定标签", readme)
         self.assertRegex(VERSION, r"^2\.0\.0-rc\.\d+$")
-        self.assertIn(f"当前源码候选身份为 `{VERSION}`", readme)
+        source_label = "候选" if SOURCE_PHASE == "source-candidate" else "发布"
+        self.assertIn(f"当前源码{source_label}身份为 `{VERSION}`", readme)
         self.assertIn(f"`{PUBLISHED_TAG}` 是最近已发布", readme)
         self.assertIn(
             f"codex plugin marketplace add AldenClark/dev-flow --ref {PUBLISHED_TAG}",
             readme,
         )
-        self.assertIn(f"`{PUBLISHED_TAG}` 是最近已发布的 convergence-and-operations RC", readme)
-        self.assertIn("发布包含明确记录的 R4 语义豁免", readme)
+        self.assertIn(f"回滚目标为 `{ROLLBACK_TAG}`", readme)
+        self.assertNotEqual(PUBLISHED_TAG, ROLLBACK_TAG)
 
     def test_release_identity_and_lifecycle_claims_match_exercised_evidence(self) -> None:
         attestation = json.loads(

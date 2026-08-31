@@ -4,7 +4,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Current source identity: `2.0.0-rc.5`. Earlier candidates and their R4 failures remain preserved historical diagnostics. The current source contains the MCP-aware and terminal-evidence repairs. A directly affected semantic smoke, lightweight final-diff method review, one final local regression, hosted CI, cross-platform compatibility, tag, artifact, installation, and publication are `NOT RUN` for these bytes. Complete repeated R4 is reserved for a stable release or a separately authorized evaluation study.
+Current source identity: `2.0.0-rc.5`. No post-RC.5 product changes are recorded.
+
+## [2.0.0-rc.5] - 2026-09-01
+
+The immutable `v2.0.0-rc.5` tag and public prerelease are published from candidate `e0656b45060a4cf55abc4d24d57db1809ddd32e0`; exact-commit hosted CI, applicable cross-platform compatibility, artifact/SBOM/provenance verification, and isolated public installation passed. The final diff received a lightweight same-context methodology review, not an independent clean-context review. The affected semantic smoke matched its first turn but its terminal turn omitted explicit final-check and final-limit evidence; this diagnostic residual is preserved, while complete repeated R4 and independent review remain stable-release gates.
 
 ### Added
 

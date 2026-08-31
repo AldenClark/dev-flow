@@ -83,7 +83,8 @@ class ProductStateTests(unittest.TestCase):
         result = VALIDATOR.validate(ROOT)
         self.assertEqual(result["status"], "valid", result["errors"])
         self.assertEqual(result["source_version"], "2.0.0-rc.5")
-        self.assertEqual(result["published_version"], "2.0.0-rc.4")
+        self.assertEqual(result["source_phase"], "released")
+        self.assertEqual(result["published_version"], "2.0.0-rc.5")
         self.assertEqual(result["observations"]["published_tag"], "observed-in-checkout")
         self.assertIn("not remote publication", result["claim_limit"])
         self.assertIn("no delivery", result["claim_limit"])
@@ -114,6 +115,8 @@ class ProductStateTests(unittest.TestCase):
             workstream = target / "docs" / "workstreams" / "dev-flow-2.0-rc.5"
             workstream.mkdir(parents=True)
             state = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
+            state["source"]["phase"] = "source-candidate"
+            state["published"]["latest_rc"] = {"version": "2.0.0-rc.4", "tag": "v2.0.0-rc.4"}
             state["delivery"]["publication"] = "passed"
             (target / "governance" / "product-state.json").write_text(json.dumps(state), encoding="utf-8")
             (target / ".codex-plugin" / "plugin.json").write_text('{"version":"2.0.0-rc.5"}', encoding="utf-8")
@@ -177,6 +180,10 @@ class ProductStateTests(unittest.TestCase):
             state = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
             state["source"]["phase"] = "released"
             state["published"]["latest_rc"] = {"version": "2.0.0-rc.5", "tag": "v2.0.0-rc.5"}
+            state["delivery"]["hosted_ci"] = "not-run"
+            state["delivery"]["cross_platform"] = "not-run"
+            state["delivery"]["isolated_install"] = "not-run"
+            state["delivery"]["model_qualification"] = "not-run"
             for key in ("commit", "tag", "artifact", "publication"):
                 state["delivery"][key] = "passed"
             write_fixture(target, state)
@@ -230,6 +237,7 @@ class ProductStateTests(unittest.TestCase):
             target = Path(directory)
             state = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
             state["source"]["phase"] = "released"
+            state["published"]["latest_rc"] = {"version": "2.0.0-rc.4", "tag": "v2.0.0-rc.4"}
             state["compatibility"]["rollback_target"] = "v2.0.0-rc.5"
             for key in ("commit", "tag", "artifact", "publication"):
                 state["delivery"][key] = "passed"

@@ -14,7 +14,7 @@ Implement the confirmed RC.5 contraction, observability, trust, privacy, and rel
 | S2 | Add read-only diagnostics and private outcome observation | `skills/dev-flow/`, `evals/`, `docs/` | - | privacy, permission, bounded-input, no-score, doctor claim tests | complete | D4 |
 | S3 | Harden trust, DLP confirmation, memory, and dispatch boundaries | `skills/`, `hooks/`, `evals/`, `governance/`, `docs/`, `CHANGELOG.md` | - | adversarial trust and exact user-event confirmation tests | complete | D5, D6, D7 |
 | S4 | Integrate CI, release surfaces, compatibility ownership, and final local evidence | `.github/`, `tools/`, `evals/`, `governance/`, `docs/`, `README.md`, `CHANGELOG.md`, `.codex-plugin/`, `skills/`, `hooks/`, `AGENTS.md` | `docs/workstreams/dev-flow-2.0-rc.4/` | focused and full regression, validators, compile, diff review | complete | D1-D8 |
-| S5 | Repair MCP qualification integrity and complete fresh RC.5 delivery | `evals/`, `skills/dev-flow/`, `governance/`, `docs/`, `README.md`, `CHANGELOG.md` | `docs/workstreams/dev-flow-2.0-rc.4/` | MCP negative controls, full regression, fresh R4, exact-SHA hosted/artifact/install/release evidence | in-progress | D5, D8 |
+| S5 | Repair MCP qualification integrity and complete fresh RC.5 delivery | `evals/`, `skills/dev-flow/`, `governance/`, `docs/`, `README.md`, `CHANGELOG.md` | `docs/workstreams/dev-flow-2.0-rc.4/` | MCP negative controls, full regression, fresh R4, exact-SHA hosted/artifact/install/release evidence | complete | D5, D8 |
 
 ## Acceptance
 
