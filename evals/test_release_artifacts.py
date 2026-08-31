@@ -246,7 +246,7 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
         self.assertIn("  semantic:", workflow)
         self.assertIn("  change-scope:", workflow)
         self.assertIn("  compatibility:", workflow)
-        self.assertIn("fetch-depth: 0", workflow)
+        self.assertEqual(workflow.count("fetch-depth: 0"), 3)
         self.assertIn("python3 tools/ci_change_scope.py", workflow)
         self.assertIn("needs: change-scope", workflow)
         self.assertIn("if: needs.change-scope.outputs.compatibility == 'true'", workflow)
