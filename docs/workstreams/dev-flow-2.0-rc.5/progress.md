@@ -5,7 +5,7 @@
 
 - State: implementation-complete
 - Current slice: S4
-- Terminal condition: local implementation, full regression, truth projections, and independent final-byte review pass; R4, hosted, artifact, install, tag, push, and publication remain separate qualification/delivery gates.
+- Terminal condition: frontmatter activation, full regression, truth projections, and independent final-byte review pass; R4, hosted, artifact, install, tag, push, and publication remain separate qualification/delivery gates.
 - Updated: 2026-08-31
 
 ## Completed outcomes
@@ -21,11 +21,11 @@
 
 ## Current
 
-Candidate `747212860a1222e947d5d453c0b2ab2ac1abfc92` is rejected for release. Two preserved qualification identities stopped at 200,000 and 500,000 per-call token ceilings. A final 2,000,000-per-call identity completed the high-context turn within budget, then failed closed because `TRANSITION-OPTIONAL-CAPABILITY-FAILURE` emitted a prohibited external tool event. The repair makes optional-capability absence explicitly local-only, preserves bounded prohibited event/item identities without payload, and adds exact RC5-TRUST trace oracles. Fresh full regression passed 688 tests in 172.172 seconds with one hosted-Windows skip. Independent re-review found two release-truth/trace P2s and one instrumentation-oracle P3; all were repaired and independently confirmed closed with no remaining P0-P2 finding.
+Candidates `7472128` and `d5222bd` are rejected for release. The first exposed an external-tool boundary violation without exact event identity; the second preserved and reported `event_type=item.started, item_type=mcp_tool_call`. The explicit inner Skill boundary therefore did not activate early enough. The current repair adds optional capability/scanner failure to the main Skill frontmatter so the boundary is loaded before discovery. Fresh full regression passed 689 tests in 136.475 seconds with one hosted-Windows skip; P6 independent review found no remaining P0-P2. A repeat of the same MCP event on the next exact identity is terminal and will not receive a third semantic repair.
 
 ## Next
 
-Freeze a new exact candidate commit and run fresh R4 qualification. Only then proceed to hosted Ubuntu/macOS/Windows compatibility, artifact/SBOM/attestation, isolated-profile installation, tag, push, and publication. Primary-profile mutation remains out of scope.
+Freeze a new exact candidate commit and run one fresh R4 qualification. Only then proceed to hosted Ubuntu/macOS/Windows compatibility, artifact/SBOM/attestation, isolated-profile installation, tag, push, and publication. Primary-profile mutation remains out of scope.
 
 ## Hard conditions
 
@@ -36,9 +36,9 @@ Freeze a new exact candidate commit and run fresh R4 qualification. Only then pr
 | HC3 | Supported CLI, compact routing, and context budgets pass compatibility and negative controls | implementation | passed | Public CLI, route, incremental basis, and context-budget tests passed |
 | HC4 | Doctor and outcome observation pass bounded privacy and claim-limit checks | implementation | passed | Read-only doctor and bounded concurrent private-store tests passed |
 | HC5 | Trust, DLP user-event confirmation, memory, and dispatch boundaries pass adversarial tests | implementation | passed | Trust/profile/DLP/dispatch positive and negative controls passed |
-| HC6 | Final local regression and same-context final-diff review pass | implementation | passed | 688 tests passed in 172.172 seconds after the R4 boundary repair; one hosted-Windows integration remains not-run; validators and final diff checks are rerun after evidence-only updates |
-| HC7 | Independent clean-context review | qualification | passed | P6/xhigh clean-context re-review confirmed both P2 release-truth/trace findings and the P3 instrumentation oracle closed; no remaining P0-P2 finding |
-| HC8 | Hosted compatibility and live model-semantic qualification | qualification | not-run | Rejected candidate `7472128` failed R4 with a prohibited external tool event; corrected final bytes require a fresh exact-identity qualification and hosted matrix |
+| HC6 | Final local regression and same-context final-diff review pass | implementation | passed | Frontmatter activation bytes passed 689 tests in 136.475 seconds; one hosted-Windows integration remains not-run; focused validators and diff checks pass |
+| HC7 | Independent clean-context review | qualification | passed | P6/xhigh final-byte review confirmed frontmatter trigger, implicit invocation, body boundary, truth projections, and test oracle; no remaining P0-P2 finding |
+| HC8 | Hosted compatibility and live model-semantic qualification | qualification | not-run | Candidate `d5222bd` failed R4 with `item_type=mcp_tool_call`; the corrected activation bytes are a new, not-yet-qualified candidate |
 | HC9 | Exact commit, artifact, install, tag, push, and publication | qualification | not-run | Authorized on 2026-08-31; pending HC8 and exact candidate evidence |
 
 ## Active convergence checkpoint

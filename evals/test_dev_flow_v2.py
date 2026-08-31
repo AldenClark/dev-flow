@@ -1409,6 +1409,8 @@ class ActiveGuidanceTests(unittest.TestCase):
     def test_unavailable_optional_capability_stays_repository_local(self) -> None:
         skill = DEV_FLOW_SKILL.read_text(encoding="utf-8")
         calibration = QUALITY_CALIBRATION.read_text(encoding="utf-8")
+        frontmatter = skill.split("---", 2)[1]
+        self.assertIn("optional capability/scanner failure", frontmatter)
         for phrase in (
             "does not authorize discovering, installing, or invoking an external capability",
             "do not call Web, browser, MCP, app, computer-use, image-generation, or dynamic tools",

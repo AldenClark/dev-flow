@@ -1,6 +1,6 @@
 ---
 name: dev-flow
-description: "repository engineering: diagnose/fix bugs; change behavior or architecture; design or change public contracts, data lifecycles; review/verify changes; assess delivery; cross-module/persistent-data/concurrency/migration/external-system/long-running work. Exclude narrow read-only."
+description: "repository engineering: diagnose/fix bugs; change behavior or architecture; design or change public contracts, data lifecycles; review/verify changes; isolate optional capability/scanner failure; assess delivery; cross-module/persistent-data/concurrency/migration/external-system/long-running work. Exclude narrow read-only."
 ---
 
 # Dev Flow
