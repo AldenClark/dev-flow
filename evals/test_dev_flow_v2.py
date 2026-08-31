@@ -1426,9 +1426,10 @@ class ActiveGuidanceTests(unittest.TestCase):
         frontmatter = skill.split("---", 2)[1]
         self.assertIn("optional capability/scanner failure", frontmatter)
         for phrase in (
-            "does not authorize discovering, installing, or invoking an external capability",
-            "do not call Web, browser, MCP, app, computer-use, image-generation, or dynamic tools",
+            "does not authorize discovery, install, or an external call",
+            "do not substitute Web, browser, MCP, app, computer-use, image-generation, or dynamic tools",
             "continue safe native checks",
+            "Never invent MCP server/tool names or treat unrelated local MCP as authorized",
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, skill + "\n" + calibration)

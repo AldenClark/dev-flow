@@ -2,7 +2,7 @@
 
 Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是建立第二套工作流引擎，而是用最少的流程成本保持三件事：长期业务工作不漂移、技术结论有原生工程证据、高后果动作保留明确安全边界。
 
-当前源码候选身份为 `2.0.0-rc.5`。它收敛个人 AI 编程辅助的公共命令面、路由上下文、产品状态、只读诊断、隐私友好成效观测和不可信上下文边界。`v2.0.0-rc.4` 是最近已发布且可固定安装的标签，RC.5 的回滚目标为 `v2.0.0-rc.4`；RC.5 已有本地候选 commit，但 R4 模型资格失败，push、tag、制品、发布、安装和托管兼容仍为 `NOT RUN`。`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
+当前源码候选身份为 `2.0.0-rc.5`。它收敛个人 AI 编程辅助的公共命令面、路由上下文、产品状态、只读诊断、隐私友好成效观测和不可信上下文边界。`v2.0.0-rc.4` 是最近已发布且可固定安装的标签，RC.5 的回滚目标为 `v2.0.0-rc.4`；此前 RC.5 候选的 R4 失败已保留，当前 MCP-aware 修复已形成新的本地候选 commit，但仍需要 fresh R4、托管兼容、制品、安装、tag 和发布证据。`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
 
 ## 2.0 核心模型
 
@@ -257,13 +257,13 @@ python3 -m compileall -q hooks skills evals tools
 git diff --check
 ```
 
-CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job 执行完整语义/结构/产品状态/RC.5 静态追踪检查，机器可读 compatibility inventory 只在运行时、Hook、安装器、档案解析或平台敏感测试变化时启动 Ubuntu/macOS/Windows 与 Python 3.11/3.14 的 focused matrix；旧的 25 次诊断循环已移除。RC.5 的独立审查已通过、live R4 已失败，托管矩阵仍为 `NOT RUN`。显式版本负责人豁免必须记为 `WAIVED`，不能写成通过。模型结果不代表生产力、业务效果或总体质量分数。
+CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job 执行完整语义/结构/产品状态/RC.5 静态追踪检查，机器可读 compatibility inventory 只在运行时、Hook、安装器、档案解析或平台敏感测试变化时启动 Ubuntu/macOS/Windows 与 Python 3.11/3.14 的 focused matrix；旧的 25 次诊断循环已移除。此前 RC.5 候选的独立审查与 R4 结果不覆盖当前 MCP-aware 修复；新的托管矩阵、独立审查和 live R4 均保持 `NOT RUN`。显式版本负责人豁免必须记为 `WAIVED`，不能写成通过。模型结果不代表生产力、业务效果或总体质量分数。
 
 发版按变更面分为 R1 standard、R2 runtime、R3 artifact/security、R4 model-semantic。`flow-metrics` 只验证分支激活与负向边界，不衡量生产力或效果。具体边界、命令和 `NOT RUN` 规则见 [docs/releasing.md](docs/releasing.md)。
 
 ## 版本和发布状态
 
-- `2.0.0-rc.5` 是当前源码候选，聚焦个人辅助的界面收敛、可诊断性、隐私观测和信任边界；候选已 commit，但 R4 模型资格失败，尚未 push、tag、安装或发布。
+- `2.0.0-rc.5` 是当前源码候选，聚焦个人辅助的界面收敛、可诊断性、隐私观测和信任边界；旧候选的 R4 失败已保留，当前修复已形成新的干净本地候选 commit，但尚未通过 fresh R4、push、tag、安装或发布。
 - `v2.0.0-rc.4` 是最近已发布的 convergence-and-operations RC，也是 RC.5 的固定安装回滚标签；其发布包含明确记录的 R4 语义豁免。
 - `v2.0.0-rc.2` 是上一 activation-hardening RC，也是 RC.3 的可固定安装回滚标签。
 - `v2.0.0-rc.1` 是上一 RC，包含 Default-mode 需求确认、主动高级能力激活、Luna P0-P2、Codex 原生适配和 Flow Activation Coverage。

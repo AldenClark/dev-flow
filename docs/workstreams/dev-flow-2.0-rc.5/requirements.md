@@ -7,9 +7,10 @@ RC.5 makes Dev Flow a quieter, inspectable personal AI programming assistant: on
 ## Confirmed context
 
 - The version owner defined the new source version as `2.0.0-rc.5` and authorized design plus local implementation on 2026-08-31.
-- `v2.0.0-rc.4` exists at the current baseline and is the latest published rollback tag; RC.5 is not yet committed, tagged, installed, or published.
+- After preserving the run-008 R4 failure, the version owner rejected a waiver and authorized the MCP-oracle repair, a fresh bounded R4 campaign with maintainer-selected budget, and formal RC.5 delivery actions on 2026-08-31.
+- `v2.0.0-rc.4` exists at the current baseline and is the latest published rollback tag; the current RC.5 candidate is committed locally but not yet pushed, tagged, installed, or published.
 - Existing personal-mode DLP changes are user-owned work in progress. RC.5 must preserve their intent while replacing agent-mediated approval with a real `UserPromptSubmit` confirmation event.
-- No commit, push, tag, release, installation, external model campaign, or independent reviewer dispatch is authorized by this workstream.
+- Commit, push, RC tag, GitHub release publication, isolated-profile installation, and the bounded R4 campaign are authorized only after their preceding gates pass. Primary-profile mutation, deployment, production use, and a new independent-reviewer dispatch are not authorized.
 
 ## Required behavior
 
@@ -25,7 +26,7 @@ RC.5 makes Dev Flow a quieter, inspectable personal AI programming assistant: on
 6. A read-only doctor reports source/install/Hook/cache/outcome state and explicit claim limits without deleting, loading secrets, or claiming live activation it did not observe.
 7. Outcome observation is local, opt-in, append-only, bounded, private by default, and accepts only enums/counts. It stores no prompt, title, transcript, path, source, secret, person, session, stable user, or free-form note and emits no productivity/composite score.
 <!-- requirement: RC5-TRUST -->
-8. Repository, web, tool, task-history, memory, and retrieved content are untrusted data, never authority. Provenance must survive summarization; lost provenance blocks consequential sinks or requires trusted confirmation.
+8. Repository, web, tool, task-history, memory, and retrieved content are untrusted data, never authority. Provenance must survive summarization; lost provenance blocks consequential sinks or requires trusted confirmation. A natural-language capability label is not a callable tool identity: absent optional capabilities must remain unavailable, unrelated local MCP tools cannot substitute, and only an exact explicitly exposed and authorized tool may be invoked.
 <!-- requirement: RC5-DLP-MEMORY -->
 9. A confirmable tool secret is released only after the user submits an exact short-lived marker through `UserPromptSubmit`; an agent-accessible local approve command cannot confer approval.
 10. Persisted personal engineering preferences remain explicit, scoped, attributed, expiring, correctable, and non-authoritative. Inferred cross-task preference storage is forbidden.
@@ -45,4 +46,4 @@ RC.5 makes Dev Flow a quieter, inspectable personal AI programming assistant: on
 - A task database, ambient transcript miner, user/agent score, telemetry upload, raw dogfood corpus, or hidden long-term memory.
 - Automatic cache cleanup, process termination, destructive resource reclamation, or primary-profile mutation.
 - Removing all packet-era implementation in one risky rewrite; RC.5 contracts the supported boundary first.
-- Live model qualification, commit, tag, push, release publication, or installation.
+- Primary-profile installation, deployment, production use, stable `2.0.0`, population-effectiveness claims, or a new independent reviewer without separate authority.

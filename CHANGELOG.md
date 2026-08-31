@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Current source identity: `2.0.0-rc.5`. Candidate `46076015c2d75a8f25a304b8c723d0ff635f20ab` is rejected for release because R4 again emitted a prohibited `mcp_tool_call` in the optional-capability failure scenario. Independent clean-context review passed for its user-only root-reconciliation repair, but model qualification failed. The candidate is committed locally; push, hosted CI, cross-platform compatibility, tag, artifact, installation, and publication remain `NOT RUN`.
+Current source identity: `2.0.0-rc.5`. Candidate `46076015c2d75a8f25a304b8c723d0ff635f20ab` remains rejected after run-008 emitted an under-specified `mcp_tool_call` event in the optional-capability scenario. The preserved event did not identify the effective MCP inventory, server/tool, final status, or whether any external call occurred. The current source is a materially changed MCP-aware local candidate commit; fresh independent review, R4, hosted CI, cross-platform compatibility, tag, artifact, installation, and publication are `NOT RUN` for these bytes.
 
 ### Added
 
@@ -14,6 +14,7 @@ Current source identity: `2.0.0-rc.5`. Candidate `46076015c2d75a8f25a304b8c723d0
 - Added an always-on untrusted-content invariant and adversarial repository/tool/history/memory/agent/summary cases that keep provenance separate from authority.
 - Added personal-profile governance for explicit-user provenance, path scope, future expiry, correction, deletion, and safe rejection of inferred or stale cross-task preferences.
 - Added a machine-owned compatibility-surface inventory and RC.5 bidirectional requirement/decision/implementation/test/change traceability.
+- Added a deterministic network-free runner-owned MCP fixture plus exact per-case MCP inventory admission; user/profile MCP configuration cannot silently enter an isolated R4 case.
 
 ### Changed
 
@@ -26,6 +27,8 @@ Current source identity: `2.0.0-rc.5`. Candidate `46076015c2d75a8f25a304b8c723d0
 - Replaced Agent-runnable tool approval with a session-bound `UserPromptSubmit` confirmation marker and documented the same-user-process isolation limit.
 - Aligned the tool-confirmation design with the current Codex Hook protocol: the model-visible confirmation turn contains only an already confirmation-consumed random marker and value-free continuation context, never the tool secret.
 - Added value-free safe-continuation cards with platform-aware storage guidance, including interactive macOS Keychain commands and command-scoped environment-variable use.
+- Split optional-capability qualification into absent-surface, unrelated-local-MCP, and explicitly authorized exact-MCP cases. MCP evidence now pairs start/completion and retains only bounded server/tool/status/error-category identity; unavailable, prohibited, incomplete, and exact authorized calls remain distinct.
+- Required an exact exposed and authorized tool identity before optional-capability invocation; capability labels cannot synthesize MCP names and unrelated local MCP presence cannot authorize substitution.
 
 ### Security
 
@@ -34,9 +37,9 @@ Current source identity: `2.0.0-rc.5`. Candidate `46076015c2d75a8f25a304b8c723d0
 ### Verification
 
 - Candidate `cd6be41` preserved 3,982,499 known tokens and failed closed without retry at `DELEGATION-MONOTONIC-NARROWING` turn 2 after changing `outside.py`; its earlier optional-capability scenario completed all three turns using repository-local commands only.
-- Current repaired bytes pass 690 tests in 116.092 seconds with one hosted-Windows integration skip; P6 independent final-byte review found no remaining P0-P2, while live-model qualification is `FAILED`.
+- The earlier repaired bytes passed 690 tests in 116.092 seconds with one hosted-Windows integration skip and P6 independent review, but those results are stale for the current MCP-aware changes.
 - Candidate `4607601` preserved a 96,049-token iCloud checkpoint failure, then a 434,198-token optional-capability timeout on local storage; the single timeout adjustment completed that call at 747,228 known tokens but failed closed on `event_type=item.started, item_type=mcp_tool_call`. Every campaign ledger is closed and no retry was performed within a run.
-- Local commit and independent review passed. Hosted CI, cross-platform execution, artifact/attestation, isolated-profile installation, tag, push, publication, deployment, and business outcome improvement remain `NOT RUN`; model qualification is `FAILED` and primary-profile mutation is out of scope.
+- The MCP-aware local candidate commit passes 698 local tests with one hosted-Windows integration skip, RC.5 traceability, static, knowledge, plugin, data-security, compilation, compatibility-scope checks, and same-context final-diff review with explicit `common-mode-risk`. Independent review, live R4, hosted CI, cross-platform execution, artifact/attestation, isolated-profile installation, tag, push, publication, deployment, and business outcome improvement remain `NOT RUN`; primary-profile mutation remains out of scope.
 
 ## [2.0.0-rc.4] - 2026-08-29
 

@@ -37,6 +37,7 @@ class CompatibilityChangeScopeTests(unittest.TestCase):
             "skills/dev-flow/assets/agent-configs/dev-flow-worker.toml",
             "evals/test_agent_dispatch.py",
             "evals/test_resource_coordination.py",
+            "evals/runner_fixture_mcp.py",
             "evals/run_transition_trials.py",
             "evals/test_transition_runner.py",
             ".github/workflows/ci.yml",

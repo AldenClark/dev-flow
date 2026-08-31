@@ -36,6 +36,7 @@ class CandidateIdentityTests(unittest.TestCase):
             files = candidate_identity.qualification_dependency_files(root, runner, catalog)
             relative = {path.relative_to(root).as_posix() for path in files}
             self.assertIn("evals/run_transition_trials.py", relative)
+            self.assertIn("evals/runner_fixture_mcp.py", relative)
             self.assertIn("skills/dev-flow/scripts/flow_metrics.py", relative)
             first = candidate_identity.hash_files(root, files)["sha256"]
             helper = root / "skills" / "dev-flow" / "scripts" / "flow_metrics.py"
@@ -45,6 +46,16 @@ class CandidateIdentityTests(unittest.TestCase):
                 candidate_identity.qualification_dependency_files(root, runner, catalog),
             )["sha256"]
             self.assertNotEqual(first, second)
+            fixture = root / "evals" / "runner_fixture_mcp.py"
+            fixture.write_text(
+                fixture.read_text(encoding="utf-8") + "\n# fixture changed\n",
+                encoding="utf-8",
+            )
+            third = candidate_identity.hash_files(
+                root,
+                candidate_identity.qualification_dependency_files(root, runner, catalog),
+            )["sha256"]
+            self.assertNotEqual(second, third)
 
     def test_evidence_allowlist_rejects_runtime_and_accepts_release_records(self) -> None:
         allowed, rejected = candidate_identity.evidence_only_changes(

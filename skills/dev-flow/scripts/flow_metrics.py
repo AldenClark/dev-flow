@@ -35,6 +35,7 @@ TRANSITION_REPOSITORY_MAX_FILES = 256
 TRANSITION_REPOSITORY_MAX_FILE_BYTES = 64 * 1024
 TRANSITION_REPOSITORY_MAX_TOTAL_BYTES = 1024 * 1024
 TRANSITION_FIXTURE_PATH_RE = re.compile(r"^[A-Za-z0-9._/-]+$")
+TRANSITION_MCP_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 TRANSITION_UNMET_LABELS = {"blocked-claim", "no-invariant-retry"}
 
 
@@ -290,12 +291,19 @@ def validate_transition_catalog(catalog: Any) -> dict[str, Any]:
         raise ActivationContractError("transition catalog cases must be a non-empty list")
     seen: set[str] = set()
     for case in cases:
-        if not isinstance(case, dict) or set(case) != {
+        if not isinstance(case, dict) or not {
             "id",
             "categories",
             "lineage",
             "repository",
             "turns",
+        } <= set(case) or not set(case) <= {
+            "id",
+            "categories",
+            "lineage",
+            "repository",
+            "turns",
+            "mcp_fixture",
         }:
             raise ActivationContractError("each transition case has invalid fields")
         case_id = case.get("id")
@@ -318,6 +326,20 @@ def validate_transition_catalog(catalog: Any) -> dict[str, Any]:
             repository = validate_transition_repository_fixture(case.get("repository"))
         except ActivationContractError as exc:
             raise ActivationContractError(f"{case_id}: {exc}") from exc
+        mcp_fixture = case.get("mcp_fixture")
+        if mcp_fixture is not None:
+            if (
+                not isinstance(mcp_fixture, dict)
+                or set(mcp_fixture) != {"server", "tool"}
+                or any(
+                    not isinstance(mcp_fixture.get(field), str)
+                    or TRANSITION_MCP_ID_RE.fullmatch(mcp_fixture[field]) is None
+                    for field in ("server", "tool")
+                )
+            ):
+                raise ActivationContractError(
+                    f"{case_id}: mcp_fixture must name one bounded runner-owned tool"
+                )
         turns = case.get("turns")
         if not isinstance(turns, list) or len(turns) < 2:
             raise ActivationContractError(f"{case_id}: turns must contain at least two turns")
@@ -332,6 +354,7 @@ def validate_transition_catalog(catalog: Any) -> dict[str, Any]:
                 "expected_unmet",
                 "pre_turn_fixture",
                 "mutation_paths",
+                "allowed_mcp_tools",
             }
             if (
                 not isinstance(turn, dict)
@@ -370,6 +393,24 @@ def validate_transition_catalog(catalog: Any) -> dict[str, Any]:
                 raise ActivationContractError(
                     f"{case_id} turn {turn_number}: expected_unmet must be boolean"
                 )
+            allowed_mcp_tools = turn.get("allowed_mcp_tools", [])
+            expected_mcp_tool = (
+                f"{mcp_fixture['server']}/{mcp_fixture['tool']}"
+                if mcp_fixture is not None
+                else None
+            )
+            if (
+                not isinstance(allowed_mcp_tools, list)
+                or len(allowed_mcp_tools) != len(set(allowed_mcp_tools))
+                or any(
+                    not isinstance(value, str) or value != expected_mcp_tool
+                    for value in allowed_mcp_tools
+                )
+                or (allowed_mcp_tools and mcp_fixture is None)
+            ):
+                raise ActivationContractError(
+                    f"{case_id} turn {turn_number}: allowed_mcp_tools must reference the exact runner-owned fixture tool"
+                )
             fixture = turn.get("pre_turn_fixture", {})
             if (
                 not isinstance(fixture, dict)
@@ -407,6 +448,14 @@ def validate_transition_catalog(catalog: Any) -> dict[str, Any]:
             if overlap:
                 raise ActivationContractError(
                     f"{case_id} turn {turn_number}: expected/forbidden overlap: {overlap}"
+                )
+            if "exact-mcp-tool-once" in turn["expected"] and len(allowed_mcp_tools) != 1:
+                raise ActivationContractError(
+                    f"{case_id} turn {turn_number}: exact-mcp-tool-once requires one allowed_mcp_tools entry"
+                )
+            if allowed_mcp_tools and "exact-mcp-tool-once" not in turn["expected"]:
+                raise ActivationContractError(
+                    f"{case_id} turn {turn_number}: allowed_mcp_tools requires exact-mcp-tool-once"
                 )
             expected_implies_unmet = bool(
                 set(turn["expected"]) & TRANSITION_UNMET_LABELS

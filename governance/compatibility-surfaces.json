@@ -30,6 +30,7 @@
     "evals/test_repository_knowledge.py",
     "evals/test_runtime_doctor.py",
     "evals/test_scripts.py",
+    "evals/runner_fixture_mcp.py",
     "evals/run_transition_trials.py",
     "evals/test_transition_runner.py",
     "tools/ci_change_scope.py",

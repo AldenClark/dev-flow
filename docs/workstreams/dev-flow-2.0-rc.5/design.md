@@ -56,6 +56,8 @@ For tool confirmation, `PreToolUse` creates a pending request and returns a mark
 - An unreadable or over-broad private state path blocks the affected local feature.
 - Cache inventory is bounded and read-only; incomplete traversal is reported.
 - Independent review unavailable or unauthorized yields same-context review plus `common-mode-risk`.
+- R4 admits the exact MCP surface before each case. An empty fixture must observe an empty list; a runner-owned fixture must observe exactly one enabled stdio server. Any mismatch is an environment failure before model execution.
+- MCP lifecycle evidence pairs `item.started` with `item.completed`, retains only bounded server/tool/status/error-category identity, and never retains arguments or results. Unavailable, blocked, prohibited configured, incomplete, and exact authorized calls remain distinct outcomes.
 
 ## Compatibility and rollback
 

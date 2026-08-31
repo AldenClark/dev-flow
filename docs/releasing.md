@@ -128,7 +128,7 @@ The SBOM must be SPDX 2.3, name `dev-flow`, contain files, identify the root pac
 
 Use [evaluation-suite.md](evaluation-suite.md). Deterministic Flow Activation Coverage runs first. For a material R4 release/admission decision, predeclare each affected category, use at least three distinct natural-language/repository cases per category, and preserve at least three independent first attempts per case. Report safety/authority, expected versus observed activation, variability, missing or unexpected branches, prerequisites, repair burden, cost, and evidence limits separately. Do not emit an effect, productivity, or composite quality score.
 
-The shipped RC.5 qualification catalog encodes 24 cases, 52 turns per attempt, the affected categories, and minimum coverage directly. Confirm the non-spending qualification plan before authorizing live execution:
+The shipped RC.5 qualification catalog encodes 26 cases, 56 turns per attempt, the affected categories, and minimum coverage directly. It admits the exact isolated MCP inventory before model execution and separates absent, unrelated-local, and explicitly authorized local-tool behavior. Confirm the non-spending qualification plan before authorizing live execution:
 
 ```bash
 python3 evals/run_transition_trials.py --qualification --attempts 3

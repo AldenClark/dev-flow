@@ -402,6 +402,7 @@ class TransitionRunnerTests(unittest.TestCase):
             root = Path(temporary)
             with (
                 mock.patch.object(runner, "install_candidate"),
+                mock.patch.object(runner, "configure_case_mcp", return_value=[]),
                 mock.patch.object(runner, "run_codex_turn", side_effect=fake_turn),
             ):
                 evidence, usage = runner.run_attempt(
@@ -417,7 +418,7 @@ class TransitionRunnerTests(unittest.TestCase):
                     evidence_checkpoint=root / "evidence-in-progress.json",
                 )
         self.assertEqual(
-            evidence["schema_version"], "flow.transition.first-attempt-evidence.v1"
+            evidence["schema_version"], "flow.transition.first-attempt-evidence.v2"
         )
         turn = evidence["cases"][0]["turns"][0]
         self.assertEqual(turn["response_text"], "bounded response")
@@ -468,6 +469,7 @@ class TransitionRunnerTests(unittest.TestCase):
             root = Path(temporary)
             with (
                 mock.patch.object(runner, "install_candidate", side_effect=fake_install),
+                mock.patch.object(runner, "configure_case_mcp", return_value=[]),
                 mock.patch.object(runner, "run_codex_turn", side_effect=fake_turn),
             ):
                 runner.run_attempt(
@@ -522,6 +524,7 @@ class TransitionRunnerTests(unittest.TestCase):
             evidence_path = root / "evidence-in-progress.json"
             with (
                 mock.patch.object(runner, "install_candidate"),
+                mock.patch.object(runner, "configure_case_mcp", return_value=[]),
                 mock.patch.object(runner, "run_codex_turn", side_effect=mutating_turn),
                 self.assertRaisesRegex(runner.TrialError, "changed repository bytes"),
             ):
@@ -1223,6 +1226,241 @@ raise SystemExit(3)
                     expected=["child-scope-subset"],
                     trajectory=[],
                 )
+
+    def test_mcp_trajectory_waits_for_completion_and_classifies_unavailable(self) -> None:
+        runner = load_runner_module()
+        events_payload = (
+            {
+                "type": "item.started",
+                "item": {
+                    "id": "call-private",
+                    "type": "mcp_tool_call",
+                    "server": "invented-scanner",
+                    "tool": "deep_scan",
+                    "status": "in_progress",
+                    "arguments": {"secret": "must-not-leak"},
+                },
+            },
+            {
+                "type": "item.completed",
+                "item": {
+                    "id": "call-private",
+                    "type": "mcp_tool_call",
+                    "server": "invented-scanner",
+                    "tool": "deep_scan",
+                    "status": "failed",
+                    "error": {
+                        "message": "MCP tool invented-scanner/deep_scan is not available to the model"
+                    },
+                },
+            },
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            events = Path(temporary) / "events.jsonl"
+            events.write_text(
+                "\n".join(json.dumps(item) for item in events_payload) + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                runner.TrialError, "selected an unavailable MCP tool"
+            ) as raised:
+                runner.sanitized_trajectory(events)
+        message = str(raised.exception)
+        self.assertIn("server=invented-scanner", message)
+        self.assertIn("tool=deep_scan", message)
+        self.assertIn("error=unavailable", message)
+        self.assertNotIn("must-not-leak", message)
+
+    def test_mcp_trajectory_fails_closed_when_completion_is_missing(self) -> None:
+        runner = load_runner_module()
+        with tempfile.TemporaryDirectory() as temporary:
+            events = Path(temporary) / "events.jsonl"
+            events.write_text(
+                json.dumps(
+                    {
+                        "type": "item.started",
+                        "item": {
+                            "id": "call-1",
+                            "type": "mcp_tool_call",
+                            "server": "runner-scanner",
+                            "tool": "deep_scan",
+                            "status": "in_progress",
+                        },
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                runner.TrialError, "MCP trajectory is incomplete"
+            ):
+                runner.sanitized_trajectory(
+                    events,
+                    allowed_mcp_tools=("runner-scanner/deep_scan",),
+                    mcp_surface=(
+                        {"name": "runner-scanner", "enabled": True, "transport": "stdio"},
+                    ),
+                )
+
+    def test_exact_runner_owned_mcp_tool_is_retained_without_payload(self) -> None:
+        runner = load_runner_module()
+        payloads = (
+            {
+                "type": "item.started",
+                "item": {
+                    "id": "call-1",
+                    "type": "mcp_tool_call",
+                    "server": "runner-scanner",
+                    "tool": "deep_scan",
+                    "status": "in_progress",
+                    "arguments": {"private": "not-retained"},
+                },
+            },
+            {
+                "type": "item.completed",
+                "item": {
+                    "id": "call-1",
+                    "type": "mcp_tool_call",
+                    "server": "runner-scanner",
+                    "tool": "deep_scan",
+                    "status": "completed",
+                    "result": {"content": [{"type": "text", "text": "private result"}]},
+                },
+            },
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            events = Path(temporary) / "events.jsonl"
+            events.write_text(
+                "\n".join(json.dumps(item) for item in payloads) + "\n",
+                encoding="utf-8",
+            )
+            trajectory = runner.sanitized_trajectory(
+                events,
+                allowed_mcp_tools=("runner-scanner/deep_scan",),
+                mcp_surface=(
+                    {"name": "runner-scanner", "enabled": True, "transport": "stdio"},
+                ),
+            )
+        self.assertEqual(len(trajectory), 2)
+        self.assertEqual(trajectory[-1]["status"], "completed")
+        serialized = json.dumps(trajectory)
+        self.assertNotIn("not-retained", serialized)
+        self.assertNotIn("private result", serialized)
+        runner.enforce_trajectory_contract(
+            case_id="CASE",
+            expected=["exact-mcp-tool-once"],
+            trajectory=trajectory,
+        )
+
+    def test_unrelated_configured_mcp_is_not_an_authorized_substitute(self) -> None:
+        runner = load_runner_module()
+        with tempfile.TemporaryDirectory() as temporary:
+            events = Path(temporary) / "events.jsonl"
+            events.write_text(
+                json.dumps(
+                    {
+                        "type": "item.started",
+                        "item": {
+                            "id": "call-1",
+                            "type": "mcp_tool_call",
+                            "server": "runner-context",
+                            "tool": "unrelated_status",
+                            "status": "in_progress",
+                        },
+                    }
+                )
+                + "\n"
+                + json.dumps(
+                    {
+                        "type": "item.completed",
+                        "item": {
+                            "id": "call-1",
+                            "type": "mcp_tool_call",
+                            "server": "runner-context",
+                            "tool": "unrelated_status",
+                            "status": "completed",
+                        },
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                runner.TrialError, "prohibited configured MCP tool"
+            ):
+                runner.sanitized_trajectory(
+                    events,
+                    mcp_surface=(
+                        {"name": "runner-context", "enabled": True, "transport": "stdio"},
+                    ),
+                )
+
+    def test_mcp_inventory_retains_only_admission_identity(self) -> None:
+        runner = load_runner_module()
+        raw = [
+            {
+                "name": "runner-context",
+                "enabled": True,
+                "transport": {
+                    "type": "stdio",
+                    "command": "private-command",
+                    "args": ["private-argument"],
+                    "env": {"TOKEN": "private-token"},
+                },
+                "auth_status": "not-retained",
+            }
+        ]
+        completed = SimpleNamespace(
+            returncode=0, stdout=json.dumps(raw), stderr="private stderr"
+        )
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            mock.patch.object(runner, "run_bounded_process", return_value=completed),
+        ):
+            inventory = runner.mcp_inventory(
+                "codex", Path(temporary), Path(temporary)
+            )
+        self.assertEqual(
+            inventory,
+            [{"name": "runner-context", "enabled": True, "transport": "stdio"}],
+        )
+        self.assertNotIn("private", json.dumps(inventory))
+
+    def test_runner_fixture_mcp_protocol_is_deterministic_and_network_free(self) -> None:
+        requests = "\n".join(
+            (
+                json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "initialize",
+                        "params": {"protocolVersion": "2025-06-18"},
+                    }
+                ),
+                json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}),
+                json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 3,
+                        "method": "tools/call",
+                        "params": {"name": "deep_scan", "arguments": {}},
+                    }
+                ),
+            )
+        ) + "\n"
+        completed = subprocess.run(
+            [sys.executable, str(ROOT / "evals" / "runner_fixture_mcp.py"), "--tool", "deep_scan"],
+            input=requests,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        responses = [json.loads(line) for line in completed.stdout.splitlines()]
+        self.assertEqual([item["id"] for item in responses], [1, 2, 3])
+        self.assertEqual(responses[1]["result"]["tools"][0]["name"], "deep_scan")
+        self.assertFalse(responses[2]["result"]["isError"])
 
     def test_unknown_public_tool_failure_exposes_only_bounded_event_identity(self) -> None:
         runner = load_runner_module()
@@ -2002,6 +2240,51 @@ raise SystemExit(3)
             runner.ActivationContractError, "runner-owned pre_turn_fixture"
         ):
             runner.validate_transition_catalog(catalog)
+
+    def test_catalog_rejects_undeclared_or_ambiguous_mcp_authority(self) -> None:
+        runner = load_runner_module()
+        catalog_path = ROOT / "evals" / "flow-transition-semantic-cases.json"
+        for mutation in ("missing-fixture", "wrong-tool", "authority-without-oracle"):
+            catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+            explicit = next(
+                case
+                for case in catalog["cases"]
+                if case["id"] == "TRANSITION-EXPLICIT-SCANNER-MCP"
+            )
+            turn = explicit["turns"][0]
+            if mutation == "missing-fixture":
+                explicit.pop("mcp_fixture")
+            elif mutation == "wrong-tool":
+                turn["allowed_mcp_tools"] = ["runner-scanner/other"]
+            else:
+                turn["expected"].remove("exact-mcp-tool-once")
+            with self.subTest(mutation=mutation), self.assertRaisesRegex(
+                runner.ActivationContractError,
+                "mcp_fixture|allowed_mcp_tools|exact-mcp-tool-once",
+            ):
+                runner.validate_transition_catalog(catalog)
+
+    def test_case_mcp_admission_fails_before_model_on_surface_mismatch(self) -> None:
+        runner = load_runner_module()
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            mock.patch.object(
+                runner,
+                "mcp_inventory",
+                return_value=[
+                    {"name": "unexpected", "enabled": True, "transport": "stdio"}
+                ],
+            ),
+            self.assertRaisesRegex(runner.TrialError, "admission mismatch"),
+        ):
+            root = Path(temporary)
+            runner.configure_case_mcp(
+                codex="codex",
+                codex_home=root / "home",
+                repository=root,
+                fixture=None,
+                fixture_script=ROOT / "evals" / "runner_fixture_mcp.py",
+            )
 
     def test_retry_label_requires_runner_owned_fixture_change(self) -> None:
         runner = load_runner_module()

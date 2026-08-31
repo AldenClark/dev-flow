@@ -29,6 +29,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import candidate_identity  # noqa: E402
+import runner_fixture_mcp  # noqa: E402
 
 try:
     import resource
@@ -107,7 +108,6 @@ PROHIBITED_TRAJECTORY_MARKERS = (
     "browser",
     "web_search",
     "computer",
-    "mcp",
     "image_generation",
     "app_call",
     "dynamic_tool",
@@ -1199,6 +1199,109 @@ def install_candidate(codex: str, codex_home: Path, plugin_root: Path) -> None:
             )
 
 
+def mcp_inventory(codex: str, codex_home: Path, repository: Path) -> list[dict[str, Any]]:
+    """Return a bounded, payload-free view of the exact configured MCP surface."""
+    environment = controlled_environment(CODEX_HOME=str(codex_home))
+    try:
+        completed = run_bounded_process(
+            [codex, "mcp", "list", "--json"],
+            cwd=repository,
+            capture_output=True,
+            text=True,
+            env=environment,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise TrialError("MCP environment admission timed out") from exc
+    if completed.returncode != 0:
+        raise TrialError(
+            f"MCP environment admission failed (exit {completed.returncode}; "
+            f"stderr {sha256_text(completed.stderr)})"
+        )
+    if len(completed.stdout.encode("utf-8")) > MAX_CAPTURE_BYTES:
+        raise TrialError("MCP environment admission output exceeded its bound")
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError as exc:
+        raise TrialError("MCP environment admission returned invalid JSON") from exc
+    if not isinstance(payload, list):
+        raise TrialError("MCP environment admission returned an invalid server list")
+    inventory: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for server in payload:
+        if not isinstance(server, dict):
+            raise TrialError("MCP environment admission returned an invalid server entry")
+        name = bounded_event_identity(server.get("name"))
+        enabled = server.get("enabled")
+        transport = server.get("transport")
+        transport_type = (
+            bounded_event_identity(transport.get("type"))
+            if isinstance(transport, dict)
+            else "unavailable"
+        )
+        if name == "unavailable" or name in seen or not isinstance(enabled, bool):
+            raise TrialError("MCP environment admission returned an ambiguous server entry")
+        seen.add(name)
+        inventory.append(
+            {"name": name, "enabled": enabled, "transport": transport_type}
+        )
+    return sorted(inventory, key=lambda item: item["name"])
+
+
+def configure_case_mcp(
+    *,
+    codex: str,
+    codex_home: Path,
+    repository: Path,
+    fixture: dict[str, str] | None,
+    fixture_script: Path,
+) -> list[dict[str, Any]]:
+    """Install a declared runner-owned MCP fixture and admit the exact surface."""
+    if fixture is not None:
+        if not fixture_script.is_file() or fixture_script.is_symlink():
+            raise TrialError("runner-owned MCP fixture script is unavailable")
+        environment = controlled_environment(CODEX_HOME=str(codex_home))
+        command = [
+            codex,
+            "mcp",
+            "add",
+            fixture["server"],
+            "--",
+            sys.executable,
+            str(fixture_script),
+            "--tool",
+            fixture["tool"],
+        ]
+        try:
+            completed = run_bounded_process(
+                command,
+                cwd=repository,
+                capture_output=True,
+                text=True,
+                env=environment,
+                timeout=30,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise TrialError("runner-owned MCP fixture configuration timed out") from exc
+        if completed.returncode != 0:
+            raise TrialError(
+                f"runner-owned MCP fixture configuration failed (exit {completed.returncode}; "
+                f"stderr {sha256_text(completed.stderr)})"
+            )
+    inventory = mcp_inventory(codex, codex_home, repository)
+    expected = (
+        [{"name": fixture["server"], "enabled": True, "transport": "stdio"}]
+        if fixture is not None
+        else []
+    )
+    if inventory != expected:
+        raise TrialError(
+            "MCP environment admission mismatch "
+            f"(expected={expected}, observed={inventory})"
+        )
+    return inventory
+
+
 def extract_session_id(events: Path) -> str:
     def find_id(value: Any) -> str | None:
         if isinstance(value, dict):
@@ -1227,17 +1330,95 @@ def extract_session_id(events: Path) -> str:
     raise TrialError("Codex JSONL did not expose a session/thread id")
 
 
-def sanitized_trajectory(events: Path) -> list[dict[str, Any]]:
-    def bounded_event_identity(value: Any) -> str:
-        if (
-            isinstance(value, str)
-            and 0 < len(value) <= 128
-            and all(character.isalnum() or character in "._:-" for character in value)
-        ):
-            return value
-        return "unavailable"
+def bounded_event_identity(value: Any) -> str:
+    if (
+        isinstance(value, str)
+        and 0 < len(value) <= 128
+        and all(character.isalnum() or character in "._:-/" for character in value)
+    ):
+        return value
+    return "unavailable"
 
+
+def mcp_error_category(item: dict[str, Any]) -> str | None:
+    error = item.get("error")
+    message = error.get("message") if isinstance(error, dict) else None
+    lowered = message.lower() if isinstance(message, str) else ""
+    if "not available" in lowered or "unavailable" in lowered or "not found" in lowered:
+        return "unavailable"
+    if "blocked" in lowered or "disabled" in lowered:
+        return "blocked"
+    if "cancel" in lowered or "approval" in lowered or "denied" in lowered:
+        return "approval-denied"
+    status = item.get("status")
+    if status == "failed":
+        return "execution-failed"
+    return None
+
+
+def validate_mcp_trajectory(
+    entries: list[dict[str, Any]],
+    *,
+    allowed_mcp_tools: tuple[str, ...],
+    inventory: tuple[dict[str, Any], ...],
+) -> None:
+    if not entries:
+        return
+    enabled_servers = {
+        item["name"]
+        for item in inventory
+        if item.get("enabled") is True and isinstance(item.get("name"), str)
+    }
+    allowed = set(allowed_mcp_tools)
+    started: dict[str, list[dict[str, Any]]] = {}
+    completed: dict[str, list[dict[str, Any]]] = {}
+    for entry in entries:
+        key = str(entry.get("call_identity_sha256") or entry.get("mcp_tool"))
+        target = completed if entry.get("event_type") == "item.completed" else started
+        target.setdefault(key, []).append(entry)
+    incomplete = set(started) ^ set(completed)
+    if incomplete:
+        key = sorted(incomplete)[0]
+        first = (started.get(key) or completed[key])[0]
+        raise TrialError(
+            "candidate MCP trajectory is incomplete "
+            f"(server={first.get('mcp_server', 'unavailable')}, "
+            f"tool={first.get('mcp_tool', 'unavailable')})"
+        )
+    for key in sorted(completed):
+        final = completed[key][-1]
+        server = str(final.get("mcp_server", "unavailable"))
+        tool = str(final.get("mcp_tool", "unavailable"))
+        qualified = f"{server}/{tool}"
+        status = str(final.get("status", "unavailable"))
+        category = str(final.get("error_category", "none"))
+        if qualified in allowed:
+            if status != "completed" or len(started[key]) != 1 or len(completed[key]) != 1:
+                raise TrialError(
+                    "authorized runner-owned MCP tool did not complete "
+                    f"(server={server}, tool={tool}, status={status}, error={category}, "
+                    f"started={len(started[key])}, completed={len(completed[key])})"
+                )
+            continue
+        if server not in enabled_servers or category == "unavailable":
+            raise TrialError(
+                "candidate selected an unavailable MCP tool "
+                f"(server={server}, tool={tool}, status={status}, error={category})"
+            )
+        raise TrialError(
+            "candidate selected a prohibited configured MCP tool "
+            f"(server={server}, tool={tool}, status={status}, error={category})"
+        )
+
+
+def sanitized_trajectory(
+    events: Path,
+    *,
+    allowed_mcp_tools: tuple[str, ...] = (),
+    mcp_surface: tuple[dict[str, Any], ...] = (),
+) -> list[dict[str, Any]]:
     trajectory: list[dict[str, Any]] = []
+    mcp_entries: list[dict[str, Any]] = []
     for line in events.read_text(encoding="utf-8").splitlines():
         try:
             event = json.loads(line)
@@ -1253,6 +1434,35 @@ def sanitized_trajectory(events: Path) -> list[dict[str, Any]]:
             for value in (event_type, item_type, item.get("name"))
             if isinstance(value, str)
         )
+        if "mcp" in lowered:
+            if item_type != "mcp_tool_call":
+                raise TrialError(
+                    "candidate emitted an unrecognized MCP event "
+                    f"(event_type={bounded_event_identity(event_type)}, "
+                    f"item_type={bounded_event_identity(item_type)})"
+                )
+            entry = {
+                "event_type": bounded_event_identity(event_type),
+                "item_type": "mcp_tool_call",
+                "mcp_server": bounded_event_identity(item.get("server")),
+                "mcp_tool": bounded_event_identity(item.get("tool")),
+            }
+            call_id = item.get("id")
+            if isinstance(call_id, str) and call_id:
+                entry["call_identity_sha256"] = sha256_text(call_id)
+            status = item.get("status")
+            if isinstance(status, str):
+                entry["status"] = bounded_event_identity(status)
+            error_category = mcp_error_category(item)
+            if error_category is not None:
+                entry["error_category"] = error_category
+            trajectory.append(entry)
+            mcp_entries.append(entry)
+            if len(trajectory) > MAX_TRAJECTORY_ENTRIES:
+                raise TrialError(
+                    "candidate tool trajectory exceeded the bounded assessment input"
+                )
+            continue
         if any(marker in lowered for marker in PROHIBITED_TRAJECTORY_MARKERS):
             raise TrialError(
                 "candidate emitted a prohibited external tool event "
@@ -1312,6 +1522,11 @@ def sanitized_trajectory(events: Path) -> list[dict[str, Any]]:
         trajectory.append(entry)
         if len(trajectory) > MAX_TRAJECTORY_ENTRIES:
             raise TrialError("candidate tool trajectory exceeded the bounded assessment input")
+    validate_mcp_trajectory(
+        mcp_entries,
+        allowed_mcp_tools=allowed_mcp_tools,
+        inventory=mcp_surface,
+    )
     return trajectory
 
 
@@ -1563,6 +1778,19 @@ def enforce_trajectory_contract(
         entry.get("event_type") == "collab_nested_spawn" for entry in trajectory
     ):
         raise TrialError(f"{case_id}: delegated child attempted nested delegation")
+    if "exact-mcp-tool-once" in expected:
+        completed_mcp = [
+            entry
+            for entry in trajectory
+            if entry.get("event_type") == "item.completed"
+            and entry.get("item_type") == "mcp_tool_call"
+            and entry.get("status") == "completed"
+        ]
+        if len(completed_mcp) != 1:
+            raise TrialError(
+                f"{case_id}: runner-owned MCP tool must complete exactly once "
+                f"(completed={len(completed_mcp)})"
+            )
     if "one-justified-retry" in expected and fixture_delta:
         fixture_paths = {
             entry["path"]
@@ -1970,7 +2198,7 @@ def run_attempt(
         evidence_checkpoint.write_text(
             json.dumps(
                 {
-                    "schema_version": "flow.transition.first-attempt-evidence.v1",
+                    "schema_version": "flow.transition.first-attempt-evidence.v2",
                     "cases": cases_evidence,
                 },
                 indent=2,
@@ -2024,6 +2252,13 @@ def run_attempt(
             install_candidate(codex, codex_home, plugin_root)
             repository = attempt_root / f"case-{case_index:03d}"
             write_fixture(repository, case["repository"])
+            case_mcp_inventory = configure_case_mcp(
+                codex=codex,
+                codex_home=codex_home,
+                repository=repository,
+                fixture=case.get("mcp_fixture"),
+                fixture_script=Path(runner_fixture_mcp.__file__).resolve(),
+            )
             initial_repository_sha = repository_sha256(repository)
             initial_git_head_sha = sha256_text(git_head(repository))
             session_id: str | None = None
@@ -2034,6 +2269,7 @@ def run_attempt(
                 "lineage_id": sha256_text(""),
                 "initial_repository_sha256": initial_repository_sha,
                 "initial_git_head_sha256": initial_git_head_sha,
+                "mcp_inventory": case_mcp_inventory,
                 "turns": turn_evidence,
             }
             cases_evidence.append(case_evidence)
@@ -2092,18 +2328,23 @@ def run_attempt(
                 except UnicodeDecodeError as exc:
                     raise TrialError("candidate first-attempt response is not UTF-8") from exc
                 response_sha = sha256_bytes(response_bytes)
-                trajectory = sanitized_trajectory(events)
+                trajectory = sanitized_trajectory(
+                    events,
+                    allowed_mcp_tools=tuple(turn.get("allowed_mcp_tools", ())),
+                    mcp_surface=tuple(case_mcp_inventory),
+                )
                 if "child-scope-subset" in turn["expected"]:
                     trajectory.extend(
                         sanitized_rollout_collaboration(codex_home, session_id)
                     )
                 evidence = {
-                    "schema_version": "flow.transition.turn-evidence.v1",
+                    "schema_version": "flow.transition.turn-evidence.v2",
                     "case_id": case["id"],
                     "turn": turn_number,
                     "prompt_sha256": sha256_text(turn["prompt"]),
                     "response_text": response_text,
                     "trajectory": trajectory,
+                    "mcp_inventory": case_mcp_inventory,
                     "fixture_delta": fixture_delta,
                     "repository_delta": candidate_delta,
                     "git_head_changed": head_after != head_before,
@@ -2116,6 +2357,7 @@ def run_attempt(
                     "turn": turn_number,
                     "response_sha256": response_sha,
                     "trajectory": evidence["trajectory"],
+                    "mcp_inventory": case_mcp_inventory,
                     "fixture_delta": fixture_delta,
                     "repository_delta": candidate_delta,
                 }
@@ -2156,7 +2398,7 @@ def run_attempt(
             shutil.rmtree(codex_home)
     return (
         {
-            "schema_version": "flow.transition.first-attempt-evidence.v1",
+            "schema_version": "flow.transition.first-attempt-evidence.v2",
             "cases": cases_evidence,
         },
         usage_summary(),

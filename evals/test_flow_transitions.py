@@ -103,6 +103,8 @@ class FlowTransitionTests(unittest.TestCase):
             "DIAGNOSE-CHANGE-REVIEW",
             "REVIEW-DELIVERY",
             "OPTIONAL-CAPABILITY-FAILURE",
+            "UNRELATED-LOCAL-MCP-PRESENT",
+            "EXPLICIT-SCANNER-MCP",
             "NEW-PLATFORM-EXPANSION",
             "EVIDENCE-FRESHNESS",
             "INTERRUPTION-RESUME",
@@ -146,6 +148,28 @@ class FlowTransitionTests(unittest.TestCase):
         self.assertIn(
             "python3 tools/deep_scanner.py", capability_case["turns"][2]["prompt"]
         )
+        unrelated = next(
+            case
+            for case in catalog["cases"]
+            if case["id"] == "TRANSITION-UNRELATED-LOCAL-MCP-PRESENT"
+        )
+        self.assertEqual(
+            unrelated["mcp_fixture"],
+            {"server": "runner-context", "tool": "unrelated_status"},
+        )
+        self.assertTrue(
+            all(not turn.get("allowed_mcp_tools") for turn in unrelated["turns"])
+        )
+        explicit = next(
+            case
+            for case in catalog["cases"]
+            if case["id"] == "TRANSITION-EXPLICIT-SCANNER-MCP"
+        )
+        self.assertEqual(
+            explicit["turns"][0]["allowed_mcp_tools"],
+            ["runner-scanner/deep_scan"],
+        )
+        self.assertNotIn("allowed_mcp_tools", explicit["turns"][1])
 
     def test_matching_turn_observations_pass_without_effect_score(self) -> None:
         catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
