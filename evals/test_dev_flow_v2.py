@@ -61,6 +61,14 @@ class RuntimeGuidanceContractTests(unittest.TestCase):
         self.assertIn("never automatically creates a host task or worktree", guidance)
         self.assertIn("an unchanged narrow follow-up", guidance.lower())
         for phrase in (
+            "exact final state",
+            "current diff/check evidence",
+            "unrun limits",
+            "explicit delivery boundaries",
+            "a bare completion acknowledgement is not final evidence",
+        ):
+            self.assertIn(phrase, guidance)
+        for phrase in (
             "affected Git roots",
             "user-owned changes",
             "stale evidence",

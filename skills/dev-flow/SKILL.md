@@ -81,6 +81,6 @@ Independent review applies to material exposure/review need or consequential del
 
 ## Close
 
-Bind claims to final relevant bytes. Recheck knowledge impact; update current truth or the managed workstream without duplicate ceremony. Report result, fresh evidence, residual risk, isolated failures, `NOT RUN` real-world gates, and explicit delivery boundaries. Local evidence never implies hosted, installed, device, external-system, production, or release evidence.
+Bind claims to final bytes. Recheck knowledge impact; update current truth or the managed workstream without duplicate ceremony. At a terminal outcome, report the exact final state, current diff/check evidence, unrun limits, and explicit delivery boundaries; a bare completion acknowledgement is not final evidence. Local evidence never implies hosted, installed, device, external-system, production, or release evidence.
 
 Load references only for affected decisions. Methodology uses progressive disclosure of bounded methods. 1.x packet material is unsupported internal residue and never part of a 2.0 task.
