@@ -1406,6 +1406,20 @@ class WorkstreamTests(unittest.TestCase):
 
 
 class ActiveGuidanceTests(unittest.TestCase):
+    def test_child_proposal_cannot_expand_root_mutation_scope(self) -> None:
+        skill = DEV_FLOW_SKILL.read_text(encoding="utf-8")
+        calibration = QUALITY_CALIBRATION.read_text(encoding="utf-8")
+        self.assertIn("reject and defer any useful out-of-scope child proposal", skill)
+        for phrase in (
+            "never as a `necessary enabler` or root mutation authority",
+            "must reject integration and report or defer the proposal",
+            "unless the user gives exact renewed authority",
+            'A request to "reconcile" or "decide how to handle" a useful proposal is not that authority.',
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, calibration)
+        self.assertNotIn("or admitted owner", calibration)
+
     def test_unavailable_optional_capability_stays_repository_local(self) -> None:
         skill = DEV_FLOW_SKILL.read_text(encoding="utf-8")
         calibration = QUALITY_CALIBRATION.read_text(encoding="utf-8")

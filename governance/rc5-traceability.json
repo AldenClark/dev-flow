@@ -94,8 +94,12 @@
         "skills/dev-flow/references/trust-boundary.md"
       ],
       "tests": [
+        "evals/test_dev_flow_v2.py::ActiveGuidanceTests.test_child_proposal_cannot_expand_root_mutation_scope",
         "evals/test_dev_flow_v2.py::ActiveGuidanceTests.test_unavailable_optional_capability_stays_repository_local",
+        "evals/test_flow_transitions.py::FlowTransitionTests.test_declared_read_only_turn_rejects_changed_repository_bytes",
+        "evals/test_rc3_extensions.py::ScopeAndContinuationContracts.test_delegation_is_monotonically_narrowed_and_root_verified",
         "evals/test_transition_runner.py::TransitionRunnerTests.test_prohibited_event_failure_record_preserves_identity_without_payload",
+        "evals/test_transition_runner.py::TransitionRunnerTests.test_runtime_mutation_contract_requires_the_exact_path_set",
         "evals/test_transition_runner.py::TransitionRunnerTests.test_trajectory_and_repository_delta_are_bounded_assessment_evidence",
         "evals/test_transition_runner.py::TransitionRunnerTests.test_unknown_public_tool_failure_exposes_only_bounded_event_identity",
         "evals/test_trust_boundary.py::TrustBoundaryTests"

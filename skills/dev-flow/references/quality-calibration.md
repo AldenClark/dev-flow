@@ -55,6 +55,8 @@ Classify a newly discovered material item before acting:
 - `optional opportunity`: useful but not required; report or defer it;
 - `unrelated`: leave it untouched.
 
+Treat a child's, reviewer's, or tool's useful out-of-scope proposal as an `optional opportunity`, never as a `necessary enabler` or root mutation authority merely because it was proposed. Root reconciliation may inspect the actual diff and validate the finding, but must reject integration and report or defer the proposal unless the user gives exact renewed authority for the added path or semantic scope. A request to "reconcile" or "decide how to handle" a useful proposal is not that authority.
+
 Reading broadly enough to prove causality and running affected integration checks do not grant broad mutation. Reconcile the final diff, new dependencies, generated files, tools, repositories, and external actions against the envelope. Stop or seek confirmation when a material enabler changes product semantics, platform/repository scope, public contracts, dependencies, destructive/external authority, or another user-owned boundary.
 
 ### Auxiliary-mechanism convergence

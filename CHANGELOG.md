@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Current source identity: `2.0.0-rc.5`. Candidate `d5222bd` is rejected after R4 recorded a prohibited `mcp_tool_call` before the optional-capability boundary activated. Independent clean-context review passed for the frontmatter activation repair; live-model qualification remains `NOT RUN`. Commit, hosted CI, cross-platform compatibility, tag, artifact, installation, and publication remain separate `NOT RUN` gates.
+Current source identity: `2.0.0-rc.5`. Candidates `d5222bd` and `cd6be41` are rejected: the former emitted a prohibited `mcp_tool_call`, while the latter crossed the delegated mutation envelope by implementing a useful out-of-scope child proposal. Independent clean-context review passed for the user-only root-reconciliation repair; live-model qualification remains `NOT RUN`. Commit, hosted CI, cross-platform compatibility, tag, artifact, installation, and publication remain separate `NOT RUN` gates.
 
 ### Added
 
@@ -21,6 +21,7 @@ Current source identity: `2.0.0-rc.5`. Candidate `d5222bd` is rejected after R4 
 - Reduced compact route output to decisions and stable identifiers plus a digest; digest-only prior routes now use conservative recalibration without invented field deltas.
 - Added target and early-warning headroom below the existing Skill-description and ordinary-static hard caps.
 - Kept single-agent execution as the default: sequential, coupled, or merely tool-dense work cannot multiply agents, and only independently useful units qualify for dispatch.
+- Made root reconciliation reject and defer useful out-of-scope child proposals unless the exact expansion receives renewed user authority.
 - Reframed local confidentiality Hooks for personal development: explicitly declared test credentials can use an exact, expiring, one-shot confirmation, while strict mode preserves hard blocking and high-risk secret forms remain non-overridable.
 - Replaced Agent-runnable tool approval with a session-bound `UserPromptSubmit` confirmation marker and documented the same-user-process isolation limit.
 - Aligned the tool-confirmation design with the current Codex Hook protocol: the model-visible confirmation turn contains only an already confirmation-consumed random marker and value-free continuation context, never the tool secret.
@@ -32,8 +33,8 @@ Current source identity: `2.0.0-rc.5`. Candidate `d5222bd` is rejected after R4 
 
 ### Verification
 
-- After the frontmatter activation repair, final local-source regression ran 689 tests in 136.475 seconds and finished `OK`; one hosted-Windows Job Object integration test was explicitly skipped and remains `NOT RUN`.
-- The current bytes pass 39 structural contracts, canonical product-state validation, 100% bidirectional RC.5 traceability, historical RC.4 static coverage, 117-method/73-source/38-risk-model validation, 15-Skill validation at 1,979 description characters and 13,712 ordinary static bytes, plugin and knowledge checks, confidentiality doctor with zero required failures, compilation, managed-workstream reconciliation, diff checks, and P6 independent final-byte review with no remaining P0-P2 finding.
+- Candidate `cd6be41` preserved 3,982,499 known tokens and failed closed without retry at `DELEGATION-MONOTONIC-NARROWING` turn 2 after changing `outside.py`; its earlier optional-capability scenario completed all three turns using repository-local commands only.
+- Current repaired bytes pass 690 tests in 116.092 seconds with one hosted-Windows integration skip; P6 independent final-byte review found no remaining P0-P2, while live-model qualification remains `NOT RUN`.
 - Commit, hosted CI, cross-platform execution, live model qualification, artifact/attestation, isolated-profile installation, tag, push, publication, deployment, and business outcome improvement remain `NOT RUN`; primary-profile mutation is out of scope.
 
 ## [2.0.0-rc.4] - 2026-08-29
