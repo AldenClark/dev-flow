@@ -86,10 +86,18 @@
       "id": "RC5-TRUST",
       "decisions": ["D5"],
       "implementation": [
+        "evals/run_transition_trials.py",
+        "evals/test_transition_runner.py",
         "governance/trust-boundary-cases.json",
+        "skills/dev-flow/SKILL.md",
+        "skills/dev-flow/references/quality-calibration.md",
         "skills/dev-flow/references/trust-boundary.md"
       ],
       "tests": [
+        "evals/test_dev_flow_v2.py::ActiveGuidanceTests.test_unavailable_optional_capability_stays_repository_local",
+        "evals/test_transition_runner.py::TransitionRunnerTests.test_prohibited_event_failure_record_preserves_identity_without_payload",
+        "evals/test_transition_runner.py::TransitionRunnerTests.test_trajectory_and_repository_delta_are_bounded_assessment_evidence",
+        "evals/test_transition_runner.py::TransitionRunnerTests.test_unknown_public_tool_failure_exposes_only_bounded_event_identity",
         "evals/test_trust_boundary.py::TrustBoundaryTests"
       ]
     },

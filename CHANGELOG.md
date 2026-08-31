@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Current source identity: `2.0.0-rc.5`. Independent clean-context review passed after trust/lifecycle repairs. Commit, hosted CI, cross-platform compatibility, live-model qualification, tag, artifact, installation, and publication remain separate `NOT RUN` gates.
+Current source identity: `2.0.0-rc.5`. Independent clean-context review passed after the R4 external-tool boundary repair and release-truth/traceability follow-up. Commit, hosted CI, cross-platform compatibility, live-model qualification, tag, artifact, installation, and publication remain separate `NOT RUN` gates.
 
 ### Added
 
@@ -32,8 +32,8 @@ Current source identity: `2.0.0-rc.5`. Independent clean-context review passed a
 
 ### Verification
 
-- Final local-source verification ran 687 tests in 120.939 seconds and finished `OK`; one hosted-Windows Job Object integration test was explicitly skipped and remains `NOT RUN`.
-- Passed 39 structural contracts, canonical product-state validation, 100% bidirectional RC.5 traceability across 77 changed paths, historical RC.4 static coverage, 117-method/73-source/38-risk-model validation, 15-Skill validation at 1,934 description characters and 13,263 ordinary static bytes, plugin and knowledge checks, confidentiality doctor with zero required failures, compilation, managed-workstream reconciliation, final diff checks, and independent clean-context review after closing four trust/lifecycle blocker families.
+- After the R4 external-tool boundary repair, final local-source regression ran 688 tests in 172.172 seconds and finished `OK`; one hosted-Windows Job Object integration test was explicitly skipped and remains `NOT RUN`.
+- The repaired bytes pass 39 structural contracts, canonical product-state validation, 100% bidirectional RC.5 traceability, historical RC.4 static coverage, 117-method/73-source/38-risk-model validation, 15-Skill validation at 1,934 description characters and 13,667 ordinary static bytes, plugin and knowledge checks, confidentiality doctor with zero required failures, compilation, managed-workstream reconciliation, diff checks, and independent final-byte re-review with no remaining P0-P2 finding.
 - Commit, hosted CI, cross-platform execution, live model qualification, artifact/attestation, isolated-profile installation, tag, push, publication, deployment, and business outcome improvement remain `NOT RUN`; primary-profile mutation is out of scope.
 
 ## [2.0.0-rc.4] - 2026-08-29

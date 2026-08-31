@@ -1406,6 +1406,17 @@ class WorkstreamTests(unittest.TestCase):
 
 
 class ActiveGuidanceTests(unittest.TestCase):
+    def test_unavailable_optional_capability_stays_repository_local(self) -> None:
+        skill = DEV_FLOW_SKILL.read_text(encoding="utf-8")
+        calibration = QUALITY_CALIBRATION.read_text(encoding="utf-8")
+        for phrase in (
+            "does not authorize discovering, installing, or invoking an external capability",
+            "do not call Web, browser, MCP, app, computer-use, image-generation, or dynamic tools",
+            "continue safe native checks",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, skill + "\n" + calibration)
+
     def test_diagnosis_only_stops_before_repair(self) -> None:
         guidance = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(
             encoding="utf-8"

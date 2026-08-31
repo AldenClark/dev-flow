@@ -1177,8 +1177,11 @@ raise SystemExit(3)
                 + "\n",
                 encoding="utf-8",
             )
-            with self.assertRaises(runner.TrialError):
+            with self.assertRaises(runner.TrialError) as raised:
                 runner.sanitized_trajectory(events)
+            message = str(raised.exception)
+            self.assertIn("event_type=image_generation_begin", message)
+            self.assertIn("item_type=image_generation", message)
             events.write_text(
                 json.dumps(
                     {
@@ -1246,6 +1249,59 @@ raise SystemExit(3)
             self.assertIn("item_type=mystery_tool_call", message)
             self.assertNotIn("private-tool-name", message)
             self.assertNotIn("private payload", message)
+
+    def test_prohibited_event_failure_record_preserves_identity_without_payload(self) -> None:
+        runner = load_runner_module()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output_dir = root / "evidence"
+            output_dir.mkdir()
+            events = root / "events.jsonl"
+            events.write_text(
+                json.dumps(
+                    {
+                        "type": "image_generation_begin",
+                        "item": {
+                            "type": "image_generation",
+                            "name": "private external capability",
+                            "prompt": "private payload must not enter the failure record",
+                        },
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaises(runner.TrialError) as raised:
+                runner.sanitized_trajectory(events)
+            run_id = runner.sha256_text("prohibited-event-failure-record")
+            campaign = root / "campaign.json"
+            runner.reserve_campaign_budget(
+                campaign,
+                campaign_id="prohibited-event-test",
+                maximum_tokens=100,
+                run_id=run_id,
+                requested_tokens=100,
+                semantic_runtime_sha256="sha256:" + "1" * 64,
+                qualification_execution_sha256="sha256:" + "2" * 64,
+            )
+            runner.close_campaign_run_after_failure(
+                campaign_budget_file=campaign,
+                run_id=run_id,
+                output_dir=output_dir,
+                attempt=1,
+                consumed_tokens=0,
+                pending_usage_tokens=0,
+                attempt_usage_committed=False,
+                interrupted=False,
+                error=raised.exception,
+            )
+            failure_text = (output_dir / "first-failure.json").read_text(
+                encoding="utf-8"
+            )
+        self.assertIn("event_type=image_generation_begin", failure_text)
+        self.assertIn("item_type=image_generation", failure_text)
+        self.assertNotIn("private external capability", failure_text)
+        self.assertNotIn("private payload", failure_text)
 
     def test_isolated_rollout_recovers_hidden_delegation_without_transcript_text(self) -> None:
         runner = load_runner_module()

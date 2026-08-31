@@ -5,7 +5,7 @@
 
 - State: implementation-complete
 - Current slice: S4
-- Terminal condition: S0-S4 complete; implementation hard conditions and independent clean-context review pass on final local bytes; hosted, live-model, artifact, install, tag, push, and publication evidence remains explicitly not-run.
+- Terminal condition: local implementation, full regression, truth projections, and independent final-byte review pass; R4, hosted, artifact, install, tag, push, and publication remain separate qualification/delivery gates.
 - Updated: 2026-08-31
 
 ## Completed outcomes
@@ -17,15 +17,15 @@
 - Contracted the public CLI to 17 commands, reduced compact routing to decisions and identifiers, and added conservative digest-only incremental comparison plus target context budgets.
 - Added read-only runtime diagnosis and private bounded outcome observation with no raw content, stable identity, upload, or score.
 - Hardened untrusted-content provenance, personal-profile scope/expiry, exact user-event DLP confirmation, and single-agent dispatch defaults.
-- Integrated compatibility ownership and bidirectional RC.5 traceability, then completed focused, full-regression, static, security, plugin, compile, and final-diff checks on current local bytes. Independent red-team review found and closed target-root code execution, parent-symlink read/write/enumeration escapes, missing cache directory bounds, and an unsatisfiable published/rollback lifecycle.
+- Integrated compatibility ownership and bidirectional RC.5 traceability, then completed focused, full-regression, static, security, plugin, compile, and final-diff checks on rejected candidate `7472128`. Independent red-team review found and closed target-root code execution, parent-symlink read/write/enumeration escapes, missing cache directory bounds, and an unsatisfiable published/rollback lifecycle on that earlier identity.
 
 ## Current
 
-Local implementation and independent review are complete. Strict discovery ran 687 tests in 120.939 seconds and finished `OK` with one explicitly skipped hosted-Windows integration test. The 39 structural contracts, product-state validator, 77-path RC.5 trace, historical RC.4 static scan, method/knowledge/plugin/suite/security checks, compilation, final worktree review, and independent clean-context review pass on the recorded implementation bytes.
+Candidate `747212860a1222e947d5d453c0b2ab2ac1abfc92` is rejected for release. Two preserved qualification identities stopped at 200,000 and 500,000 per-call token ceilings. A final 2,000,000-per-call identity completed the high-context turn within budget, then failed closed because `TRANSITION-OPTIONAL-CAPABILITY-FAILURE` emitted a prohibited external tool event. The repair makes optional-capability absence explicitly local-only, preserves bounded prohibited event/item identities without payload, and adds exact RC5-TRUST trace oracles. Fresh full regression passed 688 tests in 172.172 seconds with one hosted-Windows skip. Independent re-review found two release-truth/trace P2s and one instrumentation-oracle P3; all were repaired and independently confirmed closed with no remaining P0-P2 finding.
 
 ## Next
 
-Remaining qualification and delivery require fresh evidence: hosted Ubuntu/macOS/Windows compatibility, live R4 model-semantic qualification, exact commit identity, artifact/SBOM/attestation, isolated-profile installation, tag, push, and publication. Primary-profile mutation remains out of scope.
+Freeze a new exact candidate commit and run fresh R4 qualification. Only then proceed to hosted Ubuntu/macOS/Windows compatibility, artifact/SBOM/attestation, isolated-profile installation, tag, push, and publication. Primary-profile mutation remains out of scope.
 
 ## Hard conditions
 
@@ -36,14 +36,14 @@ Remaining qualification and delivery require fresh evidence: hosted Ubuntu/macOS
 | HC3 | Supported CLI, compact routing, and context budgets pass compatibility and negative controls | implementation | passed | Public CLI, route, incremental basis, and context-budget tests passed |
 | HC4 | Doctor and outcome observation pass bounded privacy and claim-limit checks | implementation | passed | Read-only doctor and bounded concurrent private-store tests passed |
 | HC5 | Trust, DLP user-event confirmation, memory, and dispatch boundaries pass adversarial tests | implementation | passed | Trust/profile/DLP/dispatch positive and negative controls passed |
-| HC6 | Final local regression and same-context final-diff review pass | implementation | passed | 687 local tests, validators, compilation, and diff review passed; one hosted-Windows test remains not-run |
-| HC7 | Independent clean-context review | qualification | passed | P5 independent reviewer found four trust/lifecycle blocker families; final repairs and negative controls were re-reviewed with no remaining code finding |
-| HC8 | Hosted compatibility and live model-semantic qualification | qualification | not-run | Authorized on 2026-08-31; pending immutable candidate identity and external execution |
+| HC6 | Final local regression and same-context final-diff review pass | implementation | passed | 688 tests passed in 172.172 seconds after the R4 boundary repair; one hosted-Windows integration remains not-run; validators and final diff checks are rerun after evidence-only updates |
+| HC7 | Independent clean-context review | qualification | passed | P6/xhigh clean-context re-review confirmed both P2 release-truth/trace findings and the P3 instrumentation oracle closed; no remaining P0-P2 finding |
+| HC8 | Hosted compatibility and live model-semantic qualification | qualification | not-run | Rejected candidate `7472128` failed R4 with a prohibited external tool event; corrected final bytes require a fresh exact-identity qualification and hosted matrix |
 | HC9 | Exact commit, artifact, install, tag, push, and publication | qualification | not-run | Authorized on 2026-08-31; pending HC8 and exact candidate evidence |
 
 ## Active convergence checkpoint
 
-None.
+Two incremental per-call budget adjustments failed without advancing R4. The final budget disposition replaced them with a 2,000,000 single-call hard ceiling and retained the 30,000,000 total ceiling; it exposed a semantic external-tool violation rather than another resource failure. No further budget tuning is allowed for the rejected candidate. Progress now requires the material semantic repair and a new candidate identity.
 
 ## Worktree boundary
 

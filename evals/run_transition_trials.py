@@ -1254,7 +1254,11 @@ def sanitized_trajectory(events: Path) -> list[dict[str, Any]]:
             if isinstance(value, str)
         )
         if any(marker in lowered for marker in PROHIBITED_TRAJECTORY_MARKERS):
-            raise TrialError("candidate emitted a prohibited external tool event")
+            raise TrialError(
+                "candidate emitted a prohibited external tool event "
+                f"(event_type={bounded_event_identity(event_type)}, "
+                f"item_type={bounded_event_identity(item_type)})"
+            )
         collaboration_event = "collab" in lowered
         if any(marker in lowered for marker in ("tool", "function")) and not any(
             marker in lowered

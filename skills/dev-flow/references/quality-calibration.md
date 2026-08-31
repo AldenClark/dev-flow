@@ -76,6 +76,8 @@ Do not retry an invariant, authority, or external failure while its observable r
 
 Isolate the blocked gate and continue unrelated safe repository-native checks. A fallback may support a narrower claim only: same-context inspection is not independent review, a native lint is not an unavailable deep scanner, and synthetic evidence is not real-system evidence. Report the original gate as `BLOCKED` or `NOT RUN`, the qualified fallback separately, and the exact claim limit. This classification is turn-local reasoning; do not add a readiness registry, circuit-breaker record, route field, or persisted task state.
 
+An unspecified optional capability is not authority to search for, install, or invoke a remote substitute. Inspect the current callable surface and repository-native commands only. If the named capability is absent, do not call Web, browser, MCP, app, computer-use, image-generation, or dynamic tools to discover or emulate it; record the first unavailable result and continue safe native checks under the narrower claim.
+
 ## Evidence freshness
 
 Bind an evidence conclusion to the relevant bytes, scope, environment, platform, and compatibility direction it actually observed. An affected source/config/generated-file edit after a PASS invalidates that PASS until the smallest affected-scope freshness check runs again. The same rule applies after delegated edits, review repairs, new platform/repository scope, final-diff expansion, and delivery preparation.
