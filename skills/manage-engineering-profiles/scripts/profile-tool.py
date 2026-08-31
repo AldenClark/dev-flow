@@ -50,13 +50,31 @@ def explain(args: argparse.Namespace) -> int:
     return emit({"status": snapshot["outcome"], "snapshot": snapshot}, 2 if snapshot["outcome"] == "blocked" else 0)
 
 
-def profile_template(profile_id: str, layer: str, owner: str, status: str) -> str:
+def profile_template(
+    profile_id: str,
+    layer: str,
+    owner: str,
+    status: str,
+    *,
+    scope: list[str],
+    expires_at: str | None,
+) -> str:
+    governance = ""
+    if layer == "personal":
+        rendered_scope = ", ".join(json.dumps(item) for item in scope)
+        governance = f'''provenance = "explicit-user"
+scope = [{rendered_scope}]
+expires_at = "{expires_at}"
+correction_policy = "edit-or-retire-profile"
+deletion_policy = "delete-profile-file"
+'''
     return f'''schema_version = "1.0"
 id = "{profile_id}"
 layer = "{layer}"
 owner = "{owner}"
 version = "1.0"
 status = "{status}"
+{governance}
 
 # Add reviewed [[preferences]] records. Keep observed repository facts in native
 # manifests and CI; keep volatile ecosystem claims in a sourced snapshot.
@@ -66,7 +84,29 @@ status = "{status}"
 def scaffold(args: argparse.Namespace) -> int:
     if not engineering_context.SAFE_NAME_RE.fullmatch(args.id):
         return emit({"status": "invalid", "errors": ["id contains unsupported characters"]}, 2)
-    content = profile_template(args.id, args.layer, args.owner, args.status)
+    if args.layer == "personal":
+        if not args.scope or any(not item.strip() for item in args.scope) or not args.expires_at:
+            return emit(
+                {
+                    "status": "invalid",
+                    "errors": ["personal profiles require explicit --scope and --expires-at governance"],
+                },
+                2,
+            )
+        try:
+            expiry = dt.datetime.fromisoformat(args.expires_at.replace("Z", "+00:00"))
+        except ValueError:
+            return emit({"status": "invalid", "errors": ["--expires-at must be a timezone-aware ISO timestamp"]}, 2)
+        if expiry.tzinfo is None or expiry <= dt.datetime.now(dt.timezone.utc):
+            return emit({"status": "invalid", "errors": ["--expires-at must be a future timezone-aware timestamp"]}, 2)
+    content = profile_template(
+        args.id,
+        args.layer,
+        args.owner,
+        args.status,
+        scope=args.scope,
+        expires_at=args.expires_at,
+    )
     proposal = {
         "status": "proposal",
         "classification": "owner-input-required",
@@ -238,6 +278,8 @@ def build_parser() -> argparse.ArgumentParser:
     scaffold_parser.add_argument("--layer", choices=engineering_context.LAYERS[1:], required=True)
     scaffold_parser.add_argument("--owner", required=True)
     scaffold_parser.add_argument("--status", choices=sorted(engineering_context.PROFILE_STATUSES), default="draft")
+    scaffold_parser.add_argument("--scope", action="append", default=[])
+    scaffold_parser.add_argument("--expires-at")
     scaffold_parser.add_argument("--output", type=Path)
     scaffold_parser.add_argument("--write", action="store_true")
     scaffold_parser.add_argument("--force", action="store_true")

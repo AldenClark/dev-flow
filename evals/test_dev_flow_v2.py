@@ -15,6 +15,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 FLOW = ROOT / "skills" / "dev-flow" / "scripts" / "dev-flow.py"
+LEGACY_FLOW = ROOT / "skills" / "dev-flow" / "scripts" / "dev_flow.py"
 DEV_FLOW_SKILL = ROOT / "skills" / "dev-flow" / "SKILL.md"
 QUALITY_CALIBRATION = ROOT / "skills" / "dev-flow" / "references" / "quality-calibration.md"
 VERIFICATION_SKILL = ROOT / "skills" / "verification" / "SKILL.md"
@@ -383,10 +384,10 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual([item["overlay"] for item in delivery["risk_overlays"]], ["release"])
 
     def test_architecture_risk_review_keeps_review_intent_and_loads_owner(self) -> None:
-        payload = route("--intent", "review", "--risk", "ffi", "--compact")
+        payload = route("--intent", "review", "--risk", "ffi")
         self.assertEqual(payload["intent"], "review")
         self.assertFalse(payload["requirement_understanding"]["confirmation_required"])
-        self.assertIn("architecture-decisions", payload["routes"])
+        self.assertIn("architecture-decisions", [item["skill"] for item in payload["routes"]])
 
     def test_research_and_review_have_distinct_read_only_routes(self) -> None:
         research = route("--intent", "research")
@@ -724,6 +725,7 @@ class RoutingTests(unittest.TestCase):
                 "--waive-understanding-confirmation",
                 "--previous-route",
                 "--compact",
+                "--explain",
             }
         )
         self.assertEqual(public_options, replayed_options)
@@ -813,7 +815,10 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(corrected.returncode, 0, corrected.stderr or corrected.stdout)
         corrected_payload = json.loads(corrected.stdout)
         self.assertEqual(corrected_payload["work_mode"], "managed")
-        self.assertIn("risk:concurrency", corrected_payload["method"]["reasons"])
+        considered = set(corrected_payload["method"]["selected"]) | set(
+            corrected_payload["method"]["blocked"]
+        )
+        self.assertIn("state-transition-model", considered)
 
         workflow = run_flow(
             "route-task",
@@ -1067,7 +1072,10 @@ class RoutingTests(unittest.TestCase):
             },
         )
         self.assertEqual(payload["intent"], "review")
-        self.assertFalse(payload["requirement_understanding"]["confirmation_required"])
+        self.assertEqual(
+            set(payload["requirement_understanding"]), {"class", "next_action"}
+        )
+        self.assertNotIn("confirmation_required", payload["requirement_understanding"])
         self.assertNotIn("method_selection", payload)
 
     def test_diagnosis_and_review_use_their_method_phases(self) -> None:
@@ -1495,7 +1503,13 @@ class ActiveGuidanceTests(unittest.TestCase):
         self.assertIn("then use `change-review` against the final diff", skill)
 
     def test_method_selection_accepts_the_same_intent_vocabulary(self) -> None:
-        result = run_flow("select-methods", "--phase", "design", "--intent", "change")
+        result = subprocess.run(
+            [sys.executable, str(LEGACY_FLOW), "select-methods", "--phase", "design", "--intent", "change"],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
         self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
         request = json.loads(result.stdout)["request"]
         self.assertEqual(request["intent"], "change")

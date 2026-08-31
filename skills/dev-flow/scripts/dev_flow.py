@@ -26,8 +26,10 @@ import engineering_context
 import flow_metrics
 import knowledge_system
 import methodology_system
+import outcome_observation
 import resource_coordination
 import route_incremental
+import runtime_doctor
 import workstream_contract
 from dependency_contracts import (
     action_reference_scan,
@@ -7391,20 +7393,45 @@ def route_task(args: argparse.Namespace) -> int:
         recalibration = route_incremental.compare(route_basis, previous)
         payload["recalibration"] = recalibration
     if args.compact:
+        method_selection = capability_activation["method"].get("selection")
+        selected_methods = []
+        blocked_methods = []
+        selection_status = "not-selected"
+        if isinstance(method_selection, dict):
+            selection_status = str(method_selection.get("status") or "unknown")
+            selected_methods = [
+                str(value) for value in method_selection.get("selected", []) if isinstance(value, str)
+            ]
+            blocked_methods = [
+                str(item.get("method"))
+                for item in method_selection.get("blocked", [])
+                if isinstance(item, dict) and isinstance(item.get("method"), str)
+            ]
+        review = capability_activation["independent_review"]
         payload = {
             "status": payload["status"],
             "intent": payload["intent"],
             "work_mode": payload["work_mode"],
             "requirement_understanding": {
                 key: payload["requirement_understanding"][key]
-                for key in ("class", "confirmation_required", "design_allowed", "next_action")
+                for key in ("class", "next_action")
             },
             "routes": [item["skill"] for item in payload["routes"]],
             "risk_overlays": [item["overlay"] for item in payload["risk_overlays"]],
-            "method": capability_activation["method"],
-            "independent_review": capability_activation["independent_review"],
+            "method": {
+                "action": capability_activation["method"].get("action"),
+                "status": selection_status,
+                "selected": selected_methods,
+                "blocked": blocked_methods,
+            },
+            "independent_review": {
+                "required": bool(review.get("required")),
+                "execution": review.get("execution"),
+                "common_mode_risk": review.get("execution") == "explicit-downgrade",
+                "route_agent": review.get("route_agent"),
+            },
             "knowledge": payload["knowledge"]["disposition"],
-            "route_basis": route_basis,
+            "route_basis": route_incremental.compact_basis(route_basis),
         }
         if recalibration is not None:
             payload["recalibration"] = recalibration
@@ -7500,6 +7527,9 @@ def route_agent_command(args: argparse.Namespace) -> int:
             acknowledge_exception=args.acknowledge_exception,
             acknowledge_downgrade=args.acknowledge_downgrade,
             registry_path=args.registry,
+            task_structure=args.task_structure,
+            parallel_units=args.parallel_units,
+            tool_density=args.tool_density,
         )
     except (agent_dispatch.DispatchContractError, engineering_context.ContractError) as exc:
         return emit({"status": "invalid", "errors": [str(exc)]}, 2)
@@ -8282,12 +8312,18 @@ def build_parser() -> argparse.ArgumentParser:
     route.add_argument(
         "--previous-route",
         type=Path,
-        help="Caller-owned bounded prior RC.4 route JSON for stateless recalibration",
+        help="Caller-owned bounded prior compatible route JSON for stateless recalibration",
     )
-    route.add_argument(
+    route_output = route.add_mutually_exclusive_group()
+    route_output.add_argument(
         "--compact",
         action="store_true",
-        help="Emit the bounded runtime decisions without the explanatory route envelope",
+        help="Emit only decisions, method ids, review disposition, and a digest-only route identity",
+    )
+    route_output.add_argument(
+        "--explain",
+        action="store_true",
+        help="Emit the complete explanatory route envelope (the default)",
     )
     route.set_defaults(func=route_task)
 
@@ -8343,6 +8379,24 @@ def build_parser() -> argparse.ArgumentParser:
     agent_route.add_argument("--signal", action="append", default=[])
     agent_route.add_argument("--profile")
     agent_route.add_argument(
+        "--task-structure",
+        choices=sorted(agent_dispatch.TASK_STRUCTURES),
+        default="independent",
+        help="Only an independently useful unit qualifies for child dispatch",
+    )
+    agent_route.add_argument(
+        "--parallel-units",
+        type=int,
+        default=1,
+        help="Observed independent units, not an agent-count request",
+    )
+    agent_route.add_argument(
+        "--tool-density",
+        choices=sorted(agent_dispatch.TOOL_DENSITIES),
+        default="low",
+        help="Diagnostic only; high tool volume never justifies delegation",
+    )
+    agent_route.add_argument(
         "--acknowledge-exception",
         action="store_true",
         help="Required for the explicit PX exceptional profile",
@@ -8367,6 +8421,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     activation.add_argument("--observations", type=Path)
     activation.set_defaults(func=flow_metrics_command)
+
+    runtime_doctor.add_parser(sub, default_root=Path(__file__).resolve().parents[3])
+    outcome_observation.add_parser(sub)
 
     check = sub.add_parser("check")
     check.add_argument("--plugin-root", type=Path)

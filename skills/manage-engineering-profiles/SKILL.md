@@ -29,6 +29,8 @@ Manage preference assets without turning current code frequency, installed Skill
 
 Dev Flow may propose a personal workflow preference only from an explicit owner request or an authorized selected-history/dogfood review. Persist it only after the owner confirms the exact layer, scope, strength, observable effect, conflict behavior, and review trigger. Observed repetition, method frequency, repository statistics, or ordinary conversation never writes or activates a profile automatically.
 
+Durable personal profiles must carry explicit-user provenance, path scope, future expiry, and fixed correction/deletion policies. Expiry or missing governance makes the profile invalid; do not silently renew or infer replacement values.
+
 Read `references/quality-policy.md` when defining code-quality outcomes or specialist capability requirements.
 Use `references/rust-frontend-profile.example.toml` only as an inactive personal-profile example; review and update every entry before activation.
 

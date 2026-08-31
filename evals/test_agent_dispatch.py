@@ -98,6 +98,39 @@ class AgentDispatchBlackBoxTests(unittest.TestCase):
         self.assertEqual(downgraded_payload["policy_profile"], "P5")
         self.assertEqual(downgraded_payload["selected_profile"], "P0")
 
+    def test_sequential_and_tool_dense_work_does_not_auto_multiply_agents(self) -> None:
+        sequential = run_route(
+            "--role",
+            "dev-flow-worker",
+            "--workload",
+            "broad-multi-step",
+            "--task-structure",
+            "sequential",
+            "--parallel-units",
+            "4",
+            "--tool-density",
+            "high",
+        )
+        self.assertEqual(sequential.returncode, 0, sequential.stderr or sequential.stdout)
+        payload = json.loads(sequential.stdout)
+        self.assertFalse(payload["delegate"])
+        self.assertEqual(payload["selection_source"], "root-sequential")
+        self.assertIsNone(payload["selected_profile"])
+        self.assertIn("do not authorize agent multiplication", payload["upgrade_reasons"][0]["reason"])
+
+        low = json.loads(run_route("--role", "dev-flow-worker", "--workload", "bounded-change").stdout)
+        high = json.loads(
+            run_route(
+                "--role",
+                "dev-flow-worker",
+                "--workload",
+                "bounded-change",
+                "--tool-density",
+                "high",
+            ).stdout
+        )
+        self.assertEqual(low["selected_profile"], high["selected_profile"])
+
 
 class AgentDispatchWhiteBoxTests(unittest.TestCase):
     def test_registry_is_exact_and_profiles_are_orthogonal(self) -> None:

@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import stat
 from pathlib import Path
 from typing import Any
 
 
 ROUTE_BASIS_SCHEMA = "dev-flow.route-basis.v1"
-ROUTER_SEMANTICS_VERSION = "dev-flow.route-semantics.rc4.v1"
+ROUTER_SEMANTICS_VERSION = "dev-flow.route-semantics.rc5.v1"
 MAX_PREVIOUS_ROUTE_BYTES = 512 * 1024
 MAX_BASIS_LIST_ITEMS = 64
 MAX_BASIS_VALUE_CHARS = 256
@@ -62,6 +63,15 @@ INVALIDATIONS = {
 
 class RouteBasisError(ValueError):
     """Raised when a caller-supplied prior route is unsafe or malformed."""
+
+
+def compact_basis(basis: dict[str, Any]) -> dict[str, str]:
+    """Return the privacy-minimized identity sufficient for unchanged reuse."""
+    return {
+        "schema": str(basis["schema"]),
+        "router_semantics": ROUTER_SEMANTICS_VERSION,
+        "digest": str(basis["digest"]),
+    }
 
 
 def _canonical_json(value: Any) -> bytes:
@@ -170,20 +180,32 @@ def load_previous(path: Path) -> dict[str, Any]:
         raise RouteBasisError("previous route exceeds the bounded file size")
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
         raise RouteBasisError(f"previous route is not bounded UTF-8 JSON: {exc}") from exc
     if not isinstance(payload, dict):
         raise RouteBasisError("previous route must be a JSON object")
     basis = payload.get("route_basis")
     if not isinstance(basis, dict):
         return {"compatible": False, "reason": "missing-route-basis"}
-    if basis.get("schema") != ROUTE_BASIS_SCHEMA or not isinstance(basis.get("dimensions"), dict):
+    if basis.get("schema") != ROUTE_BASIS_SCHEMA:
         return {"compatible": False, "reason": "incompatible-route-basis-schema"}
-    if set(basis["dimensions"]) != set(INVALIDATIONS):
+    digest = basis.get("digest")
+    if not isinstance(digest, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", digest) is None:
+        raise RouteBasisError("previous route basis digest is invalid")
+    dimensions = basis.get("dimensions")
+    if dimensions is None:
+        if basis.get("router_semantics") != ROUTER_SEMANTICS_VERSION:
+            return {"compatible": False, "reason": "incompatible-router-semantics"}
+        if set(basis) != {"schema", "router_semantics", "digest"}:
+            return {"compatible": False, "reason": "invalid-compact-route-basis"}
+        return {"compatible": True, "basis": basis, "detail": "digest-only"}
+    if not isinstance(dimensions, dict):
+        return {"compatible": False, "reason": "incompatible-route-basis-schema"}
+    if set(dimensions) != set(INVALIDATIONS):
         return {"compatible": False, "reason": "incompatible-route-basis-dimensions"}
-    if basis.get("digest") != _digest(basis["dimensions"]):
+    if digest != _digest(dimensions):
         raise RouteBasisError("previous route basis digest does not match its dimensions")
-    return {"compatible": True, "basis": basis}
+    return {"compatible": True, "basis": basis, "detail": "complete"}
 
 
 def compare(current: dict[str, Any], previous: dict[str, Any]) -> dict[str, Any]:
@@ -196,18 +218,28 @@ def compare(current: dict[str, Any], previous: dict[str, Any]) -> dict[str, Any]
             "next_action": "use-complete-current-route",
         }
     prior = previous["basis"]
-    changed = sorted(
-        name
-        for name in INVALIDATIONS
-        if prior["dimensions"].get(name) != current["dimensions"].get(name)
-    )
-    if not changed:
+    if prior["digest"] == current["digest"]:
         return {
             "status": "unchanged",
             "changed_dimensions": [],
             "invalidated_decisions": [],
             "next_action": "continue-without-reloading",
         }
+    if previous.get("detail") == "digest-only":
+        return {
+            "status": "changed-digest-only",
+            "reason": "compact-prior-route-omits-dimension-details",
+            "changed_dimensions": [],
+            "invalidated_decisions": sorted(
+                {decision for decisions in INVALIDATIONS.values() for decision in decisions}
+            ),
+            "next_action": "use-complete-current-route",
+        }
+    changed = sorted(
+        name
+        for name in INVALIDATIONS
+        if prior["dimensions"].get(name) != current["dimensions"].get(name)
+    )
     invalidated = sorted({item for name in changed for item in INVALIDATIONS[name]})
     return {
         "status": "changed",

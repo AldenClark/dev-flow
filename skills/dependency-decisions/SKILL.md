@@ -1,6 +1,6 @@
 ---
 name: dependency-decisions
-description: Evaluate and implement dependency additions, updates, removals, tools, services, plugins, runtimes, and supply-chain changes with proportionate evidence.
+description: Evaluate dependency, tool, service, runtime, and supply-chain changes with proportionate evidence.
 ---
 
 # Dependency Decisions

@@ -1,6 +1,6 @@
 ---
 name: verification
-description: Derive risk-based oracles, run native checks, and report fresh compatibility, security, performance, accessibility, and runtime evidence.
+description: Derive risk-based oracles, run native checks, and report fresh evidence and limits honestly.
 ---
 
 # Verification

@@ -4,6 +4,11 @@ layer = "personal"
 owner = "replace-with-user-id"
 version = "1.0"
 status = "draft"
+provenance = "explicit-user"
+scope = ["**"]
+expires_at = "2030-01-01T00:00:00Z"
+correction_policy = "edit-or-retire-profile"
+deletion_policy = "delete-profile-file"
 
 # This is an inactive example, not public policy. Copy it into the personal
 # profile directory, review every entry, update the owner, and activate it.

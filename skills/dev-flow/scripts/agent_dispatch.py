@@ -22,6 +22,8 @@ EXPECTED_ROLES = {
     "dev-flow-red-reviewer",
     "root",
 }
+TASK_STRUCTURES = {"independent", "sequential", "coupled"}
+TOOL_DENSITIES = {"low", "high"}
 
 
 class DispatchContractError(ValueError):
@@ -236,6 +238,9 @@ def route_agent(
     acknowledge_exception: bool = False,
     acknowledge_downgrade: bool = False,
     registry_path: Path | None = None,
+    task_structure: str = "independent",
+    parallel_units: int = 1,
+    tool_density: str = "low",
 ) -> dict[str, Any]:
     registry = load_registry(registry_path)
     workloads = {item["id"]: item for item in registry["workloads"]}
@@ -244,6 +249,12 @@ def route_agent(
         raise DispatchContractError(f"unknown role {role!r}")
     if workload not in workloads:
         raise DispatchContractError(f"unknown workload {workload!r}")
+    if task_structure not in TASK_STRUCTURES:
+        raise DispatchContractError(f"unknown task structure {task_structure!r}")
+    if tool_density not in TOOL_DENSITIES:
+        raise DispatchContractError(f"unknown tool density {tool_density!r}")
+    if isinstance(parallel_units, bool) or not isinstance(parallel_units, int) or not 1 <= parallel_units <= 8:
+        raise DispatchContractError("parallel units must be an integer from 1 to 8")
     workload_record = workloads[workload]
     if role not in workload_record["roles"]:
         raise DispatchContractError(f"role {role!r} is incompatible with workload {workload!r}")
@@ -269,8 +280,47 @@ def route_agent(
             "fork_turns": None,
             "risks": sorted(risk_set),
             "signals": sorted(signal_set),
+            "dispatch_precondition": {
+                "task_structure": task_structure,
+                "parallel_units": parallel_units,
+                "tool_density": tool_density,
+                "qualified": False,
+                "reason": "root-owned decision",
+            },
             "upgrade_reasons": [
                 {"id": "root-only", "reason": workload_record["purpose"]}
+            ],
+        }
+
+    if task_structure in {"sequential", "coupled"}:
+        if requested_profile is not None or acknowledge_exception or acknowledge_downgrade:
+            raise DispatchContractError("non-delegated sequential/coupled work cannot request a child profile")
+        return {
+            "status": "routed",
+            "schema_version": RESULT_SCHEMA_VERSION,
+            "delegate": False,
+            "role": role,
+            "workload": workload,
+            "selection_source": "root-sequential" if task_structure == "sequential" else "root-coupled",
+            "default_profile": workload_record["default_profile"],
+            "selected_profile": None,
+            "requested_model": None,
+            "requested_reasoning_effort": None,
+            "fork_turns": None,
+            "risks": sorted(risk_set),
+            "signals": sorted(signal_set),
+            "dispatch_precondition": {
+                "task_structure": task_structure,
+                "parallel_units": parallel_units,
+                "tool_density": tool_density,
+                "qualified": False,
+                "reason": "sequential or coupled steps do not form an independently useful child unit",
+            },
+            "upgrade_reasons": [
+                {
+                    "id": "single-owner-structure",
+                    "reason": "task shape requires one owner; size and tool density do not authorize agent multiplication",
+                }
             ],
         }
 
@@ -360,6 +410,13 @@ def route_agent(
         "fork_turns": registry["runtime"]["default_fork_turns"],
         "risks": sorted(risk_set),
         "signals": sorted(signal_set),
+        "dispatch_precondition": {
+            "task_structure": task_structure,
+            "parallel_units": parallel_units,
+            "tool_density": tool_density,
+            "qualified": True,
+            "reason": "caller identified an independently useful child unit",
+        },
         "upgrade_reasons": reasons,
         "runtime_fallback": "if unavailable, state the observed fallback in the current task result; inherit platform or parent selection only when safe",
     }

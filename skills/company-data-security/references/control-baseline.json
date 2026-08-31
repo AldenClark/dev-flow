@@ -1,18 +1,20 @@
 {
   "files": {
-    "hooks/data_security_hook.py": "sha256:956e4e64adaa955808ba99c7ef2c58d293b86a4cf6daa80e2fd5df0b376c3a96",
-    "skills/company-data-security/SKILL.md": "sha256:9dc883e4d021d51e75ee76d1df20b23320781d90d0df17390d9a0906bc9c0c29",
+    "hooks/data_security_hook.py": "sha256:ab0a0ab17627dfe2e2c03a141129a3b819cca2f55aa367326df9b6f9b6af28cd",
+    "skills/company-data-security/SKILL.md": "sha256:26efce4b68629d4abe3ac5a13d4435cd8cb237bbe0625a2a76e06814daa149d3",
     "skills/company-data-security/agents/openai.yaml": "sha256:8eb36f8640ad24b4b17abd1c805f80028da422ef4ff477212eb9a45e3b4a9f52",
     "skills/company-data-security/assets/chatgpt-work-instructions.md": "sha256:3bf085d72471b041c6791da2894bce2af30febd80c9d06509ad6a119303fdb80",
     "skills/company-data-security/assets/codex-agents-baseline.md": "sha256:24543ce1cdf25d9cae8e9247569d29c2ac5e1492f74d07510c34cff6bfd4a921",
     "skills/company-data-security/assets/ordinary-chat-instructions.md": "sha256:88658af74574702bb634f19fe90225be3c1f60cd9ba83e6e3772895b4f57ffdd",
-    "skills/company-data-security/references/data-handling-policy.md": "sha256:63ce4df89f61be5bbc78de782237b1b93273f3cb680875f70a64bd7e66d8b99e",
-    "skills/company-data-security/references/surface-playbooks.md": "sha256:d7ea529a8ad579c8b74eb2793b1d0a100fe214df6b44c16b72fb990be46f6c6c",
+    "skills/company-data-security/references/data-handling-policy.md": "sha256:39a1be77eabf18782d4c244efef34e44579ebc9b6728ca81d4779a58699376ce",
+    "skills/company-data-security/references/surface-playbooks.md": "sha256:117fd7797e4a1702a457585dfd43dcfebf1caee7b049880a0d522cc0463235b4",
     "skills/company-data-security/scripts/data_security.py": "sha256:16713c267df638670999b90d6023b29f0ab968eeaf77f82f2ff7dd4531e3716d",
-    "skills/company-data-security/scripts/doctor.py": "sha256:61785651465f746b93fa59d6ec33a000f0c5e5ed8350248f61642f2e9778747a"
+    "skills/company-data-security/scripts/dlp_approval.py": "sha256:a252bcca5312d172bc169e93f5e91f70ce99d6e64db8d50789624675589aff49",
+    "skills/company-data-security/scripts/dlp_policy.py": "sha256:195d9d6045a399cbd65f31c3d9082ac38b35572c59627eef83e918bba0b39dc3",
+    "skills/company-data-security/scripts/doctor.py": "sha256:48df5c71cfeaa9cec890133d74736ccb342a23ccb8c9773adf8ec95502dac17d"
   },
   "hook_protocol": {
-    "checked_at": "2026-08-14",
+    "checked_at": "2026-08-31",
     "source": "https://learn.chatgpt.com/docs/hooks"
   },
   "schema_version": "1.0"

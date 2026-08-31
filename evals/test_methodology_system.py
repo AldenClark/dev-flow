@@ -20,7 +20,7 @@ sys.path.insert(0, str(SCRIPT_ROOT))
 import methodology_system  # noqa: E402
 
 
-FLOW = SCRIPT_ROOT / "dev-flow.py"
+FLOW = SCRIPT_ROOT / "dev_flow.py"
 REGISTRY = ROOT / "governance" / "methodology-pool.json"
 
 

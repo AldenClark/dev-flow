@@ -14,9 +14,9 @@ from typing import Any
 
 
 SCHEMA = "dev-flow.rc4.traceability.v1"
-REQUIREMENT_PATTERN = re.compile(r"<!-- requirement: (RC4-[A-Z-]+) -->")
+REQUIREMENT_PATTERN = re.compile(r"<!-- requirement: ([A-Z0-9-]+) -->")
 DECISION_PATTERN = re.compile(r"^## (D[1-9][0-9]*):", re.MULTILINE)
-IMPLEMENTATION_DECISION_PATTERN = re.compile(r"\bD(?:[1-9]|1[0-5])\b")
+IMPLEMENTATION_DECISION_PATTERN = re.compile(r"\bD[1-9][0-9]*\b")
 
 
 def matches(path: str, declaration: str) -> bool:
@@ -139,26 +139,37 @@ def event_changed_paths(root: Path, event_name: str, event_path: Path) -> list[s
     raise ValueError(f"unsupported GitHub event: {event_name or '<missing>'}")
 
 
-def validate(root: Path, *, check_worktree: bool, check_event: bool = False) -> dict[str, Any]:
-    trace_path = root / "governance" / "rc4-traceability.json"
+def validate_release(
+    root: Path,
+    *,
+    release_label: str,
+    trace_relative: str,
+    workstream_relative: str,
+    schema: str,
+    decision_count: int,
+    check_worktree: bool,
+    check_event: bool = False,
+) -> dict[str, Any]:
+    trace_path = root / trace_relative
     errors: list[str] = []
     try:
         payload = json.loads(trace_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         return {"status": "invalid", "coverage_percent": 0, "errors": [str(exc)]}
-    if set(payload) != {"schema_version", "required_requirement_ids", "requirements"} or payload.get("schema_version") != SCHEMA:
-        errors.append("traceability must use the exact RC.4 schema")
+    if set(payload) != {"schema_version", "required_requirement_ids", "requirements"} or payload.get("schema_version") != schema:
+        errors.append(f"traceability must use the exact {release_label} schema")
     requirements = payload.get("requirements")
     required = payload.get("required_requirement_ids")
     if not isinstance(requirements, list) or not isinstance(required, list):
         return {"status": "invalid", "coverage_percent": 0, "errors": [*errors, "requirements and required ids must be lists"]}
-    requirements_text = (root / "docs" / "workstreams" / "dev-flow-2.0-rc.4" / "requirements.md").read_text(encoding="utf-8")
-    decisions_text = (root / "docs" / "workstreams" / "dev-flow-2.0-rc.4" / "decisions.md").read_text(encoding="utf-8")
-    implementation_text = (root / "docs" / "workstreams" / "dev-flow-2.0-rc.4" / "implementation.md").read_text(encoding="utf-8")
+    workstream = root / workstream_relative
+    requirements_text = (workstream / "requirements.md").read_text(encoding="utf-8")
+    decisions_text = (workstream / "decisions.md").read_text(encoding="utf-8")
+    implementation_text = (workstream / "implementation.md").read_text(encoding="utf-8")
     source_requirements = source_requirement_ids(requirements_text)
     source_decisions = source_decision_ids(decisions_text)
     if len(source_requirements) != len(set(source_requirements)):
-        errors.append("requirements.md contains duplicate RC.4 requirement ids")
+        errors.append(f"requirements.md contains duplicate {release_label} requirement ids")
     if sorted(source_requirements) != sorted(required):
         errors.append(
             f"requirements source/trace drift: source={sorted(source_requirements)}, trace={sorted(required)}"
@@ -203,8 +214,9 @@ def validate(root: Path, *, check_worktree: bool, check_event: bool = False) -> 
     if sorted(observed) != sorted(required):
         errors.append(f"required/observed requirement drift: required={sorted(required)}, observed={sorted(observed)}")
     expected_decisions = set(source_decisions)
-    if expected_decisions != {f"D{index}" for index in range(1, 16)}:
-        errors.append(f"decisions.md D1-D15 source drift: {sorted(expected_decisions)}")
+    required_decisions = {f"D{index}" for index in range(1, decision_count + 1)}
+    if expected_decisions != required_decisions:
+        errors.append(f"decisions.md D1-D{decision_count} source drift: {sorted(expected_decisions)}")
     implementation_decisions = implementation_decision_ids(implementation_text)
     if implementation_decisions != expected_decisions:
         errors.append(
@@ -226,13 +238,13 @@ def validate(root: Path, *, check_worktree: bool, check_event: bool = False) -> 
                 changed = worktree_changed_paths(root)
             uncovered = [path for path in changed if not any(matches(path, declaration) for declaration in declarations)]
             if uncovered:
-                errors.append(f"changed paths lack RC.4 ownership: {uncovered}")
+                errors.append(f"changed paths lack {release_label} ownership: {uncovered}")
         except (OSError, RuntimeError, ValueError, KeyError, json.JSONDecodeError) as exc:
             errors.append(f"cannot enumerate changed paths: {exc}")
     coverage = 100 if required and set(required) == complete else round(100 * len(complete) / max(1, len(required)), 2)
     return {
         "status": "valid" if not errors and coverage == 100 else "invalid",
-        "schema_version": SCHEMA,
+        "schema_version": schema,
         "coverage_percent": coverage,
         "requirements": len(required),
         "decisions_covered": len(decisions),
@@ -241,6 +253,19 @@ def validate(root: Path, *, check_worktree: bool, check_event: bool = False) -> 
         "errors": errors,
         "claim_limit": "static-bidirectional-traceability-not-runtime-correctness",
     }
+
+
+def validate(root: Path, *, check_worktree: bool, check_event: bool = False) -> dict[str, Any]:
+    return validate_release(
+        root,
+        release_label="RC.4",
+        trace_relative="governance/rc4-traceability.json",
+        workstream_relative="docs/workstreams/dev-flow-2.0-rc.4",
+        schema=SCHEMA,
+        decision_count=15,
+        check_worktree=check_worktree,
+        check_event=check_event,
+    )
 
 
 def main() -> int:

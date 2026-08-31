@@ -1,6 +1,6 @@
 ---
 name: requirements-design
-description: Clarify and confirm product semantics before design for behavior, public contracts, permissions, data lifecycle, integrations, migrations, or ambiguous bugs.
+description: Clarify and confirm product semantics, public contracts, permissions, and data lifecycle before design.
 ---
 
 # Requirements and Design

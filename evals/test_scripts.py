@@ -22,7 +22,7 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "dev-flow" / "scripts"
-FLOW = SCRIPTS / "dev-flow.py"
+FLOW = SCRIPTS / "dev_flow.py"
 PYTHON = sys.executable
 AGENT_CONFIGS = ROOT / "skills" / "dev-flow" / "assets" / "agent-configs"
 PAIRED_RUNNER = ROOT / "evals" / "run_paired_evaluations.py"

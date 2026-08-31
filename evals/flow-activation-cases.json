@@ -186,54 +186,54 @@
     },
     {
       "id": "FLOW-METHOD-ALIAS-NORMALIZES-TO-CANONICAL-SIGNALS",
-      "command": ["route-task", "--intent", "change", "--risk", "distributed-state", "--method-signal", "distributed-state", "--compact"],
+      "command": ["route-task", "--intent", "change", "--risk", "distributed-state", "--method-signal", "distributed-state"],
       "contains": {
-        "method.signal_normalization.input": "distributed-state",
-        "method.signal_normalization.canonical": ["cross-participant-flow", "state-lifecycle"]
+        "capability_activation.method.signal_normalization.input": "distributed-state",
+        "capability_activation.method.signal_normalization.canonical": ["cross-participant-flow", "state-lifecycle"]
       }
     },
     {
       "id": "FLOW-RISK-ONLY-DERIVES-FOUNDATIONAL-METHOD-SIGNAL",
-      "command": ["route-task", "--intent", "change", "--risk", "concurrency", "--compact"],
+      "command": ["route-task", "--intent", "change", "--risk", "concurrency"],
       "expect": {
-        "method.active_match_required": true,
-        "method.selection.phase": "design",
-        "method.selection.phase_source": "signal-adjacent-owner",
-        "method.selection.actionable": true
+        "capability_activation.method.active_match_required": true,
+        "capability_activation.method.selection.phase": "design",
+        "capability_activation.method.selection.phase_source": "signal-adjacent-owner",
+        "capability_activation.method.selection.actionable": true
       },
       "contains": {
-        "method.reasons": "signal:state-lifecycle",
-        "method.signal_normalization.derived_from_risks": "state-lifecycle",
-        "method.selection.blocked": "state-transition-model"
+        "capability_activation.method.reasons": "signal:state-lifecycle",
+        "capability_activation.method.signal_normalization.derived_from_risks": "state-lifecycle",
+        "capability_activation.method.selection.blocked": "state-transition-model"
       }
     },
     {
       "id": "FLOW-DATA-LOSS-RISK-ALIAS-PRESERVES-CANONICAL-OUTPUT",
-      "command": ["route-task", "--intent", "change", "--risk", "data-loss", "--compact"],
+      "command": ["route-task", "--intent", "change", "--risk", "data-loss"],
       "contains": {
-        "method.risk_normalization.canonical": "persisted-data",
+        "capability_activation.method.risk_normalization.canonical": "persisted-data",
         "risk_overlays": "migration"
       }
     },
     {
       "id": "FLOW-READY-METHOD-IS-NOT-CROWDED-BY-BLOCKED-FALLBACK",
-      "command": ["route-task", "--intent", "change", "--risk", "compatibility", "--method-signal", "multi-version-coexistence", "--method-prerequisite", "repository-facts", "--method-prerequisite", "requirement-baseline", "--compact"],
+      "command": ["route-task", "--intent", "change", "--risk", "compatibility", "--method-signal", "multi-version-coexistence", "--method-prerequisite", "repository-facts", "--method-prerequisite", "requirement-baseline"],
       "contains": {
-        "method.selection.selected": "characterization-golden-master",
-        "method.selection.blocked": "parallel-change-expand-contract",
-        "method.selection.guidance": "characterization-golden-master"
+        "capability_activation.method.selection.selected": "characterization-golden-master",
+        "capability_activation.method.selection.blocked": "parallel-change-expand-contract",
+        "capability_activation.method.selection.guidance": "characterization-golden-master"
       }
     },
     {
       "id": "FLOW-INDEPENDENT-REVIEW-REQUIRES-EXECUTION-OR-DOWNGRADE",
-      "command": ["route-task", "--intent", "change", "--risk", "security", "--material-exposure", "--independent-review-authorized", "--compact"],
+      "command": ["route-task", "--intent", "change", "--risk", "security", "--material-exposure", "--independent-review-authorized"],
       "expect": {
-        "independent_review.required": true,
-        "independent_review.execution": "route-agent-or-explicit-downgrade",
-        "independent_review.same_context_is_independent": false,
-        "independent_review.downgrade.required_report": "common-mode-risk"
+        "capability_activation.independent_review.required": true,
+        "capability_activation.independent_review.execution": "route-agent-or-explicit-downgrade",
+        "capability_activation.independent_review.same_context_is_independent": false,
+        "capability_activation.independent_review.downgrade.required_report": "common-mode-risk"
       },
-      "contains": {"independent_review.route_agent": ["dev-flow-red-reviewer", "high-risk-review", "independent-review"]}
+      "contains": {"capability_activation.independent_review.route_agent": ["dev-flow-red-reviewer", "high-risk-review", "independent-review"]}
     },
     {
       "id": "FLOW-MANAGED-RESUME-REQUIRES-RESTARTABLE-HANDOFF",

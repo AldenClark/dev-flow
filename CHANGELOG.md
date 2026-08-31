@@ -4,6 +4,38 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+Current source identity: `2.0.0-rc.5`. Independent clean-context review passed after trust/lifecycle repairs. Commit, hosted CI, cross-platform compatibility, live-model qualification, tag, artifact, installation, and publication remain separate `NOT RUN` gates.
+
+### Added
+
+- Added one machine-readable product-state owner for source candidate, latest published RC, stable version, rollback, and delivery/qualification status, with drift validation across maintained release surfaces.
+- Added a read-only unified doctor for source, Git, explicit install/load identity, Hook packaging, bounded cache inventory, and outcome state, with no cleanup or live-activation inference.
+- Added opt-in, local-only outcome observations restricted to bounded enums/counts, private append storage, descriptive distributions, and no prompt, path, person, session, free text, upload, productivity score, or ranking.
+- Added an always-on untrusted-content invariant and adversarial repository/tool/history/memory/agent/summary cases that keep provenance separate from authority.
+- Added personal-profile governance for explicit-user provenance, path scope, future expiry, correction, deletion, and safe rejection of inferred or stale cross-task preferences.
+- Added a machine-owned compatibility-surface inventory and RC.5 bidirectional requirement/decision/implementation/test/change traceability.
+
+### Changed
+
+- Contracted the public CLI to 17 supported 2.0 commands while retaining packet-era code only behind the unsupported internal module boundary.
+- Reduced compact route output to decisions and stable identifiers plus a digest; digest-only prior routes now use conservative recalibration without invented field deltas.
+- Added target and early-warning headroom below the existing Skill-description and ordinary-static hard caps.
+- Kept single-agent execution as the default: sequential, coupled, or merely tool-dense work cannot multiply agents, and only independently useful units qualify for dispatch.
+- Reframed local confidentiality Hooks for personal development: explicitly declared test credentials can use an exact, expiring, one-shot confirmation, while strict mode preserves hard blocking and high-risk secret forms remain non-overridable.
+- Replaced Agent-runnable tool approval with a session-bound `UserPromptSubmit` confirmation marker and documented the same-user-process isolation limit.
+- Aligned the tool-confirmation design with the current Codex Hook protocol: the model-visible confirmation turn contains only an already confirmation-consumed random marker and value-free continuation context, never the tool secret.
+- Added value-free safe-continuation cards with platform-aware storage guidance, including interactive macOS Keychain commands and command-scoped environment-variable use.
+
+### Security
+
+- Added private local approval state with keyed scope fingerprints, token digests, bounded expiry, atomic one-shot consumption, replay/scope-change rejection, and no persisted prompt, tool input, or credential value.
+
+### Verification
+
+- Final local-source verification ran 687 tests in 120.939 seconds and finished `OK`; one hosted-Windows Job Object integration test was explicitly skipped and remains `NOT RUN`.
+- Passed 39 structural contracts, canonical product-state validation, 100% bidirectional RC.5 traceability across 77 changed paths, historical RC.4 static coverage, 117-method/73-source/38-risk-model validation, 15-Skill validation at 1,934 description characters and 13,263 ordinary static bytes, plugin and knowledge checks, confidentiality doctor with zero required failures, compilation, managed-workstream reconciliation, final diff checks, and independent clean-context review after closing four trust/lifecycle blocker families.
+- Commit, hosted CI, cross-platform execution, live model qualification, artifact/attestation, isolated-profile installation, tag, push, publication, deployment, and business outcome improvement remain `NOT RUN`; primary-profile mutation is out of scope.
+
 ## [2.0.0-rc.4] - 2026-08-29
 
 Release identity: `2.0.0-rc.4` source candidate; publication, tag, installation, hosted artifacts, and model qualification/waiver remain separate gates.

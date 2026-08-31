@@ -27,6 +27,9 @@ LAYER_ORDER = {name: index for index, name in enumerate(LAYERS)}
 PROFILE_KINDS = {"constraint", "preference", "quality-policy"}
 STRENGTHS = {"must", "should", "may"}
 PROFILE_STATUSES = {"draft", "trial", "active", "deprecated", "retired"}
+PERSONAL_PROFILE_PROVENANCE = "explicit-user"
+PERSONAL_CORRECTION_POLICY = "edit-or-retire-profile"
+PERSONAL_DELETION_POLICY = "delete-profile-file"
 ENTRY_STATUSES = {"applied", "shadowed", "inapplicable", "conflicting", "stale", "unknown"}
 ROUTE_STATUSES = {
     "approved",
@@ -417,6 +420,26 @@ def validate_profile_data(data: dict[str, Any], *, source: str = "profile") -> l
     profile_id = data.get("id")
     if isinstance(profile_id, str) and not SAFE_NAME_RE.fullmatch(profile_id):
         errors.append(f"{source}.id contains unsupported characters")
+    if data.get("layer") == "personal":
+        if data.get("provenance") != PERSONAL_PROFILE_PROVENANCE:
+            errors.append(
+                f"{source}.provenance must be {PERSONAL_PROFILE_PROVENANCE!r}; inferred or imported preferences cannot be durable personal policy"
+            )
+        require_text_list(data.get("scope"), f"{source}.scope", errors, allow_empty=False)
+        require_text(data.get("expires_at"), f"{source}.expires_at", errors)
+        expires_at = data.get("expires_at")
+        if isinstance(expires_at, str) and expires_at.strip():
+            try:
+                expiry = dt.datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+            except ValueError:
+                errors.append(f"{source}.expires_at must be a timezone-aware ISO timestamp")
+            else:
+                if expiry.tzinfo is None or expiry <= dt.datetime.now(dt.timezone.utc):
+                    errors.append(f"{source}.expires_at must be a future timezone-aware timestamp")
+        if data.get("correction_policy") != PERSONAL_CORRECTION_POLICY:
+            errors.append(f"{source}.correction_policy must be {PERSONAL_CORRECTION_POLICY!r}")
+        if data.get("deletion_policy") != PERSONAL_DELETION_POLICY:
+            errors.append(f"{source}.deletion_policy must be {PERSONAL_DELETION_POLICY!r}")
     preferences = data.get("preferences", [])
     if not isinstance(preferences, list):
         return [*errors, f"{source}.preferences must be a list"]
@@ -583,7 +606,15 @@ def discover_profile_sources(
         raise ContractError(f"profile mode must be one of {sorted(PROFILE_MODES)}")
     sources: list[dict[str, Any]] = []
     if baseline and baseline.is_file():
-        sources.append({"path": baseline.resolve(), "layer": "baseline", "scope": [], "required": True})
+        sources.append(
+            {
+                "path": baseline.resolve(),
+                "layer": "baseline",
+                "scope": [],
+                "required": True,
+                "provenance": "public-baseline",
+            }
+        )
     manifest_path = root / ".dev-flow" / "preferences.toml"
     manifest: dict[str, Any] = {}
     if manifest_path.is_file():
@@ -600,10 +631,20 @@ def discover_profile_sources(
     effective_codex_home = (codex_home or Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))).resolve()
     if include_personal:
         personal_dir = effective_codex_home / "dev-flow" / "profiles"
-        if personal_dir.is_dir():
+        if personal_dir.is_symlink():
+            errors.append(f"personal profile directory must not be a symlink: {personal_dir}")
+        elif personal_dir.is_dir():
             for path in sorted(personal_dir.glob("*.toml")):
                 if path.is_file() and not path.is_symlink():
-                    sources.append({"path": path.resolve(), "layer": "personal", "scope": [], "required": False})
+                    sources.append(
+                        {
+                            "path": path.resolve(),
+                            "layer": "personal",
+                            "scope": [],
+                            "required": False,
+                            "provenance": PERSONAL_PROFILE_PROVENANCE,
+                        }
+                    )
     if manifest and not errors:
         for item in manifest.get("profile_sources", []):
             scopes = list(item.get("scope", []))
@@ -621,6 +662,7 @@ def discover_profile_sources(
                         "required": item.get("required", True),
                         "digest": item.get("digest"),
                         "source_id": item["id"],
+                        "provenance": "repository-manifest",
                     }
                 )
     try:
@@ -635,9 +677,25 @@ def discover_profile_sources(
         errors.append(str(exc))
     else:
         if implicit_project.is_file() and all(source["path"] != implicit_project for source in sources):
-            sources.append({"path": implicit_project, "layer": "project", "scope": [], "required": False})
+            sources.append(
+                {
+                    "path": implicit_project,
+                    "layer": "project",
+                    "scope": [],
+                    "required": False,
+                    "provenance": "repository-implicit",
+                }
+            )
     for path in task_profiles:
-        sources.append({"path": path.resolve(), "layer": "task", "scope": paths, "required": True})
+        sources.append(
+            {
+                "path": path.resolve(),
+                "layer": "task",
+                "scope": paths,
+                "required": True,
+                "provenance": "explicit-task-profile",
+            }
+        )
     return sources, errors, manifest_path if manifest_path.is_file() else None
 
 
@@ -742,6 +800,13 @@ def resolve_profiles(
         if profile["layer"] != source["layer"]:
             errors.append(f"{path}: declared layer {profile['layer']!r} does not match source layer {source['layer']!r}")
             continue
+        effective_scope = list(profile.get("scope", [])) if profile["layer"] == "personal" else list(source.get("scope", []))
+        effective_provenance = (
+            PERSONAL_PROFILE_PROVENANCE
+            if profile["layer"] == "personal"
+            else str(source.get("provenance", "unknown"))
+        )
+        in_scope = source_in_scope(effective_scope, paths)
         source_records.append(
             {
                 "id": profile["id"],
@@ -751,10 +816,15 @@ def resolve_profiles(
                 "owner": profile["owner"],
                 "version": profile["version"],
                 "status": profile["status"],
-                "scope": source.get("scope", []),
+                "scope": effective_scope,
+                "provenance": effective_provenance,
+                "expires_at": profile.get("expires_at"),
+                "correction_policy": profile.get("correction_policy"),
+                "deletion_policy": profile.get("deletion_policy"),
+                "resolution_status": "eligible" if in_scope else "out-of-scope",
             }
         )
-        if profile["status"] not in {"trial", "active"}:
+        if profile["status"] not in {"trial", "active"} or not in_scope:
             continue
         for index, raw_entry in enumerate(profile.get("preferences", [])):
             entry = dict(raw_entry)
@@ -765,6 +835,11 @@ def resolve_profiles(
                     "profile_id": profile["id"],
                     "layer": profile["layer"],
                     "owner": profile["owner"],
+                    "provenance": effective_provenance,
+                    "profile_scope": effective_scope,
+                    "expires_at": profile.get("expires_at"),
+                    "correction_policy": profile.get("correction_policy"),
+                    "deletion_policy": profile.get("deletion_policy"),
                     "source": str(path),
                     "source_hash": digest,
                     "source_index": index,

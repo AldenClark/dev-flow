@@ -38,7 +38,7 @@ Ordinary resolution uses local pinned sources and does not fetch remote policy. 
 
 ## Profile fields
 
-Every profile declares `schema_version`, stable `id`, `layer`, `owner`, `version`, `status`, and `[[preferences]]` records. Every record declares:
+Every profile declares `schema_version`, stable `id`, `layer`, `owner`, `version`, `status`, and `[[preferences]]` records. A durable personal profile additionally declares `provenance = "explicit-user"`, an explicit path `scope`, a future timezone-aware `expires_at`, `correction_policy = "edit-or-retire-profile"`, and `deletion_policy = "delete-profile-file"`. Missing, expired, inferred, or imported personal provenance fails validation instead of becoming cross-task policy. Every record declares:
 
 - stable `key`, `kind`, and `strength` (`must`, `should`, `may`);
 - typed `value` or quality `outcome`;

@@ -1,6 +1,6 @@
 # Multi-agent orchestration
 
-Use one agent by default. Delegate when parallel isolation or a clean independent review is likely to save more time or improve evidence than coordination will cost.
+Use one agent by default. Delegate only an independently useful unit when parallel isolation or a clean independent review is likely to save more time or improve evidence than coordination will cost. A long sequential chain, high tool-call density, or large context does not by itself justify more agents; coupled steps remain with one owner unless a safe interface makes them genuinely separable.
 
 Before every actual child dispatch, resolve the task-relative route with `route-agent` using the intended role, workload, observed engineering risks, and reasoning signals. Use the returned model, reasoning effort, and fork request. Do not create a routing receipt, add the profile to a workstream, or treat a high profile as proof of quality.
 

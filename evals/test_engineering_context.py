@@ -40,12 +40,19 @@ def profile_text(
         rendered = ", ".join(json.dumps(item) for item in applies_when)
         selectors = f"applies_when = [{rendered}]\n"
     exception = f'exception_id = "{exception_id}"\n' if exception_id else ""
+    governance = '''provenance = "explicit-user"
+scope = ["**"]
+expires_at = "2999-01-01T00:00:00Z"
+correction_policy = "edit-or-retire-profile"
+deletion_policy = "delete-profile-file"
+''' if layer == "personal" else ""
     return f'''schema_version = "1.0"
 id = "{profile_id}"
 layer = "{layer}"
 owner = "test-owner"
 version = "1.0"
 status = "active"
+{governance}
 
 [[preferences]]
 key = "{key}"
@@ -82,6 +89,96 @@ review_trigger = "capability-or-scope-change"
 
 
 class ProfileContractTests(unittest.TestCase):
+    def test_personal_scaffold_requires_and_projects_explicit_governance(self) -> None:
+        missing = run(
+            sys.executable,
+            str(PROFILE_TOOL),
+            "scaffold",
+            "--id",
+            "personal.example",
+            "--layer",
+            "personal",
+            "--owner",
+            "owner",
+        )
+        self.assertEqual(missing.returncode, 2)
+        self.assertIn("explicit --scope and --expires-at", missing.stdout)
+
+        proposed = run(
+            sys.executable,
+            str(PROFILE_TOOL),
+            "scaffold",
+            "--id",
+            "personal.example",
+            "--layer",
+            "personal",
+            "--owner",
+            "owner",
+            "--scope",
+            "src/**",
+            "--expires-at",
+            "2999-01-01T00:00:00Z",
+        )
+        self.assertEqual(proposed.returncode, 0, proposed.stderr or proposed.stdout)
+        payload = json.loads(proposed.stdout)
+        self.assertEqual(payload["status"], "proposal")
+        self.assertIn('provenance = "explicit-user"', payload["content"])
+        self.assertIn('scope = ["src/**"]', payload["content"])
+        self.assertIn('deletion_policy = "delete-profile-file"', payload["content"])
+
+    def test_personal_profile_rejects_inferred_or_expired_persistence(self) -> None:
+        inferred = ec.tomllib.loads(
+            profile_text("personal.inferred", "personal", "ui.density", "compact").replace(
+                'provenance = "explicit-user"', 'provenance = "inferred-from-history"'
+            )
+        )
+        self.assertTrue(any("inferred or imported" in item for item in ec.validate_profile_data(inferred)))
+
+        expired = ec.tomllib.loads(
+            profile_text("personal.expired", "personal", "ui.density", "compact").replace(
+                '2999-01-01T00:00:00Z', '2020-01-01T00:00:00Z'
+            )
+        )
+        self.assertTrue(any("future timezone-aware" in item for item in ec.validate_profile_data(expired)))
+
+    def test_personal_profile_scope_and_provenance_survive_resolution(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            codex_home = root / "codex"
+            personal = codex_home / "dev-flow" / "profiles"
+            personal.mkdir(parents=True)
+            text_value = profile_text("personal.scoped", "personal", "ui.density", "compact").replace(
+                'scope = ["**"]', 'scope = ["src/**"]'
+            )
+            (personal / "scoped.toml").write_text(text_value, encoding="utf-8")
+            outside = ec.resolve_profiles(
+                root, baseline=BASELINE, codex_home=codex_home, task_paths=["docs/readme.md"]
+            )
+            inside = ec.resolve_profiles(
+                root, baseline=BASELINE, codex_home=codex_home, task_paths=["src/app.py"]
+            )
+            self.assertNotIn("ui.density", {item["key"] for item in outside["winners"]})
+            winner = next(item for item in inside["winners"] if item["key"] == "ui.density")
+            self.assertEqual(winner["provenance"], "explicit-user")
+            self.assertEqual(winner["profile_scope"], ["src/**"])
+
+    def test_repository_profile_cannot_self_assert_personal_provenance(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            profiles = root / ".dev-flow" / "profiles"
+            profiles.mkdir(parents=True)
+            spoofed = profile_text(
+                "project.spoofed", "project", "ui.density", "compact"
+            ).replace('status = "active"', 'status = "active"\nprovenance = "explicit-user"')
+            (profiles / "project.toml").write_text(spoofed, encoding="utf-8")
+            snapshot = ec.resolve_profiles(
+                root, baseline=BASELINE, codex_home=root / "codex"
+            )
+        source = next(item for item in snapshot["sources"] if item["id"] == "project.spoofed")
+        winner = next(item for item in snapshot["winners"] if item["key"] == "ui.density")
+        self.assertEqual(source["provenance"], "repository-implicit")
+        self.assertEqual(winner["provenance"], "repository-implicit")
+
     def test_implicit_project_profile_rejects_symlink_outside_dev_flow(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

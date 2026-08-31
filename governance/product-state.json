@@ -1,0 +1,35 @@
+{
+  "schema_version": "dev-flow.product-state.v1",
+  "source": {
+    "version": "2.0.0-rc.5",
+    "phase": "source-candidate",
+    "manifest": ".codex-plugin/plugin.json",
+    "workstream": "docs/workstreams/dev-flow-2.0-rc.5"
+  },
+  "published": {
+    "latest_rc": {
+      "version": "2.0.0-rc.4",
+      "tag": "v2.0.0-rc.4"
+    },
+    "stable": {
+      "version": "1.1.2",
+      "tag": "v1.1.2"
+    }
+  },
+  "compatibility": {
+    "public_cli": "rc5-supported-surface",
+    "legacy_packet_cli": "internal-unsupported",
+    "rollback_target": "v2.0.0-rc.4"
+  },
+  "delivery": {
+    "commit": "not-run",
+    "hosted_ci": "not-run",
+    "cross_platform": "not-run",
+    "independent_review": "passed",
+    "model_qualification": "not-run",
+    "tag": "not-run",
+    "artifact": "not-run",
+    "publication": "not-run",
+    "isolated_install": "not-run"
+  }
+}

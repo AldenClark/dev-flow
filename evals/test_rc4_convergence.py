@@ -82,15 +82,23 @@ class IncrementalRouteTests(unittest.TestCase):
         self.assertEqual(compact.returncode, 0, compact.stderr or compact.stdout)
         full_payload = json.loads(full.stdout)
         compact_payload = json.loads(compact.stdout)
-        self.assertEqual(full_payload["route_basis"], compact_payload["route_basis"])
-        serialized = json.dumps(full_payload["route_basis"], sort_keys=True)
+        self.assertEqual(
+            full_payload["route_basis"]["digest"],
+            compact_payload["route_basis"]["digest"],
+        )
+        self.assertEqual(
+            set(compact_payload["route_basis"]),
+            {"schema", "router_semantics", "digest"},
+        )
+        self.assertLess(len(compact.stdout), len(full.stdout) * 0.25)
+        serialized = json.dumps(compact_payload["route_basis"], sort_keys=True)
         self.assertNotIn("secret-framework", serialized)
         self.assertEqual(full_payload["route_basis"]["schema"], "dev-flow.route-basis.v1")
 
     def test_previous_route_reports_unchanged_and_material_delta(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             previous = Path(temporary) / "previous.json"
-            first = run_flow("route-task", "--intent", "change", "--compact")
+            first = run_flow("route-task", "--intent", "change")
             previous.write_text(first.stdout, encoding="utf-8")
             unchanged = run_flow(
                 "route-task", "--intent", "change", "--compact", "--previous-route", previous
@@ -110,6 +118,24 @@ class IncrementalRouteTests(unittest.TestCase):
         self.assertEqual(delta["status"], "changed")
         self.assertIn("capabilities", delta["changed_dimensions"])
         self.assertIn("routes", delta["invalidated_decisions"])
+
+    def test_compact_previous_route_is_unchanged_or_conservatively_invalidated(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            previous = Path(temporary) / "compact.json"
+            first = run_flow("route-task", "--intent", "change", "--compact")
+            previous.write_text(first.stdout, encoding="utf-8")
+            unchanged = run_flow(
+                "route-task", "--intent", "change", "--compact", "--previous-route", previous
+            )
+            changed = run_flow(
+                "route-task", "--intent", "change", "--need", "review", "--compact", "--previous-route", previous
+            )
+        self.assertEqual(json.loads(unchanged.stdout)["recalibration"]["status"], "unchanged")
+        delta = json.loads(changed.stdout)["recalibration"]
+        self.assertEqual(delta["status"], "changed-digest-only")
+        self.assertEqual(delta["changed_dimensions"], [])
+        self.assertIn("routes", delta["invalidated_decisions"])
+        self.assertEqual(delta["next_action"], "use-complete-current-route")
 
     def test_previous_route_is_bounded_regular_json(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -142,6 +168,16 @@ class IncrementalRouteTests(unittest.TestCase):
                 json.loads(bounded.stdout)["recalibration"]["reason"],
                 "invalid-prior-route",
             )
+            deeply_nested = root / "deep.json"
+            deeply_nested.write_text("[" * 5000 + "]" * 5000, encoding="utf-8")
+            nested = run_flow(
+                "route-task", "--intent", "change", "--previous-route", deeply_nested
+            )
+            self.assertEqual(nested.returncode, 0)
+            self.assertEqual(
+                json.loads(nested.stdout)["recalibration"]["reason"],
+                "invalid-prior-route",
+            )
 
     def test_route_basis_rejects_unbounded_free_form_values(self) -> None:
         result = run_flow(
@@ -164,7 +200,11 @@ class IncrementalRouteTests(unittest.TestCase):
 
         parser = module.build_parser()
         route = next(action.choices["route-task"] for action in parser._actions if action.dest == "command")
-        actual = {action.dest for action in route._actions if action.dest not in {"help", "compact", "previous_route"}}
+        actual = {
+            action.dest
+            for action in route._actions
+            if action.dest not in {"help", "compact", "explain", "previous_route"}
+        }
         self.assertEqual(actual, set(route_incremental.ROUTE_BASIS_OPTION_DESTS))
 
     def test_every_route_input_mutation_changes_its_declared_basis_dimension(self) -> None:
@@ -204,7 +244,7 @@ class IncrementalRouteTests(unittest.TestCase):
         self.assertEqual(set(variants), set(route_incremental.ROUTE_BASIS_OPTION_DIMENSIONS))
         with tempfile.TemporaryDirectory() as temporary:
             previous = Path(temporary) / "previous.json"
-            baseline = run_flow("route-task", "--intent", "change", "--compact")
+            baseline = run_flow("route-task", "--intent", "change")
             self.assertEqual(baseline.returncode, 0, baseline.stderr or baseline.stdout)
             previous.write_text(baseline.stdout, encoding="utf-8")
             for option, arguments in variants.items():

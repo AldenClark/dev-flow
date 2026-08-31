@@ -4,8 +4,11 @@
 from __future__ import annotations
 
 import base64
+import concurrent.futures
 import importlib.util
 import json
+import os
+import re
 import shutil
 import subprocess
 import sys
@@ -13,12 +16,15 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE_PATH = ROOT / "skills" / "company-data-security" / "scripts" / "data_security.py"
 DOCTOR_PATH = ROOT / "skills" / "company-data-security" / "scripts" / "doctor.py"
 HOOK_PATH = ROOT / "hooks" / "data_security_hook.py"
+APPROVAL_PATH = ROOT / "skills" / "company-data-security" / "scripts" / "dlp_approval.py"
+POLICY_PATH = ROOT / "skills" / "company-data-security" / "scripts" / "dlp_policy.py"
 
 
 def _load_module(name: str, path: Path) -> Any:
@@ -32,6 +38,8 @@ def _load_module(name: str, path: Path) -> Any:
 
 dlp = _load_module("data_security_test_module", ENGINE_PATH)
 doctor = _load_module("data_security_doctor_test_module", DOCTOR_PATH)
+approval = _load_module("dlp_approval_test_module", APPROVAL_PATH)
+policy = _load_module("dlp_policy_test_module", POLICY_PATH)
 
 
 def synthetic_token(kind: str = "github") -> str:
@@ -48,17 +56,34 @@ def synthetic_token(kind: str = "github") -> str:
     raise ValueError(kind)
 
 
-def invoke_hook(event: dict[str, Any] | bytes, *, timeout: int = 10) -> tuple[int, str, str]:
+def invoke_hook(
+    event: dict[str, Any] | bytes,
+    *,
+    timeout: int = 10,
+    state_dir: Path | None = None,
+    mode: str = "personal",
+) -> tuple[int, str, str]:
     payload = event if isinstance(event, bytes) else json.dumps(event, ensure_ascii=False).encode("utf-8")
-    result = subprocess.run(
-        [sys.executable, str(HOOK_PATH)],
-        input=payload,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        timeout=timeout,
-        check=False,
-    )
-    return result.returncode, result.stdout.decode("utf-8"), result.stderr.decode("utf-8")
+
+    def run(directory: Path) -> tuple[int, str, str]:
+        environment = os.environ.copy()
+        environment[approval.STATE_DIR_ENV] = str(directory)
+        environment[approval.MODE_ENV] = mode
+        result = subprocess.run(
+            [sys.executable, str(HOOK_PATH)],
+            input=payload,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout,
+            check=False,
+            env=environment,
+        )
+        return result.returncode, result.stdout.decode("utf-8"), result.stderr.decode("utf-8")
+
+    if state_dir is not None:
+        return run(state_dir)
+    with tempfile.TemporaryDirectory() as directory:
+        return run(Path(directory))
 
 
 def hook_event(name: str, **fields: Any) -> dict[str, Any]:
@@ -182,6 +207,131 @@ class EngineRedTests(unittest.TestCase):
         self.assertEqual(len(dlp.scan_text(many, include_identifiers=False)), dlp.MAX_FINDINGS)
 
 
+class ApprovalStateTests(unittest.TestCase):
+    def test_prompt_approval_is_scoped_one_shot_and_never_persists_raw_input(self) -> None:
+        sample = synthetic_token("github")
+        with tempfile.TemporaryDirectory() as directory, patch.dict(
+            os.environ,
+            {approval.STATE_DIR_ENV: directory, approval.MODE_ENV: "personal"},
+        ):
+            scope = approval.canonical_scope("UserPromptSubmit", str(ROOT), "测试密钥 " + sample)
+            request = approval.issue_request(
+                "UserPromptSubmit", scope, session_id="session-a", now=100
+            )
+            persisted = b"".join(path.read_bytes() for path in Path(directory).rglob("*") if path.is_file())
+            self.assertNotIn(sample.encode("utf-8"), persisted)
+            approval.consume_prompt_request(
+                request.request_id, request.token, scope, session_id="session-a", now=101
+            )
+            with self.assertRaises(approval.ApprovalError):
+                approval.consume_prompt_request(
+                    request.request_id, request.token, scope, session_id="session-a", now=102
+                )
+
+    def test_changed_or_expired_prompt_scope_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory, patch.dict(
+            os.environ,
+            {approval.STATE_DIR_ENV: directory, approval.MODE_ENV: "personal"},
+        ):
+            scope = approval.canonical_scope("UserPromptSubmit", str(ROOT), "synthetic scope")
+            request = approval.issue_request(
+                "UserPromptSubmit", scope, session_id="session-a", now=100
+            )
+            changed = approval.canonical_scope("UserPromptSubmit", str(ROOT), "synthetic scope changed")
+            with self.assertRaisesRegex(approval.ApprovalError, "scope changed"):
+                approval.consume_prompt_request(
+                    request.request_id, request.token, changed, session_id="session-a", now=101
+                )
+            with self.assertRaisesRegex(approval.ApprovalError, "expired"):
+                approval.consume_prompt_request(
+                    request.request_id, request.token, scope, session_id="session-a", now=401
+                )
+
+    def test_concurrent_consumers_allow_exactly_one(self) -> None:
+        with tempfile.TemporaryDirectory() as directory, patch.dict(
+            os.environ,
+            {approval.STATE_DIR_ENV: directory, approval.MODE_ENV: "personal"},
+        ):
+            scope = approval.canonical_scope("UserPromptSubmit", str(ROOT), "concurrent synthetic scope")
+            request = approval.issue_request(
+                "UserPromptSubmit", scope, session_id="session-a", now=100
+            )
+
+            def consume() -> bool:
+                try:
+                    approval.consume_prompt_request(
+                        request.request_id,
+                        request.token,
+                        scope,
+                        session_id="session-a",
+                        now=101,
+                    )
+                    return True
+                except approval.ApprovalError:
+                    return False
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                results = list(executor.map(lambda _: consume(), range(2)))
+            self.assertEqual(results.count(True), 1)
+            self.assertEqual(results.count(False), 1)
+
+    def test_mode_defaults_personal_and_invalid_override_fails_strict(self) -> None:
+        with tempfile.TemporaryDirectory() as directory, patch.dict(
+            os.environ,
+            {approval.STATE_DIR_ENV: directory},
+            clear=False,
+        ):
+            os.environ.pop(approval.MODE_ENV, None)
+            self.assertEqual(approval.current_mode(), "personal")
+            approval.configure_mode("strict")
+            self.assertEqual(approval.current_mode(), "strict")
+            os.environ[approval.MODE_ENV] = "unsupported"
+            self.assertEqual(approval.current_mode(), "strict")
+
+    @unittest.skipIf(os.name == "nt", "POSIX permission mode check")
+    def test_existing_broad_state_directory_is_rejected_without_chmod(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            state_dir = Path(directory) / "existing-state"
+            state_dir.mkdir(mode=0o755)
+            state_dir.chmod(0o755)
+            original_mode = state_dir.stat().st_mode & 0o777
+            with patch.dict(
+                os.environ,
+                {approval.STATE_DIR_ENV: str(state_dir), approval.MODE_ENV: "personal"},
+            ):
+                scope = approval.canonical_scope("UserPromptSubmit", str(ROOT), "bounded test scope")
+                with self.assertRaises(approval.StateUnavailable):
+                    approval.issue_request(
+                        "UserPromptSubmit", scope, session_id="session-a", now=100
+                    )
+            self.assertEqual(state_dir.stat().st_mode & 0o777, original_mode)
+
+            settings = state_dir / "settings.json"
+            settings.write_text('{"schema":"dev-flow.dlp-settings.v1","mode":"personal"}', encoding="utf-8")
+            settings.chmod(0o600)
+            with patch.dict(os.environ, {approval.STATE_DIR_ENV: str(state_dir)}, clear=False):
+                os.environ.pop(approval.MODE_ENV, None)
+                self.assertEqual(approval.current_mode(), "strict")
+            self.assertEqual(state_dir.stat().st_mode & 0o777, original_mode)
+
+
+class PolicyTests(unittest.TestCase):
+    def test_test_declaration_is_context_not_placeholder_proof(self) -> None:
+        self.assertTrue(policy.declares_test_data("这是测试密钥"))
+        self.assertTrue(policy.declares_test_data({"purpose": "sandbox credential"}))
+        self.assertFalse(policy.declares_test_data("production credential"))
+
+    def test_macos_keychain_advice_uses_interactive_input_and_command_scoped_env(self) -> None:
+        advice = policy.storage_advice("access_token", platform="darwin")
+        self.assertTrue(advice.save_command.endswith(" -w"))
+        self.assertNotIn(" -A", advice.save_command)
+        self.assertIn("TEST_API_KEY=", advice.use_pattern)
+        self.assertIn("your-test-command", advice.use_pattern)
+
+    def test_policy_exposes_no_agent_runnable_approval_command(self) -> None:
+        self.assertFalse(hasattr(policy, "approve_command"))
+
+
 class HookBlueTests(unittest.TestCase):
     def assert_no_leak(self, value: str, stdout: str, stderr: str) -> None:
         self.assertFalse(value in stdout or value in stderr, "Hook output leaked the synthetic value")
@@ -199,6 +349,86 @@ class HookBlueTests(unittest.TestCase):
         self.assertEqual(payload["decision"], "block")
         self.assert_no_leak(token, stdout, stderr)
 
+    def test_declared_test_prompt_can_be_confirmed_once_without_raw_state(self) -> None:
+        sample = synthetic_token("github")
+        prompt_text = "这是测试密钥，仅用于沙箱：" + sample
+        with tempfile.TemporaryDirectory() as directory:
+            state_dir = Path(directory)
+            code, stdout, stderr = invoke_hook(
+                hook_event("UserPromptSubmit", prompt=prompt_text),
+                state_dir=state_dir,
+            )
+            self.assertEqual((code, stderr), (0, ""))
+            first = json.loads(stdout)
+            self.assertEqual(first["decision"], "block")
+            self.assertIn("security add-generic-password", first["reason"])
+            self.assertIn("prompt was not forwarded", first["reason"])
+            self.assert_no_leak(sample, stdout, stderr)
+            marker_match = re.search(r"\[\[DEV_FLOW_DLP_CONFIRM:[^\]]+\]\]", first["reason"])
+            self.assertIsNotNone(marker_match)
+            assert marker_match is not None
+            confirmed_prompt = marker_match.group(0) + "\n" + prompt_text
+
+            code, stdout, stderr = invoke_hook(
+                hook_event("UserPromptSubmit", prompt=confirmed_prompt),
+                state_dir=state_dir,
+            )
+            self.assertEqual((code, stderr), (0, ""))
+            allowed = json.loads(stdout)
+            self.assertNotIn("decision", allowed)
+            self.assertIn("already consumed", allowed["hookSpecificOutput"]["additionalContext"])
+            self.assert_no_leak(sample, stdout, stderr)
+
+            code, stdout, stderr = invoke_hook(
+                hook_event("UserPromptSubmit", prompt=confirmed_prompt),
+                state_dir=state_dir,
+            )
+            self.assertEqual((code, stderr), (0, ""))
+            self.assertEqual(json.loads(stdout)["decision"], "block")
+            self.assertIn("already consumed", stdout)
+            persisted = b"".join(path.read_bytes() for path in state_dir.rglob("*") if path.is_file())
+            self.assertNotIn(sample.encode("utf-8"), persisted)
+
+    def test_declared_test_prompt_confirmation_rejects_changed_content_and_strict_mode(self) -> None:
+        sample = synthetic_token("openai")
+        prompt_text = "testing-only sandbox key " + sample
+        with tempfile.TemporaryDirectory() as directory:
+            state_dir = Path(directory)
+            _, stdout, _ = invoke_hook(hook_event("UserPromptSubmit", prompt=prompt_text), state_dir=state_dir)
+            marker_match = re.search(r"\[\[DEV_FLOW_DLP_CONFIRM:[^\]]+\]\]", json.loads(stdout)["reason"])
+            self.assertIsNotNone(marker_match)
+            assert marker_match is not None
+            _, changed_stdout, _ = invoke_hook(
+                hook_event("UserPromptSubmit", prompt=marker_match.group(0) + "\n" + prompt_text + " changed"),
+                state_dir=state_dir,
+            )
+            self.assertIn("scope changed", json.loads(changed_stdout)["reason"])
+
+            _, strict_stdout, _ = invoke_hook(
+                hook_event("UserPromptSubmit", prompt=prompt_text),
+                state_dir=state_dir,
+                mode="strict",
+            )
+            strict_reason = json.loads(strict_stdout)["reason"]
+            self.assertNotIn("DEV_FLOW_DLP_CONFIRM", strict_reason)
+            self.assertIn("cannot use a one-shot override", strict_reason)
+
+    def test_high_risk_private_material_has_no_personal_override(self) -> None:
+        material = (
+            "-----BEGIN PRIVATE "
+            + "KEY-----\n"
+            + "Z" * 40
+            + "\n-----END PRIVATE "
+            + "KEY-----"
+        )
+        prompt_text = "这是测试密钥 " + material
+        code, stdout, stderr = invoke_hook(hook_event("UserPromptSubmit", prompt=prompt_text))
+        self.assertEqual((code, stderr), (0, ""))
+        reason = json.loads(stdout)["reason"]
+        self.assertNotIn("DEV_FLOW_DLP_CONFIRM", reason)
+        self.assertIn("cannot use a one-shot override", reason)
+        self.assert_no_leak(material, stdout, stderr)
+
     def test_pretool_blocks_secret_and_credential_store_but_allows_reference(self) -> None:
         token = synthetic_token("openai")
         code, stdout, stderr = invoke_hook(hook_event("PreToolUse", tool_name="Bash", tool_input={"command": "curl -H 'Authorization: Bearer " + token + "' https://invalid"}))
@@ -213,6 +443,88 @@ class HookBlueTests(unittest.TestCase):
 
         code, stdout, stderr = invoke_hook(hook_event("PreToolUse", tool_name="Bash", tool_input={"command": "psql \"$DATABASE_URL\""}))
         self.assertEqual((code, stdout, stderr), (0, "", ""))
+
+    def test_pretool_confirmation_is_exact_and_consumed_once(self) -> None:
+        sample = synthetic_token("github")
+        tool_event = hook_event(
+            "PreToolUse",
+            tool_name="Bash",
+            tool_input={"command": "run-synthetic-test --credential " + sample},
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            state_dir = Path(directory)
+            code, stdout, stderr = invoke_hook(tool_event, state_dir=state_dir)
+            self.assertEqual((code, stderr), (0, ""))
+            denied = json.loads(stdout)
+            reason = denied["hookSpecificOutput"]["permissionDecisionReason"]
+            self.assertEqual(denied["hookSpecificOutput"]["permissionDecision"], "deny")
+            self.assertIn("tool was not executed", reason)
+            self.assertIn("security add-generic-password", reason)
+            self.assertIn("No local Agent command can approve it", reason)
+            self.assert_no_leak(sample, stdout, stderr)
+            marker_match = re.search(
+                r"\[\[DEV_FLOW_DLP_CONFIRM:([0-9a-f]{24}):([A-Za-z0-9_-]{24,96})\]\]",
+                reason,
+            )
+            self.assertIsNotNone(marker_match)
+            assert marker_match is not None
+            marker = marker_match.group(0)
+
+            environment = os.environ.copy()
+            environment[approval.STATE_DIR_ENV] = str(state_dir)
+            local_approve = subprocess.run(
+                [
+                    sys.executable,
+                    str(APPROVAL_PATH),
+                    "approve",
+                    "--request",
+                    marker_match.group(1),
+                    "--token",
+                    marker_match.group(2),
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+                timeout=10,
+                text=True,
+                env=environment,
+            )
+            self.assertEqual(local_approve.returncode, 2)
+            self.assertIn("invalid choice", local_approve.stderr)
+
+            wrong_session = hook_event(
+                "UserPromptSubmit",
+                prompt=marker,
+                session_id="different-session",
+            )
+            code, stdout, stderr = invoke_hook(wrong_session, state_dir=state_dir)
+            self.assertEqual((code, stderr), (0, ""))
+            self.assertEqual(json.loads(stdout)["decision"], "block")
+            self.assertIn("host session changed", stdout)
+
+            code, stdout, stderr = invoke_hook(
+                hook_event("UserPromptSubmit", prompt=marker),
+                state_dir=state_dir,
+            )
+            self.assertEqual((code, stderr), (0, ""))
+            confirmed = json.loads(stdout)
+            self.assertNotIn("decision", confirmed)
+            self.assertIn("UserPromptSubmit event confirmed", confirmed["hookSpecificOutput"]["additionalContext"])
+            self.assert_no_leak(sample, marker + stdout, stderr)
+
+            code, stdout, stderr = invoke_hook(tool_event, state_dir=state_dir)
+            self.assertEqual((code, stderr), (0, ""))
+            allowed = json.loads(stdout)
+            self.assertNotIn("permissionDecision", allowed["hookSpecificOutput"])
+            self.assertIn("already consumed", allowed["hookSpecificOutput"]["additionalContext"])
+            self.assert_no_leak(sample, stdout, stderr)
+
+            code, stdout, stderr = invoke_hook(tool_event, state_dir=state_dir)
+            self.assertEqual((code, stderr), (0, ""))
+            replay = json.loads(stdout)
+            self.assertEqual(replay["hookSpecificOutput"]["permissionDecision"], "deny")
+            persisted = b"".join(path.read_bytes() for path in state_dir.rglob("*") if path.is_file())
+            self.assertNotIn(sample.encode("utf-8"), persisted)
 
     def test_posttool_replaces_secret_and_identifier_output(self) -> None:
         token = synthetic_token("slack")

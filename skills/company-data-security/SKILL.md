@@ -1,6 +1,6 @@
 ---
 name: company-data-security
-description: Protect secrets, personal data, production/customer information, internal documents, and sensitive external actions across Codex, ChatGPT Work, and ordinary Chat. Use when a task may open, paste, transform, query, upload, summarize, or send non-public data; when tools, files, logs, spreadsheets, connectors, MCP, shell commands, or model output may expose it; or when the user asks for confidentiality, DLP, redaction, pseudonymization, least privilege, or safe AI handling. Do not invoke for clearly public-only content with no sensitive source or external action.
+description: Protect credentials, personal/customer records, non-public data, and sensitive actions. Use for confidentiality, DLP, redaction, least privilege, or risky tool/data flows; exclude public-only work.
 ---
 
 # Company Data Security
@@ -11,7 +11,7 @@ Reduce unnecessary data exposure while keeping normal work moving. Apply one dat
 
 - Consumes: the user's task, selected sources/tools, current product surface, data classification, and action authority.
 - Owns: a confidentiality-safe work plan, least-data source selection, reference/local-compute/redaction choices, and explicit disclosure limits.
-- Stops: on high-confidence C4 disclosure, an unnecessary credential-store read, an unapproved high-impact external action, or a claim of enforcement that the current surface cannot provide.
+- Stops: on unconfirmed or non-test high-confidence C4 disclosure, an unnecessary credential-store read, an unapproved high-impact external action, or a claim of enforcement that the current surface cannot provide.
 - Hands off: repository lifecycle, architecture, verification, delivery, or domain-specific decisions to their normal owners after the data boundary is safe.
 
 For a user-owned classification, disclosure, or external-action decision, remain in Default mode and follow `../requirements-design/references/user-interaction.md`. Never request a secret through ordinary chat; use a host-approved secure input surface or stop.
@@ -20,7 +20,7 @@ For a user-owned classification, disclosure, or external-action decision, remain
 
 Choose one path before reading sensitive sources:
 
-1. **Codex with local Hooks:** use reference-preserving shell/tool calls and let the packaged Hook enforce supported prompt/tool boundaries. Do not bypass a DLP decision or read credential values merely to inspect configuration.
+1. **Codex with local Hooks:** use reference-preserving shell/tool calls and let the packaged Hook enforce supported prompt/tool boundaries. Personal mode may offer one exact, expiring, session-bound, one-shot confirmation for an explicitly declared test credential; a tool request advances only after the user submits its marker through `UserPromptSubmit`. Strict mode retains hard blocking. Do not treat a confirmation as a reusable bypass or read credential values merely to inspect configuration.
 2. **ChatGPT Work:** minimize selected sources and connector scope, keep computation local when available, draft before an external action, and request confirmation before sending or publishing. Do not claim that a Codex Hook protects this flow.
 3. **Ordinary Chat:** ask for only the smallest necessary excerpt, prefer placeholders or synthetic examples, transform locally before upload when possible, and warn briefly if the user is about to paste a high-confidence secret. No deterministic pre-send Hook is assumed.
 
@@ -47,7 +47,7 @@ Use the first method that still accomplishes the task:
 3. **Pseudonymize:** replace entities with stable non-reversible labels while preserving repeated relationships.
 4. **Redact and minimize:** remove values, unused columns, irrelevant rows, long log bodies, and unnecessary metadata.
 5. **Warn or confirm:** use a short warning for residual disclosure risk and confirm high-impact external actions.
-6. **Block:** reserve for high-confidence C4, explicit credential-store/exfiltration paths, or an external disclosure without authority.
+6. **Block:** reserve for non-test or high-risk C4, explicit credential-store/exfiltration paths, invalid confirmation state, or an external disclosure without authority.
 
 Do not ask ordinary users to run a tokenization ceremony. Perform safe transformations yourself when the surface permits it.
 
@@ -59,7 +59,7 @@ Do not ask ordinary users to run a tokenization ceremony. Perform safe transform
 - For documents/spreadsheets, select required sections/columns and use aggregates or local formulas before upload.
 - For customer/HR data, use synthetic rows for method design and execute the final transform locally.
 - For connectors, scope the search narrowly and keep send/post/update actions as drafts until confirmed.
-- Never repeat a discovered secret in an explanation, command, patch, test, log, or evidence file. Refer to its category and location only when the location itself is safe.
+- Never repeat a discovered secret in an explanation, generated command, patch, test, log, or evidence file. A user-confirmed test value may cross only the exact supported prompt/tool boundary covered by its consumed one-shot approval; subsequent work returns to category and reference names.
 
 ## Use the local helper in Codex
 
@@ -68,15 +68,16 @@ The helper is standard-library-only and does not retain raw mappings:
 ```bash
 python3 "$PLUGIN_ROOT/skills/company-data-security/scripts/data_security.py" scan
 python3 "$PLUGIN_ROOT/skills/company-data-security/scripts/data_security.py" redact
+python3 "$PLUGIN_ROOT/skills/company-data-security/scripts/dlp_approval.py" configure --mode personal
 python3 "$PLUGIN_ROOT/skills/company-data-security/scripts/doctor.py" --plugin-root "$PLUGIN_ROOT"
 ```
 
-`scan` returns categories and counts, never matched values. `redact` reads stdin and emits only transformed content. `doctor` proves packaged/configuration state at check time; it does not prove central immutability or live account compliance.
+`scan` returns categories and counts, never matched values. `redact` emits only transformed content. The approval helper stores private keyed metadata and configures mode; it exposes no Agent-runnable approval command. `doctor` proves packaged/configuration state at check time, not central immutability, cryptographic isolation from a malicious same-user process, or live account compliance.
 
 ## Communicate decisions briefly
 
 - On safe automatic handling: continue the task and mention the transformation only if it changes the result.
-- On a C4 block: state the category, explain that the value was not forwarded, and continue using a reference such as an environment variable or local command.
+- On a C4 block or confirmation: state the category and action status without echoing the value, then provide one platform-appropriate storage command, an environment-variable reference, and the exact retry/confirmation boundary.
 - On Work/Chat limitations: say that source minimization and instructions are active guidance, not a guaranteed pre-send interception layer.
 - On external actions: prepare the draft and ask for confirmation at the actual disclosure boundary.
 

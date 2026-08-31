@@ -17,7 +17,9 @@ BUILDER = ROOT / "tools" / "build_release.py"
 FLOW = ROOT / "skills" / "dev-flow" / "scripts" / "dev-flow.py"
 PYTHON = sys.executable
 VERSION = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))["version"]
-PUBLISHED_VERSION = "2.0.0-rc.3"
+PRODUCT_STATE = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
+PUBLISHED_VERSION = PRODUCT_STATE["published"]["latest_rc"]["version"]
+PUBLISHED_TAG = PRODUCT_STATE["published"]["latest_rc"]["tag"]
 
 
 def run(*args: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
@@ -180,12 +182,12 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
         self.assertIn("`v1.1.2` 是最后一个 1.x 稳定标签", readme)
         self.assertRegex(VERSION, r"^2\.0\.0-rc\.\d+$")
         self.assertIn(f"当前源码候选身份为 `{VERSION}`", readme)
-        self.assertIn(f"`v{PUBLISHED_VERSION}` 仍是最近已发布", readme)
+        self.assertIn(f"`{PUBLISHED_TAG}` 是最近已发布", readme)
         self.assertIn(
-            f"codex plugin marketplace add AldenClark/dev-flow --ref v{PUBLISHED_VERSION}",
+            f"codex plugin marketplace add AldenClark/dev-flow --ref {PUBLISHED_TAG}",
             readme,
         )
-        self.assertIn(f"`v{PUBLISHED_VERSION}` 是最近已发布的 transition-hardening RC", readme)
+        self.assertIn(f"`{PUBLISHED_TAG}` 是最近已发布的 convergence-and-operations RC", readme)
         self.assertIn("发布包含明确记录的 R4 语义豁免", readme)
 
     def test_release_identity_and_lifecycle_claims_match_exercised_evidence(self) -> None:
@@ -264,9 +266,9 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
         self.assertIn("PYTHONIOENCODING: utf-8", workflow)
         self.assertNotIn("shell: bash", workflow)
         self.assertIn("Record environment", workflow)
-        self.assertIn("Characterize macOS 15 Python 3.14 resource subprocess variance", workflow)
-        self.assertIn("for attempt in {1..25}", workflow)
-        self.assertIn("ResourceLeaseTests.test_public_cli_acquire_inspect_release_round_trip", workflow)
+        self.assertNotIn("Characterize macOS 15 Python 3.14 resource subprocess variance", workflow)
+        self.assertNotIn("for attempt in {1..25}", workflow)
+        self.assertIn("evals.test_resource_coordination", workflow)
         self.assertIn("permissions:\n  contents: read", workflow)
 
     def test_authority_bound_change_documents_keep_lf_on_every_runner(self) -> None:

@@ -2,7 +2,7 @@
 
 Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是建立第二套工作流引擎，而是用最少的流程成本保持三件事：长期业务工作不漂移、技术结论有原生工程证据、高后果动作保留明确安全边界。
 
-当前源码候选身份为 `2.0.0-rc.4` convergence-and-operations hardening RC：它增加无状态增量路由、受管工作流一致性检查、本机协作租约与资源预检、测试系统完整性 owner、隐私安全 dogfood v2，以及语义运行时/资格执行双身份。`v2.0.0-rc.3` 仍是最近已发布、可固定安装和回滚的标签；RC.4 的完整模型资格、不可变制品、tag、发布和安装必须逐项完成后才能声称已发布。`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
+当前源码候选身份为 `2.0.0-rc.5`。它收敛个人 AI 编程辅助的公共命令面、路由上下文、产品状态、只读诊断、隐私友好成效观测和不可信上下文边界。`v2.0.0-rc.4` 是最近已发布且可固定安装的标签，RC.5 的回滚目标为 `v2.0.0-rc.4`；RC.5 的 commit、tag、制品、发布、安装、托管兼容和模型资格仍须分别执行，当前均不能从源码改动推断。`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
 
 ## 2.0 核心模型
 
@@ -204,7 +204,24 @@ Dev Flow 主 Skill 只负责模式、风险和最小路由。按真实决策加�
 
 2.0 不注册 Dev Flow 流程 Hook。普通搜索、编辑、测试、包管理、Bash、代理生命周期、Stop、交付授权和 legacy packet 状态由宿主安全模型、用户指令、Skills 与原生工程系统处理，不再由不完整的命令字符串分类器重复拦截。
 
-`data_security_hook.py` 仍作为独立安全能力，在支持的 prompt/tool 输入输出面阻止或脱敏高置信凭据。它不判断任务流程、需求状态、依赖合理性、测试充分性或用户语义。
+`data_security_hook.py` 仍作为独立安全能力，在支持的 prompt/tool 输入输出面阻止或脱敏高置信凭据。个人模式下，可确认的测试凭据先被拒绝；工具输入只有在用户随后提交 session-bound 的一次性随机标记后才可原样重试一次。本地辅助程序不提供 approve 命令。当前 `UserPromptSubmit` 协议不能改写提示，因此工具确认回合只允许随机标记进入模型，原工具密钥不进入该消息；这仍是防误泄露护栏，不是对同一 OS 用户下恶意进程的密码学隔离。它不判断任务流程、需求状态、依赖合理性、测试充分性或用户语义。
+
+## 只读诊断与可选成效观测
+
+统一 doctor 只盘点源码/发布身份、Git、显式提供的安装与加载根、Hook 打包状态、本地缓存规模和可选 outcome 文件；它不清理缓存、不读取凭据，也不会把“已打包”写成“当前账户已激活”：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py doctor --plugin-root .
+```
+
+个人 dogfood 可显式记录只含枚举和计数的本地 outcome。默认文件为已忽略的 `.codex/dev-flow/outcomes-v1.jsonl`，Unix 上要求 `0600`；它拒绝 Prompt、标题、路径、人员、会话、自由文本和未知字段，也不生成生产力或综合评分：
+
+```bash
+python3 skills/dev-flow/scripts/dev-flow.py outcomes record \
+  --condition dev-flow --task-shape bounded \
+  --outcome completed --verification passed
+python3 skills/dev-flow/scripts/dev-flow.py outcomes summary
+```
 
 ## 2.0 破坏性切换
 
@@ -212,10 +229,10 @@ Dev Flow 主 Skill 只负责模式、风险和最小路由。按真实决策加�
 
 ## 安装
 
-固定安装当前发布的 RC.3 标签：
+固定安装当前发布的 RC.4 标签：
 
 ```bash
-codex plugin marketplace add AldenClark/dev-flow --ref v2.0.0-rc.3
+codex plugin marketplace add AldenClark/dev-flow --ref v2.0.0-rc.4
 codex plugin add dev-flow@dev-flow
 ```
 
@@ -228,7 +245,9 @@ codex plugin add dev-flow@dev-flow
 ```bash
 python3 -W error::ResourceWarning -m unittest discover -s evals -v
 python3 evals/run_contract_checks.py
-python3 tools/validate_rc4_coverage.py --root . --check-worktree
+python3 tools/validate_product_state.py --root .
+python3 tools/validate_rc5_coverage.py --root . --check-worktree
+python3 tools/static_scan_rc4.py --root .
 python3 skills/dev-flow/scripts/dev-flow.py validate-methods --root .
 python3 skills/dev-flow/scripts/dev-flow.py validate-knowledge --root .
 python3 skills/dev-flow/scripts/dev-flow.py check --plugin-root .
@@ -238,17 +257,17 @@ python3 -m compileall -q hooks skills evals tools
 git diff --check
 ```
 
-CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job 执行完整语义/结构/静态追踪检查，focused compatibility matrix 只执行平台和 Python 版本敏感测试。RC.4 的 live R4 默认仍要求对冻结后的完整 catalog 做三次独立首试；所有执行共享一个累计、身份感知的 campaign 预算，语义身份与资格执行身份均未变化时拒绝重跑。显式版本负责人豁免必须记为 `WAIVED`，不能写成通过。模型结果不代表生产力、业务效果或总体质量分数。
+CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job 执行完整语义/结构/产品状态/RC.5 静态追踪检查，机器可读 compatibility inventory 只在运行时、Hook、安装器、档案解析或平台敏感测试变化时启动 Ubuntu/macOS/Windows 与 Python 3.11/3.14 的 focused matrix；旧的 25 次诊断循环已移除。RC.5 的 live R4、托管矩阵和独立审查当前仍为 `NOT RUN`。显式版本负责人豁免必须记为 `WAIVED`，不能写成通过。模型结果不代表生产力、业务效果或总体质量分数。
 
 发版按变更面分为 R1 standard、R2 runtime、R3 artifact/security、R4 model-semantic。`flow-metrics` 只验证分支激活与负向边界，不衡量生产力或效果。具体边界、命令和 `NOT RUN` 规则见 [docs/releasing.md](docs/releasing.md)。
 
 ## 版本和发布状态
 
-- `2.0.0-rc.4` 是当前源码候选，增加收敛、资源协调、测试系统完整性、静态追踪和双身份资格绑定；尚不是已发布 tag。
-- `v2.0.0-rc.3` 是最近已发布的 transition-hardening RC，也是 RC.4 的固定安装回滚标签；其发布包含明确记录的 R4 语义豁免。
+- `2.0.0-rc.5` 是当前源码候选，聚焦个人辅助的界面收敛、可诊断性、隐私观测和信任边界；尚未 commit、tag、安装或发布。
+- `v2.0.0-rc.4` 是最近已发布的 convergence-and-operations RC，也是 RC.5 的固定安装回滚标签；其发布包含明确记录的 R4 语义豁免。
 - `v2.0.0-rc.2` 是上一 activation-hardening RC，也是 RC.3 的可固定安装回滚标签。
 - `v2.0.0-rc.1` 是上一 RC，包含 Default-mode 需求确认、主动高级能力激活、Luna P0-P2、Codex 原生适配和 Flow Activation Coverage。
 - `v1.1.2` 是最后一个 1.x 稳定标签；1.1.3 只存在于未发布源码历史，2.0 不提供 1.x 兼容或迁移保证。
 - 源码、commit、push、tag、GitHub Release、Marketplace 安装和生产使用是不同状态；只有逐项执行和复核后才能声称完成。
 
-RC.4 的需求、设计、实施拆解、审计和当前资格边界位于 [docs/workstreams/dev-flow-2.0-rc.4](docs/workstreams/dev-flow-2.0-rc.4/)；RC.3 的发布证据保留在 [docs/workstreams/dev-flow-2.0-rc.3](docs/workstreams/dev-flow-2.0-rc.3/)。2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)，历史版本见 [CHANGELOG.md](CHANGELOG.md)。
+RC.5 的需求、设计、实施拆解和当前证据边界位于 [docs/workstreams/dev-flow-2.0-rc.5](docs/workstreams/dev-flow-2.0-rc.5/)；RC.4 的发布审计保留在 [docs/workstreams/dev-flow-2.0-rc.4](docs/workstreams/dev-flow-2.0-rc.4/)。2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)，历史版本见 [CHANGELOG.md](CHANGELOG.md)。

@@ -2,15 +2,19 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
-## 2.0.0-rc.4 convergence-and-operations candidate
+## 2.0.0-rc.5 personal-assistant hardening candidate
 
-The source manifest identifies the worktree candidate as `2.0.0-rc.4`. Source implementation adds stateless route comparison, managed-workstream checking, host-local resource coordination, test-system integrity ownership, dogfood v2, and separate semantic-runtime/qualification-execution identities. Publication remains R4 because route and Skill behavior are model-facing.
+The canonical product state identifies the worktree candidate as `2.0.0-rc.5`. Source implementation contracts the public CLI and compact route, adds product-state validation, read-only diagnosis, opt-in privacy-safe outcome observation, an always-on untrusted-content boundary, and real user-event DLP confirmation. Publication remains R4 because route and Skill behavior are model-facing.
 
-RC.4 source completion requires deterministic and static traceability gates on final relevant bytes, the supported compatibility matrix for resource primitives, a clean-context review, complete R4 evidence or an explicit bounded owner waiver, exact-commit artifact/install evidence, and explicit delivery authority. The default R4 condition remains three complete-catalog independent first attempts. RC.4 additionally requires one cumulative identity-aware campaign ledger; unchanged semantic and execution identities cannot be rerun. A working-tree implementation or local PASS does not satisfy later delivery gates. `v2.0.0-rc.3` remains the published rollback installation.
+RC.5 source completion requires deterministic privacy, compatibility, negative-control, product-state, and static-context gates on final relevant bytes. Publication additionally requires clean-context review, the applicable hosted matrix and R4 evidence or explicit bounded owner waiver, exact-commit artifact/install evidence, and explicit delivery authority. A working-tree implementation or local PASS does not satisfy those gates. `v2.0.0-rc.4` is the latest public immutable RC tag. `v2.0.0-rc.4` is the rollback target for `2.0.0-rc.5`; neither statement asserts a GitHub Release object, Marketplace activation, or a currently installed profile.
+
+## 2.0.0-rc.4 convergence-and-operations release (historical)
+
+RC.4 added stateless route comparison, managed-workstream checking, host-local resource coordination, test-system integrity ownership, privacy-safe dogfood v2, and separate semantic-runtime/qualification-execution identities. Its annotated `v2.0.0-rc.4` tag is the RC.5 rollback point. Qualification waivers and exact release evidence remain recorded in the RC.4 workstream; they are not inherited as RC.5 proof.
 
 ## 2.0.0-rc.3 transition-hardening release (historical)
 
-The source manifest identifies the current candidate as `2.0.0-rc.3`. It changes deterministic routing and model-facing transition/failure/freshness guidance, so publication is R4 even when local source gates pass. The opt-in runner in `evals/run_transition_trials.py` exercises isolated candidate loading plus resume/fork lineage, defaults to a non-spending plan, and never grades its own responses. Actual execution requires separate model-budget authorization; bounded first-attempt evidence is assessed afterward through a manual observation manifest and the public transition lane.
+The RC.3 source manifest identified `2.0.0-rc.3` at that historical release point. It changed deterministic routing and model-facing transition/failure/freshness guidance, so publication was R4 even when local source gates passed. The opt-in runner in `evals/run_transition_trials.py` exercised isolated candidate loading plus resume/fork lineage, defaulted to a non-spending plan, and never graded its own responses. Actual execution required separate model-budget authorization; bounded first-attempt evidence was assessed afterward through a manual observation manifest and the public transition lane.
 
 RC.3 source-completeness requires final local deterministic/process/plugin/documentation/security checks. Frozen candidate `99b5831c3d1890a84700aac6baa4a0cb0b33c495` completed the separately authorized three-attempt R4 execution with 144 turns, 9,092,076 tokens, closed usage, unchanged identity, and no mechanical failure. Same-context manual assessment found two bounded semantic gaps: delegation reconciliation omitted an explicit renewed-authority request in all attempts, and reference-repository comparison was absent or weak in two attempts. The version owner explicitly accepted these residual risks and authorized release; the gaps remain `WAIVED`, not passed. Exact-SHA hosted evidence, artifacts, installation, tag, push, and publication remain action-specific delivery gates. `v2.0.0-rc.2` remains the rollback installation.
 
@@ -57,7 +61,7 @@ Examples:
 The ordinary CI workflow has two lanes:
 
 1. `semantic`: Ubuntu 24.04/Python 3.14 runs the full unit suite, structural contracts, shipped legacy-data validators, plugin/suite/data-security checks, compilation, and clean-tree check once.
-2. `compatibility`: a focused matrix across Ubuntu, macOS, Windows and Python 3.11/3.14 runs only agent dispatch, preflight, installer, and isolated runtime-lifecycle tests.
+2. `compatibility`: a focused matrix across Ubuntu, macOS, Windows and Python 3.11/3.14 is activated from `governance/compatibility-surfaces.json` and runs platform-sensitive agent dispatch, CLI/preflight, DLP Hook/state, engineering-profile, outcome/doctor, product-state, installer, repository-knowledge, resource, and isolated runtime-lifecycle tests once per cell. It contains no repeated diagnostic loop.
 
 The manual release-candidate workflow is a third lane. It fetches and binds the approved exact SHA, creates the deterministic source archive, verifies it, generates and validates SPDX 2.3 SBOM data, finalizes checksums, creates provenance/SBOM attestations, and uploads immutable candidate evidence. It intentionally does not rerun semantic CI.
 
@@ -76,6 +80,8 @@ The manual release-candidate workflow is a third lane. It fetches and binds the 
 
 Never rewrite or reuse an RC tag. Any changed byte requires a new commit and candidate identity.
 
+After publication and isolated install verification, record external truth in a separate current-truth commit on the default branch: set the source phase to `released`, advance `published.latest_rc` to the immutable RC tag, retain the previous known-good tag as `compatibility.rollback_target`, and record each delivery result without rewriting the release tag. The tagged candidate remains the exact pre-publication byte snapshot; the follow-up commit is the canonical current state and does not retroactively alter its artifact identity.
+
 ## Local artifact check
 
 For an R3 change, two local builds can establish deterministic behavior before hosted attestation. Use absent output directories:
@@ -83,14 +89,14 @@ For an R3 change, two local builds can establish deterministic behavior before h
 ```bash
 git rev-parse HEAD
 python3 tools/build_release.py build \
-  --root . --output dist-a --version 2.0.0-rc.4 --commit FULL_COMMIT_SHA
+  --root . --output dist-a --version 2.0.0-rc.5 --commit FULL_COMMIT_SHA
 python3 tools/build_release.py build \
-  --root . --output dist-b --version 2.0.0-rc.4 --commit FULL_COMMIT_SHA
-cmp dist-a/dev-flow-2.0.0-rc.4.tar.gz dist-b/dev-flow-2.0.0-rc.4.tar.gz
+  --root . --output dist-b --version 2.0.0-rc.5 --commit FULL_COMMIT_SHA
+cmp dist-a/dev-flow-2.0.0-rc.5.tar.gz dist-b/dev-flow-2.0.0-rc.5.tar.gz
 cmp dist-a/release-manifest.json dist-b/release-manifest.json
 cmp dist-a/SHA256SUMS dist-b/SHA256SUMS
 python3 tools/build_release.py verify \
-  --artifact-dir dist-a --expected-version 2.0.0-rc.4 --expected-commit FULL_COMMIT_SHA
+  --artifact-dir dist-a --expected-version 2.0.0-rc.5 --expected-commit FULL_COMMIT_SHA
 ```
 
 Determinism is asserted within the pinned environment. Promotion reuses attested bytes instead of rebuilding on another zlib/toolchain version.
@@ -101,17 +107,17 @@ After applicable exact-SHA CI is green:
 
 ```bash
 gh workflow run release-candidate.yml \
-  --ref main -f version=2.0.0-rc.4 -f expected_sha=FULL_COMMIT_SHA
+  --ref main -f version=2.0.0-rc.5 -f expected_sha=FULL_COMMIT_SHA
 ```
 
 The workflow has `contents: read`, `id-token: write`, and `attestations: write`. It has no release-publication permission. After download:
 
 ```bash
 python3 tools/build_release.py verify \
-  --artifact-dir dist --expected-version 2.0.0-rc.4 --expected-commit FULL_COMMIT_SHA
-gh attestation verify dist/dev-flow-2.0.0-rc.4.tar.gz \
+  --artifact-dir dist --expected-version 2.0.0-rc.5 --expected-commit FULL_COMMIT_SHA
+gh attestation verify dist/dev-flow-2.0.0-rc.5.tar.gz \
   --repo AldenClark/dev-flow
-gh attestation verify dist/dev-flow-2.0.0-rc.4.tar.gz \
+gh attestation verify dist/dev-flow-2.0.0-rc.5.tar.gz \
   --repo AldenClark/dev-flow \
   --predicate-type https://spdx.dev/Document/v2.3
 ```
@@ -122,7 +128,7 @@ The SBOM must be SPDX 2.3, name `dev-flow`, contain files, identify the root pac
 
 Use [evaluation-suite.md](evaluation-suite.md). Deterministic Flow Activation Coverage runs first. For a material R4 release/admission decision, predeclare each affected category, use at least three distinct natural-language/repository cases per category, and preserve at least three independent first attempts per case. Report safety/authority, expected versus observed activation, variability, missing or unexpected branches, prerequisites, repair burden, cost, and evidence limits separately. Do not emit an effect, productivity, or composite quality score.
 
-The RC.4 catalog encodes the affected categories and minimum coverage directly. Confirm the non-spending qualification plan before authorizing live execution:
+The shipped RC.5 qualification catalog encodes 24 cases, 52 turns per attempt, the affected categories, and minimum coverage directly. Confirm the non-spending qualification plan before authorizing live execution:
 
 ```bash
 python3 evals/run_transition_trials.py --qualification --attempts 3

@@ -1,6 +1,6 @@
 ---
 name: architecture-decisions
-description: Make repository-grounded architecture decisions for material boundaries, ownership, state, concurrency, FFI, compatibility, or performance trade-offs.
+description: Decide material boundaries, ownership, state, concurrency, compatibility, FFI, and performance trade-offs.
 ---
 
 # Architecture Decisions

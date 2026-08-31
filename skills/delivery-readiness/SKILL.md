@@ -1,6 +1,6 @@
 ---
 name: delivery-readiness
-description: Check identity, evidence, compatibility, rollback, residual risk, and authority before commit, push, PR, release, migration, deployment, or delivery.
+description: Check identity, evidence, rollback, risk, and authority before commit, push, release, migration, deployment, or delivery.
 ---
 
 # Delivery Readiness

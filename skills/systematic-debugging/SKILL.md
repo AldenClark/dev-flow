@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: Reproduce and diagnose bugs, flakes, crashes, hangs, integration failures, and performance anomalies through competing hypotheses and discriminating evidence.
+description: Reproduce and diagnose failures with competing hypotheses and discriminating evidence.
 ---
 
 # Systematic Debugging

@@ -13,30 +13,28 @@ import sys
 from typing import Iterable
 
 
-COMPATIBILITY_PATTERNS = (
-    ".github/workflows/ci.yml",
-    ".codex-plugin/plugin.json",
-    ".gitattributes",
-    "hooks/**",
-    "skills/dev-flow/scripts/**",
-    "skills/dev-flow/agents/**",
-    "skills/dev-flow/assets/agent-configs/**",
-    "skills/repository-knowledge/scripts/**",
-    "governance/agent-roles.json",
-    "governance/agent-routing.json",
-    "governance/codex-host-adapter.json",
-    "evals/agent-dispatch-routing-cases.json",
-    "evals/test_agent_dispatch.py",
-    "evals/test_ci_change_scope.py",
-    "evals/test_release_artifacts.py",
-    "evals/test_resource_coordination.py",
-    "evals/test_repository_knowledge.py",
-    "evals/test_scripts.py",
-    "evals/run_transition_trials.py",
-    "evals/test_transition_runner.py",
-    "tools/ci_change_scope.py",
-)
+INVENTORY_SCHEMA = "dev-flow.compatibility-surfaces.v1"
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_INVENTORY = REPOSITORY_ROOT / "governance" / "compatibility-surfaces.json"
 ZERO_SHA = "0" * 40
+
+
+def load_patterns(path: Path = DEFAULT_INVENTORY) -> tuple[str, ...]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if set(payload) != {"schema_version", "patterns"} or payload.get("schema_version") != INVENTORY_SCHEMA:
+        raise ValueError("compatibility inventory must use the exact supported schema")
+    patterns = payload.get("patterns")
+    if (
+        not isinstance(patterns, list)
+        or not patterns
+        or any(not isinstance(item, str) or not item.strip() for item in patterns)
+        or len(patterns) != len(set(patterns))
+    ):
+        raise ValueError("compatibility inventory patterns must be unique non-empty strings")
+    return tuple(patterns)
+
+
+COMPATIBILITY_PATTERNS = load_patterns()
 
 
 def normalize_path(path: str) -> str:
@@ -51,12 +49,15 @@ def matches_pattern(path: str, pattern: str) -> bool:
     return fnmatch.fnmatchcase(normalized, pattern)
 
 
-def requires_compatibility(paths: Iterable[str]) -> tuple[bool, list[str]]:
+def requires_compatibility(
+    paths: Iterable[str], *, patterns: Iterable[str] = COMPATIBILITY_PATTERNS
+) -> tuple[bool, list[str]]:
+    pattern_set = tuple(patterns)
     matched = sorted(
         {
             normalize_path(path)
             for path in paths
-            if any(matches_pattern(path, pattern) for pattern in COMPATIBILITY_PATTERNS)
+            if any(matches_pattern(path, pattern) for pattern in pattern_set)
         }
     )
     return bool(matched), matched
@@ -65,6 +66,7 @@ def requires_compatibility(paths: Iterable[str]) -> tuple[bool, list[str]]:
 def git_paths(*args: str) -> list[str]:
     completed = subprocess.run(
         ["git", *args],
+        cwd=REPOSITORY_ROOT,
         check=False,
         capture_output=True,
         text=True,

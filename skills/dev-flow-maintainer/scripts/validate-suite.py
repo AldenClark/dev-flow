@@ -14,6 +14,10 @@ ROOT = Path(__file__).resolve().parents[3]
 HISTORICAL_FILES = {"CHANGELOG.md", "content-migration-v1.json"}
 DESCRIPTION_BUDGET = 2660
 ORDINARY_STATIC_BUDGET = 18000
+DESCRIPTION_TARGET = 2128
+ORDINARY_STATIC_TARGET = 14400
+DESCRIPTION_WARNING = 1995
+ORDINARY_STATIC_WARNING = 13500
 ORDINARY_STATIC_FILES = (
     "skills/dev-flow/SKILL.md",
     "skills/repo-context/SKILL.md",
@@ -42,6 +46,7 @@ DISPATCH_REQUIRED_CASES = {
     "DISPATCH-ROLE-MISMATCH",
     "DISPATCH-PX-GUARD",
     "DISPATCH-DOWNGRADE-GUARD",
+    "DISPATCH-SEQUENTIAL-ROOT",
 }
 
 
@@ -179,6 +184,7 @@ def validate_agent_dispatch() -> tuple[list[str], int]:
 
 def main() -> int:
     errors: list[str] = []
+    warnings: list[str] = []
     contract_path = ROOT / "governance" / "capability-contracts.json"
     try:
         contract = json.loads(contract_path.read_text(encoding="utf-8"))
@@ -224,12 +230,20 @@ def main() -> int:
             errors.append(f"{directory.name}: stale agents/openai.yaml")
     if description_total > DESCRIPTION_BUDGET:
         errors.append(f"Skill descriptions exceed {DESCRIPTION_BUDGET} characters: {description_total}")
+    elif description_total > DESCRIPTION_WARNING:
+        warnings.append(
+            f"Skill descriptions exceed the 75% early-warning level {DESCRIPTION_WARNING}: {description_total}"
+        )
     ordinary_static_total = sum(
         len((ROOT / path).read_text(encoding="utf-8").encode("utf-8"))
         for path in ORDINARY_STATIC_FILES
     )
     if ordinary_static_total > ORDINARY_STATIC_BUDGET:
         errors.append(f"ordinary static path exceeds {ORDINARY_STATIC_BUDGET} bytes: {ordinary_static_total}")
+    elif ordinary_static_total > ORDINARY_STATIC_WARNING:
+        warnings.append(
+            f"ordinary static path exceeds the 75% early-warning level {ORDINARY_STATIC_WARNING}: {ordinary_static_total}"
+        )
     maintainer_metadata = (ROOT / "skills" / "dev-flow-maintainer" / "agents" / "openai.yaml").read_text(encoding="utf-8")
     if "allow_implicit_invocation: false" not in maintainer_metadata:
         errors.append("dev-flow-maintainer must remain explicit-only")
@@ -302,8 +316,13 @@ def main() -> int:
                 "status": "valid" if not errors else "invalid",
                 "skills": len(skills),
                 "description_characters": description_total,
+                "description_target": DESCRIPTION_TARGET,
+                "description_target_met": description_total <= DESCRIPTION_TARGET,
                 "ordinary_static_bytes": ordinary_static_total,
+                "ordinary_static_target": ORDINARY_STATIC_TARGET,
+                "ordinary_static_target_met": ordinary_static_total <= ORDINARY_STATIC_TARGET,
                 "agent_dispatch_cases": dispatch_cases,
+                "warnings": warnings,
                 "errors": errors,
             },
             indent=2,

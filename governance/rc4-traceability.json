@@ -59,8 +59,8 @@
     {
       "id": "RC4-COMPAT",
       "decisions": ["D11"],
-      "implementation": [".github/workflows/ci.yml", ".github/workflows/release-candidate.yml", ".codex-plugin/plugin.json", "README.md", "CHANGELOG.md", "docs/", "skills/company-data-security/assets/surface-attestation.example.json", "tools/ci_change_scope.py"],
-      "tests": ["evals/test_dev_flow_v2.py::RoutingTests", "evals/test_release_artifacts.py::ReleaseArtifactTests", "evals/test_ci_change_scope.py::CompatibilityChangeScopeTests"]
+      "implementation": [".github/workflows/ci.yml", ".github/workflows/release-candidate.yml", ".codex-plugin/plugin.json", "README.md", "CHANGELOG.md", "docs/", "hooks/data_security_hook.py", "skills/company-data-security/SKILL.md", "skills/company-data-security/assets/surface-attestation.example.json", "skills/company-data-security/references/control-baseline.json", "skills/company-data-security/references/data-handling-policy.md", "skills/company-data-security/references/surface-playbooks.md", "skills/company-data-security/scripts/dlp_approval.py", "skills/company-data-security/scripts/dlp_policy.py", "skills/company-data-security/scripts/doctor.py", "tools/ci_change_scope.py"],
+      "tests": ["evals/test_dev_flow_v2.py::RoutingTests", "evals/test_release_artifacts.py::ReleaseArtifactTests", "evals/test_ci_change_scope.py::CompatibilityChangeScopeTests", "evals/test_data_security.py::ApprovalStateTests", "evals/test_data_security.py::PolicyTests", "evals/test_data_security.py::HookBlueTests", "evals/test_data_security.py::HookRedTests", "evals/test_data_security.py::DoctorTests"]
     },
     {
       "id": "RC4-IDENTITY",

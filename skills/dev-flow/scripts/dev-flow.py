@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import sys
 
-from dev_flow import main
+from public_cli import main
 
 
 if __name__ == "__main__":

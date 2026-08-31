@@ -1,6 +1,6 @@
 ---
 name: change-review
-description: Independently review current source or a final diff for intent, integration, security, compatibility, and failure risks; report verified findings.
+description: Independently review current source or final diffs and report verified, consequential findings.
 ---
 
 # Change Review

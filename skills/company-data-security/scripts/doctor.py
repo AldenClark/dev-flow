@@ -6,16 +6,18 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 
 PROTOCOL_SOURCE = "https://learn.chatgpt.com/docs/hooks"
-PROTOCOL_CHECKED_AT = "2026-08-14"
+PROTOCOL_CHECKED_AT = "2026-08-31"
 BASELINE_PATH = "skills/company-data-security/references/control-baseline.json"
 PROTECTED_PATHS = (
     "hooks/data_security_hook.py",
@@ -27,6 +29,8 @@ PROTECTED_PATHS = (
     "skills/company-data-security/assets/chatgpt-work-instructions.md",
     "skills/company-data-security/assets/ordinary-chat-instructions.md",
     "skills/company-data-security/scripts/data_security.py",
+    "skills/company-data-security/scripts/dlp_approval.py",
+    "skills/company-data-security/scripts/dlp_policy.py",
     "skills/company-data-security/scripts/doctor.py",
 )
 EXPECTED_HOOK_COMMAND = 'python3 "$PLUGIN_ROOT/hooks/data_security_hook.py"'
@@ -224,7 +228,10 @@ def _self_test_checks(root: Path) -> list[Check]:
     hook_path = root / "hooks" / "data_security_hook.py"
     token = "gh" + "p_" + ("A7b9" * 9)
 
-    def invoke(event: dict[str, Any]) -> subprocess.CompletedProcess[bytes]:
+    def invoke(event: dict[str, Any], state_dir: Path, *, mode: str = "personal") -> subprocess.CompletedProcess[bytes]:
+        environment = os.environ.copy()
+        environment["DEV_FLOW_DLP_STATE_DIR"] = str(state_dir)
+        environment["DEV_FLOW_DLP_MODE"] = mode
         return subprocess.run(
             [sys.executable, str(hook_path)],
             input=json.dumps(event).encode("utf-8"),
@@ -232,6 +239,7 @@ def _self_test_checks(root: Path) -> list[Check]:
             stderr=subprocess.PIPE,
             timeout=10,
             check=False,
+            env=environment,
         )
 
     base = {
@@ -240,33 +248,125 @@ def _self_test_checks(root: Path) -> list[Check]:
         "cwd": str(root),
     }
     try:
-        safe = invoke({**base, "hook_event_name": "UserPromptSubmit", "prompt": "public schema question"})
-        blocked = invoke({**base, "hook_event_name": "UserPromptSubmit", "prompt": "inspect " + token})
-        post = invoke(
-            {
+        with tempfile.TemporaryDirectory() as directory:
+            state_dir = Path(directory)
+            safe = invoke({**base, "hook_event_name": "UserPromptSubmit", "prompt": "public schema question"}, state_dir)
+            blocked = invoke({**base, "hook_event_name": "UserPromptSubmit", "prompt": "inspect " + token}, state_dir)
+            declared = invoke(
+                {**base, "hook_event_name": "UserPromptSubmit", "prompt": "testing-only credential " + token},
+                state_dir,
+            )
+            declared_json = json.loads(declared.stdout.decode("utf-8"))
+            marker = re.search(r"\[\[DEV_FLOW_DLP_CONFIRM:[^\]]+\]\]", str(declared_json.get("reason", "")))
+            confirmed = invoke(
+                {
+                    **base,
+                    "hook_event_name": "UserPromptSubmit",
+                    "prompt": (marker.group(0) if marker else "invalid-marker") + "\ntesting-only credential " + token,
+                },
+                state_dir,
+            )
+            tool_event = {
                 **base,
-                "hook_event_name": "PostToolUse",
+                "hook_event_name": "PreToolUse",
                 "tool_name": "Bash",
-                "tool_input": {"command": "synthetic"},
-                "tool_response": {"credential": token, "state": "failed"},
+                "tool_input": {"command": "run-synthetic-test --credential " + token},
             }
-        )
+            tool_denied = invoke(tool_event, state_dir)
+            tool_denied_json = json.loads(tool_denied.stdout.decode("utf-8"))
+            tool_marker = re.search(
+                r"\[\[DEV_FLOW_DLP_CONFIRM:[^\]]+\]\]",
+                str(
+                    tool_denied_json.get("hookSpecificOutput", {}).get(
+                        "permissionDecisionReason", ""
+                    )
+                ),
+            )
+            tool_confirmed = invoke(
+                {
+                    **base,
+                    "hook_event_name": "UserPromptSubmit",
+                    "prompt": tool_marker.group(0) if tool_marker else "invalid-marker",
+                },
+                state_dir,
+            )
+            tool_retry = invoke(tool_event, state_dir)
+            post = invoke(
+                {
+                    **base,
+                    "hook_event_name": "PostToolUse",
+                    "tool_name": "Bash",
+                    "tool_input": {"command": "synthetic"},
+                    "tool_response": {"credential": token, "state": "failed"},
+                },
+                state_dir,
+            )
         blocked_json = json.loads(blocked.stdout.decode("utf-8"))
+        confirmed_json = json.loads(confirmed.stdout.decode("utf-8"))
         post_json = json.loads(post.stdout.decode("utf-8"))
-        leak = any(token.encode("utf-8") in value for value in (safe.stdout, safe.stderr, blocked.stdout, blocked.stderr, post.stdout, post.stderr))
+        tool_confirmed_json = json.loads(tool_confirmed.stdout.decode("utf-8"))
+        tool_retry_json = json.loads(tool_retry.stdout.decode("utf-8"))
+        leak = any(
+            token.encode("utf-8") in value
+            for value in (
+                safe.stdout,
+                safe.stderr,
+                blocked.stdout,
+                blocked.stderr,
+                declared.stdout,
+                declared.stderr,
+                confirmed.stdout,
+                confirmed.stderr,
+                tool_denied.stdout,
+                tool_denied.stderr,
+                tool_confirmed.stdout,
+                tool_confirmed.stderr,
+                tool_retry.stdout,
+                tool_retry.stderr,
+                post.stdout,
+                post.stderr,
+            )
+        )
         safe_ok = safe.returncode == 0 and safe.stdout == b"" and safe.stderr == b""
         block_ok = blocked.returncode == 0 and blocked_json.get("decision") == "block"
+        confirmation_ok = (
+            declared.returncode == 0
+            and marker is not None
+            and confirmed.returncode == 0
+            and "decision" not in confirmed_json
+            and "already consumed" in confirmed_json.get("hookSpecificOutput", {}).get("additionalContext", "")
+        )
+        tool_confirmation_ok = (
+            tool_denied.returncode == 0
+            and tool_marker is not None
+            and tool_confirmed.returncode == 0
+            and "decision" not in tool_confirmed_json
+            and "UserPromptSubmit event confirmed"
+            in tool_confirmed_json.get("hookSpecificOutput", {}).get("additionalContext", "")
+            and tool_retry.returncode == 0
+            and "permissionDecision" not in tool_retry_json.get("hookSpecificOutput", {})
+        )
         post_ok = (
             post.returncode == 0
             and post_json.get("continue") is False
             and "{{DLP:SECRET:" in post_json.get("hookSpecificOutput", {}).get("additionalContext", "")
         )
     except (OSError, subprocess.SubprocessError, UnicodeDecodeError, json.JSONDecodeError):
-        safe_ok = block_ok = post_ok = False
+        safe_ok = block_ok = confirmation_ok = tool_confirmation_ok = post_ok = False
         leak = False
     return [
         Check("self-test.safe-pass", "pass" if safe_ok else "fail", "safe synthetic prompt passes quietly" if safe_ok else "safe prompt self-test failed"),
         Check("self-test.prompt-block", "pass" if block_ok else "fail", "synthetic secret prompt is blocked" if block_ok else "secret prompt self-test failed"),
+        Check(
+            "self-test.one-shot-confirmation",
+            "pass" if confirmation_ok else "fail",
+            "declared test secret consumed one exact local confirmation" if confirmation_ok else "one-shot confirmation self-test failed",
+        ),
+        Check(
+            "self-test.tool-user-confirmation",
+            "pass" if tool_confirmation_ok else "fail",
+            "tool input required a session-bound UserPromptSubmit event" if tool_confirmation_ok else "tool user-confirmation self-test failed",
+        ),
         Check("self-test.post-redaction", "pass" if post_ok else "fail", "synthetic tool result is replaced" if post_ok else "tool-output self-test failed"),
         Check("self-test.no-raw-leak", "fail" if leak else "pass", "synthetic value appeared in Hook output" if leak else "synthetic value absent from stdout and stderr"),
     ]

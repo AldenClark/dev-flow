@@ -4,6 +4,8 @@
 
 Prefer environment-variable and secret-manager references. Inspect key names and file permissions, not values. Use local scripts to filter/redact tool output. The packaged Hook covers documented local UserPromptSubmit, PreToolUse, and PostToolUse paths after the user trusts the exact Hook definition.
 
+Personal mode distinguishes placeholders from provider-shaped values explicitly declared as test data. It stops the first disclosure, supplies safe-storage/reference guidance, and accepts only an exact, expiring, session-bound confirmation. Tool input confirmation must arrive through a host-delivered `UserPromptSubmit`; no helper command approves it. Because that Hook cannot rewrite a prompt, the model-visible confirmation turn contains only the random marker and value-free continuation context, never the tool secret. The marker is already confirmation-consumed before forwarding. Tool output remains redacted rather than confirmable. Use `strict` mode to hard-block every high-confidence C4 match. This does not isolate the Hook from a malicious process running as the same OS user.
+
 The Hook does not cover every hosted or specialized tool path, cannot undo a tool side effect that already happened, and must not be bypassed. Treat network permissions, sandboxing, repository access, and MCP allowlists as separate least-privilege controls.
 
 ## ChatGPT Work

@@ -137,7 +137,7 @@ def scan(root: Path, *, check_event: bool = False) -> dict[str, Any]:
     actual_route_inputs = {
         action.dest
         for action in route._actions
-        if action.dest not in {"help", "compact", "previous_route"}
+        if action.dest not in {"help", "compact", "explain", "previous_route"}
     }
     declared_route_inputs = set(route_incremental.ROUTE_BASIS_OPTION_DESTS)
     if actual_route_inputs != declared_route_inputs:
@@ -179,9 +179,9 @@ def scan(root: Path, *, check_event: bool = False) -> dict[str, Any]:
     if "skills/dev-flow/scripts/flow_metrics.py" not in dependencies:
         errors.append("qualification dependency closure omits flow_metrics.py")
 
-    coverage_result = coverage.validate(
-        root, check_worktree=not check_event, check_event=check_event
-    )
+    # RC.4 traceability remains a historical invariant. Current-release change
+    # ownership is validated by the RC.5 validator in CI.
+    coverage_result = coverage.validate(root, check_worktree=False, check_event=False)
     if coverage_result.get("status") != "valid":
         errors.extend(f"coverage: {error}" for error in coverage_result.get("errors", []))
     return {

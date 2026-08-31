@@ -1,0 +1,144 @@
+{
+  "schema_version": "dev-flow.rc5.traceability.v1",
+  "required_requirement_ids": [
+    "RC5-AGENT",
+    "RC5-CI",
+    "RC5-CLI",
+    "RC5-CONTEXT",
+    "RC5-DLP-MEMORY",
+    "RC5-OBSERVE",
+    "RC5-STATE",
+    "RC5-TRUST"
+  ],
+  "requirements": [
+    {
+      "id": "RC5-STATE",
+      "decisions": ["D1", "D8"],
+      "implementation": [
+        ".codex-plugin/plugin.json",
+        ".github/workflows/release-candidate.yml",
+        "AGENTS.md",
+        "CHANGELOG.md",
+        "README.md",
+        "docs/index.md",
+        "docs/evaluation-suite.md",
+        "docs/project/dev-flow-governance.md",
+        "docs/releasing.md",
+        "docs/workstreams/dev-flow-2.0-rc.5/",
+        "governance/product-state.json",
+        "tools/validate_product_state.py"
+      ],
+      "tests": [
+        "evals/test_product_state.py::ProductStateTests",
+        "evals/test_release_artifacts.py::ReleaseArtifactTests"
+      ]
+    },
+    {
+      "id": "RC5-CLI",
+      "decisions": ["D2", "D3"],
+      "implementation": [
+        "skills/dev-flow/SKILL.md",
+        "skills/dev-flow/scripts/public_cli.py",
+        "skills/dev-flow/scripts/dev-flow.py",
+        "skills/dev-flow/scripts/dev_flow.py",
+        "skills/dev-flow/scripts/route_incremental.py",
+        "skills/architecture-decisions/SKILL.md",
+        "skills/change-review/SKILL.md",
+        "skills/delivery-readiness/SKILL.md",
+        "skills/dependency-decisions/SKILL.md",
+        "skills/requirements-design/SKILL.md",
+        "skills/systematic-debugging/SKILL.md",
+        "skills/verification/SKILL.md",
+        "evals/flow-activation-cases.json",
+        "evals/test_dev_flow_v2.py",
+        "evals/test_methodology_system.py",
+        "evals/test_rc4_convergence.py",
+        "evals/test_scripts.py"
+      ],
+      "tests": [
+        "evals/test_public_cli.py::PublicCliTests",
+        "evals/test_rc4_convergence.py::IncrementalRouteTests"
+      ]
+    },
+    {
+      "id": "RC5-CONTEXT",
+      "decisions": ["D3"],
+      "implementation": [
+        "skills/dev-flow-maintainer/scripts/validate-suite.py"
+      ],
+      "tests": [
+        "evals/test_context_budgets.py::ContextBudgetTests"
+      ]
+    },
+    {
+      "id": "RC5-OBSERVE",
+      "decisions": ["D4"],
+      "implementation": [
+        "skills/dev-flow/scripts/outcome_observation.py",
+        "skills/dev-flow/scripts/runtime_doctor.py"
+      ],
+      "tests": [
+        "evals/test_outcome_observation.py::OutcomeObservationTests",
+        "evals/test_runtime_doctor.py::RuntimeDoctorTests"
+      ]
+    },
+    {
+      "id": "RC5-TRUST",
+      "decisions": ["D5"],
+      "implementation": [
+        "governance/trust-boundary-cases.json",
+        "skills/dev-flow/references/trust-boundary.md"
+      ],
+      "tests": [
+        "evals/test_trust_boundary.py::TrustBoundaryTests"
+      ]
+    },
+    {
+      "id": "RC5-DLP-MEMORY",
+      "decisions": ["D5", "D6"],
+      "implementation": [
+        "docs/confidentiality-aware-ai-work-v1.md",
+        "governance/rc4-traceability.json",
+        "hooks/data_security_hook.py",
+        "skills/company-data-security/",
+        "skills/dev-flow/scripts/engineering_context.py",
+        "skills/manage-engineering-profiles/"
+      ],
+      "tests": [
+        "evals/test_data_security.py::ApprovalStateTests",
+        "evals/test_data_security.py::HookBlueTests",
+        "evals/test_engineering_context.py::ProfileContractTests"
+      ]
+    },
+    {
+      "id": "RC5-AGENT",
+      "decisions": ["D7"],
+      "implementation": [
+        "evals/agent-dispatch-routing-cases.json",
+        "skills/dev-flow/references/multi-agent-v2-orchestration.md",
+        "skills/dev-flow/scripts/agent_dispatch.py"
+      ],
+      "tests": [
+        "evals/test_agent_dispatch.py::AgentDispatchBlackBoxTests"
+      ]
+    },
+    {
+      "id": "RC5-CI",
+      "decisions": ["D8"],
+      "implementation": [
+        ".github/workflows/ci.yml",
+        "governance/compatibility-surfaces.json",
+        "governance/rc5-traceability.json",
+        "evals/test_rc4_static_coverage.py",
+        "tools/ci_change_scope.py",
+        "tools/static_scan_rc4.py",
+        "tools/validate_rc4_coverage.py",
+        "tools/validate_rc5_coverage.py"
+      ],
+      "tests": [
+        "evals/test_ci_change_scope.py::CompatibilityChangeScopeTests",
+        "evals/test_rc5_static_coverage.py::RC5StaticCoverageTests"
+      ]
+    }
+  ]
+}

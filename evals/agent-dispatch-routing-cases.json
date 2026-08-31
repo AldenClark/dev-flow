@@ -78,6 +78,12 @@
       "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--risk", "security", "--profile", "P0"],
       "exit": 2,
       "expected": {"status": "invalid"}
+    },
+    {
+      "id": "DISPATCH-SEQUENTIAL-ROOT",
+      "args": ["--role", "dev-flow-worker", "--workload", "broad-multi-step", "--task-structure", "sequential", "--parallel-units", "4", "--tool-density", "high"],
+      "exit": 0,
+      "expected": {"delegate": false, "selection_source": "root-sequential", "selected_profile": null, "requested_model": null, "requested_reasoning_effort": null}
     }
   ]
 }

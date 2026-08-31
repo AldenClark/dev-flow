@@ -59,11 +59,14 @@ jobs:
       - name: Run structural contracts
         run: python evals/run_contract_checks.py
 
-      - name: Validate RC.4 bidirectional static coverage
-        run: python tools/validate_rc4_coverage.py --root . --check-event
+      - name: Validate canonical product state
+        run: python tools/validate_product_state.py --root .
 
-      - name: Run RC.4 static drift and safety scan
-        run: python tools/static_scan_rc4.py --root . --check-event
+      - name: Validate RC.5 bidirectional static coverage
+        run: python tools/validate_rc5_coverage.py --root . --check-event
+
+      - name: Preserve historical RC.4 static invariants
+        run: python tools/static_scan_rc4.py --root .
 
       - name: Validate shipped legacy methodology data
         run: python skills/dev-flow/scripts/dev-flow.py validate-methods --root .
@@ -124,23 +127,20 @@ jobs:
         run: >-
           python -W error::ResourceWarning -m unittest
           evals.test_agent_dispatch
+          evals.test_ci_change_scope
+          evals.test_data_security
+          evals.test_engineering_context.ProfileContractTests
+          evals.test_outcome_observation
+          evals.test_product_state
+          evals.test_public_cli
           evals.test_scripts.PreflightTests
           evals.test_scripts.RuntimeInstallerTests
           evals.test_release_artifacts.RuntimeLifecycleSmokeTests
           evals.test_repository_knowledge
           evals.test_resource_coordination
+          evals.test_runtime_doctor
           evals.test_transition_runner.TransitionRunnerTests
           -v
-
-      - name: Characterize macOS 15 Python 3.14 resource subprocess variance
-        if: matrix.os == 'macos-15' && matrix.python == '3.14'
-        run: |
-          for attempt in {1..25}; do
-            echo "resource subprocess diagnostic attempt $attempt/25"
-            python -W error::ResourceWarning -m unittest \
-              evals.test_resource_coordination.ResourceLeaseTests.test_public_cli_acquire_inspect_release_round_trip \
-              -v
-          done
 
       - name: Confirm tests did not modify tracked files
         run: git diff --exit-code
