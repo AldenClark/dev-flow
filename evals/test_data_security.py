@@ -328,6 +328,13 @@ class PolicyTests(unittest.TestCase):
         self.assertIn("TEST_API_KEY=", advice.use_pattern)
         self.assertIn("your-test-command", advice.use_pattern)
 
+    def test_non_macos_storage_advice_uses_platform_neutral_secret_store(self) -> None:
+        for platform_name in ("linux", "win32"):
+            with self.subTest(platform=platform_name):
+                advice = policy.storage_advice("access_token", platform=platform_name)
+                self.assertIn("OS or CI secret store", advice.save_command)
+                self.assertNotIn("security add-generic-password", advice.save_command)
+
     def test_policy_exposes_no_agent_runnable_approval_command(self) -> None:
         self.assertFalse(hasattr(policy, "approve_command"))
 
@@ -361,7 +368,7 @@ class HookBlueTests(unittest.TestCase):
             self.assertEqual((code, stderr), (0, ""))
             first = json.loads(stdout)
             self.assertEqual(first["decision"], "block")
-            self.assertIn("security add-generic-password", first["reason"])
+            self.assertIn(policy.storage_advice("access_token").save_command, first["reason"])
             self.assertIn("prompt was not forwarded", first["reason"])
             self.assert_no_leak(sample, stdout, stderr)
             marker_match = re.search(r"\[\[DEV_FLOW_DLP_CONFIRM:[^\]]+\]\]", first["reason"])
@@ -459,7 +466,7 @@ class HookBlueTests(unittest.TestCase):
             reason = denied["hookSpecificOutput"]["permissionDecisionReason"]
             self.assertEqual(denied["hookSpecificOutput"]["permissionDecision"], "deny")
             self.assertIn("tool was not executed", reason)
-            self.assertIn("security add-generic-password", reason)
+            self.assertIn(policy.storage_advice("access_token").save_command, reason)
             self.assertIn("No local Agent command can approve it", reason)
             self.assert_no_leak(sample, stdout, stderr)
             marker_match = re.search(
