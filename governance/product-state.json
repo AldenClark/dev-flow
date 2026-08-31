@@ -22,11 +22,11 @@
     "rollback_target": "v2.0.0-rc.4"
   },
   "delivery": {
-    "commit": "not-run",
+    "commit": "passed",
     "hosted_ci": "not-run",
     "cross_platform": "not-run",
     "independent_review": "passed",
-    "model_qualification": "not-run",
+    "model_qualification": "failed",
     "tag": "not-run",
     "artifact": "not-run",
     "publication": "not-run",

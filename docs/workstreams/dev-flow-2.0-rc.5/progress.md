@@ -5,7 +5,7 @@
 
 - State: implementation-complete
 - Current slice: S4
-- Terminal condition: root-reconciliation scope repair, full regression, truth projections, and independent final-byte review pass; R4, hosted, artifact, install, tag, push, and publication remain separate qualification/delivery gates.
+- Terminal condition: implementation and independent review are complete; formal release is blocked by failed R4 until the version owner explicitly accepts a bounded waiver or authorizes a materially new candidate design.
 - Updated: 2026-08-31
 
 ## Completed outcomes
@@ -21,11 +21,11 @@
 
 ## Current
 
-Candidates `7472128`, `d5222bd`, and `cd6be41` are rejected for release. The first two exposed and then identified the optional-capability `mcp_tool_call`; the frontmatter repair closed that boundary across all three turns on `cd6be41`. The same run then found a distinct semantic defect: at `DELEGATION-MONOTONIC-NARROWING` turn 2 the root implemented a useful out-of-scope child proposal and changed `outside.py`. The current repair makes root reconciliation reject and defer such proposals unless the exact expansion receives renewed user authority. Candidate `cd6be41` stopped without retry at 3,982,499 known tokens with a closed campaign ledger. The repaired bytes pass 690 tests in 116.092 seconds with one hosted-Windows integration skip, plus focused contracts, product-state, traceability, suite-budget, workstream, and diff checks.
+Candidates `7472128`, `d5222bd`, `cd6be41`, and `46076015c2d75a8f25a304b8c723d0ff635f20ab` are rejected for release. The final candidate passes 690 tests in 116.092 seconds with one hosted-Windows integration skip, focused validators, and P6 independent review with no remaining P0-P2. Its R4 run-006 failed on an iCloud dataless checkpoint after one 96,049-token turn and was conservatively recovered/closed. Local-storage run-007 then timed out on the optional-capability turn after 434,198 known tokens. The single 1,800-second timeout adjustment in run-008 completed that call but recorded the same prohibited `event_type=item.started, item_type=mcp_tool_call` at 747,228 known tokens. The ledger closed and the runner did not retry.
 
 ## Next
 
-Freeze a new exact candidate and run fresh R4 qualification. Only then proceed to hosted Ubuntu/macOS/Windows compatibility, artifact/SBOM/attestation, isolated-profile installation, tag, push, and publication. Primary-profile mutation remains out of scope.
+Stop unchanged-identity R4 retries and make no further prompt, timeout, budget, or evaluator tweaks. Formal release requires an explicit version-owner decision between a bounded R4 waiver and a materially new candidate/version design. Push, hosted CI, artifact/SBOM/attestation, isolated-profile installation, signing/tag, and publication remain blocked pending that decision; primary-profile mutation remains out of scope.
 
 ## Hard conditions
 
@@ -38,12 +38,12 @@ Freeze a new exact candidate and run fresh R4 qualification. Only then proceed t
 | HC5 | Trust, DLP user-event confirmation, memory, and dispatch boundaries pass adversarial tests | implementation | passed | Trust/profile/DLP/dispatch positive and negative controls passed |
 | HC6 | Final local regression and same-context final-diff review pass | implementation | passed | Repaired bytes passed 690 tests in 116.092 seconds with one hosted-Windows integration skip; focused validators and diff checks pass |
 | HC7 | Independent clean-context review | qualification | passed | P6/xhigh final-byte review confirmed user-only renewed authority, exact RC5-TRUST oracle ownership, and no remaining P0-P2 finding |
-| HC8 | Hosted compatibility and live model-semantic qualification | qualification | not-run | Candidate `cd6be41` closed the optional-capability boundary but failed R4 after an out-of-scope root mutation; repaired bytes are not yet qualified |
-| HC9 | Exact commit, artifact, install, tag, push, and publication | qualification | not-run | Authorized on 2026-08-31; pending HC8 and exact candidate evidence |
+| HC8 | Hosted compatibility and live model-semantic qualification | qualification | failed | Candidate `4607601` failed R4 after emitting prohibited `item_type=mcp_tool_call`; no unchanged-identity retry or further auxiliary tweak is allowed |
+| HC9 | Exact commit, artifact, install, tag, push, and publication | qualification | blocked | Candidate commit exists locally; all external delivery actions are blocked by HC8 pending explicit version-owner disposition |
 
 ## Active convergence checkpoint
 
-Two incremental per-call budget adjustments failed without advancing R4. The final budget disposition replaced them with a 2,000,000 single-call hard ceiling and retained the 30,000,000 total ceiling; it exposed a semantic external-tool violation rather than another resource failure. No further budget tuning is allowed for the rejected candidate. Progress now requires the material semantic repair and a new candidate identity.
+The final candidate retained a 2,000,000 single-call token ceiling and 30,000,000 total ceiling. After migrating evidence off iCloud, one bounded timeout adjustment from 900 to 1,800 seconds exposed a semantic external-tool violation rather than another resource failure. No further prompt, timeout, budget, evaluator, or unchanged-semantic retry is allowed. Progress requires an explicit bounded waiver or a materially new candidate/version design.
 
 ## Worktree boundary
 
@@ -56,4 +56,4 @@ Two incremental per-call budget adjustments failed without advancing R4. The fin
 
 - This workstream records local implementation plus independent clean-context review evidence; it is not hosted runtime, installation, or release evidence.
 - Model-semantic observations remain separate from the independent source/diff review and must retain their own assessment provenance.
-- Live Codex Hook loading, real Windows Job Object integration, cross-platform hosted execution, real personal outcome effects, live model qualification, and every delivery action remain `NOT RUN` unless separately exercised.
+- Live Codex Hook loading, real Windows Job Object integration, cross-platform hosted execution, real personal outcome effects, and every external delivery action remain `NOT RUN`; local commit and independent review passed, while live model qualification failed.

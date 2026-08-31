@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Current source identity: `2.0.0-rc.5`. Candidates `d5222bd` and `cd6be41` are rejected: the former emitted a prohibited `mcp_tool_call`, while the latter crossed the delegated mutation envelope by implementing a useful out-of-scope child proposal. Independent clean-context review passed for the user-only root-reconciliation repair; live-model qualification remains `NOT RUN`. Commit, hosted CI, cross-platform compatibility, tag, artifact, installation, and publication remain separate `NOT RUN` gates.
+Current source identity: `2.0.0-rc.5`. Candidate `46076015c2d75a8f25a304b8c723d0ff635f20ab` is rejected for release because R4 again emitted a prohibited `mcp_tool_call` in the optional-capability failure scenario. Independent clean-context review passed for its user-only root-reconciliation repair, but model qualification failed. The candidate is committed locally; push, hosted CI, cross-platform compatibility, tag, artifact, installation, and publication remain `NOT RUN`.
 
 ### Added
 
@@ -34,8 +34,9 @@ Current source identity: `2.0.0-rc.5`. Candidates `d5222bd` and `cd6be41` are re
 ### Verification
 
 - Candidate `cd6be41` preserved 3,982,499 known tokens and failed closed without retry at `DELEGATION-MONOTONIC-NARROWING` turn 2 after changing `outside.py`; its earlier optional-capability scenario completed all three turns using repository-local commands only.
-- Current repaired bytes pass 690 tests in 116.092 seconds with one hosted-Windows integration skip; P6 independent final-byte review found no remaining P0-P2, while live-model qualification remains `NOT RUN`.
-- Commit, hosted CI, cross-platform execution, live model qualification, artifact/attestation, isolated-profile installation, tag, push, publication, deployment, and business outcome improvement remain `NOT RUN`; primary-profile mutation is out of scope.
+- Current repaired bytes pass 690 tests in 116.092 seconds with one hosted-Windows integration skip; P6 independent final-byte review found no remaining P0-P2, while live-model qualification is `FAILED`.
+- Candidate `4607601` preserved a 96,049-token iCloud checkpoint failure, then a 434,198-token optional-capability timeout on local storage; the single timeout adjustment completed that call at 747,228 known tokens but failed closed on `event_type=item.started, item_type=mcp_tool_call`. Every campaign ledger is closed and no retry was performed within a run.
+- Local commit and independent review passed. Hosted CI, cross-platform execution, artifact/attestation, isolated-profile installation, tag, push, publication, deployment, and business outcome improvement remain `NOT RUN`; model qualification is `FAILED` and primary-profile mutation is out of scope.
 
 ## [2.0.0-rc.4] - 2026-08-29
 
