@@ -7,10 +7,10 @@ RC.5 makes Dev Flow a quieter, inspectable personal AI programming assistant: on
 ## Confirmed context
 
 - The version owner defined the new source version as `2.0.0-rc.5` and authorized design plus local implementation on 2026-08-31.
-- After preserving the run-008 R4 failure, the version owner rejected a waiver and authorized the MCP-oracle repair, a fresh bounded R4 campaign with maintainer-selected budget, and formal RC.5 delivery actions on 2026-08-31.
+- After preserving the run-008 R4 failure, the version owner rejected an oracle waiver and authorized the MCP-oracle repair and formal RC.5 delivery actions on 2026-08-31. On 2026-09-01 the owner replaced repeated RC qualification with affected semantic smoke plus lightweight methodology-backed static review; complete R4 is reserved for a stable release.
 - `v2.0.0-rc.4` exists at the current baseline and is the latest published rollback tag; the current RC.5 candidate is committed locally but not yet pushed, tagged, installed, or published.
 - Existing personal-mode DLP changes are user-owned work in progress. RC.5 must preserve their intent while replacing agent-mediated approval with a real `UserPromptSubmit` confirmation event.
-- Commit, push, RC tag, GitHub release publication, isolated-profile installation, and the bounded R4 campaign are authorized only after their preceding gates pass. Primary-profile mutation, deployment, production use, and a new independent-reviewer dispatch are not authorized.
+- Commit, push, RC tag, GitHub release publication, and isolated-profile installation are authorized only after their preceding gates pass. Primary-profile mutation, deployment, production use, a complete R4 campaign, and a new independent-reviewer dispatch are not authorized.
 
 ## Required behavior
 
@@ -33,7 +33,7 @@ RC.5 makes Dev Flow a quieter, inspectable personal AI programming assistant: on
 <!-- requirement: RC5-AGENT -->
 11. Single-agent execution remains the default. Parallel dispatch requires useful decomposability and independence; sequential/tool-dense work does not become multi-agent merely because it is large.
 <!-- requirement: RC5-CI -->
-12. CI removes repeated diagnostic loops, validates the canonical product state and compatibility inventory, and retains focused cross-platform coverage for platform-sensitive code.
+12. CI and release verification remove repeated diagnostic loops, validate the canonical product state and compatibility inventory, and retain focused cross-platform coverage for platform-sensitive code. Intermediate repairs run affected tests and a negative control; a frozen candidate runs the full local suite once. Release review applies at most three relevant starter methods to the final diff without rerunning tests. An RC uses one bounded attempt for directly affected semantic cases when model-facing guidance changed; complete repeated R4 is a stable-release or separately authorized evaluation gate.
 
 ## Evidence and claim boundaries
 

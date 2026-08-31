@@ -62,3 +62,7 @@ For tool confirmation, `PreToolUse` creates a pending request and returns a mark
 ## Compatibility and rollback
 
 RC.5 preserves the supported RC.4 command behaviors but intentionally contracts the public command inventory and compact route shape, and replaces the DLP confirmation flow. `v2.0.0-rc.4` is the rollback target. No delivery action is implied by source implementation.
+
+## Lightweight release verification
+
+RC publication uses the smallest evidence that can falsify the changed behavior: affected tests plus a negative control during repair, one bounded attempt for directly affected semantic cases when model-facing guidance changed, and one full local regression after the candidate is frozen. Before delivery, the existing task route selects at most three ready starter methods from observed final-diff risks; each is realized as a concrete static finding, counterexample, oracle change, or explicit no-finding conclusion. It does not create a method report, rerun tests, or count method names as quality. Complete repeated R4 remains available for a stable release or a separately authorized evaluation study, not as a normal RC gate.

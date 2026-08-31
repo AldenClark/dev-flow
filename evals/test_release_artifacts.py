@@ -212,8 +212,9 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
 
         releasing = (ROOT / "docs" / "releasing.md").read_text(encoding="utf-8")
         self.assertIn("2.0.0-rc.2 activation-hardening release", releasing)
-        self.assertIn("at least three distinct cases per affected category", releasing)
-        self.assertIn("at least three independent first attempts per case", releasing)
+        self.assertIn("one bounded first attempt for each directly affected semantic case", releasing)
+        self.assertIn("Complete repeated R4 is reserved for stable releases", releasing)
+        self.assertIn("at most three ready starter methods", releasing)
         self.assertIn("No 1.x upgrade/rollback compatibility is promised", (
             ROOT / "docs" / "workstreams" / "dev-flow-2.0" / "progress.md"
         ).read_text(encoding="utf-8"))

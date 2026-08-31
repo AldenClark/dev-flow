@@ -72,14 +72,16 @@ python3 skills/dev-flow/scripts/dev-flow.py flow-metrics \
 
 Each observed case binds an `initial_repository_sha256`, a deterministic `initial_git_head_sha256`, and one `repository_sha256` per turn. Fixture Git initialization ignores system/global config and hooks and fixes the branch, identity, and timestamp. The validator rejects missing or out-of-order turns, reused evidence digests, a declared repository mutation not bound to changed bytes, byte changes during a `mutation=none` turn, unmet prerequisites, authority violations, and expected/forbidden mismatches. It does not invoke a model, reconstruct a transcript, infer labels, or emit an effect/aggregate score.
 
-The companion runner is non-spending by default. A release-qualification plan must explicitly select the full catalog and minimum attempt count:
+The companion runner is non-spending by default. For an RC regression smoke, select only the directly affected case and one attempt:
 
 ```bash
 python3 evals/run_transition_trials.py
-python3 evals/run_transition_trials.py --qualification --attempts 3
+python3 evals/run_transition_trials.py --case CASE_ID --attempts 1
 ```
 
-An authorized live run additionally requires `--qualification --attempts 3`, `--execute`, `--acknowledge-model-spend`, explicit `--model` and `--reasoning-effort`, an empty `--output-dir`, per-run ceilings, and one external cumulative campaign ledger. A complete invocation is:
+Complete `--qualification --attempts 3` remains available only for a stable release or a separately authorized evaluation study. It is intentionally not the default RC path.
+
+Any authorized live run requires `--execute`, `--acknowledge-model-spend`, explicit `--model` and `--reasoning-effort`, an empty `--output-dir`, per-run ceilings, and one external campaign ledger. An RC smoke keeps `--case CASE_ID --attempts 1`; the stable/research form additionally uses `--qualification --attempts 3`. A complete stable/research invocation is:
 
 ```bash
 python3 evals/run_transition_trials.py \
@@ -108,7 +110,7 @@ Earlier RC.3 candidates used a two-model evaluation mechanism. It consumed subst
 
 The current catalog contains 26 cases and 56 turns across nine enforced categories. It retains the useful hard-gate repairs learned from earlier trials: exact mutation paths and baselines, bounded repository fixtures, deterministic Git identity, changed-fact capability recovery, exact scanner execution including one trusted shell-wrapper layer, unmet-state consistency, and fork current-state reconciliation. It now separates an actually absent tool surface, an unrelated local MCP that must not be substituted, and one explicitly authorized runner-owned MCP that must be called exactly once. It also includes a cumulative auxiliary-mechanism convergence case: after two repairs without primary-outcome progress, the default is a simpler/manual fallback or an honest blocked/deferred gate, not a third evaluator tweak. Historical RC.3 evidence used the earlier 22-case, 48-turn catalog and is not reinterpreted by this current count.
 
-Qualification output belongs outside the candidate tree so recording a result cannot change the source identity being qualified. The default qualification condition remains a complete three-first-attempt matrix on corrected bytes; earlier partial or focused results do not satisfy it. After two auxiliary repairs without primary progress, further live execution requires an explicit version-owner disposition. A bounded release-specific exception remains `WAIVED`, not `PASSED`, and cannot establish stable-release or population-effectiveness claims.
+Model-run output belongs outside the candidate tree so recording a result cannot change the source identity. An RC smoke proves only the directly affected cases and blocks only the affected RC behavior. Stable-release R4 still requires its complete predeclared design; RC smoke evidence must not be promoted into that broader claim. After two auxiliary repairs without primary progress, simplify, defer, or block instead of tuning the evaluator again.
 
 ## Privacy-safe dogfood aggregates
 
@@ -143,13 +145,13 @@ Add a case when a real activation omission or over-activation is observed. Prefe
 
 1. Deterministic routing executes the public commands, large-task simulations, oracle mutations, and negative controls in normal CI.
 2. Semantic fixtures combine a natural-language request with a small repository shape and assert expected/forbidden activation against a preserved first-attempt observation manifest. Run these when model-facing instructions or triggers change.
-3. High-fidelity isolated pilots use fresh repositories and a temporary plugin home when release/admission confidence depends on actual Codex interpretation. The nested model shell must not inherit the maintainer environment; client authentication remains outside that shell boundary. For a material R4 decision, predeclare at least three distinct cases per affected category and preserve at least three independent first attempts per case; report safety/authority, outcome, variability, repair burden, cost, prerequisites, and evidence limits separately.
+3. High-fidelity isolated pilots use fresh repositories and a temporary plugin home when confidence depends on actual Codex interpretation. An RC runs one bounded first attempt for each directly affected semantic case. A stable-release or separately authorized repeated R4 study must predeclare its sampling, stopping rule, budget, and claim limits. The nested model shell must not inherit the maintainer environment.
 
 Semantic and high-fidelity cases are not effect experiments. They do not compare developer speed, defect rates, token economics, or one model's general quality. A pilot can show that a branch did or did not activate under its exact setup; it cannot establish a population performance claim.
 
 ## Release use
 
-R1 always runs deterministic activation coverage. Before publishing or admitting a material R4 model-semantic change, run a separately authorized and budgeted evaluation across every affected category after deterministic gates pass: at least three distinct cases per category and three independent first attempts per case. Predeclare expected/forbidden activation, keep safety/authority as hard gates, and do not collapse results into one score. One focused diagnostic attempt may resolve a local uncertainty, but it is not release/admission evidence.
+An RC always runs deterministic activation coverage and, when model-facing guidance changed, one bounded first attempt for every directly affected semantic case. This is enough for the RC's narrow regression claim. Complete repeated R4 is reserved for stable publication or a separately authorized evaluation study; it keeps safety/authority as hard gates and never collapses results into one score.
 
 A result may block publication only when a required branch is missing, a forbidden branch activates, authority is exceeded, or the fixture/prerequisite is invalid. Repository tests, platform checks, security controls, artifact provenance, installation, and publication authority remain separate evidence.
 

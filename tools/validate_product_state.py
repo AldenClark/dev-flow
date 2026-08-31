@@ -15,7 +15,7 @@ from typing import Any
 
 STATE_PATH = Path("governance/product-state.json")
 ALLOWED_PHASES = {"source-candidate", "released", "stable"}
-ALLOWED_DELIVERY = {"not-run", "passed", "failed", "blocked", "waived"}
+ALLOWED_DELIVERY = {"not-run", "not-applicable", "passed", "failed", "blocked", "waived"}
 VERSION_RE = re.compile(r"^\d+\.\d+\.\d+(?:-rc\.\d+)?$")
 SCHEMA_KEYS = {"schema_version", "source", "published", "compatibility", "delivery"}
 SOURCE_KEYS = {"version", "phase", "manifest", "workstream"}
@@ -219,17 +219,36 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
                 "commit",
                 "hosted_ci",
                 "cross_platform",
-                "independent_review",
                 "tag",
                 "artifact",
                 "publication",
                 "isolated_install",
             )
+            if source_phase == "stable":
+                required_delivery = (*required_delivery, "independent_review")
             incomplete = [key for key in required_delivery if delivery.get(key) != "passed"]
             if incomplete:
                 errors.append(f"released source is missing passed delivery actions: {incomplete}")
-            if delivery.get("model_qualification") not in {"passed", "waived"}:
-                errors.append("released source requires passed or waived model_qualification")
+            if source_phase == "released" and delivery.get("model_qualification") not in {
+                "passed",
+                "waived",
+                "not-applicable",
+            }:
+                errors.append(
+                    "released RC requires passed, waived, or not-applicable model_qualification"
+                )
+            if source_phase == "released" and delivery.get("independent_review") in {
+                "failed",
+                "blocked",
+            }:
+                errors.append(
+                    "released RC cannot ignore a failed or blocked independent_review"
+                )
+            if source_phase == "stable" and delivery.get("model_qualification") not in {
+                "passed",
+                "waived",
+            }:
+                errors.append("stable source requires passed or waived model_qualification")
 
     manifest_relative = source.get("manifest") if source_ok else None
     manifest_path = _repository_path(root, manifest_relative, "source.manifest", errors)

@@ -132,6 +132,25 @@ class FlowTransitionTests(unittest.TestCase):
             "developer_rank",
         ):
             self.assertNotIn(forbidden, serialized.lower())
+        terminal = next(
+            case
+            for case in catalog["cases"]
+            if case["id"] == "CONTINUATION-TERMINAL-WITHOUT-DELIVERY"
+        )
+        self.assertEqual(
+            terminal["turns"][1]["expected"],
+            [
+                "terminal-condition-met",
+                "delivery-not-authorized",
+                "final-state-evidence",
+                "final-check-evidence",
+                "final-limit-evidence",
+            ],
+        )
+        self.assertEqual(
+            terminal["turns"][1]["prompt"],
+            "The admitted implementation is complete. Finish without committing or publishing.",
+        )
         capability_case = next(
             case
             for case in catalog["cases"]

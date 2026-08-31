@@ -46,5 +46,5 @@
 ## D8: Delivery remains separately authorized
 
 - Status: accepted
-- Decision: stop after local implementation and verification; commit, tag, push, artifact, publication, installation, and live model spend remain `NOT RUN`.
-- Consequence: RC.5 source can be implementation-complete without being release-qualified.
+- Decision: delivery remains separately authorized. Intermediate repairs run affected checks only; the frozen candidate runs one full local regression and one final-diff static review using at most three relevant starter methods. Model-facing RC changes use one bounded attempt for directly affected semantic cases. Complete repeated R4 is reserved for a stable release or a separately authorized evaluation study.
+- Consequence: RC.5 source can be implementation-complete without being release-qualified, and ordinary RC delivery no longer turns qualification tooling into a defect-discovery loop.

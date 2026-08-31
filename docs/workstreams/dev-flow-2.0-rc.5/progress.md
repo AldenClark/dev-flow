@@ -5,8 +5,8 @@
 
 - State: active
 - Current slice: S5
-- Terminal condition: the repaired exact candidate passes deterministic gates and fresh R4 without waiver, then completes authorized exact-SHA hosted evidence, artifact, isolated install, tag, push, and RC.5 publication.
-- Updated: 2026-08-31
+- Terminal condition: the repaired candidate passes affected checks, one directly affected semantic smoke, a lightweight methodology-backed static review, and one final full local regression, then completes authorized exact-SHA hosted evidence, artifact, isolated install, tag, push, and RC.5 publication.
+- Updated: 2026-09-01
 
 ## Completed outcomes
 
@@ -25,11 +25,13 @@ Candidates `7472128`, `d5222bd`, `cd6be41`, and `46076015c2d75a8f25a304b8c723d0f
 
 Candidate `addffab47b8d3408f9ffcc559d0e16abecdda552` remains rejected. Fresh run-009 preserved 56/56 mechanical turns in attempts 1 and 2 and reached 34/56 in attempt 3 before same-context assessment found a non-waivable semantic failure in attempt 2: the absent-optional-capability case preserved scanner absence but asked for a redundant repository task instead of performing the directed safe checks in that turn. The run was stopped without retry at 12,698,968 known campaign tokens; its closed ledger, two complete attempts, partial third attempt, and first failure remain external evidence.
 
-The active repair keeps the absent-capability gate unchanged while making the user task realistic and self-contained. Product guidance now requires already-directed safe repository checks to execute in the same turn instead of requesting the task again. The catalog still separately tests absent, unrelated-local, and explicitly authorized local MCP cases; no expected label, forbidden label, scoring rule, tool authority, or fallback equivalence was weakened. Final implementation bytes pass all 698 local tests with one hosted-Windows integration skip, the 39 structural contracts, RC.5 traceability, historical static scan, methods, knowledge, plugin, maintainer, data-security, compilation, workstream, and diff checks. A new exact candidate and fresh model evidence are required.
+Candidate `7bee4ee4675b35bfeae5df543f75b51054019a23` remains rejected. Its focused absent-capability run-010 matched all nine turns across three attempts at 771,341 tokens. Full run-011 then preserved 49 completed turns before same-context parallel assessment found a non-waivable miss in `CONTINUATION-TERMINAL-WITHOUT-DELIVERY` turn 2: the response met the terminal and no-delivery conditions but supplied only a bare completion acknowledgement, with no final file/diff/check evidence. The run was stopped without retry at 4,699,312 known tokens and its external ledger was closed.
+
+The active second repair keeps the terminal fixture prompt implicit while making terminal reporting explicit in the managed-continuation contract. Its expected oracle is refined into final-state, final-check, and final-limit evidence; forbidden delivery labels remain unchanged. The version owner stopped the repeated full-R4 loop and approved a lightweight RC path: affected checks during repair, one directly affected semantic attempt, at most three concrete starter-method static checks on the final diff, and one final full local regression. Complete repeated R4 is reserved for a stable release or separately authorized evaluation study.
 
 ## Next
 
-Freeze a new exact candidate, run a three-attempt focused live-model smoke on the repaired absent-capability case, and then run one fresh complete three-attempt R4 campaign under the new semantic/execution identity. If it passes, continue the authorized exact-SHA push, hosted compatibility, release-candidate artifact/SBOM/attestation, isolated-profile installation, tag, and publication sequence. Do not mutate the primary Codex profile.
+Finish the current terminal-evidence repair, run its focused deterministic checks and negative control, then preserve one bounded first attempt for the directly affected terminal case. Apply the lightweight final-diff method review, run the full local suite once on the frozen candidate, and continue the authorized exact-SHA hosted, artifact/SBOM/attestation, isolated-profile installation, tag, and publication sequence. Do not start complete R4 or mutate the primary Codex profile.
 
 ## Hard conditions
 
@@ -40,14 +42,14 @@ Freeze a new exact candidate, run a three-attempt focused live-model smoke on th
 | HC3 | Supported CLI, compact routing, and context budgets pass compatibility and negative controls | implementation | passed | Public CLI, route, incremental basis, and context-budget tests passed |
 | HC4 | Doctor and outcome observation pass bounded privacy and claim-limit checks | implementation | passed | Read-only doctor and bounded concurrent private-store tests passed |
 | HC5 | Trust, DLP user-event confirmation, memory, and dispatch boundaries pass adversarial tests | implementation | passed | Trust/profile/DLP/dispatch positive and negative controls passed |
-| HC6 | Final local regression and same-context final-diff review pass | implementation | passed | Final local suite passes 698 tests with one hosted-Windows skip; validators and same-context review pass with `common-mode-risk` |
-| HC7 | Independent clean-context review | qualification | not-run | Earlier P6 review is stale for S5; no renewed independent-review dispatch authority exists |
-| HC8 | Hosted compatibility and live model-semantic qualification | qualification | not-run | Candidate `4607601` remains a historical failure; the materially changed MCP-aware candidate requires fresh exact-identity R4 and hosted evidence |
-| HC9 | Exact commit, artifact, install, tag, push, and publication | qualification | not-run | Local candidate commit passes; external actions remain gated on fresh preceding evidence and exact identity |
+| HC6 | Final local regression and same-context final-diff review pass | implementation | not-run | `7bee4ee` evidence is stale after the second semantic-contract repair; fresh final-byte gates and review are required |
+| HC7 | Independent clean-context review | qualification | not-run | Not required for this RC; stable release still requires independent review, and no renewed reviewer dispatch authority exists |
+| HC8 | Hosted compatibility and affected semantic smoke | qualification | not-run | Full repeated R4 is not applicable to this RC; the repaired terminal case requires one bounded attempt and hosted compatibility remains fresh exact-SHA evidence |
+| HC9 | Exact commit, artifact, install, tag, push, and publication | qualification | not-run | `7bee4ee` is rejected; no new exact candidate is frozen, and external actions remain gated on fresh preceding evidence |
 
 ## Active convergence checkpoint
 
-The prior candidate retained a 2,000,000 single-call token ceiling and 30,000,000 total ceiling. After migrating evidence off iCloud, one bounded timeout adjustment from 900 to 1,800 seconds exposed an under-specified MCP event rather than proving a completed external call. The owner chose the materially new design path, not a waiver. Candidate `addffab4` then added environment admission, provenance-aware lifecycle evidence, three orthogonal MCP fixtures, and explicit model guidance, but run-009 exposed one same-turn continuation miss in a meta-framed absent-capability prompt. The repair changes the prompt into an explicit current repository task and strengthens the same-turn product contract; no post-result oracle weakening, unchanged-identity retry, or waiver is allowed.
+The prior giant qualification loop is closed. Across run-001 through run-011 it mixed defect discovery with release proof, delayed semantic assessment until after expensive execution, and repeatedly invalidated broad evidence after narrow repairs. Those runs remain historical diagnostics and are not retried or combined into a pass. RC.5 now uses the simpler owner-approved path above; a failure in the affected smoke returns only to the affected repair and does not reopen the complete catalog.
 
 ## Worktree boundary
 

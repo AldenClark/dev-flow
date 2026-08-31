@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Current source identity: `2.0.0-rc.5`. Candidate `46076015c2d75a8f25a304b8c723d0ff635f20ab` remains rejected after run-008 emitted an under-specified `mcp_tool_call` event in the optional-capability scenario. The preserved event did not identify the effective MCP inventory, server/tool, final status, or whether any external call occurred. The current source is a materially changed MCP-aware local candidate commit; fresh independent review, R4, hosted CI, cross-platform compatibility, tag, artifact, installation, and publication are `NOT RUN` for these bytes.
+Current source identity: `2.0.0-rc.5`. Earlier candidates and their R4 failures remain preserved historical diagnostics. The current source contains the MCP-aware and terminal-evidence repairs. A directly affected semantic smoke, lightweight final-diff method review, one final local regression, hosted CI, cross-platform compatibility, tag, artifact, installation, and publication are `NOT RUN` for these bytes. Complete repeated R4 is reserved for a stable release or a separately authorized evaluation study.
 
 ### Added
 
@@ -17,6 +17,8 @@ Current source identity: `2.0.0-rc.5`. Candidate `46076015c2d75a8f25a304b8c723d0
 - Added a deterministic network-free runner-owned MCP fixture plus exact per-case MCP inventory admission; user/profile MCP configuration cannot silently enter an isolated R4 case.
 
 ### Changed
+
+- Simplified RC delivery to affected checks during repair, at most three concrete starter-method static checks on the final diff, one full local regression on the frozen candidate, and one bounded attempt for directly affected semantic cases. Complete repeated R4 is no longer a normal RC gate.
 
 - Contracted the public CLI to 17 supported 2.0 commands while retaining packet-era code only behind the unsupported internal module boundary.
 - Reduced compact route output to decisions and stable identifiers plus a digest; digest-only prior routes now use conservative recalibration without invented field deltas.
@@ -39,7 +41,7 @@ Current source identity: `2.0.0-rc.5`. Candidate `46076015c2d75a8f25a304b8c723d0
 - Candidate `cd6be41` preserved 3,982,499 known tokens and failed closed without retry at `DELEGATION-MONOTONIC-NARROWING` turn 2 after changing `outside.py`; its earlier optional-capability scenario completed all three turns using repository-local commands only.
 - The earlier repaired bytes passed 690 tests in 116.092 seconds with one hosted-Windows integration skip and P6 independent review, but those results are stale for the current MCP-aware changes.
 - Candidate `4607601` preserved a 96,049-token iCloud checkpoint failure, then a 434,198-token optional-capability timeout on local storage; the single timeout adjustment completed that call at 747,228 known tokens but failed closed on `event_type=item.started, item_type=mcp_tool_call`. Every campaign ledger is closed and no retry was performed within a run.
-- The MCP-aware local candidate commit passes 698 local tests with one hosted-Windows integration skip, RC.5 traceability, static, knowledge, plugin, data-security, compilation, compatibility-scope checks, and same-context final-diff review with explicit `common-mode-risk`. Independent review, live R4, hosted CI, cross-platform execution, artifact/attestation, isolated-profile installation, tag, push, publication, deployment, and business outcome improvement remain `NOT RUN`; primary-profile mutation remains out of scope.
+- The earlier MCP-aware candidate passed 698 local tests with one hosted-Windows integration skip, but that evidence is stale after the terminal-evidence and release-process changes. Affected checks, one terminal-case smoke, lightweight final-diff method review, one final local regression, hosted CI, cross-platform execution, artifact/attestation, isolated-profile installation, tag, push, and publication remain `NOT RUN`; primary-profile mutation remains out of scope.
 
 ## [2.0.0-rc.4] - 2026-08-29
 

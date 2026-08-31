@@ -146,16 +146,25 @@
       "decisions": ["D8"],
       "implementation": [
         ".github/workflows/ci.yml",
+        "CHANGELOG.md",
+        "README.md",
+        "docs/evaluation-suite.md",
+        "docs/releasing.md",
+        "docs/workstreams/dev-flow-2.0-rc.5/",
         "governance/compatibility-surfaces.json",
         "governance/rc5-traceability.json",
         "evals/test_rc4_static_coverage.py",
+        "skills/delivery-readiness/SKILL.md",
         "tools/ci_change_scope.py",
+        "tools/validate_product_state.py",
         "tools/static_scan_rc4.py",
         "tools/validate_rc4_coverage.py",
         "tools/validate_rc5_coverage.py"
       ],
       "tests": [
         "evals/test_ci_change_scope.py::CompatibilityChangeScopeTests",
+        "evals/test_product_state.py::ProductStateTests",
+        "evals/test_release_artifacts.py::ReleaseArtifactTests",
         "evals/test_rc5_static_coverage.py::RC5StaticCoverageTests"
       ]
     }

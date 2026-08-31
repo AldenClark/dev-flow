@@ -146,14 +146,14 @@ class ProductStateTests(unittest.TestCase):
                 "commit",
                 "hosted_ci",
                 "cross_platform",
-                "independent_review",
-                "model_qualification",
                 "tag",
                 "artifact",
                 "publication",
                 "isolated_install",
             ):
                 state["delivery"][key] = "passed"
+            state["delivery"]["independent_review"] = "not-applicable"
+            state["delivery"]["model_qualification"] = "not-applicable"
             write_fixture(target, state)
             result = VALIDATOR.validate(target, check_git=False)
         self.assertEqual(result["status"], "valid", result["errors"])
@@ -171,7 +171,7 @@ class ProductStateTests(unittest.TestCase):
             "rollback_tag": "not_observed",
         })
 
-    def test_released_rc_cannot_leave_qualification_not_run(self) -> None:
+    def test_released_rc_requires_an_explicit_qualification_disposition(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory)
             state = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
@@ -185,7 +185,45 @@ class ProductStateTests(unittest.TestCase):
             any("released source is missing passed delivery actions" in error for error in result["errors"]),
             result["errors"],
         )
-        self.assertIn("released source requires passed or waived model_qualification", result["errors"])
+        self.assertIn(
+            "released RC requires passed, waived, or not-applicable model_qualification",
+            result["errors"],
+        )
+
+    def test_stable_release_cannot_skip_independent_review_or_model_qualification(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            state = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
+            state["source"]["version"] = "2.0.0"
+            state["source"]["phase"] = "stable"
+            state["published"]["stable"] = {"version": "2.0.0", "tag": "v2.0.0"}
+            for key in ("commit", "hosted_ci", "cross_platform", "tag", "artifact", "publication", "isolated_install"):
+                state["delivery"][key] = "passed"
+            state["delivery"]["independent_review"] = "not-applicable"
+            state["delivery"]["model_qualification"] = "not-applicable"
+            write_fixture(target, state)
+            result = VALIDATOR.validate(target, check_git=False)
+        self.assertTrue(
+            any("independent_review" in error for error in result["errors"]), result["errors"]
+        )
+        self.assertIn("stable source requires passed or waived model_qualification", result["errors"])
+
+    def test_released_rc_cannot_ignore_a_failed_optional_independent_review(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            state = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
+            state["source"]["phase"] = "released"
+            state["published"]["latest_rc"] = {"version": "2.0.0-rc.5", "tag": "v2.0.0-rc.5"}
+            for key in ("commit", "hosted_ci", "cross_platform", "tag", "artifact", "publication", "isolated_install"):
+                state["delivery"][key] = "passed"
+            state["delivery"]["independent_review"] = "failed"
+            state["delivery"]["model_qualification"] = "not-applicable"
+            write_fixture(target, state)
+            result = VALIDATOR.validate(target, check_git=False)
+        self.assertIn(
+            "released RC cannot ignore a failed or blocked independent_review",
+            result["errors"],
+        )
 
     def test_released_rc_rejects_self_rollback_and_stale_latest(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

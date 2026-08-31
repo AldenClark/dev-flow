@@ -19,6 +19,7 @@ LEGACY_FLOW = ROOT / "skills" / "dev-flow" / "scripts" / "dev_flow.py"
 DEV_FLOW_SKILL = ROOT / "skills" / "dev-flow" / "SKILL.md"
 QUALITY_CALIBRATION = ROOT / "skills" / "dev-flow" / "references" / "quality-calibration.md"
 VERIFICATION_SKILL = ROOT / "skills" / "verification" / "SKILL.md"
+DELIVERY_READINESS_SKILL = ROOT / "skills" / "delivery-readiness" / "SKILL.md"
 
 
 def run_flow(*args: object, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
@@ -64,6 +65,7 @@ class RuntimeGuidanceContractTests(unittest.TestCase):
             "user-owned changes",
             "stale evidence",
             "recommended next slice",
+            "a bare completion acknowledgement is not final evidence",
         ):
             self.assertIn(phrase, continuation)
 
@@ -75,6 +77,13 @@ class RuntimeGuidanceContractTests(unittest.TestCase):
         self.assertIn("invalidates that PASS", evidence)
         self.assertIn("unrelated documentation-only edit", evidence)
         self.assertIn("fallback proves only its own narrower claim", guidance)
+
+    def test_release_review_uses_bounded_realized_methods_without_replaying_tests(self) -> None:
+        guidance = DELIVERY_READINESS_SKILL.read_text(encoding="utf-8")
+        self.assertIn("at most three ready starter methods", guidance)
+        self.assertIn("concrete finding, counterexample, changed oracle", guidance)
+        self.assertIn("does not rerun tests", guidance)
+        self.assertIn("Complete repeated model qualification is reserved for a stable release", guidance)
 
 
 class RoutingTests(unittest.TestCase):

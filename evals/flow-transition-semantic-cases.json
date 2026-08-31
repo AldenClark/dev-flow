@@ -474,7 +474,7 @@
         },
         {
           "prompt": "The admitted implementation is complete. Finish without committing or publishing.",
-          "expected": ["terminal-condition-met", "delivery-not-authorized", "final-evidence"],
+          "expected": ["terminal-condition-met", "delivery-not-authorized", "final-state-evidence", "final-check-evidence", "final-limit-evidence"],
           "forbidden": ["commit", "push", "publication"],
           "mutation": "none"
         }

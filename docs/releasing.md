@@ -4,9 +4,9 @@ This runbook selects evidence from the changed surface. It separates implementat
 
 ## 2.0.0-rc.5 personal-assistant hardening candidate
 
-The canonical product state identifies the worktree candidate as `2.0.0-rc.5`. Source implementation contracts the public CLI and compact route, adds product-state validation, read-only diagnosis, opt-in privacy-safe outcome observation, an always-on untrusted-content boundary, and real user-event DLP confirmation. Publication remains R4 because route and Skill behavior are model-facing.
+The canonical product state identifies the worktree candidate as `2.0.0-rc.5`. Source implementation contracts the public CLI and compact route, adds product-state validation, read-only diagnosis, opt-in privacy-safe outcome observation, an always-on untrusted-content boundary, and real user-event DLP confirmation. RC publication uses affected semantic smoke; complete R4 is a stable-release or separately authorized evaluation gate.
 
-RC.5 source completion requires deterministic privacy, compatibility, negative-control, product-state, and static-context gates on final relevant bytes. Publication additionally requires clean-context review, the applicable hosted matrix and R4 evidence or explicit bounded owner waiver, exact-commit artifact/install evidence, and explicit delivery authority. A working-tree implementation or local PASS does not satisfy those gates. `v2.0.0-rc.4` is the latest public immutable RC tag. `v2.0.0-rc.4` is the rollback target for `2.0.0-rc.5`; neither statement asserts a GitHub Release object, Marketplace activation, or a currently installed profile.
+RC.5 source completion requires affected privacy, compatibility, negative-control, product-state, and static-context checks, followed by one full local regression on the frozen candidate. Publication additionally requires one lightweight methodology-backed static review of the final diff, one bounded first attempt for each directly affected semantic case, the applicable hosted matrix, exact-commit artifact/install evidence, and explicit delivery authority. Complete repeated R4 is reserved for stable releases or separately authorized evaluation studies. A working-tree implementation or local PASS does not satisfy delivery gates. `v2.0.0-rc.4` is the latest public immutable RC tag. `v2.0.0-rc.4` is the rollback target for `2.0.0-rc.5`; neither statement asserts a GitHub Release object, Marketplace activation, or a currently installed profile.
 
 ## 2.0.0-rc.4 convergence-and-operations release (historical)
 
@@ -46,7 +46,7 @@ Select the highest applicable tier. Higher tiers add only evidence relevant to t
 | R1 standard | documentation, Skill wording, routing fixtures, ordinary deterministic logic | focused local checks, one full semantic CI job, affected focused compatibility cells |
 | R2 runtime | Hook, installer, process, path, shell, host integration, cross-platform behavior | R1 plus full compatibility lane and isolated install/uninstall smoke; upgrade/rollback only when compatibility changed |
 | R3 artifact/security | builder, archive format, workflow permissions, SBOM, attestation, confidentiality/security control | R1/R2 as applicable plus deterministic artifact negative tests, candidate SBOM/checksum/provenance/attestation, security-specific checks |
-| R4 model-semantic | routing or instructions whose material branch activation depends on Codex interpretation | R1 plus predeclared affected categories, at least three distinct cases per category, and at least three independent first attempts per case; separate safety/authority hard gates and no aggregate score |
+| R4 model-semantic | stable-release or separately authorized study whose admission claim depends on repeated Codex interpretation | R1 plus a predeclared complete sampling design, separate safety/authority hard gates, explicit budget, and no aggregate score |
 
 Examples:
 
@@ -67,16 +67,15 @@ The manual release-candidate workflow is a third lane. It fetches and binds the 
 
 ## Candidate sequence
 
-1. Classify the change as R1-R4 and record the rationale in the PR/release decision, not a generated packet.
-2. Freeze a clean full commit SHA, source version, candidate target, and required evidence cells.
-3. Run focused local checks first. Run broader local checks only when they can change the release decision.
-4. Push only with authority and require the exact SHA's semantic job plus applicable compatibility cells.
-5. For R2, exercise fresh install/uninstall in an isolated temporary Codex home. Add prior-version upgrade, rollback, re-upgrade, and modified-file protection only when installer/runtime compatibility changed.
-6. For R4 release/admission, predeclare affected branch families and expected/forbidden activation, with at least three distinct cases per category and three independent first attempts per case. Reserve every live run from one cumulative campaign ledger; reuse evidence when both candidate identities are unchanged. Preserve first attempts and report safety/authority, outcome, variability, repair burden, cost, and unmet prerequisites separately; do not turn the pilot into an effect comparison.
-7. Merge only with merge authority. The RC workflow definition must already exist on the default branch.
-8. Dispatch the RC workflow for the exact merged SHA and matching source version.
-9. Download and verify archive, manifest, SBOM, checksums, and both attestations. Reuse those exact bytes for any later release.
-10. Create/push a signed RC or stable tag and create a draft/published release only when those exact actions are authorized.
+1. Classify the changed behavior and choose the smallest affected tests plus one practical negative control.
+2. Run those checks while repairing. See all failures in the affected batch before editing again; rerun only failed or newly affected checks.
+3. When the candidate is ready, freeze a clean full commit SHA and run the full local suite once.
+4. Review the final diff once through the integrated task route. Apply at most three ready starter methods selected from observed risks; each must yield a concrete finding, counterexample, changed oracle, or explicit no-finding conclusion. Do not count method names or rerun tests as method evidence.
+5. If model-facing guidance changed in an RC, preserve one bounded first attempt for each directly affected semantic case. A mismatch returns to affected repair; it does not start a complete catalog. Complete repeated R4 is reserved for stable releases or a separately authorized evaluation study.
+6. Push only with authority and require the exact SHA's semantic job plus applicable compatibility cells.
+7. For installer/runtime changes, exercise fresh install/uninstall in an isolated temporary Codex home. Add prior-version upgrade or rollback checks only when that compatibility changed.
+8. Dispatch the RC workflow for the exact merged SHA and matching source version, then download and verify archive, manifest, SBOM, checksums, and attestations.
+9. Create/push the tag and publish only when those exact actions are authorized, then verify the public release and isolated installation.
 
 Never rewrite or reuse an RC tag. Any changed byte requires a new commit and candidate identity.
 
@@ -126,15 +125,15 @@ The SBOM must be SPDX 2.3, name `dev-flow`, contain files, identify the root pac
 
 ## Model-semantic activation evidence
 
-Use [evaluation-suite.md](evaluation-suite.md). Deterministic Flow Activation Coverage runs first. For a material R4 release/admission decision, predeclare each affected category, use at least three distinct natural-language/repository cases per category, and preserve at least three independent first attempts per case. Report safety/authority, expected versus observed activation, variability, missing or unexpected branches, prerequisites, repair burden, cost, and evidence limits separately. Do not emit an effect, productivity, or composite quality score.
+Use [evaluation-suite.md](evaluation-suite.md). Deterministic Flow Activation Coverage runs first. An RC whose model-facing guidance changed runs a one-attempt smoke over only the directly affected semantic cases. This is a bounded regression check, not a population or statistical claim. Complete repeated R4 is reserved for stable releases or separately authorized evaluation studies and retains its predeclared sampling, budget, safety, and no-score rules.
 
-The shipped RC.5 qualification catalog encodes 26 cases, 56 turns per attempt, the affected categories, and minimum coverage directly. It admits the exact isolated MCP inventory before model execution and separates absent, unrelated-local, and explicitly authorized local-tool behavior. Confirm the non-spending qualification plan before authorizing live execution:
+The shipped RC.5 catalog encodes 26 cases and 56 turns for optional stable-release qualification and targeted diagnostics. It admits the exact isolated MCP inventory before model execution and separates absent, unrelated-local, and explicitly authorized local-tool behavior. A non-spending affected-case smoke plan names only the cases changed by the candidate:
 
 ```bash
-python3 evals/run_transition_trials.py --qualification --attempts 3
+python3 evals/run_transition_trials.py --case CASE_ID --attempts 1
 ```
 
-Live execution adds the separately approved model, reasoning effort, output directory, per-run/per-call token ceilings, per-call timeout, model-spend acknowledgement, and external campaign ledger/id/ceiling. The ledger reserves allocations cumulatively, rejects unchanged semantic-runtime plus qualification-execution identities, and retains allocations after failure or interruption. Partial case runs and fewer than three attempts are diagnostic only and are rejected in qualification mode. The runner writes one bounded evidence file per attempt and ends at `awaiting-manual-assessment`. A maintainer then writes one separate `flow.transition.observations.v1` manifest per attempt and validates it with `flow-metrics --lane transition`; execution evidence, assessment, and scoring are distinct steps. Same-context assessment must report `common-mode-risk` and must not be described as independent evaluation.
+Live execution adds the separately approved model, reasoning effort, output directory, per-run/per-call token ceilings, per-call timeout, model-spend acknowledgement, and campaign budget. The runner writes one bounded evidence file and ends at `awaiting-manual-assessment`. A maintainer writes a separate `flow.transition.observations.v1` manifest and validates it with `flow-metrics --lane transition`; execution and assessment remain separate. Same-context assessment reports `common-mode-risk`. Do not add `--qualification` for an RC smoke. The existing complete qualification mode remains an explicit stable-release/research tool and is not a normal RC publication gate.
 
 Earlier RC.3 candidates preserved three first-attempt failures: scanner shell-wrapper recognition, an undefined platform mutation target, and an undefined fork mutation target. Their diagnostics led to exact command normalization, concrete mutation baselines/paths, bounded fixture validation, expected-unmet consistency, and current-state fork reconciliation. The former two-model evaluation mechanism was removed completely because it added cost, classification defects, and an auxiliary tuning loop. None of its results qualifies the corrected bytes, and no historical failure is rescored.
 
