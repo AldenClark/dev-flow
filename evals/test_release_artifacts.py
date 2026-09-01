@@ -183,8 +183,8 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("`v1.1.2` 是最后一个 1.x 稳定标签", readme)
         self.assertRegex(VERSION, r"^2\.0\.0-rc\.\d+$")
-        source_label = "候选" if SOURCE_PHASE == "source-candidate" else "发布"
-        self.assertIn(f"当前源码{source_label}身份为 `{VERSION}`", readme)
+        source_label = "候选源码" if SOURCE_PHASE == "source-candidate" else "已发布源码"
+        self.assertIn(f"{source_label}身份为 `{VERSION}`", readme)
         self.assertIn(f"`{PUBLISHED_TAG}` 是最近已发布", readme)
         self.assertIn(
             f"codex plugin marketplace add AldenClark/dev-flow --ref {PUBLISHED_TAG}",

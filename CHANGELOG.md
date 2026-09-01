@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Current source identity: `2.0.0-rc.5`. Stable `2.0.0` remains intentionally deferred.
+Latest published source identity: `2.0.0-rc.5`. Current workspace state: `development` from `v2.0.0-rc.5`. Stable `2.0.0` remains intentionally deferred.
 
 ### Changed
 

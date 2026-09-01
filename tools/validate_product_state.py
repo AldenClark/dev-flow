@@ -15,10 +15,12 @@ from typing import Any
 
 STATE_PATH = Path("governance/product-state.json")
 ALLOWED_PHASES = {"source-candidate", "released", "stable"}
+ALLOWED_WORKSPACE_PHASES = {"development"}
 ALLOWED_DELIVERY = {"not-run", "not-applicable", "passed", "failed", "blocked", "waived"}
 VERSION_RE = re.compile(r"^\d+\.\d+\.\d+(?:-rc\.\d+)?$")
-SCHEMA_KEYS = {"schema_version", "source", "published", "compatibility", "delivery"}
+SCHEMA_KEYS = {"schema_version", "source", "workspace", "published", "compatibility", "delivery"}
 SOURCE_KEYS = {"version", "phase", "manifest", "workstream"}
+WORKSPACE_KEYS = {"phase", "base_published", "workstream"}
 PUBLISHED_KEYS = {"latest_rc", "stable"}
 RELEASE_KEYS = {"version", "tag"}
 COMPATIBILITY_KEYS = {"public_cli", "legacy_packet_cli", "rollback_target"}
@@ -135,10 +137,12 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
         errors.append("unsupported product-state schema")
 
     source = state.get("source")
+    workspace = state.get("workspace")
     published = state.get("published")
     compatibility = state.get("compatibility")
     delivery = state.get("delivery")
     source_ok = _exact_keys(source, SOURCE_KEYS, "source", errors)
+    workspace_ok = _exact_keys(workspace, WORKSPACE_KEYS, "workspace", errors)
     published_ok = _exact_keys(published, PUBLISHED_KEYS, "published", errors)
     compatibility_ok = _exact_keys(compatibility, COMPATIBILITY_KEYS, "compatibility", errors)
     delivery_ok = _exact_keys(delivery, DELIVERY_KEYS, "delivery", errors)
@@ -154,6 +158,8 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
 
     source_version = source.get("version") if source_ok else None
     source_phase = source.get("phase") if source_ok else None
+    workspace_phase = workspace.get("phase") if workspace_ok else None
+    workspace_base = workspace.get("base_published") if workspace_ok else None
     for label, version in (
         ("source.version", source_version),
         ("published.latest_rc.version", latest.get("version")),
@@ -166,6 +172,8 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
             errors.append(f"{label}.tag must be v<version>")
     if source_phase not in ALLOWED_PHASES:
         errors.append(f"source.phase must be one of {sorted(ALLOWED_PHASES)}")
+    if workspace_phase not in ALLOWED_WORKSPACE_PHASES:
+        errors.append(f"workspace.phase must be one of {sorted(ALLOWED_WORKSPACE_PHASES)}")
     if isinstance(source_version, str) and source_phase == "source-candidate" and "-rc." not in source_version:
         errors.append("a source-candidate version must be an RC")
     if (
@@ -198,6 +206,8 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
             errors.append("released RC source must equal published.latest_rc.version")
     if source_phase == "stable" and source_version != stable.get("version"):
         errors.append("stable source must equal published.stable.version")
+    if workspace_ok and workspace_base != latest.get("tag"):
+        errors.append("workspace.base_published must equal published.latest_rc.tag")
     if (
         isinstance(source_version, str)
         and rollback_version is not None
@@ -251,16 +261,24 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
             if (workstream / name).is_symlink() or not (workstream / name).is_file():
                 errors.append(f"source workstream is missing {name}")
 
+    workspace_relative = workspace.get("workstream") if workspace_ok else None
+    workspace_workstream = _repository_path(root, workspace_relative, "workspace.workstream", errors)
+    if workspace_workstream is not None:
+        for name in ("requirements.md", "design.md", "implementation.md", "progress.md", "decisions.md"):
+            if (workspace_workstream / name).is_symlink() or not (workspace_workstream / name).is_file():
+                errors.append(f"workspace workstream is missing {name}")
+
     readme = _read_text(root, "README.md", errors)
     releasing = _read_text(root, "docs/releasing.md", errors)
     changelog = _read_text(root, "CHANGELOG.md", errors)
     progress = _read_text(root, f"{workstream_relative}/progress.md", errors) if isinstance(workstream_relative, str) else ""
     latest_tag = latest.get("tag")
     stable_tag = stable.get("tag")
-    source_label = "候选" if source_phase == "source-candidate" else "发布"
+    source_label = "候选源码" if source_phase == "source-candidate" else "已发布源码"
     release_label = "candidate" if source_phase == "source-candidate" else "release"
     projections = {
-        "README source": f"当前源码{source_label}身份为 `{source_version}`",
+        "README source": f"{source_label}身份为 `{source_version}`",
+        "README workspace": f"当前工作区处于 `{workspace_phase}` 状态，基于 `{workspace_base}`",
         "README published": f"`{latest_tag}` 是最近已发布",
         "README install": f"--ref {latest_tag}",
         "README stable": f"`{stable_tag}` 是最后一个 1.x 稳定标签",
@@ -268,7 +286,8 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
         "releasing source": f"## {source_version} personal-assistant hardening {release_label}",
         "releasing published": f"`{latest_tag}` is the latest public immutable RC tag",
         "releasing rollback": f"`{rollback_target}` is the rollback target for `{source_version}`",
-        "changelog source": f"Current source identity: `{source_version}`",
+        "changelog source": f"Latest published source identity: `{source_version}`",
+        "changelog workspace": f"Current workspace state: `{workspace_phase}` from `{workspace_base}`",
         "progress independent review": (
             f"| HC7 | Independent clean-context review | qualification | "
             f"{delivery.get('independent_review') if isinstance(delivery, dict) else None} |"
@@ -312,6 +331,7 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
         )
         if repository.returncode == 0 and repository.stdout.strip() == "true":
             repository_observed = True
+    published_commit: str | None = None
     for observation, label, tag in (
         ("published_tag", "published", latest_tag),
         ("rollback_tag", "rollback", rollback_target),
@@ -328,13 +348,39 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
             env=git_environment,
         )
         observations[observation] = "observed-in-checkout" if completed.returncode == 0 else "missing"
+        if observation == "published_tag" and completed.returncode == 0:
+            published_commit = completed.stdout.strip()
         if completed.returncode != 0:
             errors.append(f"{label} tag is not present in this Git repository: {tag}")
+
+    if repository_observed and published_commit is not None:
+        head = subprocess.run(
+            [*git_prefix, "rev-parse", "HEAD"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+            env=git_environment,
+        )
+        if head.returncode == 0:
+            observations["workspace_head"] = (
+                "matches-published-tag"
+                if head.stdout.strip() == published_commit
+                else "diverged-from-published-tag"
+            )
+            if workspace_phase == "development" and head.stdout.strip() == published_commit:
+                errors.append("development workspace must diverge from its published base tag")
+        else:
+            observations["workspace_head"] = "not_observed"
+    else:
+        observations["workspace_head"] = "not_observed"
 
     return {
         "status": "valid" if not errors else "invalid",
         "source_version": source_version,
         "source_phase": source_phase,
+        "workspace_phase": workspace_phase,
+        "workspace_base": workspace_base,
         "published_version": latest.get("version"),
         "stable_version": stable.get("version"),
         "observations": observations,

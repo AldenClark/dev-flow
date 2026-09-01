@@ -115,6 +115,7 @@ class RuntimeDoctorTests(unittest.TestCase):
         arguments = argparse.Namespace(
             plugin_root=ROOT,
             codex_home=None,
+            codex_cli=None,
             loaded_plugin_root=None,
             outcome_store=None,
             max_cache_files=20_000,
@@ -122,8 +123,10 @@ class RuntimeDoctorTests(unittest.TestCase):
         )
         payload = doctor.diagnose(arguments)
         self.assertEqual(payload["source"]["product_state"]["status"], "valid")
-        self.assertEqual(payload["runtime"]["hook"]["status"], "packaged")
-        self.assertEqual(payload["runtime"]["hook"]["live_activation"], "not_observed")
+        self.assertEqual(payload["runtime"]["cache"]["status"], "not_observed")
+        self.assertEqual(payload["runtime"]["registration"]["status"], "not_observed")
+        self.assertEqual(payload["runtime"]["hook"]["packaging"], "packaged")
+        self.assertEqual(payload["runtime"]["hook"]["activation"], "not_observed")
         self.assertFalse(payload["actions"]["cleanup_performed"])
         self.assertFalse(payload["actions"]["mutation_performed"])
         self.assertFalse(payload["local_state"]["cache"].get("group_names_exposed", False))
@@ -135,6 +138,33 @@ class RuntimeDoctorTests(unittest.TestCase):
         self.assertEqual(absent["status"], "not_observed")
         self.assertTrue(present["matches_source_root"])
         self.assertTrue(present["matches_source_version"])
+
+    def test_cache_versions_do_not_claim_registration(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            codex_home = Path(directory)
+            (codex_home / "plugins" / "cache" / "dev-flow" / "dev-flow" / "2.0.0-rc.5").mkdir(parents=True)
+            payload = doctor._cache_versions(codex_home)
+        self.assertEqual(payload, {"status": "observed", "versions": ["2.0.0-rc.5"]})
+
+    def test_cli_registration_is_explicit_and_count_only(self) -> None:
+        absent = doctor._cli_registration(None)
+        self.assertEqual(absent["status"], "not_observed")
+        completed = mock.Mock(returncode=0, stdout='{"installed":[{"name":"dev-flow"}]}')
+        with mock.patch.object(doctor.subprocess, "run", return_value=completed) as run:
+            present = doctor._cli_registration(Path("codex"))
+        self.assertEqual(present, {
+            "status": "observed",
+            "registered": True,
+            "entries": 1,
+            "content": "registration-count-only",
+        })
+        self.assertEqual(run.call_args.args[0], ["codex", "plugin", "list", "--marketplace", "dev-flow", "--json"])
+
+        absent_completed = mock.Mock(returncode=0, stdout='{"installed":[]}')
+        with mock.patch.object(doctor.subprocess, "run", return_value=absent_completed):
+            unregistered = doctor._cli_registration(Path("codex"))
+        self.assertEqual(unregistered["registered"], False)
+        self.assertEqual(unregistered["entries"], 0)
 
     def test_cache_inventory_exposes_only_ranked_aggregate_groups(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -200,7 +230,7 @@ class RuntimeDoctorTests(unittest.TestCase):
                 encoding="utf-8",
             )
             payload = doctor._hook_observation(root, run_self_test=False)
-        self.assertEqual(payload["status"], "invalid")
+        self.assertEqual(payload["packaging"], "invalid")
 
 
 if __name__ == "__main__":

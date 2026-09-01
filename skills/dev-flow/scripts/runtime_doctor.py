@@ -124,14 +124,14 @@ def _product_state(root: Path) -> dict[str, Any]:
             raise ValueError("validator could not be loaded")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        return module.validate(root, check_git=False)
+        return module.validate(root, check_git=True)
     except Exception as exc:  # bounded diagnostic projection; never expose path/content details
         return {"status": "unavailable", "reason": type(exc).__name__}
 
 
-def _installed_versions(codex_home: Path | None) -> dict[str, Any]:
+def _cache_versions(codex_home: Path | None) -> dict[str, Any]:
     if codex_home is None:
-        return {"status": "not_observed", "reason": "pass --codex-home to inspect installed cache identity"}
+        return {"status": "not_observed", "reason": "pass --codex-home to inspect cached plugin bytes"}
     target = codex_home.expanduser().resolve() / "plugins" / "cache" / "dev-flow" / "dev-flow"
     try:
         if target.is_symlink() or not target.is_dir():
@@ -142,10 +142,43 @@ def _installed_versions(codex_home: Path | None) -> dict[str, Any]:
             if entry.is_dir() and not entry.is_symlink() and len(entry.name) <= 64
         )
         if len(versions) > 64:
-            return {"status": "unavailable", "reason": "installed version inventory exceeds limit"}
+            return {"status": "unavailable", "reason": "cached version inventory exceeds limit"}
         return {"status": "observed", "versions": versions}
     except OSError:
-        return {"status": "unavailable", "reason": "installed cache could not be inspected"}
+        return {"status": "unavailable", "reason": "plugin cache could not be inspected"}
+
+
+def _cli_registration(codex_cli: Path | None) -> dict[str, Any]:
+    if codex_cli is None:
+        return {
+            "status": "not_observed",
+            "reason": "pass --codex-cli to inspect the CLI plugin registry",
+        }
+    try:
+        completed = subprocess.run(
+            [str(codex_cli), "plugin", "list", "--marketplace", "dev-flow", "--json"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=15,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return {"status": "unavailable", "reason": "CLI plugin registry could not be inspected"}
+    if completed.returncode != 0:
+        return {"status": "unavailable", "reason": "CLI plugin registry command failed"}
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError:
+        return {"status": "unavailable", "reason": "CLI plugin registry output was invalid"}
+    installed = payload.get("installed") if isinstance(payload, dict) else None
+    if not isinstance(installed, list):
+        return {"status": "unavailable", "reason": "CLI plugin registry schema was unexpected"}
+    return {
+        "status": "observed",
+        "registered": bool(installed),
+        "entries": len(installed),
+        "content": "registration-count-only",
+    }
 
 
 def _loaded_identity(root: Path, supplied: Path | None) -> dict[str, Any]:
@@ -289,13 +322,13 @@ def _hook_observation(root: Path, *, run_self_test: bool) -> dict[str, Any]:
             and bool(hook_bytes)
         )
         result: dict[str, Any] = {
-            "status": "packaged" if packaged else "invalid",
+            "packaging": "packaged" if packaged else "invalid",
             "hook_sha256": _sha256_bytes(hook_bytes),
             "trust": "manual-review-required",
-            "live_activation": "not_observed",
+            "activation": "not_observed",
         }
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError):
-        return {"status": "unavailable", "live_activation": "not_observed"}
+        return {"packaging": "unavailable", "activation": "not_observed"}
     if not run_self_test:
         result["control_self_test"] = "not-run"
         return result
@@ -360,7 +393,8 @@ def diagnose(args: argparse.Namespace) -> dict[str, Any]:
             "git": _git_observation(root),
         },
         "runtime": {
-            "installed": _installed_versions(args.codex_home),
+            "cache": _cache_versions(args.codex_home),
+            "registration": _cli_registration(getattr(args, "codex_cli", None)),
             "loaded": _loaded_identity(root, args.loaded_plugin_root),
             "hook": _hook_observation(root, run_self_test=not args.skip_control_self_test),
         },
@@ -377,7 +411,8 @@ def diagnose(args: argparse.Namespace) -> dict[str, Any]:
         },
         "actions": {"cleanup_performed": False, "mutation_performed": False},
         "claim_limit": (
-            "read-only bounded observations at check time; no live Hook/account activation, hosted state, "
+            "read-only bounded observations at check time; cache bytes, CLI registration, loaded root, and Hook "
+            "activation remain distinct; no live Hook/account activation, hosted state, "
             "cache safety-to-delete, delivery, or outcome effectiveness is inferred"
         ),
     }
@@ -387,6 +422,7 @@ def add_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser], 
     parser = subparsers.add_parser("doctor", help="Inspect source/runtime/cache/outcome truth without cleanup")
     parser.add_argument("--plugin-root", type=Path, default=default_root)
     parser.add_argument("--codex-home", type=Path)
+    parser.add_argument("--codex-cli", type=Path)
     parser.add_argument("--loaded-plugin-root", type=Path)
     parser.add_argument("--outcome-store", type=Path)
     parser.add_argument("--max-cache-files", type=int, default=DEFAULT_MAX_CACHE_FILES)
@@ -400,7 +436,7 @@ def command(args: argparse.Namespace) -> int:
         payload = diagnose(args)
         print(json.dumps(payload, indent=2, sort_keys=True))
         product_status = payload["source"]["product_state"].get("status")
-        hook_status = payload["runtime"]["hook"].get("status")
+        hook_status = payload["runtime"]["hook"].get("packaging")
         return 0 if product_status == "valid" and hook_status == "packaged" else 2
     except (OSError, ValueError, subprocess.SubprocessError) as exc:
         print(json.dumps({"status": "unavailable", "error": str(exc)}, sort_keys=True))

@@ -6,6 +6,11 @@
     "manifest": ".codex-plugin/plugin.json",
     "workstream": "docs/workstreams/dev-flow-2.0-rc.5"
   },
+  "workspace": {
+    "phase": "development",
+    "base_published": "v2.0.0-rc.5",
+    "workstream": "docs/workstreams/dev-flow-2.0-benchmark-separation"
+  },
   "published": {
     "latest_rc": {
       "version": "2.0.0-rc.5",
