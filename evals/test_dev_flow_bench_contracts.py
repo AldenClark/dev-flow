@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
-"""Tests for multi-turn Flow transition observation coverage."""
+"""Tests for Bench-owned case and observation contracts."""
 
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
-import subprocess
-import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CATALOG = ROOT / "evals" / "flow-transition-semantic-cases.json"
-FLOW = ROOT / "skills" / "dev-flow" / "scripts" / "dev-flow.py"
+CATALOG = ROOT / "benchmarks" / "cases" / "dev-flow-cases.json"
+CONTRACTS_PATH = ROOT / "benchmarks" / "dev_flow_bench_contracts.py"
+SPEC = importlib.util.spec_from_file_location("dev_flow_bench_contracts", CONTRACTS_PATH)
+assert SPEC is not None and SPEC.loader is not None
+CONTRACTS = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(CONTRACTS)
 
 
 def digest(value: str) -> str:
@@ -55,49 +59,40 @@ def matching_observations(catalog: dict[str, object]) -> dict[str, object]:
                 "turns": turns,
             }
         )
-    return {"schema_version": "flow.transition.observations.v1", "cases": cases}
+    return {"schema_version": "dev-flow.benchmark.observations.v1", "cases": cases}
 
 
-class FlowTransitionTests(unittest.TestCase):
+class DevFlowBenchContractTests(unittest.TestCase):
     def run_transition(
         self,
         observations: dict[str, object],
-    ) -> subprocess.CompletedProcess[str]:
+    ) -> SimpleNamespace:
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "observations.json"
             path.write_text(json.dumps(observations), encoding="utf-8")
-            return subprocess.run(
-                [
-                    sys.executable,
-                    str(FLOW),
-                    "flow-metrics",
-                    "--lane",
-                    "transition",
-                    "--observations",
-                    str(path),
-                ],
-                cwd=ROOT,
-                check=False,
-                capture_output=True,
-                text=True,
+            try:
+                result = CONTRACTS.run_benchmark_catalog(CATALOG, path)
+            except (OSError, json.JSONDecodeError, CONTRACTS.BenchContractError) as exc:
+                return SimpleNamespace(
+                    returncode=2,
+                    stdout=json.dumps({"status": "invalid", "errors": [str(exc)]}),
+                    stderr="",
+                )
+            return SimpleNamespace(
+                returncode=0 if result["status"] == "matched" else 1,
+                stdout=json.dumps(result),
+                stderr="",
             )
 
     def test_catalog_covers_material_transitions_and_negative_control(self) -> None:
         catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
-        self.assertEqual(catalog["schema_version"], "flow.transition.catalog.v1")
-        self.assertGreaterEqual(len(catalog["cases"]), 21)
-        qualification = catalog["qualification"]
-        self.assertEqual(qualification["release_tier"], "R4")
-        self.assertEqual(len(qualification["categories"]), 9)
-        self.assertGreaterEqual(qualification["minimum_cases_per_category"], 3)
-        self.assertGreaterEqual(qualification["minimum_first_attempts_per_case"], 3)
-        for category in qualification["categories"]:
-            covered = [case for case in catalog["cases"] if category in case["categories"]]
-            self.assertGreaterEqual(
-                len(covered),
-                qualification["minimum_cases_per_category"],
-                category,
-            )
+        self.assertEqual(catalog["schema_version"], "dev-flow.benchmark.catalog.v1")
+        self.assertEqual(len(catalog["cases"]), 26)
+        self.assertNotIn("qualification", catalog)
+        self.assertTrue(
+            all(case["categories"] and len(case["categories"]) == len(set(case["categories"]))
+                for case in catalog["cases"])
+        )
         serialized = json.dumps(catalog)
         for boundary in (
             "DIAGNOSE-CHANGE-REVIEW",
@@ -119,9 +114,12 @@ class FlowTransitionTests(unittest.TestCase):
             "DELEGATION-MONOTONIC-NARROWING",
             "CONTINUATION-TERMINAL-WITHOUT-DELIVERY",
             "CONTINUATION-PROCESS-SUPERVISION",
+            "CONTINUATION-AUXILIARY-CONVERGENCE",
             "CONTEXT-EXPLICIT-TASK-SYNTHESIS",
             "CONTEXT-REFERENCE-REPOSITORY-BOUNDARY",
             "ADAPTATION-CONFIRMED-PREFERENCE",
+            "CONTEXT-CONFIRMED-SHARED-CONTRACT",
+            "DELEGATION-EXPANSION-REQUIRES-RENEWED-AUTHORITY",
             "NEGATIVE-ORDINARY-CONVERSATION-QUIET",
         ):
             self.assertIn(boundary, serialized)
@@ -196,15 +194,15 @@ class FlowTransitionTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr or completed.stdout)
         result = json.loads(completed.stdout)
         self.assertEqual(result["status"], "matched")
-        self.assertEqual(result["lane"], "transition-observation")
+        self.assertEqual(result["lane"], "benchmark-observation")
         self.assertEqual(result["matched"], len(catalog["cases"]))
         self.assertFalse(result["effect_measurement"])
         self.assertIsNone(result["aggregate_score"])
-        self.assertEqual(len(result["qualification"]["category_results"]), 9)
+        self.assertEqual(len(result["category_results"]), 9)
         self.assertTrue(
             all(
                 item["status"] == "matched"
-                for item in result["qualification"]["category_results"]
+                for item in result["category_results"]
             )
         )
 
@@ -422,18 +420,6 @@ class FlowTransitionTests(unittest.TestCase):
         completed = self.run_transition(observations)
         self.assertEqual(completed.returncode, 2)
         self.assertIn("ordered by turn number", completed.stdout)
-
-    def test_transition_lane_requires_observations(self) -> None:
-        completed = subprocess.run(
-            [sys.executable, str(FLOW), "flow-metrics", "--lane", "transition"],
-            cwd=ROOT,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        self.assertEqual(completed.returncode, 2)
-        self.assertIn("requires --observations", completed.stdout)
-
 
 if __name__ == "__main__":
     unittest.main()

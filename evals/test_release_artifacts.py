@@ -216,7 +216,8 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
         releasing = (ROOT / "docs" / "releasing.md").read_text(encoding="utf-8")
         self.assertIn("2.0.0-rc.2 activation-hardening release", releasing)
         self.assertIn("one bounded first attempt for each directly affected semantic case", releasing)
-        self.assertIn("Complete repeated R4 is reserved for stable releases", releasing)
+        self.assertIn("does not require a complete repeated model catalog", releasing)
+        self.assertIn("Dev Flow Bench is the supported research surface", releasing)
         self.assertIn("at most three ready starter methods", releasing)
         self.assertIn("No 1.x upgrade/rollback compatibility is promised", (
             ROOT / "docs" / "workstreams" / "dev-flow-2.0" / "progress.md"
@@ -265,7 +266,9 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
         self.assertIn("validate-knowledge --root .", workflow)
         self.assertIn("doctor.py --plugin-root .", workflow)
         self.assertIn("evals.test_agent_dispatch", workflow)
-        self.assertIn("evals.test_transition_runner.TransitionRunnerTests", workflow)
+        self.assertIn(
+            "evals.test_dev_flow_bench_executor.DevFlowBenchExecutorTests", workflow
+        )
         self.assertIn('PYTHONUTF8: "1"', workflow)
         self.assertIn("PYTHONIOENCODING: utf-8", workflow)
         self.assertNotIn("shell: bash", workflow)

@@ -141,7 +141,7 @@ jobs:
           evals.test_repository_knowledge
           evals.test_resource_coordination
           evals.test_runtime_doctor
-          evals.test_transition_runner.TransitionRunnerTests
+          evals.test_dev_flow_bench_executor.DevFlowBenchExecutorTests
           -v
 
       - name: Confirm tests did not modify tracked files

@@ -8,7 +8,7 @@
 - Established the direct/managed plus risk-overlay design and legacy compatibility boundary.
 - Added repository-tracked research, design, implementation, progress, and decision knowledge for 2.0.
 - Implemented packet-free routing, repository workstream initialization, thin Skills, proportional specialist references, a minimal safety Hook, and inert legacy packet behavior.
-- Split semantic, compatibility, and artifact release evidence; added R1-R4 release tiers.
+- Historically split semantic, compatibility, and artifact release evidence and added R1-R4 release tiers; R4 was retired on 2026-09-01 and replaced by independent Dev Flow Bench research.
 - Rewrote current project/knowledge truth and added broader follow-up recommendations without making them default workflow requirements.
 - Final-audited the minimal Hook for multi-line and Windows command boundaries, bounded cleanup false positives, and common external-action wrappers; removed the remaining packet output and duplicate-approval language from explicit profile management.
 - Completed the first alpha integration pass with 430 local tests, the 39-contract suite, and legacy compatibility checks.
@@ -104,6 +104,6 @@ Complete the already authorized delivery sequence: final deterministic gates and
 - S25 final deterministic evidence: 460/460 unit tests passed in 87.350 seconds; 80/80 large-task simulations matched. Family-removal, nonexistent advanced-method, review-overactivation, and missing-specialist mutations were all detected. The 39 process contracts, 117-method registry, 13-Skill suite, plugin/knowledge/data-security checks, compilation, 430 JSON parses, and clean-diff check passed.
 - RC.2 final local evidence: 464/464 unit tests, 39/39 process contracts, 33/33 deterministic activation cases, and 80/80 large-task simulations passed. The 117-method/73-source/38-risk-model registry, 13-Skill suite (17,879 ordinary static bytes), plugin, knowledge, data-security doctor, compilation, JSON parsing, and diff checks also passed.
 - S24 changed model-facing semantics but did not execute live model trials. The current active plugin remains RC.1, so RC.2 implicit invocation, real interruption recovery, and clean-context review remain `NOT RUN`; the final audit is same-context and retains `common-mode-risk`.
-- R4 model-semantic trials are complete. They used isolated synthetic repositories and one model/effort, so they do not prove population effectiveness or production behavior. Final review is same-context and retains `common-mode-risk` because independent dispatch was not authorized.
+- Historical RC.2 R4 model-semantic trials are complete. They used isolated synthetic repositories and one model/effort, so they do not prove population effectiveness or production behavior. The R4 release tier was retired on 2026-09-01; repeated studies now belong to independent Dev Flow Bench. Final review is same-context and retains `common-mode-risk` because independent dispatch was not authorized.
 - No 1.x upgrade/rollback compatibility is promised; the 2.0 line remains a hard cut.
 - Hosted CI, commit, tag, push, isolated/active installation, GitHub Release, and artifact publication remain pending until their actions complete; deployment, production use, and business acceptance remain `NOT RUN`.

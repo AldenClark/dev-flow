@@ -372,9 +372,10 @@ Runtime logs and temporary evidence remain ignored/generated. Promote only durab
 | R1 standard | docs, Skill prose, fixtures, ordinary logic | focused local checks + semantic CI + affected compatibility tests |
 | R2 runtime | installer, host integration, or cross-platform process/path behavior | R1 + compatibility lane + isolated install/uninstall smoke |
 | R3 artifact/security | builder, release workflow, attestation, data-security controls | R2 as applicable + deterministic archive/SBOM/provenance negative tests |
-| R4 model-semantic | material change whose branch activation depends on Codex interpretation | affected deterministic gates + predeclared authorized/budgeted categories, at least three distinct cases per category and three independent first attempts per case; separate safety/authority gates and no aggregate score |
 
-Higher tiers are additive only where relevant. A documentation patch does not rehearse install rollback. A data-security Hook change uses security-specific gates without a full model acceptance run. A model evaluation never substitutes for deterministic or artifact evidence.
+Higher tiers are additive only where relevant. A documentation patch does not rehearse install rollback. A data-security Hook change uses security-specific gates without a full model acceptance run. Model-facing changes use bounded affected semantic acceptance. Repeated or comparative model evaluation belongs to the independent Dev Flow Bench and never substitutes for deterministic, functional, or artifact evidence.
+
+Stable publication adds a cumulative semantic review from the prior public stable, one consolidated six-method static review, five bounded real functional journeys, and one complete deterministic regression. It does not add another release tier or a complete repeated-model gate.
 
 Publication remains separately authorized after the applicable tier passes.
 

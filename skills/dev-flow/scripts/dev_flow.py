@@ -2950,8 +2950,6 @@ def flow_metrics_command(args: argparse.Namespace) -> int:
     catalog = args.catalog or repository / "evals" / (
         "flow-activation-semantic-cases.json"
         if args.lane == "semantic"
-        else "flow-transition-semantic-cases.json"
-        if args.lane == "transition"
         else "flow-activation-cases.json"
     )
     try:
@@ -2961,14 +2959,6 @@ def flow_metrics_command(args: argparse.Namespace) -> int:
                     "semantic lane requires --observations from actual first attempts"
                 )
             result = flow_metrics.run_semantic_catalog(catalog.resolve(), args.observations.resolve())
-        elif args.lane == "transition":
-            if args.observations is None:
-                raise flow_metrics.ActivationContractError(
-                    "transition lane requires --observations from actual multi-turn attempts"
-                )
-            result = flow_metrics.run_transition_catalog(
-                catalog.resolve(), args.observations.resolve()
-            )
         else:
             if args.observations is not None:
                 raise flow_metrics.ActivationContractError(
@@ -8416,7 +8406,7 @@ def build_parser() -> argparse.ArgumentParser:
     activation.add_argument("--catalog", type=Path)
     activation.add_argument(
         "--lane",
-        choices=("deterministic", "semantic", "transition"),
+        choices=("deterministic", "semantic"),
         default="deterministic",
     )
     activation.add_argument("--observations", type=Path)

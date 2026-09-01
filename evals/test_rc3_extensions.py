@@ -17,7 +17,7 @@ DOGFOOD = (
     ROOT / "skills" / "dev-flow-maintainer" / "scripts" / "analyze_dogfood.py"
 )
 QUALITY = ROOT / "skills" / "dev-flow" / "references" / "quality-calibration.md"
-TRANSITIONS = ROOT / "evals" / "flow-transition-semantic-cases.json"
+TRANSITIONS = ROOT / "benchmarks" / "cases" / "dev-flow-cases.json"
 ORCHESTRATION = (
     ROOT / "skills" / "dev-flow" / "references" / "multi-agent-v2-orchestration.md"
 )

@@ -62,7 +62,11 @@ def semantic_runtime_files(root: Path) -> list[Path]:
 
 def _resolve_local_module(root: Path, module: str) -> Path | None:
     relative = Path(*module.split("."))
-    for base in (root / "evals", root / "skills" / "dev-flow" / "scripts"):
+    for base in (
+        root / "benchmarks",
+        root / "evals",
+        root / "skills" / "dev-flow" / "scripts",
+    ):
         for candidate in (base / relative.with_suffix(".py"), base / relative / "__init__.py"):
             if candidate.is_file():
                 return candidate.resolve()

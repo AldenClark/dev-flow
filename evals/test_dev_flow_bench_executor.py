@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Non-spending contract tests for the opt-in transition trial runner."""
+"""Non-spending contract tests for the Bench-owned bounded executor."""
 
 from __future__ import annotations
 
@@ -16,53 +16,33 @@ from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RUNNER = ROOT / "evals" / "run_transition_trials.py"
+EXECUTOR = ROOT / "benchmarks" / "dev_flow_bench_executor.py"
+CONTRACTS_PATH = ROOT / "benchmarks" / "dev_flow_bench_contracts.py"
+CATALOG = ROOT / "benchmarks" / "cases" / "dev-flow-cases.json"
 
 
 def load_runner_module():
-    spec = importlib.util.spec_from_file_location("run_transition_trials", RUNNER)
+    spec = importlib.util.spec_from_file_location("dev_flow_bench_executor", EXECUTOR)
     if spec is None or spec.loader is None:
-        raise RuntimeError("unable to load transition runner")
+        raise RuntimeError("unable to load benchmark executor")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
-def fake_qualification_identity(**kwargs):
-    del kwargs
-    return {
-        "schema_version": "synthetic",
-        "semantic_runtime_identity": {"sha256": "sha256:" + "1" * 64},
-        "qualification_execution_identity": {"sha256": "sha256:" + "2" * 64},
-    }
+def load_contracts_module():
+    spec = importlib.util.spec_from_file_location("dev_flow_bench_contracts", CONTRACTS_PATH)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("unable to load benchmark contracts")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
-def execution_arguments(root: Path) -> list[str]:
-    return [
-        "--execute",
-        "--acknowledge-model-spend",
-        "--model",
-        "test-model",
-        "--reasoning-effort",
-        "low",
-        "--output-dir",
-        str(root / "evidence"),
-        "--max-total-tokens",
-        "100",
-        "--campaign-budget-file",
-        str(root / "campaign.json"),
-        "--campaign-id",
-        "rc4-release",
-        "--campaign-max-total-tokens",
-        "100",
-        "--per-call-token-limit",
-        "100",
-        "--per-call-timeout-seconds",
-        "60",
-    ]
+CONTRACTS = load_contracts_module()
 
 
-class TransitionRunnerTests(unittest.TestCase):
+class DevFlowBenchExecutorTests(unittest.TestCase):
     def test_every_codex_lineage_disables_shell_environment_inheritance(self) -> None:
         runner = load_runner_module()
         commands: list[list[str]] = []
@@ -131,31 +111,6 @@ class TransitionRunnerTests(unittest.TestCase):
             ):
                 self.assertIn(setting, command)
 
-    def test_runner_exposes_only_candidate_execution_inputs(self) -> None:
-        runner = load_runner_module()
-        args = runner.parse_args([])
-        self.assertEqual(
-            set(vars(args)),
-            {
-                "catalog",
-                "case_ids",
-                "attempts",
-                "model",
-                "reasoning_effort",
-                "codex",
-                "plugin_root",
-                "output_dir",
-                "max_total_tokens",
-                "campaign_budget_file",
-                "campaign_id",
-                "campaign_max_total_tokens",
-                "per_call_token_limit",
-                "per_call_timeout_seconds",
-                "qualification",
-                "execute",
-                "acknowledge_model_spend",
-            },
-        )
 
     def test_timeout_terminates_the_entire_posix_process_group(self) -> None:
         runner = load_runner_module()
@@ -335,32 +290,6 @@ class TransitionRunnerTests(unittest.TestCase):
                 text=True,
             )
 
-    def test_default_is_non_spending_dry_run(self) -> None:
-        completed = subprocess.run(
-            [sys.executable, str(RUNNER)],
-            cwd=ROOT,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        self.assertEqual(completed.returncode, 0, completed.stderr or completed.stdout)
-        result = json.loads(completed.stdout)
-        self.assertEqual(result["status"], "planned")
-        self.assertFalse(result["executes_model"])
-        self.assertFalse(result["raw_transcripts_retained"])
-        self.assertFalse(result["self_grading"])
-        self.assertTrue(result["first_attempt_responses_retained"])
-        self.assertEqual(result["assessment"], "manual-observation-manifest")
-        self.assertEqual(
-            result["token_budget"],
-            {
-                "maximum_total_tokens": None,
-                "per_call_token_limit": None,
-                "per_call_timeout_seconds": None,
-                "campaign_maximum_total_tokens": None,
-            },
-        )
-        self.assertGreaterEqual(len(result["cases"]), 8)
 
     def test_attempt_preserves_bounded_evidence_without_classifying_it(self) -> None:
         runner = load_runner_module()
@@ -418,7 +347,7 @@ class TransitionRunnerTests(unittest.TestCase):
                     evidence_checkpoint=root / "evidence-in-progress.json",
                 )
         self.assertEqual(
-            evidence["schema_version"], "flow.transition.first-attempt-evidence.v2"
+            evidence["schema_version"], "dev-flow.benchmark.evidence.v1"
         )
         turn = evidence["cases"][0]["turns"][0]
         self.assertEqual(turn["response_text"], "bounded response")
@@ -545,211 +474,12 @@ class TransitionRunnerTests(unittest.TestCase):
         self.assertEqual(turn["response_text"], "I changed it.")
         self.assertEqual([item["path"] for item in turn["repository_delta"]], ["README.md"])
 
-    def test_execute_requires_explicit_model_budget_contract(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            completed = subprocess.run(
-                [
-                    sys.executable,
-                    str(RUNNER),
-                    "--execute",
-                    "--output-dir",
-                    temporary,
-                ],
-                cwd=ROOT,
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-        self.assertEqual(completed.returncode, 2)
-        self.assertIn("--acknowledge-model-spend", completed.stdout)
 
-    def test_unknown_case_is_rejected_before_execution(self) -> None:
-        completed = subprocess.run(
-            [sys.executable, str(RUNNER), "--case", "NOT-A-CASE"],
-            cwd=ROOT,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        self.assertEqual(completed.returncode, 2)
-        self.assertIn("unknown --case", completed.stdout)
 
-    def test_execute_rejects_missing_token_budget_after_other_authority(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            completed = subprocess.run(
-                [
-                    sys.executable,
-                    str(RUNNER),
-                    "--execute",
-                    "--acknowledge-model-spend",
-                    "--model",
-                    "test-model",
-                    "--reasoning-effort",
-                    "low",
-                    "--output-dir",
-                    temporary,
-                ],
-                cwd=ROOT,
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-        self.assertEqual(completed.returncode, 2)
-        self.assertIn("--max-total-tokens, --per-call-token-limit", completed.stdout)
 
-    def test_execute_requires_campaign_budget_contract(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            completed = subprocess.run(
-                [
-                    sys.executable,
-                    str(RUNNER),
-                    "--execute",
-                    "--acknowledge-model-spend",
-                    "--model",
-                    "test-model",
-                    "--reasoning-effort",
-                    "low",
-                    "--output-dir",
-                    str(Path(temporary) / "evidence"),
-                    "--max-total-tokens",
-                    "100",
-                    "--per-call-token-limit",
-                    "100",
-                    "--per-call-timeout-seconds",
-                    "60",
-                ],
-                cwd=ROOT,
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-        self.assertEqual(completed.returncode, 2)
-        self.assertIn("--campaign-budget-file", completed.stdout)
 
-    def test_campaign_budget_is_cumulative_and_identity_aware(self) -> None:
-        runner = load_runner_module()
-        with tempfile.TemporaryDirectory() as temporary:
-            ledger = Path(temporary) / "campaign.json"
-            first = runner.reserve_campaign_budget(
-                ledger,
-                campaign_id="rc4-release",
-                maximum_tokens=100,
-                run_id="run-one",
-                requested_tokens=60,
-                semantic_runtime_sha256="sha256:" + "1" * 64,
-                qualification_execution_sha256="sha256:" + "2" * 64,
-            )
-            self.assertEqual(first["allocated_tokens"], 60)
-            runner.update_campaign_budget(
-                ledger,
-                run_id="run-one",
-                known_consumed_tokens=25,
-                status="interrupted",
-            )
-            with self.assertRaisesRegex(runner.TrialError, "already have campaign evidence"):
-                runner.reserve_campaign_budget(
-                    ledger,
-                    campaign_id="rc4-release",
-                    maximum_tokens=100,
-                    run_id="run-two",
-                    requested_tokens=20,
-                    semantic_runtime_sha256="sha256:" + "1" * 64,
-                    qualification_execution_sha256="sha256:" + "2" * 64,
-                )
-            second = runner.reserve_campaign_budget(
-                ledger,
-                campaign_id="rc4-release",
-                maximum_tokens=100,
-                run_id="run-three",
-                requested_tokens=40,
-                semantic_runtime_sha256="sha256:" + "3" * 64,
-                qualification_execution_sha256="sha256:" + "2" * 64,
-            )
-            self.assertEqual(second["allocated_tokens"], 100)
-            with self.assertRaisesRegex(runner.TrialError, "already have campaign evidence"):
-                runner.reserve_campaign_budget(
-                    ledger,
-                    campaign_id="rc4-release",
-                    maximum_tokens=100,
-                    run_id="run-one-again-after-another-candidate",
-                    requested_tokens=1,
-                    semantic_runtime_sha256="sha256:" + "1" * 64,
-                    qualification_execution_sha256="sha256:" + "2" * 64,
-                )
-            with self.assertRaisesRegex(runner.TrialError, "campaign token budget"):
-                runner.reserve_campaign_budget(
-                    ledger,
-                    campaign_id="rc4-release",
-                    maximum_tokens=100,
-                    run_id="run-four",
-                    requested_tokens=1,
-                    semantic_runtime_sha256="sha256:" + "4" * 64,
-                    qualification_execution_sha256="sha256:" + "2" * 64,
-                )
-            persisted = json.loads(ledger.read_text(encoding="utf-8"))
-        self.assertEqual(persisted["allocated_tokens"], 100)
-        self.assertEqual(persisted["runs"][0]["known_consumed_tokens"], 25)
-        self.assertEqual(persisted["runs"][0]["status"], "interrupted")
 
-    def test_campaign_budget_rejects_malformed_or_locked_state(self) -> None:
-        runner = load_runner_module()
-        with tempfile.TemporaryDirectory() as temporary:
-            ledger = Path(temporary) / "campaign.json"
-            ledger.write_text("{}\n", encoding="utf-8")
-            with self.assertRaisesRegex(runner.TrialError, "exact schema"):
-                runner.reserve_campaign_budget(
-                    ledger,
-                    campaign_id="rc4-release",
-                    maximum_tokens=100,
-                    run_id="run-one",
-                    requested_tokens=10,
-                    semantic_runtime_sha256="sha256:" + "1" * 64,
-                    qualification_execution_sha256="sha256:" + "2" * 64,
-                )
-            ledger.unlink()
-            ledger.with_name("campaign.json.guard").write_text("locked\n", encoding="utf-8")
-            with self.assertRaisesRegex(runner.TrialError, "locked"):
-                runner.reserve_campaign_budget(
-                    ledger,
-                    campaign_id="rc4-release",
-                    maximum_tokens=100,
-                    run_id="run-one",
-                    requested_tokens=10,
-                    semantic_runtime_sha256="sha256:" + "1" * 64,
-                    qualification_execution_sha256="sha256:" + "2" * 64,
-                )
-            ledger.with_name("campaign.json.guard").unlink()
-            with (
-                mock.patch.object(
-                    runner.os,
-                    "open",
-                    side_effect=PermissionError("synthetic sharing violation"),
-                ),
-                self.assertRaisesRegex(runner.TrialError, "locked or inaccessible"),
-            ):
-                runner.reserve_campaign_budget(
-                    ledger,
-                    campaign_id="rc4-release",
-                    maximum_tokens=100,
-                    run_id="run-one",
-                    requested_tokens=10,
-                    semantic_runtime_sha256="sha256:" + "1" * 64,
-                    qualification_execution_sha256="sha256:" + "2" * 64,
-                )
 
-    def test_campaign_budget_rejects_boolean_token_values(self) -> None:
-        runner = load_runner_module()
-        with tempfile.TemporaryDirectory() as temporary:
-            with self.assertRaisesRegex(runner.TrialError, "token budget request"):
-                runner.reserve_campaign_budget(
-                    Path(temporary) / "campaign.json",
-                    campaign_id="rc4-release",
-                    maximum_tokens=True,
-                    run_id="run-one",
-                    requested_tokens=1,
-                    semantic_runtime_sha256="sha256:" + "1" * 64,
-                    qualification_execution_sha256="sha256:" + "2" * 64,
-                )
 
     def test_bounded_process_cleans_up_on_keyboard_interrupt(self) -> None:
         runner = load_runner_module()
@@ -793,301 +523,13 @@ class TransitionRunnerTests(unittest.TestCase):
                 )
             terminate.assert_called_once_with(process, None)
 
-    def test_pre_attempt_interrupt_closes_reserved_campaign(self) -> None:
-        runner = load_runner_module()
-        original_write_text = Path.write_text
 
-        def interrupt_identity(path, *args, **kwargs):
-            if path.name == "qualification-identity.json":
-                raise KeyboardInterrupt
-            return original_write_text(path, *args, **kwargs)
 
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            with (
-                mock.patch.object(
-                    runner, "qualification_identity", side_effect=fake_qualification_identity
-                ),
-                mock.patch.object(Path, "write_text", interrupt_identity),
-            ):
-                result = runner.main(execution_arguments(root))
-            ledger = json.loads((root / "campaign.json").read_text(encoding="utf-8"))
-            failure = json.loads(
-                (root / "evidence" / "first-failure.json").read_text(encoding="utf-8")
-            )
-        self.assertEqual(result, 130)
-        self.assertEqual(ledger["runs"][0]["status"], "interrupted")
-        self.assertEqual(ledger["runs"][0]["known_consumed_tokens"], 0)
-        self.assertTrue(failure["campaign_ledger_closed"])
-        self.assertEqual(failure["phase"], "pre-attempt")
 
-    def test_interrupt_after_persisted_reservation_is_recovered(self) -> None:
-        runner = load_runner_module()
-        original_reserve = runner.reserve_campaign_budget
 
-        def persist_then_interrupt(*args, **kwargs):
-            original_reserve(*args, **kwargs)
-            raise KeyboardInterrupt
 
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            with (
-                mock.patch.object(
-                    runner, "qualification_identity", side_effect=fake_qualification_identity
-                ),
-                mock.patch.object(
-                    runner, "reserve_campaign_budget", side_effect=persist_then_interrupt
-                ),
-            ):
-                result = runner.main(execution_arguments(root))
-            ledger = json.loads((root / "campaign.json").read_text(encoding="utf-8"))
-            failure = json.loads(
-                (root / "evidence" / "first-failure.json").read_text(encoding="utf-8")
-            )
-        self.assertEqual(result, 130)
-        self.assertEqual(ledger["runs"][0]["status"], "interrupted")
-        self.assertEqual(ledger["runs"][0]["known_consumed_tokens"], 0)
-        self.assertTrue(failure["campaign_ledger_closed"])
 
-    def test_preexisting_exact_run_is_not_claimed_by_failed_admission(self) -> None:
-        runner = load_runner_module()
-        nonce = "a" * 32
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            output_dir = (root / "evidence").resolve()
-            run_id = runner.sha256_text(
-                json.dumps(
-                    {
-                        "output_dir_sha256": runner.sha256_text(str(output_dir)),
-                        "reservation_nonce": nonce,
-                        "semantic_runtime_sha256": "sha256:" + "1" * 64,
-                        "qualification_execution_sha256": "sha256:" + "2" * 64,
-                    },
-                    sort_keys=True,
-                    separators=(",", ":"),
-                )
-            )
-            runner.reserve_campaign_budget(
-                root / "campaign.json",
-                campaign_id="rc4-release",
-                maximum_tokens=100,
-                run_id=run_id,
-                requested_tokens=100,
-                semantic_runtime_sha256="sha256:" + "1" * 64,
-                qualification_execution_sha256="sha256:" + "2" * 64,
-            )
-            with (
-                mock.patch.object(
-                    runner, "qualification_identity", side_effect=fake_qualification_identity
-                ),
-                mock.patch.object(runner.secrets, "token_hex", return_value=nonce),
-            ):
-                result = runner.main(execution_arguments(root))
-            ledger = json.loads((root / "campaign.json").read_text(encoding="utf-8"))
-            failure_exists = (root / "evidence" / "first-failure.json").exists()
-        self.assertEqual(result, 2)
-        self.assertEqual(ledger["runs"][0]["status"], "reserved")
-        self.assertEqual(ledger["runs"][0]["known_consumed_tokens"], 0)
-        self.assertFalse(failure_exists)
 
-    def test_post_model_evidence_failure_preserves_usage_and_closes_campaign(self) -> None:
-        runner = load_runner_module()
-        original_write_text = Path.write_text
-
-        def fail_evidence(path, *args, **kwargs):
-            if path.name == "attempt-001-evidence.json":
-                raise OSError("synthetic evidence write failure")
-            return original_write_text(path, *args, **kwargs)
-
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            with (
-                mock.patch.object(
-                    runner, "qualification_identity", side_effect=fake_qualification_identity
-                ),
-                mock.patch.object(
-                    runner,
-                    "run_attempt",
-                    return_value=({"schema_version": "synthetic"}, {"consumed_tokens": 7}),
-                ),
-                mock.patch.object(Path, "write_text", fail_evidence),
-            ):
-                result = runner.main(execution_arguments(root))
-            ledger = json.loads((root / "campaign.json").read_text(encoding="utf-8"))
-            failure = json.loads(
-                (root / "evidence" / "first-failure.json").read_text(encoding="utf-8")
-            )
-        self.assertEqual(result, 1)
-        self.assertEqual(ledger["runs"][0]["status"], "failed")
-        self.assertEqual(ledger["runs"][0]["known_consumed_tokens"], 7)
-        self.assertEqual(failure["campaign_known_consumed_tokens"], 7)
-        self.assertTrue(failure["campaign_ledger_closed"])
-
-    def test_campaign_update_failure_writes_recovery_record(self) -> None:
-        runner = load_runner_module()
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            with (
-                mock.patch.object(
-                    runner, "qualification_identity", side_effect=fake_qualification_identity
-                ),
-                mock.patch.object(
-                    runner,
-                    "run_attempt",
-                    return_value=({"schema_version": "synthetic"}, {"consumed_tokens": 7}),
-                ),
-                mock.patch.object(
-                    runner,
-                    "update_campaign_budget",
-                    side_effect=runner.TrialError("synthetic ledger failure"),
-                ),
-            ):
-                result = runner.main(execution_arguments(root))
-            failure = json.loads(
-                (root / "evidence" / "first-failure.json").read_text(encoding="utf-8")
-            )
-        self.assertEqual(result, 1)
-        self.assertFalse(failure["campaign_ledger_closed"])
-        self.assertTrue(failure["campaign_recovery_required"])
-        self.assertEqual(failure["campaign_known_consumed_tokens"], 7)
-
-    def test_post_model_usage_and_summary_failures_close_campaign(self) -> None:
-        runner = load_runner_module()
-        original_write_text = Path.write_text
-        for failing_name in ("usage-001.json", "qualification-summary.json"):
-            with self.subTest(failing_name=failing_name), tempfile.TemporaryDirectory() as temporary:
-                root = Path(temporary)
-
-                def fail_selected(path, *args, **kwargs):
-                    if path.name == failing_name:
-                        raise OSError(f"synthetic {failing_name} failure")
-                    return original_write_text(path, *args, **kwargs)
-
-                with (
-                    mock.patch.object(
-                        runner,
-                        "qualification_identity",
-                        side_effect=fake_qualification_identity,
-                    ),
-                    mock.patch.object(
-                        runner,
-                        "run_attempt",
-                        return_value=(
-                            {"schema_version": "synthetic"},
-                            {"consumed_tokens": 7},
-                        ),
-                    ),
-                    mock.patch.object(Path, "write_text", fail_selected),
-                ):
-                    result = runner.main(execution_arguments(root))
-                ledger = json.loads(
-                    (root / "campaign.json").read_text(encoding="utf-8")
-                )
-                failure = json.loads(
-                    (root / "evidence" / "first-failure.json").read_text(
-                        encoding="utf-8"
-                    )
-                )
-                self.assertEqual(result, 1)
-                self.assertEqual(ledger["runs"][0]["status"], "failed")
-                self.assertEqual(ledger["runs"][0]["known_consumed_tokens"], 7)
-                self.assertEqual(failure["campaign_known_consumed_tokens"], 7)
-                self.assertTrue(failure["campaign_ledger_closed"])
-
-    def test_secondary_broken_pipe_preserves_primary_failure(self) -> None:
-        runner = load_runner_module()
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            with (
-                mock.patch.object(
-                    runner, "qualification_identity", side_effect=fake_qualification_identity
-                ),
-                mock.patch.object(
-                    runner,
-                    "run_attempt",
-                    side_effect=runner.TrialError("PRIMARY"),
-                ),
-                mock.patch("builtins.print", side_effect=BrokenPipeError("SECONDARY")),
-            ):
-                result = runner.main(execution_arguments(root))
-            failure = json.loads(
-                (root / "evidence" / "first-failure.json").read_text(encoding="utf-8")
-            )
-        self.assertEqual(result, 1)
-        self.assertEqual(failure["first_failure"], "PRIMARY")
-        self.assertTrue(failure["campaign_ledger_closed"])
-
-    def test_concurrent_campaign_reservations_cannot_overspend(self) -> None:
-        worker = r'''
-import importlib.util
-from pathlib import Path
-import sys
-import time
-
-runner_path, ledger_text, start_text, index_text = sys.argv[1:]
-spec = importlib.util.spec_from_file_location("transition_runner_worker", runner_path)
-module = importlib.util.module_from_spec(spec)
-assert spec and spec.loader
-spec.loader.exec_module(module)
-start = Path(start_text)
-while not start.exists():
-    time.sleep(0.005)
-index = int(index_text)
-for _ in range(400):
-    try:
-        module.reserve_campaign_budget(
-            Path(ledger_text),
-            campaign_id="concurrent",
-            maximum_tokens=100,
-            run_id=f"run-{index}",
-            requested_tokens=30,
-            semantic_runtime_sha256="sha256:" + f"{index + 1:064x}",
-            qualification_execution_sha256="sha256:" + "f" * 64,
-        )
-        raise SystemExit(0)
-    except module.TrialError as exc:
-        if "locked" in str(exc):
-            time.sleep(0.005)
-            continue
-        if "would be exceeded" in str(exc):
-            raise SystemExit(0)
-        raise
-raise SystemExit(3)
-'''
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            ledger = root / "campaign.json"
-            start = root / "start"
-            processes = [
-                subprocess.Popen(
-                    [
-                        sys.executable,
-                        "-c",
-                        worker,
-                        str(RUNNER),
-                        str(ledger),
-                        str(start),
-                        str(index),
-                    ],
-                    cwd=ROOT,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                )
-                for index in range(8)
-            ]
-            start.write_text("go\n", encoding="utf-8")
-            results = [process.communicate(timeout=20) for process in processes]
-            payload = json.loads(ledger.read_text(encoding="utf-8"))
-        self.assertTrue(
-            all(process.returncode == 0 for process in processes),
-            [(process.returncode, stderr) for process, (_, stderr) in zip(processes, results)],
-        )
-        self.assertEqual(payload["allocated_tokens"], 90)
-        self.assertEqual(sum(run["authorized_tokens"] for run in payload["runs"]), 90)
-        self.assertEqual(len(payload["runs"]), 3)
-        self.assertEqual(len({run["run_id"] for run in payload["runs"]}), 3)
-        self.assertLessEqual(payload["allocated_tokens"], payload["maximum_tokens"])
 
     def test_usage_parser_is_fail_closed(self) -> None:
         runner = load_runner_module()
@@ -1449,7 +891,7 @@ raise SystemExit(3)
             )
         ) + "\n"
         completed = subprocess.run(
-            [sys.executable, str(ROOT / "evals" / "runner_fixture_mcp.py"), "--tool", "deep_scan"],
+            [sys.executable, str(ROOT / "benchmarks" / "dev_flow_bench_fixture_mcp.py"), "--tool", "deep_scan"],
             input=requests,
             capture_output=True,
             text=True,
@@ -1488,58 +930,6 @@ raise SystemExit(3)
             self.assertNotIn("private-tool-name", message)
             self.assertNotIn("private payload", message)
 
-    def test_prohibited_event_failure_record_preserves_identity_without_payload(self) -> None:
-        runner = load_runner_module()
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            output_dir = root / "evidence"
-            output_dir.mkdir()
-            events = root / "events.jsonl"
-            events.write_text(
-                json.dumps(
-                    {
-                        "type": "image_generation_begin",
-                        "item": {
-                            "type": "image_generation",
-                            "name": "private external capability",
-                            "prompt": "private payload must not enter the failure record",
-                        },
-                    }
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            with self.assertRaises(runner.TrialError) as raised:
-                runner.sanitized_trajectory(events)
-            run_id = runner.sha256_text("prohibited-event-failure-record")
-            campaign = root / "campaign.json"
-            runner.reserve_campaign_budget(
-                campaign,
-                campaign_id="prohibited-event-test",
-                maximum_tokens=100,
-                run_id=run_id,
-                requested_tokens=100,
-                semantic_runtime_sha256="sha256:" + "1" * 64,
-                qualification_execution_sha256="sha256:" + "2" * 64,
-            )
-            runner.close_campaign_run_after_failure(
-                campaign_budget_file=campaign,
-                run_id=run_id,
-                output_dir=output_dir,
-                attempt=1,
-                consumed_tokens=0,
-                pending_usage_tokens=0,
-                attempt_usage_committed=False,
-                interrupted=False,
-                error=raised.exception,
-            )
-            failure_text = (output_dir / "first-failure.json").read_text(
-                encoding="utf-8"
-            )
-        self.assertIn("event_type=image_generation_begin", failure_text)
-        self.assertIn("item_type=image_generation", failure_text)
-        self.assertNotIn("private external capability", failure_text)
-        self.assertNotIn("private payload", failure_text)
 
     def test_isolated_rollout_recovers_hidden_delegation_without_transcript_text(self) -> None:
         runner = load_runner_module()
@@ -2092,7 +1482,7 @@ raise SystemExit(3)
 
     def test_catalog_rejects_unsafe_or_unbounded_initial_repository(self) -> None:
         runner = load_runner_module()
-        catalog_path = ROOT / "evals" / "flow-transition-semantic-cases.json"
+        catalog_path = CATALOG
         base = json.loads(catalog_path.read_text(encoding="utf-8"))
         invalid_repositories = (
             {".git/config": "unsafe"},
@@ -2106,13 +1496,13 @@ raise SystemExit(3)
             catalog = json.loads(json.dumps(base))
             catalog["cases"][0]["repository"] = repository
             with self.subTest(paths=list(repository)[:2]), self.assertRaisesRegex(
-                runner.ActivationContractError, "initial repository fixture"
+                CONTRACTS.BenchContractError, "initial repository fixture"
             ):
-                runner.validate_transition_catalog(catalog)
+                CONTRACTS.validate_benchmark_catalog(catalog)
 
     def test_focused_coverage_evaluates_only_selected_case(self) -> None:
         runner = load_runner_module()
-        catalog_path = ROOT / "evals" / "flow-transition-semantic-cases.json"
+        catalog_path = CATALOG
         catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
         case = catalog["cases"][0]
         repository_version = 0
@@ -2134,7 +1524,7 @@ raise SystemExit(3)
                 }
             )
         observations = {
-            "schema_version": "flow.transition.observations.v1",
+            "schema_version": "dev-flow.benchmark.observations.v1",
             "cases": [
                 {
                     "id": case["id"],
@@ -2148,85 +1538,18 @@ raise SystemExit(3)
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "observations.json"
             path.write_text(json.dumps(observations), encoding="utf-8")
-            result = runner.run_transition_catalog(
+            result = CONTRACTS.run_benchmark_catalog(
                 catalog_path, path, {case["id"]}
             )
         self.assertEqual(result["status"], "matched")
         self.assertEqual(result["cases"], 1)
 
-    def test_qualification_requires_full_catalog_and_three_attempts(self) -> None:
-        too_few = subprocess.run(
-            [sys.executable, str(RUNNER), "--qualification", "--attempts", "2"],
-            cwd=ROOT,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        self.assertEqual(too_few.returncode, 2)
-        self.assertIn("at least 3 independent first attempts", too_few.stdout)
 
-        partial = subprocess.run(
-            [
-                sys.executable,
-                str(RUNNER),
-                "--qualification",
-                "--attempts",
-                "3",
-                "--case",
-                "TRANSITION-EVIDENCE-FRESHNESS",
-            ],
-            cwd=ROOT,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        self.assertEqual(partial.returncode, 2)
-        self.assertIn("requires the complete catalog", partial.stdout)
-
-        planned = subprocess.run(
-            [sys.executable, str(RUNNER), "--qualification", "--attempts", "3"],
-            cwd=ROOT,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        self.assertEqual(planned.returncode, 0, planned.stderr or planned.stdout)
-        result = json.loads(planned.stdout)
-        self.assertTrue(result["qualification_requested"])
-        self.assertTrue(result["qualification_eligible"])
-        self.assertEqual(len(result["category_coverage"]), 9)
-        self.assertTrue(all(count >= 3 for count in result["category_coverage"].values()))
-
-    def test_catalog_with_underfilled_category_is_rejected(self) -> None:
-        catalog = json.loads(
-            (ROOT / "evals" / "flow-transition-semantic-cases.json").read_text(
-                encoding="utf-8"
-            )
-        )
-        category = "failure-isolation"
-        kept = 0
-        for case in catalog["cases"]:
-            if category in case["categories"]:
-                kept += 1
-                if kept > 2:
-                    case["categories"].remove(category)
-        with tempfile.TemporaryDirectory() as temporary:
-            path = Path(temporary) / "underfilled.json"
-            path.write_text(json.dumps(catalog), encoding="utf-8")
-            completed = subprocess.run(
-                [sys.executable, str(RUNNER), "--catalog", str(path)],
-                cwd=ROOT,
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-        self.assertEqual(completed.returncode, 2)
-        self.assertIn("require at least 3 cases", completed.stdout)
 
     def test_readiness_change_label_requires_runner_owned_fixture_change(self) -> None:
         runner = load_runner_module()
         catalog = json.loads(
-            (ROOT / "evals" / "flow-transition-semantic-cases.json").read_text(
+            (CATALOG).read_text(
                 encoding="utf-8"
             )
         )
@@ -2237,13 +1560,13 @@ raise SystemExit(3)
         )
         capability["turns"][2].pop("pre_turn_fixture")
         with self.assertRaisesRegex(
-            runner.ActivationContractError, "runner-owned pre_turn_fixture"
+            CONTRACTS.BenchContractError, "runner-owned pre_turn_fixture"
         ):
-            runner.validate_transition_catalog(catalog)
+            CONTRACTS.validate_benchmark_catalog(catalog)
 
     def test_catalog_rejects_undeclared_or_ambiguous_mcp_authority(self) -> None:
         runner = load_runner_module()
-        catalog_path = ROOT / "evals" / "flow-transition-semantic-cases.json"
+        catalog_path = CATALOG
         for mutation in ("missing-fixture", "wrong-tool", "authority-without-oracle"):
             catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
             explicit = next(
@@ -2259,10 +1582,10 @@ raise SystemExit(3)
             else:
                 turn["expected"].remove("exact-mcp-tool-once")
             with self.subTest(mutation=mutation), self.assertRaisesRegex(
-                runner.ActivationContractError,
+                CONTRACTS.BenchContractError,
                 "mcp_fixture|allowed_mcp_tools|exact-mcp-tool-once",
             ):
-                runner.validate_transition_catalog(catalog)
+                CONTRACTS.validate_benchmark_catalog(catalog)
 
     def test_case_mcp_admission_fails_before_model_on_surface_mismatch(self) -> None:
         runner = load_runner_module()
@@ -2283,13 +1606,13 @@ raise SystemExit(3)
                 codex_home=root / "home",
                 repository=root,
                 fixture=None,
-                fixture_script=ROOT / "evals" / "runner_fixture_mcp.py",
+                fixture_script=ROOT / "benchmarks" / "dev_flow_bench_fixture_mcp.py",
             )
 
     def test_retry_label_requires_runner_owned_fixture_change(self) -> None:
         runner = load_runner_module()
         catalog = json.loads(
-            (ROOT / "evals" / "flow-transition-semantic-cases.json").read_text(
+            (CATALOG).read_text(
                 encoding="utf-8"
             )
         )
@@ -2302,14 +1625,14 @@ raise SystemExit(3)
         turn.pop("pre_turn_fixture")
         turn["expected"].remove("readiness-fact-changed")
         with self.assertRaisesRegex(
-            runner.ActivationContractError, "one-justified-retry"
+            CONTRACTS.BenchContractError, "one-justified-retry"
         ):
-            runner.validate_transition_catalog(catalog)
+            CONTRACTS.validate_benchmark_catalog(catalog)
 
     def test_expected_unmet_requires_a_semantically_entailing_label(self) -> None:
         runner = load_runner_module()
         catalog = json.loads(
-            (ROOT / "evals" / "flow-transition-semantic-cases.json").read_text(
+            (CATALOG).read_text(
                 encoding="utf-8"
             )
         )
@@ -2320,13 +1643,13 @@ raise SystemExit(3)
         )
         capability["turns"][0]["expected"].remove("blocked-claim")
         with self.assertRaisesRegex(
-            runner.ActivationContractError, "expected_unmet requires"
+            CONTRACTS.BenchContractError, "expected_unmet requires"
         ):
-            runner.validate_transition_catalog(catalog)
+            CONTRACTS.validate_benchmark_catalog(catalog)
 
     def test_repository_mutation_requires_unique_existing_mutation_paths(self) -> None:
         runner = load_runner_module()
-        catalog_path = ROOT / "evals" / "flow-transition-semantic-cases.json"
+        catalog_path = CATALOG
         for mutation in ("missing", "unknown", "none-with-paths"):
             with self.subTest(mutation=mutation):
                 catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
@@ -2338,9 +1661,9 @@ raise SystemExit(3)
                 else:
                     turn["mutation"] = "none"
                 with self.assertRaisesRegex(
-                    runner.ActivationContractError, "mutation_paths"
+                    CONTRACTS.BenchContractError, "mutation_paths"
                 ):
-                    runner.validate_transition_catalog(catalog)
+                    CONTRACTS.validate_benchmark_catalog(catalog)
 
     def test_runtime_mutation_contract_requires_the_exact_path_set(self) -> None:
         runner = load_runner_module()
@@ -2375,7 +1698,7 @@ raise SystemExit(3)
     def test_unmet_entailing_label_requires_expected_unmet(self) -> None:
         runner = load_runner_module()
         catalog = json.loads(
-            (ROOT / "evals" / "flow-transition-semantic-cases.json").read_text(
+            (CATALOG).read_text(
                 encoding="utf-8"
             )
         )
@@ -2386,15 +1709,15 @@ raise SystemExit(3)
         )
         capability["turns"][0]["expected_unmet"] = False
         with self.assertRaisesRegex(
-            runner.ActivationContractError,
+            CONTRACTS.BenchContractError,
             "unmet-implying expected label requires expected_unmet",
         ):
-            runner.validate_transition_catalog(catalog)
+            CONTRACTS.validate_benchmark_catalog(catalog)
 
     def test_catalog_rejects_aggregate_pre_turn_fixture_over_runtime_bound(self) -> None:
         runner = load_runner_module()
         catalog = json.loads(
-            (ROOT / "evals" / "flow-transition-semantic-cases.json").read_text(
+            (CATALOG).read_text(
                 encoding="utf-8"
             )
         )
@@ -2408,9 +1731,9 @@ raise SystemExit(3)
             for index in range(5)
         }
         with self.assertRaisesRegex(
-            runner.ActivationContractError, "assessment evidence byte bound"
+            CONTRACTS.BenchContractError, "assessment evidence byte bound"
         ):
-            runner.validate_transition_catalog(catalog)
+            CONTRACTS.validate_benchmark_catalog(catalog)
 
     def test_catalog_and_runtime_reject_serialized_fixture_delta_over_bound(self) -> None:
         runner = load_runner_module()
@@ -2419,7 +1742,7 @@ raise SystemExit(3)
             for index in range(4)
         }
         catalog = json.loads(
-            (ROOT / "evals" / "flow-transition-semantic-cases.json").read_text(
+            (CATALOG).read_text(
                 encoding="utf-8"
             )
         )
@@ -2430,9 +1753,9 @@ raise SystemExit(3)
         )
         capability["turns"][2]["pre_turn_fixture"] = fixture
         with self.assertRaisesRegex(
-            runner.ActivationContractError, "assessment evidence byte bound"
+            CONTRACTS.BenchContractError, "assessment evidence byte bound"
         ):
-            runner.validate_transition_catalog(catalog)
+            CONTRACTS.validate_benchmark_catalog(catalog)
         with tempfile.TemporaryDirectory() as temporary:
             repository = Path(temporary)
             with self.assertRaisesRegex(runner.TrialError, "assessment evidence byte bound"):
@@ -2460,7 +1783,7 @@ raise SystemExit(3)
             with self.subTest(unsafe_path=unsafe_path):
                 catalog = json.loads(
                     (
-                        ROOT / "evals" / "flow-transition-semantic-cases.json"
+                        CATALOG
                     ).read_text(encoding="utf-8")
                 )
                 capability = next(
@@ -2472,9 +1795,9 @@ raise SystemExit(3)
                     unsafe_path: "print('unsafe path')\n"
                 }
                 with self.assertRaisesRegex(
-                    runner.ActivationContractError, "pre_turn_fixture is invalid"
+                    CONTRACTS.BenchContractError, "pre_turn_fixture is invalid"
                 ):
-                    runner.validate_transition_catalog(catalog)
+                    CONTRACTS.validate_benchmark_catalog(catalog)
                 with tempfile.TemporaryDirectory() as temporary:
                     repository = Path(temporary)
                     with self.assertRaisesRegex(runner.TrialError, "unsafe"):

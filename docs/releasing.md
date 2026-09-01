@@ -4,9 +4,9 @@ This runbook selects evidence from the changed surface. It separates implementat
 
 ## 2.0.0-rc.5 personal-assistant hardening release
 
-The canonical product state identifies the released source as `2.0.0-rc.5`. Source implementation contracts the public CLI and compact route, adds product-state validation, read-only diagnosis, opt-in privacy-safe outcome observation, an always-on untrusted-content boundary, and real user-event DLP confirmation. RC publication uses affected semantic smoke; complete R4 is a stable-release or separately authorized evaluation gate.
+The canonical product state identifies the released source as `2.0.0-rc.5`. Source implementation contracts the public CLI and compact route, adds product-state validation, read-only diagnosis, opt-in privacy-safe outcome observation, an always-on untrusted-content boundary, and real user-event DLP confirmation. RC publication uses affected semantic smoke. Stable publication uses the stronger but bounded stable-validation procedure below; Dev Flow Bench is independent research and is never a release tier or gate.
 
-RC.5 completed affected privacy, compatibility, negative-control, product-state, and static-context checks. One full local regression exposed a narrow phrase-contract failure; after that repair only affected checks were rerun, and the exact final commit passed the hosted full semantic job. Publication also preserved one lightweight methodology-backed static review, one bounded attempt for the directly affected semantic case, the applicable hosted matrix, and exact-commit artifact, attestation, isolated-install, tag, and public-prerelease evidence. The semantic smoke matched its first turn; its terminal turn still omitted explicit final-check and final-limit evidence, a recorded RC residual rather than a model-qualification pass. Complete repeated R4 and independent clean-context review are reserved for the stable release. `v2.0.0-rc.5` is the latest public immutable RC tag. `v2.0.0-rc.4` is the rollback target for `2.0.0-rc.5`.
+RC.5 completed affected privacy, compatibility, negative-control, product-state, and static-context checks. One full local regression exposed a narrow phrase-contract failure; after that repair only affected checks were rerun, and the exact final commit passed the hosted full semantic job. Publication also preserved one lightweight methodology-backed static review, one bounded attempt for the directly affected semantic case, the applicable hosted matrix, and exact-commit artifact, attestation, isolated-install, tag, and public-prerelease evidence. The semantic smoke matched its first turn; its terminal turn still omitted explicit final-check and final-limit evidence, a recorded RC residual rather than a semantic pass. The former repeated-model stable gate was retired after RC.5; the residual must be reconsidered during cumulative stable review instead of forcing a catalog rerun. `v2.0.0-rc.5` is the latest public immutable RC tag. `v2.0.0-rc.4` is the rollback target for `2.0.0-rc.5`.
 
 ## 2.0.0-rc.4 convergence-and-operations release (historical)
 
@@ -46,14 +46,13 @@ Select the highest applicable tier. Higher tiers add only evidence relevant to t
 | R1 standard | documentation, Skill wording, routing fixtures, ordinary deterministic logic | focused local checks, one full semantic CI job, affected focused compatibility cells |
 | R2 runtime | Hook, installer, process, path, shell, host integration, cross-platform behavior | R1 plus full compatibility lane and isolated install/uninstall smoke; upgrade/rollback only when compatibility changed |
 | R3 artifact/security | builder, archive format, workflow permissions, SBOM, attestation, confidentiality/security control | R1/R2 as applicable plus deterministic artifact negative tests, candidate SBOM/checksum/provenance/attestation, security-specific checks |
-| R4 model-semantic | stable-release or separately authorized study whose admission claim depends on repeated Codex interpretation | R1 plus a predeclared complete sampling design, separate safety/authority hard gates, explicit budget, and no aggregate score |
 
 Examples:
 
 - Correcting a typo is R1 and does not rehearse marketplace rollback.
 - Changing Hook registration or `data_security_hook.py` is R2/R3 as applicable; it needs focused platform and confidentiality tests plus isolated runtime smoke, not an automatic full model acceptance run.
 - Changing `tools/build_release.py` or attestation permissions is R3.
-- Changing the model-facing meaning of direct/managed selection may be R4 even when the code diff is small.
+- Changing the model-facing meaning of direct/managed selection uses affected deterministic checks and bounded semantic acceptance even when the code diff is small.
 - A mixed change uses the union of applicable evidence, not every gate ever created by the project.
 
 ## Evidence lanes
@@ -71,7 +70,7 @@ The manual release-candidate workflow is a third lane. It fetches and binds the 
 2. Run those checks while repairing. See all failures in the affected batch before editing again; rerun only failed or newly affected checks.
 3. When the candidate is ready, freeze a clean full commit SHA and run the full local suite once.
 4. Review the final diff once through the integrated task route. Apply at most three ready starter methods selected from observed risks; each must yield a concrete finding, counterexample, changed oracle, or explicit no-finding conclusion. Do not count method names or rerun tests as method evidence.
-5. If model-facing guidance changed in an RC, preserve one bounded first attempt for each directly affected semantic case. A mismatch returns to affected repair; it does not start a complete catalog. Complete repeated R4 is reserved for stable releases or a separately authorized evaluation study.
+5. If model-facing guidance changed in an RC, preserve one bounded first attempt for each directly affected semantic case. A mismatch returns to affected repair; it does not start a complete catalog.
 6. Push only with authority and require the exact SHA's semantic job plus applicable compatibility cells.
 7. For installer/runtime changes, exercise fresh install/uninstall in an isolated temporary Codex home. Add prior-version upgrade or rollback checks only when that compatibility changed.
 8. Dispatch the RC workflow for the exact merged SHA and matching source version, then download and verify archive, manifest, SBOM, checksums, and attestations.
@@ -123,21 +122,37 @@ gh attestation verify dist/dev-flow-2.0.0-rc.5.tar.gz \
 
 The SBOM must be SPDX 2.3, name `dev-flow`, contain files, identify the root package and version, and carry a document namespace. Structurally valid but empty inventory is failure.
 
-## Model-semantic activation evidence
+## Stable validation and semantic acceptance
 
-Use [evaluation-suite.md](evaluation-suite.md). Deterministic Flow Activation Coverage runs first. An RC whose model-facing guidance changed runs a one-attempt smoke over only the directly affected semantic cases. This is a bounded regression check, not a population or statistical claim. Complete repeated R4 is reserved for stable releases or separately authorized evaluation studies and retains its predeclared sampling, budget, safety, and no-score rules.
+Use [evaluation-suite.md](evaluation-suite.md). Deterministic Flow Activation Coverage runs first. An RC whose model-facing guidance changed runs one bounded first attempt over only the directly affected semantic cases. This is a regression check, not a population or statistical claim.
 
-The shipped RC.5 catalog encodes 26 cases and 56 turns for optional stable-release qualification and targeted diagnostics. It admits the exact isolated MCP inventory before model execution and separates absent, unrelated-local, and explicitly authorized local-tool behavior. A non-spending affected-case smoke plan names only the cases changed by the candidate:
+Before a stable release, perform four meaningful checks without inventing a new process ledger:
+
+1. Review every maintained requirement and behavior change from the previous public stable to the candidate. Reconcile requirements, decisions, implementation, tests, and current documentation; report dropped, contradicted, or partial behavior in one consolidated findings list.
+2. Apply six compact static methods in one pass: traceability/V-model, change-impact graph, specification by example, feature-interaction analysis, black/white oracle accounting, and assumption mapping/premortem. Add at most two risk-specific methods when the actual diff justifies them.
+3. Exercise one bounded first attempt for each real functional journey: ordinary bugfix, material semantic change with requirement confirmation, diagnose-fix-verify, unrelated local MCP isolation, and continuation without inferred delivery authority. Rerun only failed or newly affected journeys.
+4. Run the complete deterministic suite once after focused repairs pass, plus applicable artifact, compatibility, security, and isolated-install evidence selected by R1-R3.
+
+The stable process does not require a complete repeated model catalog or a universal independent-review ceremony. Independent review is risk-triggered; if one is attempted and fails or blocks, it cannot be ignored.
+
+For an affected RC smoke, use the supported Bench surface with only the relevant case selected:
 
 ```bash
-python3 evals/run_transition_trials.py --case CASE_ID --attempts 1
+python3 benchmarks/dev_flow_bench.py plan benchmarks/suites/dev-flow-regression.json --case CASE_ID
 ```
 
-Live execution adds the separately approved model, reasoning effort, output directory, per-run/per-call token ceilings, per-call timeout, model-spend acknowledgement, and campaign budget. The runner writes one bounded evidence file and ends at `awaiting-manual-assessment`. A maintainer writes a separate `flow.transition.observations.v1` manifest and validates it with `flow-metrics --lane transition`; execution and assessment remain separate. Same-context assessment reports `common-mode-risk`. Do not add `--qualification` for an RC smoke. The existing complete qualification mode remains an explicit stable-release/research tool and is not a normal RC publication gate.
+Live execution still requires separately approved model spend, `run --execute --acknowledge-model-spend`, and explicit bounds. The internal executor has no standalone CLI or release authority. Bench writes bounded evidence and ends at `awaiting-assessment`; grading remains separate and same-context assessment reports `common-mode-risk`.
+
+Dev Flow Bench is the supported research surface for repeated or comparative model studies. It is independent of product state and release commands, defaults to a non-spending plan, separates regression/capability/safety-authority suites, carries explicit case health, and never emits an aggregate release score:
+
+```bash
+python3 benchmarks/dev_flow_bench.py audit-suite benchmarks/suites/dev-flow-regression.json
+python3 benchmarks/dev_flow_bench.py plan benchmarks/suites/dev-flow-capability.json
+```
 
 Earlier RC.3 candidates preserved three first-attempt failures: scanner shell-wrapper recognition, an undefined platform mutation target, and an undefined fork mutation target. Their diagnostics led to exact command normalization, concrete mutation baselines/paths, bounded fixture validation, expected-unmet consistency, and current-state fork reconciliation. The former two-model evaluation mechanism was removed completely because it added cost, classification defects, and an auxiliary tuning loop. None of its results qualifies the corrected bytes, and no historical failure is rescored.
 
-The corrected R4 catalog contains 22 cases across nine categories and adds an explicit auxiliary-convergence boundary. After two auxiliary repairs without primary-outcome progress, use a simpler/manual fallback, preserve a blocked/deferred gate, or obtain a bounded version-owner release exception. Such an exception is `WAIVED`, not a passed model gate, and cannot support stable-release or population-effectiveness claims. Keep all evidence outside the candidate tree so assessment cannot change the source identity. Candidate `99b5831c3d1890a84700aac6baa4a0cb0b33c495` supplied RC.3's required complete three-attempt execution; its manual semantic exceptions are recorded as owner waivers above.
+The historical R4 catalog contained 22 cases across nine categories and added an explicit auxiliary-convergence boundary. After two auxiliary repairs without primary-outcome progress, the current rule is still to simplify, defer, or block rather than tune the evaluator again. Candidate `99b5831c3d1890a84700aac6baa4a0cb0b33c495` supplied RC.3's then-required complete three-attempt execution; its manual semantic exceptions remain historical owner waivers and do not define current release policy.
 
 Corrected candidate `68ad32824f5393f5c4fdb3d88f8b61a811964023` stopped its first qualification attempt after 2,434,991 tokens because the runner allowed only one total session thread while a catalog case required child dispatch. A later focused run against candidate `abeabe7b9940853509e3ea55a75156dde38afc45` was initially misclassified because `codex exec --json` omitted collaboration events. The preserved isolated rollout proves a real spawn, distinct child execution, delivered result, and wait-after-result. The runner now allows exactly one child and, only for delegation-required turns, extracts bounded hashed spawn/result/nested-spawn/file-change facts from its temporary isolated rollout before deletion. Candidate `bd9102a41b7299735d3ff4a2c47fa384431c232a` then stopped without retry after 38,466 tokens because the public stream emitted `collab_agent_tool_call`, which the sanitizer still treated as an unknown generic tool. The red-first correction accepts public collaboration event identities but never copies their prompt; unknown tools expose only bounded type metadata. Candidate `c833b312ae4ded9ca47c88a86c80805e0ab2938c` subsequently completed the focused gate with one matching hashed spawn/result, a read-only non-delegating child, zero repository mutation, and root rejection of an out-of-scope proposal. The P0 delegation blocker is closed; the later complete R4 result and waivers are recorded above.
 

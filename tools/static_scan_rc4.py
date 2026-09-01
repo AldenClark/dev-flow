@@ -172,12 +172,12 @@ def scan(root: Path, *, check_event: bool = False) -> dict[str, Any]:
         path.relative_to(root.resolve()).as_posix()
         for path in candidate_identity.qualification_dependency_files(
             root,
-            root / "evals" / "run_transition_trials.py",
-            root / "evals" / "flow-transition-semantic-cases.json",
+            root / "benchmarks" / "dev_flow_bench_executor.py",
+            root / "benchmarks" / "cases" / "dev-flow-cases.json",
         )
     }
-    if "skills/dev-flow/scripts/flow_metrics.py" not in dependencies:
-        errors.append("qualification dependency closure omits flow_metrics.py")
+    if "benchmarks/dev_flow_bench_contracts.py" not in dependencies:
+        errors.append("benchmark dependency closure omits dev_flow_bench_contracts.py")
 
     # RC.4 traceability remains a historical invariant. Current-release change
     # ownership is validated by the RC.5 validator in CI.

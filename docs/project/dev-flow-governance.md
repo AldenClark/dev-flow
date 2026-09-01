@@ -27,7 +27,7 @@ Dev Flow 2.0 has no process, lifecycle, command-authorization, packet, agent, or
 
 Verification is proportional: focused reproducer or check first, affected module/integration/risk evidence next, broad regression only where the change can affect it, then final diff/scope inspection. Black-box, white-box, property, differential, exploratory, and adversarial views are selected by distinct failure sensitivity rather than mandatory prose accounting.
 
-Release evidence is selected by changed surface: R1 standard, R2 runtime, R3 artifact/security, or R4 model-semantic. The full semantic suite runs once for an exact SHA; focused compatibility cells cover platform/version-sensitive behavior; release-candidate construction owns archive, SBOM, checksums, provenance, and attestation without replaying semantic CI. Publication and installation remain separate authorities.
+Release evidence is selected by changed surface: R1 standard, R2 runtime, or R3 artifact/security. The full semantic suite runs once for final candidate bytes; focused compatibility cells cover platform/version-sensitive behavior; release-candidate construction owns archive, SBOM, checksums, provenance, and attestation without replaying semantic CI. Stable publication additionally reviews the cumulative semantic delta, applies the consolidated deeper static review, and exercises bounded real functional journeys. Repeated model studies belong to independent Dev Flow Bench and are not release gates. Publication and installation remain separate authorities.
 
 ## Legacy compatibility
 

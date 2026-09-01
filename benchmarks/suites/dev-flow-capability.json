@@ -1,0 +1,107 @@
+{
+  "schema_version": "dev-flow.benchmark.suite.v1",
+  "id": "dev-flow-capability-v1",
+  "kind": "capability",
+  "description": "Exploratory study for higher-order scope, method, and context adaptation.",
+  "source_catalog": "../cases/dev-flow-cases.json",
+  "cases": [
+    {
+      "id": "SCOPE-CLOSED-DEEP-IMPLEMENTATION",
+      "health": "accepted",
+      "provenance": "Managed implementation scenarios with explicitly closed scope.",
+      "oracle": "Deep work proceeds while scope and authority remain monotonic.",
+      "limitation": "Does not compare implementation quality across model families."
+    },
+    {
+      "id": "METHOD-SELECTED-REALIZATION-OUTPUT",
+      "health": "provisional",
+      "provenance": "Method-disposition scenarios introduced during 2.0 methodology integration.",
+      "oracle": "A selected method produces observable task evidence rather than decorative naming.",
+      "limitation": "Method usefulness still needs broader real-task calibration."
+    },
+    {
+      "id": "METHOD-REVIEW-TO-VERIFICATION-ADJACENCY",
+      "health": "accepted",
+      "provenance": "Review findings that require fresh verification before closure.",
+      "oracle": "Review and verification remain adjacent without conflating their evidence.",
+      "limitation": "Synthetic finding set does not estimate production defect recall."
+    },
+    {
+      "id": "CONTEXT-REFERENCE-REPOSITORY-BOUNDARY",
+      "health": "provisional",
+      "provenance": "RC.3 reference-repository comparison residual.",
+      "oracle": "Reference facts inform comparison without granting mutation authority.",
+      "limitation": "Earlier attempts showed inconsistent comparison depth; keep exploratory."
+    },
+    {
+      "id": "ADAPTATION-CONFIRMED-PREFERENCE",
+      "health": "accepted",
+      "provenance": "Confirmed user preference adaptation scenarios.",
+      "oracle": "Confirmed preference changes subsequent behavior without inventing broader authority.",
+      "limitation": "Single-session preference evidence only."
+    },
+    {
+      "id": "TRANSITION-NEW-PLATFORM-EXPANSION",
+      "health": "provisional",
+      "provenance": "Cross-platform scope-recalibration scenario migrated from the historical catalog.",
+      "oracle": "A newly requested platform receives its own scoped implementation and fresh platform evidence.",
+      "limitation": "Synthetic Rust and Swift files do not exercise either native toolchain."
+    },
+    {
+      "id": "TRANSITION-INTERRUPTION-RESUME",
+      "health": "provisional",
+      "provenance": "Managed-work interruption and resume scenario migrated from the historical catalog.",
+      "oracle": "Resume reconciles current workstream truth and advances only the next ready slice.",
+      "limitation": "Two local Markdown files approximate a longer multi-session workstream."
+    },
+    {
+      "id": "TRANSITION-FORK-CONTINUATION",
+      "health": "provisional",
+      "provenance": "Fork reconciliation scenario migrated from the historical catalog.",
+      "oracle": "The fork reads current Git truth and does not assume parent-worktree state.",
+      "limitation": "Synthetic fork lineage does not exercise a hosted worktree handoff."
+    },
+    {
+      "id": "SCOPE-EXPLICIT-OPEN-EXPLORATION",
+      "health": "provisional",
+      "provenance": "Explicit open-discovery scenario migrated from the historical catalog.",
+      "oracle": "Authorized breadth converges into recommendations and explicit non-goals without mutation.",
+      "limitation": "Recommendation quality remains manually observed."
+    },
+    {
+      "id": "METHOD-BLOCKED-TO-READY-DISPOSITION",
+      "health": "provisional",
+      "provenance": "Method-readiness transition scenario migrated from the historical catalog.",
+      "oracle": "A method stays blocked until its prerequisite is observed, then produces a concrete owned artifact.",
+      "limitation": "The privacy data map is synthetic and intentionally small."
+    },
+    {
+      "id": "METHOD-REASONED-ABSTENTION-NEGATIVE",
+      "health": "provisional",
+      "provenance": "Method-quiet negative control migrated from the historical catalog.",
+      "oracle": "An exact native oracle proceeds without forced methodology ceremony.",
+      "limitation": "One deterministic arithmetic fixture does not cover ambiguous verification."
+    },
+    {
+      "id": "CONTINUATION-PROCESS-SUPERVISION",
+      "health": "provisional",
+      "provenance": "Known-process supervision scenario migrated from the historical catalog.",
+      "oracle": "Continuation observes the known process identity and does not start duplicate work.",
+      "limitation": "Uses a synthetic process contract rather than a long-running real command."
+    },
+    {
+      "id": "CONTEXT-EXPLICIT-TASK-SYNTHESIS",
+      "health": "provisional",
+      "provenance": "Explicit context-synthesis scenario migrated from the historical catalog.",
+      "oracle": "Provided context is synthesized into the bounded task without treating it as authority expansion.",
+      "limitation": "Context is curated and does not model large noisy histories."
+    },
+    {
+      "id": "CONTEXT-CONFIRMED-SHARED-CONTRACT",
+      "health": "provisional",
+      "provenance": "Confirmed shared-contract scenario migrated from the historical catalog.",
+      "oracle": "A confirmed shared contract affects the admitted task while unrelated authority remains unchanged.",
+      "limitation": "Single confirmation path without cross-account or persistent-memory evidence."
+    }
+  ]
+}

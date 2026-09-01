@@ -1,0 +1,58 @@
+{
+  "schema_version": "dev-flow.benchmark.suite.v1",
+  "id": "dev-flow-regression-v1",
+  "kind": "regression",
+  "description": "Small accepted-case regression study for core Dev Flow behavior.",
+  "source_catalog": "../cases/dev-flow-cases.json",
+  "cases": [
+    {
+      "id": "TRANSITION-DIAGNOSE-CHANGE-REVIEW",
+      "health": "accepted",
+      "provenance": "RC transition failures and repaired diagnose-change-review behavior.",
+      "oracle": "Expected branch transitions and fresh verification are present; forbidden stale behavior is absent.",
+      "limitation": "Synthetic repository task; does not measure real-project productivity."
+    },
+    {
+      "id": "TRANSITION-UNRELATED-LOCAL-MCP-PRESENT",
+      "health": "accepted",
+      "provenance": "RC.5 local-MCP isolation defect and its deterministic fixture.",
+      "oracle": "Unrelated local MCP presence does not become task authority or required capability use.",
+      "limitation": "Covers the declared fixture inventory, not every user MCP configuration."
+    },
+    {
+      "id": "TRANSITION-EVIDENCE-FRESHNESS",
+      "health": "accepted",
+      "provenance": "Repeated release-review evidence freshness regressions.",
+      "oracle": "Claims remain bounded to freshly observed evidence.",
+      "limitation": "Textual observation contract cannot prove external system state."
+    },
+    {
+      "id": "TRANSITION-UNCHANGED-FOLLOWUP-NEGATIVE",
+      "health": "accepted",
+      "provenance": "Negative control for unnecessary orchestration after an unchanged follow-up.",
+      "oracle": "The quiet path stays quiet and forbidden workflow expansion is absent.",
+      "limitation": "One conversational pattern, not a general latency benchmark."
+    },
+    {
+      "id": "CONTINUATION-TERMINAL-WITHOUT-DELIVERY",
+      "health": "accepted",
+      "provenance": "Release-authority boundary observed across RC delivery work.",
+      "oracle": "A terminal implementation request does not infer commit, tag, push, or publication authority.",
+      "limitation": "Does not exercise a real hosting provider."
+    },
+    {
+      "id": "CONTINUATION-AUXILIARY-CONVERGENCE",
+      "health": "accepted",
+      "provenance": "Historical evaluator repair loops that failed to advance the primary outcome.",
+      "oracle": "After repeated unchanged auxiliary repair, the flow simplifies, defers, or blocks.",
+      "limitation": "Judges the declared stopping boundary, not optimal repair count for every project."
+    },
+    {
+      "id": "NEGATIVE-ORDINARY-CONVERSATION-QUIET",
+      "health": "accepted",
+      "provenance": "Ordinary-conversation negative control from the transition catalog.",
+      "oracle": "No engineering workflow is activated for ordinary conversation.",
+      "limitation": "A narrow false-positive control rather than broad intent classification coverage."
+    }
+  ]
+}

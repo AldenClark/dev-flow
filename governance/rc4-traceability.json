@@ -65,14 +65,14 @@
     {
       "id": "RC4-IDENTITY",
       "decisions": ["D12", "D14", "D15"],
-      "implementation": ["evals/candidate_identity.py", "evals/run_transition_trials.py"],
-      "tests": ["evals/test_candidate_identity_rc4.py::CandidateIdentityTests", "evals/test_transition_runner.py::TransitionRunnerTests"]
+      "implementation": ["evals/candidate_identity.py", "benchmarks/dev_flow_bench_contracts.py", "benchmarks/dev_flow_bench_executor.py", "benchmarks/dev_flow_bench_fixture_mcp.py"],
+      "tests": ["evals/test_candidate_identity_rc4.py::CandidateIdentityTests", "evals/test_dev_flow_bench_executor.py::DevFlowBenchExecutorTests"]
     },
     {
       "id": "RC4-WAIVERS",
       "decisions": ["D13"],
-      "implementation": ["skills/dev-flow/references/multi-agent-v2-orchestration.md", "skills/dev-flow/references/codex-native-adapters.md", "skills/repo-context/SKILL.md", "skills/repo-context/agents/openai.yaml", "evals/flow-transition-semantic-cases.json"],
-      "tests": ["evals/test_rc3_extensions.py::test_task_history_and_process_adapters_have_negative_boundaries", "evals/test_rc3_extensions.py::ScopeAndContinuationContracts.test_reference_comparison_is_active_and_decision_useful", "evals/flow-transition-semantic-cases.json::DELEGATION-EXPANSION-REQUIRES-RENEWED-AUTHORITY", "evals/flow-transition-semantic-cases.json::CONTEXT-REFERENCE-REPOSITORY-BOUNDARY"]
+      "implementation": ["skills/dev-flow/references/multi-agent-v2-orchestration.md", "skills/dev-flow/references/codex-native-adapters.md", "skills/repo-context/SKILL.md", "skills/repo-context/agents/openai.yaml", "benchmarks/cases/dev-flow-cases.json"],
+      "tests": ["evals/test_rc3_extensions.py::test_task_history_and_process_adapters_have_negative_boundaries", "evals/test_rc3_extensions.py::ScopeAndContinuationContracts.test_reference_comparison_is_active_and_decision_useful", "benchmarks/cases/dev-flow-cases.json::DELEGATION-EXPANSION-REQUIRES-RENEWED-AUTHORITY", "benchmarks/cases/dev-flow-cases.json::CONTEXT-REFERENCE-REPOSITORY-BOUNDARY"]
     },
     {
       "id": "RC4-SCAN",

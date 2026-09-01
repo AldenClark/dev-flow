@@ -7452,8 +7452,10 @@ class RepositoryContractTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         releasing = (ROOT / "docs" / "releasing.md").read_text(encoding="utf-8")
 
-        for tier in ("R1 standard", "R2 runtime", "R3 artifact/security", "R4 model-semantic"):
+        for tier in ("R1 standard", "R2 runtime", "R3 artifact/security"):
             self.assertIn(tier, releasing)
+        self.assertNotIn("| R4 model-semantic |", releasing)
+        self.assertIn("Dev Flow Bench is independent research", releasing)
         for release_contract in (
             "Run the full semantic suite once for an exact commit SHA",
             "affected focused compatibility cells",

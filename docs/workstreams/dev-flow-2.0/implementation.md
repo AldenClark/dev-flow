@@ -91,7 +91,7 @@
 - Keep the compatibility matrix across supported OS and minimum/latest Python boundaries when that path gate is active.
 - Keep plugin, suite, methodology legacy data, knowledge legacy data, data-security, compile, and clean-tree validators in the semantic lane while they remain shipped surfaces.
 - Remove duplicate full behavioral/contract/validator execution from the RC artifact workflow.
-- Update runbook to select R1-R4 from changed surfaces.
+- Update the original runbook to select release evidence from changed surfaces. Current policy uses R1-R3; repeated model studies are independent research.
 - Keep immutable SHA binding, deterministic archive verification, SPDX SBOM, checksums, provenance, attestation, and least privilege for release artifacts.
 
 ## Verification strategy

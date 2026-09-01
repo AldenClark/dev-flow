@@ -62,7 +62,7 @@ Dev Flow must help Codex complete real repository work with broad engineering in
 - Privacy, agent-memory, and multi-agent methods require evidence of their actual domain rather than appearing from a broad risk label alone.
 - A required independent review is either executed through a clean context or explicitly downgraded with common-mode risk; same-context blue/red lenses are never called independent.
 - Managed work resumes from current repository/workstream truth and leaves a concise interruption handoff covering completed/current/next work, blockers or unrun gates, and worktree or parallel-change state.
-- Semantic activation catalogs contain both explicit and implicit positive cases plus negative controls. Model-semantic release evidence remains `NOT RUN` until separately authorized and budgeted.
+- Semantic activation catalogs contain both explicit and implicit positive cases plus negative controls. Repeated or comparative model studies are independent research, remain non-spending until separately authorized and budgeted, and never determine release state by default.
 
 ## Constraints and protected behavior
 
@@ -76,4 +76,4 @@ Dev Flow must help Codex complete real repository work with broad engineering in
 ## Open decisions
 
 - None for local RC.2 activation-hardening implementation and deterministic validation.
-- Model-semantic first-attempt trials, commit, tag, push, installation, publication, and release remain separate authority or budget decisions.
+- Live semantic first-attempt journeys, benchmark studies, commit, tag, push, installation, publication, and release remain separate authority or budget decisions.

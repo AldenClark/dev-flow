@@ -2,7 +2,7 @@
 
 Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是建立第二套工作流引擎，而是用最少的流程成本保持三件事：长期业务工作不漂移、技术结论有原生工程证据、高后果动作保留明确安全边界。
 
-当前源码发布身份为 `2.0.0-rc.5`。它收敛个人 AI 编程辅助的公共命令面、路由上下文、产品状态、只读诊断、隐私友好成效观测和不可信上下文边界。`v2.0.0-rc.5` 是最近已发布且可固定安装的标签，回滚目标为 `v2.0.0-rc.4`。RC.5 已完成聚焦检查、一次完整本地回归、轻量方法论静态审查、适用托管兼容、制品与证明、隔离安装、tag 和发布；受影响语义 smoke 的终态回复仍缺少显式检查与限制证据，该残余已如实保留，完整重复 R4 和独立净上下文审查留给稳定版。`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
+当前源码发布身份为 `2.0.0-rc.5`。它收敛个人 AI 编程辅助的公共命令面、路由上下文、产品状态、只读诊断、隐私友好成效观测和不可信上下文边界。`v2.0.0-rc.5` 是最近已发布且可固定安装的标签，回滚目标为 `v2.0.0-rc.4`。RC.5 已完成聚焦检查、一次完整本地回归、轻量方法论静态审查、适用托管兼容、制品与证明、隔离安装、tag 和发布；受影响语义 smoke 的终态回复仍缺少显式检查与限制证据，该残余已如实保留。当前暂不推进 2.0 正式版；未来正式版采用“累计语义复核 + 加强静态审计 + 有界真实功能旅程 + 一次完整确定性回归”，重复模型研究已从发布门禁中分离。`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
 
 ## 2.0 核心模型
 
@@ -253,21 +253,21 @@ python3 skills/dev-flow/scripts/dev-flow.py validate-knowledge --root .
 python3 skills/dev-flow/scripts/dev-flow.py check --plugin-root .
 python3 skills/dev-flow-maintainer/scripts/validate-suite.py
 python3 skills/company-data-security/scripts/doctor.py --plugin-root .
-python3 -m compileall -q hooks skills evals tools
+python3 -m compileall -q hooks skills evals tools benchmarks
 git diff --check
 ```
 
-CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job 执行完整语义/结构/产品状态/RC.5 静态追踪检查，机器可读 compatibility inventory 只在运行时、Hook、安装器、档案解析或平台敏感测试变化时启动 Ubuntu/macOS/Windows 与 Python 3.11/3.14 的 focused matrix；旧的 25 次诊断循环已移除。RC 修复期间只跑受影响检查，冻结候选只跑一次完整本地回归；模型指导变化另跑一次受影响案例 smoke。完整 live R4 和新的独立审查保留给稳定版或单独授权评估。模型结果不代表生产力、业务效果或总体质量分数。
+CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job 执行完整语义/结构/产品状态/RC.5 静态追踪检查，机器可读 compatibility inventory 只在运行时、Hook、安装器、档案解析或平台敏感测试变化时启动 Ubuntu/macOS/Windows 与 Python 3.11/3.14 的 focused matrix；旧的 25 次诊断循环已移除。RC 修复期间只跑受影响检查，冻结候选只跑一次完整本地回归；模型指导变化另跑一次受影响案例 smoke。正式版增加从上一公开稳定版开始的累计需求/语义复核、六种轻量静态方法和五条真实功能旅程，但不重复跑完整模型目录。模型结果不代表生产力、业务效果或总体质量分数。
 
-发版按变更面分为 R1 standard、R2 runtime、R3 artifact/security、R4 model-semantic。`flow-metrics` 只验证分支激活与负向边界，不衡量生产力或效果。具体边界、命令和 `NOT RUN` 规则见 [docs/releasing.md](docs/releasing.md)。
+发版按变更面分为 R1 standard、R2 runtime、R3 artifact/security。`flow-metrics` 只验证分支激活与负向边界，不衡量生产力或效果。重复和对比模型研究使用独立的 `benchmarks/dev_flow_bench.py`，不读取产品发布状态，也不是发版层级。具体边界、命令和 `NOT RUN` 规则见 [docs/releasing.md](docs/releasing.md)。
 
 ## 版本和发布状态
 
 - `2.0.0-rc.5` 是当前源码发布身份；`v2.0.0-rc.5` 是最近已发布的 personal-assistant-hardening RC，已完成精确提交的 CI、兼容、制品、证明、隔离安装和公开预发布验证。
-- `v2.0.0-rc.4` 是 RC.5 的固定安装回滚标签；完整 R4 与独立净上下文审查留给稳定版，RC.5 受影响语义 smoke 的终态检查/限制证据残余保留为已知边界。
+- `v2.0.0-rc.4` 是 RC.5 的固定安装回滚标签；RC.5 受影响语义 smoke 的终态检查/限制证据残余保留为已知边界，后续由累计稳定版复核重新判断，不触发完整目录重跑。
 - `v2.0.0-rc.2` 是上一 activation-hardening RC，也是 RC.3 的可固定安装回滚标签。
 - `v2.0.0-rc.1` 是上一 RC，包含 Default-mode 需求确认、主动高级能力激活、Luna P0-P2、Codex 原生适配和 Flow Activation Coverage。
 - `v1.1.2` 是最后一个 1.x 稳定标签；1.1.3 只存在于未发布源码历史，2.0 不提供 1.x 兼容或迁移保证。
 - 源码、commit、push、tag、GitHub Release、Marketplace 安装和生产使用是不同状态；只有逐项执行和复核后才能声称完成。
 
-RC.5 的需求、设计、实施拆解和当前证据边界位于 [docs/workstreams/dev-flow-2.0-rc.5](docs/workstreams/dev-flow-2.0-rc.5/)；RC.4 的发布审计保留在 [docs/workstreams/dev-flow-2.0-rc.4](docs/workstreams/dev-flow-2.0-rc.4/)。2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)，历史版本见 [CHANGELOG.md](CHANGELOG.md)。
+RC.5 的需求、设计、实施拆解和当前证据边界位于 [docs/workstreams/dev-flow-2.0-rc.5](docs/workstreams/dev-flow-2.0-rc.5/)；发布验证与独立 Bench 的拆分位于 [docs/workstreams/dev-flow-2.0-benchmark-separation](docs/workstreams/dev-flow-2.0-benchmark-separation/)。2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)，历史版本见 [CHANGELOG.md](CHANGELOG.md)。

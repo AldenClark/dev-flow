@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Serve one deterministic, network-free MCP tool for transition fixtures."""
+"""Serve one deterministic, network-free MCP tool for Dev Flow Bench fixtures."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ def serve(tool_name: str) -> int:
                     "protocolVersion": protocol_version,
                     "capabilities": {"tools": {}},
                     "serverInfo": {
-                        "name": "dev-flow-transition-fixture",
+                        "name": "dev-flow-bench-fixture",
                         "version": "1",
                     },
                 },
@@ -55,7 +55,7 @@ def serve(tool_name: str) -> int:
                     "tools": [
                         {
                             "name": tool_name,
-                            "description": "Deterministic read-only transition fixture tool.",
+                            "description": "Deterministic read-only benchmark fixture tool.",
                             "inputSchema": {
                                 "type": "object",
                                 "properties": {},

@@ -42,11 +42,11 @@
 
 ## D6: Release evidence is selected by changed surface
 
-- Status: accepted
+- Status: superseded on 2026-09-01 by `../dev-flow-2.0-benchmark-separation/decisions.md` D1-D3
 - Context: six identical full CI suites, repeated RC suites, model evaluation, artifact evidence, and install rollback make every release pay the maximum cost.
-- Decision: use R1-R4 release tiers, one semantic lane, a focused compatibility lane, and a release-only artifact lane.
+- Decision: the original 2.0 design used R1-R4 release tiers, one semantic lane, a focused compatibility lane, and a release-only artifact lane. Current policy retains R1-R3 and moves repeated model research to independent Dev Flow Bench.
 - Alternatives: retain maximum gates; reduce every release to one CI job.
-- Consequences: materially lower routine release cost while retaining platform, runtime, security, provenance, and model evidence where each can change the outcome.
+- Consequences: materially lower routine release cost while retaining platform, runtime, security, and provenance evidence where each can change the outcome; stable functional validation is stronger without a repeated-model release tier.
 
 ## D7: Source version becomes a prerelease, publication remains separate
 

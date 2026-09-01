@@ -60,3 +60,7 @@ The prior giant qualification loop is closed. Across run-001 through run-011 it 
 - Model-semantic observations remain separate from source/diff review and must retain their own assessment provenance.
 - The earlier independent review is stale for S5. Without separate renewed reviewer authority, the strongest available review is same-context and retains `common-mode-risk`.
 - Hosted Windows and cross-platform compatibility passed for the released candidate. Live primary-profile Hook loading, real personal outcome effects, primary-profile installation, deployment, and production use remain `NOT RUN`.
+
+## Post-RC.5 policy supersession (2026-09-01)
+
+The R4 and universal independent-review statements above describe the rules that applied when RC.5 was released. They no longer define future stable publication. Current policy is maintained in `docs/releasing.md`: stable validation uses cumulative semantic review, one consolidated deeper static review, five bounded functional journeys, and one complete deterministic regression. Repeated model studies run only through independent Dev Flow Bench and are not release gates. This supersession does not relabel or erase historical RC.5 evidence.

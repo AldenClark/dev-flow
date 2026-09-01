@@ -26,7 +26,6 @@
     "hosted_ci": "passed",
     "cross_platform": "passed",
     "independent_review": "waived",
-    "model_qualification": "not-applicable",
     "tag": "passed",
     "artifact": "passed",
     "publication": "passed",

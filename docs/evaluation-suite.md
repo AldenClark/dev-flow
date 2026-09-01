@@ -60,57 +60,37 @@ The matched count is test accounting, not a quality percentage or release score.
 
 Method-aware evaluation separates eligibility, activation, candidate selection, readiness, disposition, realization, and evidence effect. A valid method disposition is execute-ready, blocked-fallback with its limitation retained, or reasoned abstention because the owning specialist already supplies a sufficient procedure. Transition fixtures fail when a selected method silently disappears or when its concrete test, mutation, counterexample, model, review surface, evidence matrix, or claim limitation is removed. Method names, generated method artifacts, and selection counts cannot satisfy the oracle.
 
-## Multi-turn transition observations
+## Dev Flow Bench
 
-The shipped transition catalog is `evals/flow-transition-semantic-cases.json`. It declares the nine canonical R4 categories, at least three cases assigned to each category, at least three independent first attempts per case, ordered turns, resume/fork lineage, candidate repository-mutation expectations, optional bounded runner-owned pre-turn fixtures, per-turn expected-unmet state, and expected/forbidden branch observations. Validate externally observed attempts with:
-
-```bash
-python3 skills/dev-flow/scripts/dev-flow.py flow-metrics \
-  --lane transition \
-  --observations /absolute/path/to/attempt-001.json
-```
-
-Each observed case binds an `initial_repository_sha256`, a deterministic `initial_git_head_sha256`, and one `repository_sha256` per turn. Fixture Git initialization ignores system/global config and hooks and fixes the branch, identity, and timestamp. The validator rejects missing or out-of-order turns, reused evidence digests, a declared repository mutation not bound to changed bytes, byte changes during a `mutation=none` turn, unmet prerequisites, authority violations, and expected/forbidden mismatches. It does not invoke a model, reconstruct a transcript, infer labels, or emit an effect/aggregate score.
-
-The companion runner is non-spending by default. For an RC regression smoke, select only the directly affected case and one attempt:
+Repeated and comparative model studies now belong to the independent `dev-flow-bench` surface. They do not read or update `governance/product-state.json`, select a release tier, publish, install, or emit a release verdict. The default commands are deterministic and non-spending:
 
 ```bash
-python3 evals/run_transition_trials.py
-python3 evals/run_transition_trials.py --case CASE_ID --attempts 1
+python3 benchmarks/dev_flow_bench.py audit-suite benchmarks/suites/dev-flow-regression.json
+python3 benchmarks/dev_flow_bench.py plan benchmarks/suites/dev-flow-capability.json
+python3 benchmarks/dev_flow_bench.py plan benchmarks/suites/dev-flow-safety-authority.json
 ```
 
-Complete `--qualification --attempts 3` remains available only for a stable release or a separately authorized evaluation study. It is intentionally not the default RC path.
+The three suites answer different questions:
 
-Any authorized live run requires `--execute`, `--acknowledge-model-spend`, explicit `--model` and `--reasoning-effort`, an empty `--output-dir`, per-run ceilings, and one external campaign ledger. An RC smoke keeps `--case CASE_ID --attempts 1`; the stable/research form additionally uses `--qualification --attempts 3`. A complete stable/research invocation is:
+- regression: did accepted behavior change for a small bank of real historical failures and negative controls;
+- capability: what does the candidate do on exploratory scope, method, and context-adaptation cases;
+- safety-authority: did it cross a scope, tool, delegation, or delivery boundary.
 
-```bash
-python3 evals/run_transition_trials.py \
-  --qualification --attempts 3 --execute --acknowledge-model-spend \
-  --model MODEL --reasoning-effort EFFORT \
-  --output-dir /absolute/empty/output \
-  --campaign-budget-file /absolute/private/campaign.json \
-  --campaign-id CAMPAIGN --campaign-max-total-tokens CAMPAIGN_MAXIMUM \
-  --max-total-tokens MAXIMUM --per-call-token-limit PER_CALL \
-  --per-call-timeout-seconds SECONDS
-```
+Every suite case declares provenance, a concrete oracle, limitation, and health. `accepted` cases run by default, `provisional` cases require `--include-provisional`, and `quarantined` cases never run. Audit rejects malformed suites, duplicate or unknown cases, and expected/forbidden overlap. Case health is distinct from candidate behavior and infrastructure health.
 
-Before the first model call, the runner reserves the complete per-run allowance from the campaign ledger. Allocations accumulate across output directories and candidate revisions and are never released. A second run with unchanged semantic-runtime and qualification-execution identities is rejected in favor of prior-evidence reuse. A changed identity invalidates only the affected claim; it does not renew budget authority. Each invocation binds a fresh reservation nonce into its run ID, so admission recovery cannot claim another concurrent invocation's reservation. A stale guard, malformed ledger, or indeterminate ledger-update failure fails closed with an explicit recovery record rather than guessing that no writer is active.
+An authorized live study additionally requires `run --execute --acknowledge-model-spend`, explicit model and reasoning effort, an empty output directory outside the candidate, and positive total-token, per-call-token, and timeout limits. The output directory is claimed exclusively and JSON records are replaced atomically with owner-only file permissions. Candidate source, Git state, suite/case contracts, benchmark/executor bytes, Codex executable/version, model, limits, and environment policy are bound before execution and rechecked after every trial. The tool preserves a classified first failure and performs no automatic retry. There is no release campaign ledger: each research invocation has one explicit bounded budget, and study owners decide whether later comparison is worth separate spend authority.
 
-The runner has one responsibility: execute the candidate in isolated synthetic repositories and preserve bounded first-attempt evidence. Each attempt contains the synthetic response text, sanitized tool trajectory, runner-owned fixture delta, candidate repository delta, Git/repository digests, lineage digest, and evidence digest. Before every model call it admits the exact isolated MCP inventory: ordinary cases require an empty list, while declared runner-owned cases require exactly one enabled stdio server. MCP lifecycle evidence waits for the matching completion and retains only bounded server/tool/status/error-category identity—never arguments, results, commands, environment, or credentials. It checkpoints evidence before semantic hard gates, so a prohibited mutation or lineage/trajectory failure remains inspectable after the temporary repository is removed. Mutation identity excludes only Python bytecode under `__pycache__` and `.pytest_cache` test-runner state; those paths still count toward resource limits, and source-like neighbors remain visible. It checks resume/fork identity, Git HEAD, candidate-versus-fixture mutations, per-call, per-run, and campaign token usage, timeouts, process groups, output size, repository size, and exact candidate/catalog/runner/Codex identity. Delegation-required turns allow exactly one child slot and supplement the incomplete public JSON stream with bounded facts from the runner-owned temporary rollout: hashed child identity/path and result content plus fixed nested-spawn/file-change markers. Current-turn identity, exact spawn/result reconciliation, read-only-child, no-redelegation, safe real paths, JSONL shape, and resource bounds fail closed; raw child text and raw session identities are never copied into attempt evidence. The runner preserves the first execution failure without automatic retry, terminates the process tree on interruption, records bounded partial usage/evidence, and deletes temporary plugin homes, raw session events, raw session identifiers, and fixture repositories.
+Execution, assessment, and comparison remain separate. A live run ends at `awaiting-assessment`; `grade --run-result RESULT --trial N --observations OBSERVATIONS` evaluates separately authored `dev-flow.benchmark.observations.v1` data only after each observation digest is bound to that exact trial. The graded v2 result carries the run, evidence, observation, candidate, execution-context, and case-contract identities. `compare` requires the same suite, case contracts, model/executor/limits, trial number, and complete case set by default. `--allow-partial` makes missing/added cases visible for exploratory work, while `--fail-on-regression` supplies a non-zero automation outcome. No command produces an aggregate score or population claim. Every selected safety-authority result remains visible rather than being inferred from category names.
 
-Execution ends with `status: awaiting-manual-assessment`; it does not emit observations or a qualification verdict. Inspect each bounded synthetic evidence file, write a separate `flow.transition.observations.v1` manifest, and evaluate it through `flow-metrics --lane transition`. Keep the assessment manifest and coverage result outside the candidate tree. Do not include credentials, personal paths, production values, or raw session IDs. This restores the RC.2 separation between model execution and same-context/manual adjudication; report `common-mode-risk` rather than claiming independent evaluation. `--qualification` rejects a partial `--case` selection or fewer than three attempts. A non-qualification diagnostic run proves only its exact lineage mechanics and cannot satisfy R4.
+Bench owns all 26 migrated cases in `benchmarks/cases/dev-flow-cases.json`, the three suite selections under `benchmarks/suites/`, its case/observation contracts in `benchmarks/dev_flow_bench_contracts.py`, its deterministic MCP fixture in `benchmarks/dev_flow_bench_fixture_mcp.py`, and the bounded internal executor in `benchmarks/dev_flow_bench_executor.py`. The catalog has no release tier, minimum repeated-attempt rule, or qualification threshold. The executor has no standalone CLI, campaign ledger, grading authority, or release-state access; the supported entry point remains `benchmarks/dev_flow_bench.py`.
 
-The runner uses a POSIX process group plus TERM/KILL cleanup and per-file resource limits. Hosted Windows compatibility must still prove descendant cleanup under its native process model; local source evidence does not upgrade that cell to passed. A host-level filesystem quota remains recommended because no portable per-directory disk quota is supplied by Python.
+Each observed case binds deterministic repository identity and per-turn repository bytes. The validator rejects missing or out-of-order turns, reused evidence digests, unbound mutations, unmet prerequisites, authority violations, and expected/forbidden mismatches. It does not reconstruct transcripts or infer labels. Model-run output stays outside the candidate tree; the retained bounded response is passed through the repository-local DLP redactor, while raw session IDs, raw MCP arguments, and raw MCP results are not retained. DLP is not proof that all nonsensitive contextual or path information is absent, so the owner-only local evidence must still be reviewed before sharing.
 
-The transition catalog also covers closed versus explicitly open discovery, finding disposition, blocked-to-ready method rechecks, fallback and abstention, review-to-verification adjacency, method realization, nested delegation narrowing, terminal persistence, process supervision, auxiliary-mechanism convergence, explicit task synthesis, reference-repository boundaries, confirmed profile writes, and ordinary-conversation quietness. These are observation contracts; they do not claim deterministic host enforcement.
+## Historical evaluation lessons
 
-## RC.3 evaluation correction
+RC.2-RC.4 used an R4 release category and increasingly complex repeated trials. Those runs exposed real semantic defects, but also consumed substantial budget, introduced evaluator false positives and contract defects, and encouraged repeated auxiliary repairs without advancing the release. Preserved results remain historical facts; they are not rescored or treated as current release evidence.
 
-Earlier RC.3 candidates used a two-model evaluation mechanism. It consumed substantial budget, introduced its own false positives and contract defects, and encouraged repeated local evaluator repairs without advancing the primary release condition. That mechanism, its Schema, tests, CLI surface, identity fields, and release requirement were removed on 2026-08-24. Its preserved failed and diagnostic results remain historical nonqualification evidence only and must not be rescored or represented as current R4 evidence.
-
-The current catalog contains 26 cases and 56 turns across nine enforced categories. It retains the useful hard-gate repairs learned from earlier trials: exact mutation paths and baselines, bounded repository fixtures, deterministic Git identity, changed-fact capability recovery, exact scanner execution including one trusted shell-wrapper layer, unmet-state consistency, and fork current-state reconciliation. It now separates an actually absent tool surface, an unrelated local MCP that must not be substituted, and one explicitly authorized runner-owned MCP that must be called exactly once. It also includes a cumulative auxiliary-mechanism convergence case: after two repairs without primary-outcome progress, the default is a simpler/manual fallback or an honest blocked/deferred gate, not a third evaluator tweak. Historical RC.3 evidence used the earlier 22-case, 48-turn catalog and is not reinterpreted by this current count.
-
-Model-run output belongs outside the candidate tree so recording a result cannot change the source identity. An RC smoke proves only the directly affected cases and blocks only the affected RC behavior. Stable-release R4 still requires its complete predeclared design; RC smoke evidence must not be promoted into that broader claim. After two auxiliary repairs without primary progress, simplify, defer, or block instead of tuning the evaluator again.
+The useful hardening survives inside the independent benchmark: exact mutation paths and baselines, bounded fixtures, deterministic Git identity, explicit absent/unrelated/authorized MCP states, unmet-state consistency, fork reconciliation, first-failure preservation, and the two-repair convergence boundary. After two auxiliary repairs without primary progress, simplify, defer, or block instead of tuning the evaluator again.
 
 ## Privacy-safe dogfood aggregates
 
@@ -145,13 +125,13 @@ Add a case when a real activation omission or over-activation is observed. Prefe
 
 1. Deterministic routing executes the public commands, large-task simulations, oracle mutations, and negative controls in normal CI.
 2. Semantic fixtures combine a natural-language request with a small repository shape and assert expected/forbidden activation against a preserved first-attempt observation manifest. Run these when model-facing instructions or triggers change.
-3. High-fidelity isolated pilots use fresh repositories and a temporary plugin home when confidence depends on actual Codex interpretation. An RC runs one bounded first attempt for each directly affected semantic case. A stable-release or separately authorized repeated R4 study must predeclare its sampling, stopping rule, budget, and claim limits. The nested model shell must not inherit the maintainer environment.
+3. High-fidelity isolated pilots use fresh repositories and a temporary plugin home when confidence depends on actual Codex interpretation. An RC or stable functional check runs one bounded first attempt for each directly affected journey. Repeated studies belong to Dev Flow Bench and require their own sampling, stopping rule, budget, and claim limits. The nested model shell must not inherit the maintainer environment.
 
 Semantic and high-fidelity cases are not effect experiments. They do not compare developer speed, defect rates, token economics, or one model's general quality. A pilot can show that a branch did or did not activate under its exact setup; it cannot establish a population performance claim.
 
 ## Release use
 
-An RC always runs deterministic activation coverage and, when model-facing guidance changed, one bounded first attempt for every directly affected semantic case. This is enough for the RC's narrow regression claim. Complete repeated R4 is reserved for stable publication or a separately authorized evaluation study; it keeps safety/authority as hard gates and never collapses results into one score.
+An RC always runs deterministic activation coverage and, when model-facing guidance changed, one bounded first attempt for every directly affected semantic case. Stable validation expands this to the five real functional journeys defined in the release runbook, but does not repeat an entire catalog. Repeated or comparative studies are optional Dev Flow Bench work and never become release evidence by default.
 
 A result may block publication only when a required branch is missing, a forbidden branch activates, authority is exceeded, or the fixture/prerequisite is invalid. Repository tests, platform checks, security controls, artifact provenance, installation, and publication authority remain separate evidence.
 

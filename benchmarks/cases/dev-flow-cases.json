@@ -1,22 +1,6 @@
 {
-  "schema_version": "flow.transition.catalog.v1",
-  "purpose": "Sanitized multi-turn activation, recalibration, failure-isolation, and freshness boundaries; no effect, productivity, or aggregate score.",
-  "qualification": {
-    "release_tier": "R4",
-    "minimum_cases_per_category": 3,
-    "minimum_first_attempts_per_case": 3,
-    "categories": [
-      "implicit-entry",
-      "material-transition",
-      "failure-isolation",
-      "method-disposition-realization",
-      "evidence-freshness",
-      "scope-convergence",
-      "constraint-preservation",
-      "context-synthesis-adaptation",
-      "negative-control-quietness"
-    ]
-  },
+  "schema_version": "dev-flow.benchmark.catalog.v1",
+  "purpose": "Sanitized multi-turn research cases for regression, capability, and safety-authority studies; no release qualification, effect, productivity, or aggregate score.",
   "cases": [
     {
       "id": "TRANSITION-DIAGNOSE-CHANGE-REVIEW",

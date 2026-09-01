@@ -26,27 +26,27 @@ class CandidateIdentityTests(unittest.TestCase):
             skill.write_text(skill.read_text(encoding="utf-8") + "\nRuntime change.\n", encoding="utf-8")
             self.assertNotEqual(first, candidate_identity.hash_files(root, candidate_identity.semantic_runtime_files(root))["sha256"])
 
-    def test_qualification_identity_includes_transitive_flow_metrics(self) -> None:
+    def test_qualification_identity_includes_transitive_bench_contracts(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "repo"
             shutil.copytree(ROOT, root, ignore=COPY_IGNORE)
             root = root.resolve()
-            runner = root / "evals" / "run_transition_trials.py"
-            catalog = root / "evals" / "flow-transition-semantic-cases.json"
+            runner = root / "benchmarks" / "dev_flow_bench_executor.py"
+            catalog = root / "benchmarks" / "cases" / "dev-flow-cases.json"
             files = candidate_identity.qualification_dependency_files(root, runner, catalog)
             relative = {path.relative_to(root).as_posix() for path in files}
-            self.assertIn("evals/run_transition_trials.py", relative)
-            self.assertIn("evals/runner_fixture_mcp.py", relative)
-            self.assertIn("skills/dev-flow/scripts/flow_metrics.py", relative)
+            self.assertIn("benchmarks/dev_flow_bench_executor.py", relative)
+            self.assertIn("benchmarks/dev_flow_bench_fixture_mcp.py", relative)
+            self.assertIn("benchmarks/dev_flow_bench_contracts.py", relative)
             first = candidate_identity.hash_files(root, files)["sha256"]
-            helper = root / "skills" / "dev-flow" / "scripts" / "flow_metrics.py"
+            helper = root / "benchmarks" / "dev_flow_bench_contracts.py"
             helper.write_text(helper.read_text(encoding="utf-8") + "\n# changed\n", encoding="utf-8")
             second = candidate_identity.hash_files(
                 root,
                 candidate_identity.qualification_dependency_files(root, runner, catalog),
             )["sha256"]
             self.assertNotEqual(first, second)
-            fixture = root / "evals" / "runner_fixture_mcp.py"
+            fixture = root / "benchmarks" / "dev_flow_bench_fixture_mcp.py"
             fixture.write_text(
                 fixture.read_text(encoding="utf-8") + "\n# fixture changed\n",
                 encoding="utf-8",
@@ -90,8 +90,8 @@ class CandidateIdentityTests(unittest.TestCase):
 
     def test_execution_policy_changes_qualification_identity(self) -> None:
         common = {
-            "runner": ROOT / "evals" / "run_transition_trials.py",
-            "catalog": ROOT / "evals" / "flow-transition-semantic-cases.json",
+            "runner": ROOT / "benchmarks" / "dev_flow_bench_executor.py",
+            "catalog": ROOT / "benchmarks" / "cases" / "dev-flow-cases.json",
             "codex_executable_sha256": "sha256:" + "0" * 64,
             "model": "synthetic-model",
             "reasoning_effort": "high",
@@ -118,10 +118,10 @@ class CandidateIdentityTests(unittest.TestCase):
                 ignore=COPY_IGNORE,
             )
             catalog = base / "external-catalog.json"
-            shutil.copy2(ROOT / "evals" / "flow-transition-semantic-cases.json", catalog)
+            shutil.copy2(ROOT / "benchmarks" / "cases" / "dev-flow-cases.json", catalog)
             identities = candidate_identity.build_identities(
                 candidate,
-                runner=ROOT / "evals" / "run_transition_trials.py",
+                runner=ROOT / "benchmarks" / "dev_flow_bench_executor.py",
                 catalog=catalog,
                 codex_executable_sha256="sha256:" + "0" * 64,
                 model="synthetic-model",
@@ -130,7 +130,7 @@ class CandidateIdentityTests(unittest.TestCase):
                 execution_policy={"attempts": 3},
             )
         files = identities["qualification_execution"]["files"]
-        self.assertIn("tool/evals/run_transition_trials.py", files)
+        self.assertIn("tool/benchmarks/dev_flow_bench_executor.py", files)
         self.assertIn("catalog/input.json", files)
 
     def test_frozen_identity_verifier_requires_both_identities_and_allowlist(self) -> None:
@@ -160,7 +160,7 @@ class CandidateIdentityTests(unittest.TestCase):
             },
             "qualification_execution": {
                 "sha256": execution_sha,
-                "files": ["tool/evals/run_transition_trials.py"],
+                "files": ["tool/benchmarks/dev_flow_bench_executor.py"],
                 "file_count": 1,
                 "total_bytes": 1,
                 "execution_inputs": execution_inputs,
@@ -213,7 +213,7 @@ class CandidateIdentityTests(unittest.TestCase):
             },
             "qualification_execution": {
                 "sha256": execution_sha,
-                "files": ["tool/evals/run_transition_trials.py"],
+                "files": ["tool/benchmarks/dev_flow_bench_executor.py"],
                 "file_count": 1,
                 "total_bytes": 1,
                 "execution_inputs": execution_inputs,
@@ -269,13 +269,14 @@ class CandidateIdentityTests(unittest.TestCase):
     def test_frozen_identity_verifier_rejects_structural_tampering_with_stale_digest(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            runner = root / "evals" / "run_transition_trials.py"
-            helper = root / "evals" / "flow_metrics.py"
+            runner = root / "benchmarks" / "dev_flow_bench_executor.py"
+            helper = root / "benchmarks" / "dev_flow_bench_contracts.py"
             catalog = root / "catalog.json"
             semantic = root / "skills" / "example" / "SKILL.md"
             runner.parent.mkdir(parents=True)
+            helper.parent.mkdir(parents=True, exist_ok=True)
             semantic.parent.mkdir(parents=True)
-            runner.write_text("import flow_metrics\n", encoding="utf-8")
+            runner.write_text("import dev_flow_bench_contracts\n", encoding="utf-8")
             helper.write_text("VALUE = 1\n", encoding="utf-8")
             catalog.write_text("{}\n", encoding="utf-8")
             semantic.write_text("# Example\n", encoding="utf-8")

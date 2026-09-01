@@ -4,7 +4,13 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Current source identity: `2.0.0-rc.5`. No post-RC.5 product changes are recorded.
+Current source identity: `2.0.0-rc.5`. Stable `2.0.0` remains intentionally deferred.
+
+### Changed
+
+- Removed R4 and repeated model qualification from the active release tiers and canonical delivery state. Stable validation now uses cumulative public-stable-to-candidate semantic review, a consolidated six-method static audit, five bounded real functional journeys, and one complete deterministic regression.
+- Added independent Dev Flow Bench regression, capability, and safety-authority suites with explicit case health, non-spending planning by default, separate execution/assessment/comparison, first-failure preservation, and no aggregate release score. All 26 migrated cases, observation contracts, and the bounded executor are Bench-owned; the former R4 qualification threshold, campaign ledger, and runner CLI are retired.
+- Added a non-mutating stable-validation simulation that inventories the full `v1.1.2`-to-candidate delta without model calls, tag, push, publication, product-state mutation, or primary-profile installation.
 
 ## [2.0.0-rc.5] - 2026-09-01
 

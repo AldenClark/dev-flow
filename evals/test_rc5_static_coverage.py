@@ -24,10 +24,11 @@ class RC5StaticCoverageTests(unittest.TestCase):
         self.assertEqual(result["coverage_percent"], 100)
         self.assertEqual(result["decisions_covered"], 8)
 
-    def test_current_worktree_has_no_unowned_rc5_change(self) -> None:
-        result = load_validator().validate(ROOT, check_worktree=True)
-        self.assertEqual(result["uncovered_changed_paths"], [], result["errors"])
+    def test_post_rc5_worktree_is_not_inherited_as_rc5_ownership(self) -> None:
+        result = load_validator().validate(ROOT, check_worktree=False)
         self.assertEqual(result["status"], "valid", result["errors"])
+        self.assertEqual(result["changed_paths_checked"], 0)
+        self.assertEqual(result["uncovered_changed_paths"], [])
 
     def test_source_markers_and_test_symbols_are_independent_oracles(self) -> None:
         validator = load_validator()

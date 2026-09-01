@@ -91,7 +91,8 @@ class RuntimeGuidanceContractTests(unittest.TestCase):
         self.assertIn("at most three ready starter methods", guidance)
         self.assertIn("concrete finding, counterexample, changed oracle", guidance)
         self.assertIn("does not rerun tests", guidance)
-        self.assertIn("Complete repeated model qualification is reserved for a stable release", guidance)
+        self.assertIn("complete repeated-model studies belong to Dev Flow Bench", guidance)
+        self.assertIn("never a release gate", guidance)
 
 
 class RoutingTests(unittest.TestCase):
