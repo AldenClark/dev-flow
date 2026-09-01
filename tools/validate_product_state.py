@@ -275,6 +275,11 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
     latest_tag = latest.get("tag")
     stable_tag = stable.get("tag")
     source_label = "候选源码" if source_phase == "source-candidate" else "已发布源码"
+    changelog_label = (
+        "Current candidate source identity"
+        if source_phase == "source-candidate"
+        else "Latest published source identity"
+    )
     release_label = "candidate" if source_phase == "source-candidate" else "release"
     projections = {
         "README source": f"{source_label}身份为 `{source_version}`",
@@ -286,7 +291,7 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
         "releasing source": f"## {source_version} personal-assistant hardening {release_label}",
         "releasing published": f"`{latest_tag}` is the latest public immutable RC tag",
         "releasing rollback": f"`{rollback_target}` is the rollback target for `{source_version}`",
-        "changelog source": f"Latest published source identity: `{source_version}`",
+        "changelog source": f"{changelog_label}: `{source_version}`",
         "changelog workspace": f"Current workspace state: `{workspace_phase}` from `{workspace_base}`",
         "progress independent review": (
             f"| HC7 | Independent clean-context review | qualification | "

@@ -191,7 +191,10 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
             readme,
         )
         self.assertIn(f"回滚目标为 `{ROLLBACK_TAG}`", readme)
-        self.assertNotEqual(PUBLISHED_TAG, ROLLBACK_TAG)
+        if SOURCE_PHASE == "source-candidate":
+            self.assertEqual(PUBLISHED_TAG, ROLLBACK_TAG)
+        else:
+            self.assertNotEqual(PUBLISHED_TAG, ROLLBACK_TAG)
 
     def test_release_identity_and_lifecycle_claims_match_exercised_evidence(self) -> None:
         attestation = json.loads(

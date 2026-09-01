@@ -1,15 +1,15 @@
 {
   "schema_version": "dev-flow.product-state.v1",
   "source": {
-    "version": "2.0.0-rc.5",
-    "phase": "released",
+    "version": "2.0.0-rc.6",
+    "phase": "source-candidate",
     "manifest": ".codex-plugin/plugin.json",
-    "workstream": "docs/workstreams/dev-flow-2.0-rc.5"
+    "workstream": "docs/workstreams/dev-flow-2.0-rc.6"
   },
   "workspace": {
     "phase": "development",
     "base_published": "v2.0.0-rc.5",
-    "workstream": "docs/workstreams/dev-flow-2.0-benchmark-separation"
+    "workstream": "docs/workstreams/dev-flow-2.0-rc.6"
   },
   "published": {
     "latest_rc": {
@@ -24,16 +24,16 @@
   "compatibility": {
     "public_cli": "rc5-supported-surface",
     "legacy_packet_cli": "internal-unsupported",
-    "rollback_target": "v2.0.0-rc.4"
+    "rollback_target": "v2.0.0-rc.5"
   },
   "delivery": {
     "commit": "passed",
-    "hosted_ci": "passed",
-    "cross_platform": "passed",
-    "independent_review": "waived",
-    "tag": "passed",
-    "artifact": "passed",
-    "publication": "passed",
-    "isolated_install": "passed"
+    "hosted_ci": "not-run",
+    "cross_platform": "not-run",
+    "independent_review": "not-run",
+    "tag": "not-run",
+    "artifact": "not-run",
+    "publication": "not-run",
+    "isolated_install": "not-run"
   }
 }

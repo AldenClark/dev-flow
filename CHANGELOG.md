@@ -4,13 +4,15 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Latest published source identity: `2.0.0-rc.5`. Current workspace state: `development` from `v2.0.0-rc.5`. Stable `2.0.0` remains intentionally deferred.
+Current candidate source identity: `2.0.0-rc.6`. Current workspace state: `development` from `v2.0.0-rc.5`. The latest published source remains `2.0.0-rc.5` until RC.6 delivery completes; stable `2.0.0` remains intentionally deferred.
 
 ### Changed
 
 - Removed R4 and repeated model qualification from the active release tiers and canonical delivery state. Stable validation now uses cumulative public-stable-to-candidate semantic review, a consolidated six-method static audit, five bounded real functional journeys, and one complete deterministic regression.
 - Added independent Dev Flow Bench regression, capability, and safety-authority suites with explicit case health, non-spending planning by default, separate execution/assessment/comparison, first-failure preservation, and no aggregate release score. All 26 migrated cases, observation contracts, and the bounded executor are Bench-owned; the former R4 qualification threshold, campaign ledger, and runner CLI are retired.
 - Added a non-mutating stable-validation simulation that inventories the full `v1.1.2`-to-candidate delta without model calls, tag, push, publication, product-state mutation, or primary-profile installation.
+- Separated source-candidate identity from the latest published identity, so later worktree bytes cannot inherit RC.5 delivery evidence.
+- Made read-only doctor report cached bytes, CLI registration, loaded identity, and Hook packaging/activation as distinct observations.
 
 ## [2.0.0-rc.5] - 2026-09-01
 

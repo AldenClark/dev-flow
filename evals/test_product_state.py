@@ -63,7 +63,8 @@ def write_fixture(target: Path, state: dict[str, object]) -> None:
         f"{delivery['independent_review']} | fixture |\n",
         encoding="utf-8",
     )
-    (workspace_workstream / "progress.md").write_text("fixture", encoding="utf-8")
+    if workspace_workstream != workstream:
+        (workspace_workstream / "progress.md").write_text("fixture", encoding="utf-8")
     source_label = "候选源码" if phase == "source-candidate" else "已发布源码"
     release_label = "candidate" if phase == "source-candidate" else "release"
     (target / "README.md").write_text(
@@ -87,8 +88,13 @@ def write_fixture(target: Path, state: dict[str, object]) -> None:
         if delivery["independent_review"] == "passed"
         else ""
     )
+    changelog_label = (
+        "Current candidate source identity"
+        if phase == "source-candidate"
+        else "Latest published source identity"
+    )
     (target / "CHANGELOG.md").write_text(
-        f"Latest published source identity: `{version}`\n"
+        f"{changelog_label}: `{version}`\n"
         f"Current workspace state: `{workspace_phase}` from `{workspace_base}`\n"
         f"{review_claim}",
         encoding="utf-8",
@@ -99,8 +105,8 @@ class ProductStateTests(unittest.TestCase):
     def test_repository_product_state_is_valid(self) -> None:
         result = VALIDATOR.validate(ROOT)
         self.assertEqual(result["status"], "valid", result["errors"])
-        self.assertEqual(result["source_version"], "2.0.0-rc.5")
-        self.assertEqual(result["source_phase"], "released")
+        self.assertEqual(result["source_version"], "2.0.0-rc.6")
+        self.assertEqual(result["source_phase"], "source-candidate")
         self.assertEqual(result["workspace_phase"], "development")
         self.assertEqual(result["workspace_base"], "v2.0.0-rc.5")
         self.assertEqual(result["published_version"], "2.0.0-rc.5")
@@ -163,8 +169,10 @@ class ProductStateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory)
             state = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
+            state["source"]["version"] = "2.0.0-rc.5"
             state["source"]["phase"] = "released"
             state["published"]["latest_rc"] = {"version": "2.0.0-rc.5", "tag": "v2.0.0-rc.5"}
+            state["compatibility"]["rollback_target"] = "v2.0.0-rc.4"
             for key in (
                 "commit",
                 "hosted_ci",
@@ -212,8 +220,10 @@ class ProductStateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory)
             state = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
+            state["source"]["version"] = "2.0.0-rc.5"
             state["source"]["phase"] = "released"
             state["published"]["latest_rc"] = {"version": "2.0.0-rc.5", "tag": "v2.0.0-rc.5"}
+            state["compatibility"]["rollback_target"] = "v2.0.0-rc.4"
             state["delivery"]["hosted_ci"] = "not-run"
             state["delivery"]["cross_platform"] = "not-run"
             state["delivery"]["isolated_install"] = "not-run"
@@ -244,8 +254,10 @@ class ProductStateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory)
             state = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
+            state["source"]["version"] = "2.0.0-rc.5"
             state["source"]["phase"] = "released"
             state["published"]["latest_rc"] = {"version": "2.0.0-rc.5", "tag": "v2.0.0-rc.5"}
+            state["compatibility"]["rollback_target"] = "v2.0.0-rc.4"
             for key in ("commit", "hosted_ci", "cross_platform", "tag", "artifact", "publication", "isolated_install"):
                 state["delivery"][key] = "passed"
             state["delivery"]["independent_review"] = "failed"
@@ -260,8 +272,10 @@ class ProductStateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory)
             state = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
+            state["source"]["version"] = "2.0.0-rc.5"
             state["source"]["phase"] = "released"
             state["published"]["latest_rc"] = {"version": "2.0.0-rc.4", "tag": "v2.0.0-rc.4"}
+            state["workspace"]["base_published"] = "v2.0.0-rc.4"
             state["compatibility"]["rollback_target"] = "v2.0.0-rc.5"
             for key in ("commit", "tag", "artifact", "publication"):
                 state["delivery"][key] = "passed"
