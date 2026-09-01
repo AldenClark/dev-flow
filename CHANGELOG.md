@@ -4,7 +4,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Current candidate source identity: `2.0.0-rc.6`. Current workspace state: `development` from `v2.0.0-rc.5`. The latest published source remains `2.0.0-rc.5` until RC.6 delivery completes; stable `2.0.0` remains intentionally deferred.
+Latest published source identity: `2.0.0-rc.6`. Current workspace state: `development` from `v2.0.0-rc.6`. Stable `2.0.0` remains intentionally deferred.
+
+## [2.0.0-rc.6] - 2026-09-01
+
+The immutable `v2.0.0-rc.6` tag and public prerelease are published from candidate `2d1cb4be8d97433511e6fffb032d2e505deaf0d9`; exact-commit hosted semantic CI and the applicable compatibility matrix, archive/SBOM/provenance verification, and isolated public installation passed. The final review is a same-context static review; independent clean-context review is waived because no separate reviewer authority was granted. Live model trials were not run and are not a release gate for this R2 candidate.
 
 ### Changed
 

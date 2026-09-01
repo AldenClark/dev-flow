@@ -106,10 +106,10 @@ class ProductStateTests(unittest.TestCase):
         result = VALIDATOR.validate(ROOT)
         self.assertEqual(result["status"], "valid", result["errors"])
         self.assertEqual(result["source_version"], "2.0.0-rc.6")
-        self.assertEqual(result["source_phase"], "source-candidate")
+        self.assertEqual(result["source_phase"], "released")
         self.assertEqual(result["workspace_phase"], "development")
-        self.assertEqual(result["workspace_base"], "v2.0.0-rc.5")
-        self.assertEqual(result["published_version"], "2.0.0-rc.5")
+        self.assertEqual(result["workspace_base"], "v2.0.0-rc.6")
+        self.assertEqual(result["published_version"], "2.0.0-rc.6")
         self.assertEqual(result["observations"]["published_tag"], "observed-in-checkout")
         self.assertEqual(result["observations"]["workspace_head"], "diverged-from-published-tag")
         self.assertIn("not remote publication", result["claim_limit"])
@@ -172,6 +172,7 @@ class ProductStateTests(unittest.TestCase):
             state["source"]["version"] = "2.0.0-rc.5"
             state["source"]["phase"] = "released"
             state["published"]["latest_rc"] = {"version": "2.0.0-rc.5", "tag": "v2.0.0-rc.5"}
+            state["workspace"]["base_published"] = "v2.0.0-rc.5"
             state["compatibility"]["rollback_target"] = "v2.0.0-rc.4"
             for key in (
                 "commit",
@@ -211,7 +212,7 @@ class ProductStateTests(unittest.TestCase):
             subprocess.run(["git", "config", "user.email", "fixture@example.invalid"], cwd=target, check=True)
             subprocess.run(["git", "add", "."], cwd=target, check=True)
             subprocess.run(["git", "commit", "-qm", "fixture"], cwd=target, check=True)
-            subprocess.run(["git", "tag", "v2.0.0-rc.5"], cwd=target, check=True)
+            subprocess.run(["git", "tag", "v2.0.0-rc.6"], cwd=target, check=True)
             subprocess.run(["git", "tag", "v2.0.0-rc.4"], cwd=target, check=True)
             result = VALIDATOR.validate(target)
         self.assertIn("development workspace must diverge from its published base tag", result["errors"])

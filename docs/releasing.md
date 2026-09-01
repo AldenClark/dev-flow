@@ -2,9 +2,9 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
-## 2.0.0-rc.6 personal-assistant hardening candidate
+## 2.0.0-rc.6 personal-assistant hardening release
 
-RC.6 is the current source candidate. It keeps `v2.0.0-rc.5` as the latest public immutable RC tag. `v2.0.0-rc.5` is the rollback target for `2.0.0-rc.6` until exact-candidate delivery completes. The candidate separates published identity from current workspace state, makes doctor distinguish cached plugin bytes from CLI registration, loaded identity, and Hook activation, and moves repeated/comparative model work to independent Dev Flow Bench research. These changes are R2 because the diagnostic contract includes runtime/CLI observation; they do not modify the artifact builder or require model spend. Release evidence therefore requires one final local semantic suite, applicable cross-platform compatibility, isolated fresh install/uninstall, exact-SHA artifact evidence, tag, push, and public prerelease verification. Independent review has not been separately authorized; final static review is same-context and retains `common-mode-risk`.
+`v2.0.0-rc.6` is the latest public immutable RC tag. `v2.0.0-rc.5` is the rollback target for `2.0.0-rc.6`. RC.6 separates published identity from current workspace state, makes doctor distinguish cached plugin bytes from CLI registration, loaded identity, and Hook activation, and moves repeated/comparative model work to independent Dev Flow Bench research. These R2 changes required final local semantic evidence, the applicable hosted compatibility matrix, isolated fresh install/uninstall, exact-SHA artifact evidence, tag, push, and public prerelease verification; all passed for candidate `2d1cb4be8d97433511e6fffb032d2e505deaf0d9`. The final static review is same-context; independent clean-context review is waived because no separate reviewer authority was granted. No live model trial was run or required for this candidate.
 
 ## 2.0.0-rc.5 personal-assistant hardening release
 

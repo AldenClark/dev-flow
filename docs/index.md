@@ -23,7 +23,7 @@ This index routes contributors and agents to the smallest maintained knowledge o
 - [Dev Flow 2.0 RC.3](workstreams/dev-flow-2.0-rc.3/): RC.3 requirements, audited design, implementation plan, decisions, and progress.
 - [Dev Flow 2.0 RC.4](workstreams/dev-flow-2.0-rc.4/): RC.4 convergence and operations hardening requirements, design, implementation slices, decisions, audit, and current progress.
 - [Dev Flow 2.0 RC.5](workstreams/dev-flow-2.0-rc.5/): published personal-assistant-hardening release record.
-- [Dev Flow 2.0 RC.6](workstreams/dev-flow-2.0-rc.6/): current release candidate, delivery boundary, and evidence progress.
+- [Dev Flow 2.0 RC.6](workstreams/dev-flow-2.0-rc.6/): published release record, delivery boundary, and evidence progress.
 - [Release validation and benchmark separation](workstreams/dev-flow-2.0-benchmark-separation/): current stable-validation contract, independent Bench design, implementation, and evidence.
 - [Repository knowledge capability](workstreams/repository-knowledge/): repository-knowledge design, implementation, and evidence limits.
 
