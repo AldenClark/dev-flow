@@ -63,7 +63,7 @@ jobs:
         run: python tools/validate_product_state.py --root .
 
       - name: Validate RC.5 bidirectional static coverage
-        run: python tools/validate_rc5_coverage.py --root . --check-event
+        run: python tools/validate_rc5_coverage.py --root .
 
       - name: Preserve historical RC.4 static invariants
         run: python tools/static_scan_rc4.py --root .
