@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -53,12 +54,14 @@ def _source_fingerprint(project: Path) -> str:
 
 
 def _run_native(project: Path, *, extra_env: dict[str, str] | None = None) -> NativeResult:
-    environment = {
+    environment_overrides = {
         "PYTHONDONTWRITEBYTECODE": "1",
         "PYTHONPATH": str(project),
     }
     if extra_env:
-        environment.update(extra_env)
+        environment_overrides.update(extra_env)
+    environment = os.environ.copy()
+    environment.update(environment_overrides)
     source_fingerprint = _source_fingerprint(project)
     completed = subprocess.run(
         [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
@@ -81,7 +84,7 @@ def _run_native(project: Path, *, extra_env: dict[str, str] | None = None) -> Na
     )
     identity_payload = {
         "command": [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
-        "environment": environment,
+        "environment": environment_overrides,
         "source_and_config": source_fingerprint,
         "version": sys.version,
     }
@@ -426,6 +429,34 @@ class DynamicTests(unittest.TestCase):
             _write_project(project, boundary_fault=True)
             real_boundary = _run_native(project)
             self.assertNotEqual(real_boundary.returncode, 0, real_boundary.output)
+
+    def test_native_runner_preserves_required_host_environment(self) -> None:
+        key = "DEV_FLOW_TEST_HOST_SENTINEL"
+        previous = os.environ.get(key)
+        try:
+            os.environ[key] = "present"
+            with tempfile.TemporaryDirectory() as directory:
+                project = Path(directory)
+                _write_project(project)
+                (project / "tests" / "test_host_environment.py").write_text(
+                    f'''import os
+import unittest
+
+class HostEnvironmentTests(unittest.TestCase):
+    def test_required_host_value_is_available(self):
+        self.assertEqual(os.environ.get({key!r}), "present")
+''',
+                    encoding="utf-8",
+                )
+
+                result = _run_native(project)
+
+                self.assertEqual(result.returncode, 0, result.output)
+        finally:
+            if previous is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = previous
 
     def test_stale_cache_is_detected_against_current_source_identity(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -152,7 +152,7 @@ def _has_exact_delivery_projection(
     raw_section = _markdown_h2_section(text, section_title)
     if raw_section is None:
         return False
-    summary_pattern = r"(?m)^(?:- )?(Delivery state: [^\n]+\.)$"
+    summary_pattern = r"(?m)^(?:- )?(Delivery state: [^\r\n]+\.)\r?$"
     if re.findall(summary_pattern, raw_section) != [expected]:
         return False
     nested_heading = re.search(r"(?m)^ {0,3}#{3,6}\s+", section)

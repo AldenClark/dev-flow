@@ -297,6 +297,25 @@ class ProductStateTests(unittest.TestCase):
                     result = VALIDATOR.validate(target, check_git=False)
                     self.assertIn(expected, result["errors"])
 
+    def test_delivery_projection_accepts_crlf_checkout(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            write_fixture(
+                target,
+                self.rc7_candidate_state(),
+                include_optional_workstream_docs=False,
+            )
+            for relative in (
+                "docs/releasing.md",
+                "docs/workstreams/dev-flow-2.0-rc.7/progress.md",
+            ):
+                path = target / relative
+                path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
+
+            result = VALIDATOR.validate(target, check_git=False)
+
+            self.assertEqual(result["status"], "valid", result["errors"])
+
     def test_delivery_projection_rejects_hidden_historical_and_conflicting_copies(self) -> None:
         surfaces = (
             ("docs/releasing.md", "releasing delivery projection is stale"),
