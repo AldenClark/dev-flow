@@ -309,6 +309,7 @@ class ProductStateTests(unittest.TestCase):
             for camouflage in (
                 "html-comment",
                 "fenced-code",
+                "fenced-section",
                 "historical-section",
                 "indented-historical-section",
                 "nested-historical-section",
@@ -353,6 +354,15 @@ class ProductStateTests(unittest.TestCase):
                                 + f"\n\n```text\n{summary}\n```",
                                 1,
                             )
+                        elif camouflage == "fenced-section":
+                            heading = (
+                                "## 2.0.0-rc.7 personal-assistant hardening candidate"
+                                if relative == "docs/releasing.md"
+                                else "## Current truth"
+                            )
+                            changed = original.replace(
+                                heading, "```text\n" + heading, 1
+                            ).replace(summary, summary + "\n```", 1)
                         elif camouflage == "historical-section":
                             changed = original.replace(
                                 summary, visible_contradiction, 1

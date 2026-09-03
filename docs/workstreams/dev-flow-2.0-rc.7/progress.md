@@ -11,7 +11,7 @@
 - The compatibility-only `--independent-review-authorized` input is still parsed but has zero effect on route basis, dispatch decision, compact output, or full public JSON.
 - Product state, manifest, release-workflow default, active README/releasing/CHANGELOG projections, governance anchor, and this workstream now agree on RC.7 as the source candidate. Published/install/rollback truth remains `v2.0.0-rc.6`; local commit is `passed`. A final clean-context review reopened delivery-projection camouflage, so independent review is `failed` pending repair recheck. Hosted CI, cross-platform execution, artifact, tag, publication, and installation remain `not-run`.
 - Delivery state: commit=passed; hosted_ci=not-run; cross_platform=not-run; independent_review=failed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
-- Ordinary static context is `13473` bytes, below the `13500` warning line; all Skill descriptions total `1741` characters. The optional `12500` stretch target was not reached, but no warning or hard limit remains.
+- Ordinary static context is `13473` bytes, below the enforced `13500` hard ceiling; all Skill descriptions total `1741` characters. The optional `12500` stretch target was not reached; the current validator emits no warning or error.
 
 ## Implemented groups
 
@@ -41,6 +41,7 @@
 - Two fresh rechecks of `8bfc810` returned `ACCEPT`: test identity retained legal non-underscore unittest IDs and rejected ambiguous file-tree identity, while delivery state rejected 48/48 field/camouflage combinations and the released/stable review-disposition matrix behaved as declared. Canonical independent review is now `passed`.
 - Final-state review of `e0ab020` reproduced 32/32 fenced-example or nested-H3 camouflage false greens across both delivery surfaces and all fields. The parser now excludes fenced blocks and nested subsections, with those cases added to the executable negative controls; canonical review is returned to `failed` until recheck.
 - Rechecks of `aa49bb0` and `f7efdab` proved the first camouflage tests did not fail the old parser and exposed inverse-order raw HTML, indented CommonMark headings, and processing-instruction variants. The projection parser was replaced with a smaller fail-closed rule: one exact raw summary in the named H2, no raw HTML, no fenced copy, and no summary below any 0–3-space nested heading. The expanded two-surface/eight-field controls pass locally; independent recheck is still required.
+- Final holistic review of `07161fb` found that fencing the governed H2 itself bypassed post-heading fence filtering and corrected the static-budget wording. The parser now locates the H2 in whole-document visible Markdown before applying raw-section uniqueness, and the causal fenced-section counterexample is part of the two-surface/eight-field controls; recheck remains pending.
 
 ## Next action
 
