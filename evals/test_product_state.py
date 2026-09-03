@@ -310,7 +310,8 @@ class ProductStateTests(unittest.TestCase):
                 "docs/workstreams/dev-flow-2.0-rc.7/progress.md",
             ):
                 path = target / relative
-                path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
+                lf_bytes = path.read_bytes().replace(b"\r\n", b"\n")
+                path.write_bytes(lf_bytes.replace(b"\n", b"\r\n"))
 
             result = VALIDATOR.validate(target, check_git=False)
 
