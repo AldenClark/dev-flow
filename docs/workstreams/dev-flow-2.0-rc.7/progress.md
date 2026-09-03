@@ -40,6 +40,7 @@
 - Three clean-context reviews of `7103a5f` accepted the holistic RC.7 result but reproduced additional test-identity serialization/parser and delivery-projection camouflage false greens. Commit `8bfc810` repaired those paths with executable counterexamples.
 - Two fresh rechecks of `8bfc810` returned `ACCEPT`: test identity retained legal non-underscore unittest IDs and rejected ambiguous file-tree identity, while delivery state rejected 48/48 field/camouflage combinations and the released/stable review-disposition matrix behaved as declared. Canonical independent review is now `passed`.
 - Final-state review of `e0ab020` reproduced 32/32 fenced-example or nested-H3 camouflage false greens across both delivery surfaces and all fields. The parser now excludes fenced blocks and nested subsections, with those cases added to the executable negative controls; canonical review is returned to `failed` until recheck.
+- Rechecks of `aa49bb0` and `f7efdab` proved the first camouflage tests did not fail the old parser and exposed inverse-order raw HTML, indented CommonMark headings, and processing-instruction variants. The projection parser was replaced with a smaller fail-closed rule: one exact raw summary in the named H2, no raw HTML, no fenced copy, and no summary below any 0–3-space nested heading. The expanded two-surface/eight-field controls pass locally; independent recheck is still required.
 
 ## Next action
 

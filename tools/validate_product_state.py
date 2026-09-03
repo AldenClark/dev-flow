@@ -102,11 +102,13 @@ def _read_text(root: Path, relative: str, errors: list[str]) -> str:
 
 
 def _markdown_h2_section(text: str, title: str) -> str | None:
-    headings = list(re.finditer(rf"(?m)^##\s+{re.escape(title)}\s*$", text))
+    headings = list(
+        re.finditer(rf"(?m)^ {{0,3}}##\s+{re.escape(title)}\s*$", text)
+    )
     if len(headings) != 1:
         return None
     heading = headings[0]
-    following = re.search(r"(?m)^##\s+", text[heading.end() :])
+    following = re.search(r"(?m)^ {0,3}##\s+", text[heading.end() :])
     end = heading.end() + following.start() if following is not None else len(text)
     return text[heading.end() : end]
 
@@ -142,17 +144,18 @@ def _has_exact_delivery_projection(
     section_title: str,
     expected: str,
 ) -> bool:
-    section = _markdown_h2_section(_visible_markdown(text), section_title)
-    if section is None:
+    if re.search(r"<[A-Za-z!?/][^>]*>", text):
+        return False
+    raw_section = _markdown_h2_section(text, section_title)
+    if raw_section is None:
         return False
     summary_pattern = r"(?m)^(?:- )?(Delivery state: [^\n]+\.)$"
-    if re.findall(summary_pattern, section) != [expected]:
+    if re.findall(summary_pattern, raw_section) != [expected]:
         return False
-    nested_heading = re.search(r"(?m)^#{3,6}\s+", section)
+    section = _visible_markdown(raw_section)
+    nested_heading = re.search(r"(?m)^ {0,3}#{3,6}\s+", section)
     if nested_heading is not None:
         section = section[: nested_heading.start()]
-    if re.search(r"<[A-Za-z!/][^>]*>", section):
-        return False
     return re.findall(summary_pattern, section) == [expected]
 
 

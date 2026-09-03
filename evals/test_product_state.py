@@ -310,8 +310,12 @@ class ProductStateTests(unittest.TestCase):
                 "html-comment",
                 "fenced-code",
                 "historical-section",
+                "indented-historical-section",
                 "nested-historical-section",
+                "indented-nested-historical-section",
+                "processing-instruction",
                 "raw-html-before-nested-current",
+                "raw-html-around-section",
                 "conflicting-copy",
             ):
                 for field in VALIDATOR.DELIVERY_ORDER:
@@ -354,11 +358,30 @@ class ProductStateTests(unittest.TestCase):
                                 summary, visible_contradiction, 1
                             )
                             changed += f"\n## Historical\n\n{summary}\n"
+                        elif camouflage == "indented-historical-section":
+                            changed = original.replace(
+                                summary, visible_contradiction, 1
+                            )
+                            changed += f"\n   ## Historical\n\n{summary}\n"
                         elif camouflage == "nested-historical-section":
                             changed = original.replace(
                                 summary,
                                 visible_contradiction
                                 + f"\n\n### Historical snapshot\n\n{summary}",
+                                1,
+                            )
+                        elif camouflage == "indented-nested-historical-section":
+                            changed = original.replace(
+                                summary,
+                                visible_contradiction
+                                + f"\n\n   ### Historical snapshot\n\n{summary}",
+                                1,
+                            )
+                        elif camouflage == "processing-instruction":
+                            changed = original.replace(
+                                summary,
+                                visible_contradiction
+                                + f"\n\n<?historical\n{summary}\n?>",
                                 1,
                             )
                         elif camouflage == "raw-html-before-nested-current":
@@ -368,6 +391,25 @@ class ProductStateTests(unittest.TestCase):
                                 + summary
                                 + "\n\n</details>\n\n### Current delivery state\n\n"
                                 + visible_contradiction,
+                                1,
+                            )
+                        elif camouflage == "raw-html-around-section":
+                            heading = (
+                                "## 2.0.0-rc.7 personal-assistant hardening candidate"
+                                if relative == "docs/releasing.md"
+                                else "## Current truth"
+                            )
+                            changed = original.replace(
+                                heading,
+                                "<details><summary>Historical wrapper</summary>\n\n"
+                                + heading,
+                                1,
+                            ).replace(
+                                summary,
+                                summary
+                                + "\n\n### Current delivery state\n\n"
+                                + visible_contradiction
+                                + "\n\n</details>",
                                 1,
                             )
                         else:
