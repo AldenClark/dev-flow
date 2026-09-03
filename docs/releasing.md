@@ -4,7 +4,9 @@ This runbook selects evidence from the changed surface. It separates implementat
 
 ## 2.0.0-rc.7 personal-assistant hardening candidate
 
-`v2.0.0-rc.6` is the latest public immutable RC tag. `v2.0.0-rc.6` is the rollback target for `2.0.0-rc.7`. The RC.7 source candidate turns the lifecycle into a thin adaptive guide, strengthens every professional Skill and its discovery contract, keeps durable results in canonical repository owners, expands project-native test-system guidance and sensitive black/white-box evidence, and removes the obsolete reviewer-spawn authorization gate without widening any descendant action boundary. Local commit: `passed`. Independent review: `failed`. Recheck of repaired post-commit findings is pending. Hosted CI, cross-platform execution, artifact, tag, publication, and isolated installation remain separate and are `not-run`.
+`v2.0.0-rc.6` is the latest public immutable RC tag. `v2.0.0-rc.6` is the rollback target for `2.0.0-rc.7`. The RC.7 source candidate turns the lifecycle into a thin adaptive guide, strengthens every professional Skill and its discovery contract, keeps durable results in canonical repository owners, expands project-native test-system guidance and sensitive black/white-box evidence, and removes the obsolete reviewer-spawn authorization gate without widening any descendant action boundary. Recheck of repaired post-commit findings is pending.
+
+Delivery state: commit=passed; hosted_ci=not-run; cross_platform=not-run; independent_review=failed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
 
 ## 2.0.0-rc.6 personal-assistant hardening release
 

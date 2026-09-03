@@ -34,6 +34,22 @@ DELIVERY_KEYS = {
     "publication",
     "isolated_install",
 }
+DELIVERY_ORDER = (
+    "commit",
+    "hosted_ci",
+    "cross_platform",
+    "independent_review",
+    "tag",
+    "artifact",
+    "publication",
+    "isolated_install",
+)
+
+
+def _delivery_summary(delivery: dict[str, Any]) -> str:
+    return "Delivery state: " + "; ".join(
+        f"{key}={delivery.get(key)}" for key in DELIVERY_ORDER
+    ) + "."
 
 
 def _read_root_bytes(
@@ -246,12 +262,13 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
             incomplete = [key for key in required_delivery if delivery.get(key) != "passed"]
             if incomplete:
                 errors.append(f"released source is missing passed delivery actions: {incomplete}")
-            if delivery.get("independent_review") in {
-                "failed",
-                "blocked",
+            if delivery.get("independent_review") not in {
+                "passed",
+                "waived",
+                "not-applicable",
             }:
                 errors.append(
-                    "a release cannot ignore a failed or blocked independent_review"
+                    "released source requires an explicit independent_review disposition"
                 )
 
     manifest_relative = source.get("manifest") if source_ok else None
@@ -307,8 +324,12 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
         "releasing build example": f"--version {source_version}",
         "releasing workflow example": f"-f version={source_version}",
         "releasing delivery": (
-            f"Local commit: `{delivery.get('commit')}`. Independent review: "
-            f"`{delivery.get('independent_review')}`."
+            _delivery_summary(delivery)
+            if isinstance(delivery, dict)
+            else ""
+        ),
+        "progress delivery": (
+            _delivery_summary(delivery)
             if isinstance(delivery, dict)
             else ""
         ),

@@ -234,7 +234,7 @@ codex plugin add dev-flow@dev-flow
 python3 -W error::ResourceWarning -m unittest discover -s evals -v
 python3 evals/run_contract_checks.py
 python3 tools/validate_product_state.py --root .
-python3 tools/validate_rc5_coverage.py --root . --check-worktree
+python3 tools/validate_rc5_coverage.py --root .
 python3 tools/static_scan_rc4.py --root .
 python3 skills/dev-flow/scripts/dev-flow.py validate-methods --root .
 python3 skills/dev-flow/scripts/dev-flow.py validate-knowledge --root .

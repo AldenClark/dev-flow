@@ -30,10 +30,16 @@ class RC5StaticCoverageTests(unittest.TestCase):
         self.assertEqual(result["changed_paths_checked"], 0)
         self.assertEqual(result["uncovered_changed_paths"], [])
 
-    def test_ci_does_not_assign_later_push_paths_to_rc5(self) -> None:
+    def test_current_validation_surfaces_do_not_assign_later_paths_to_rc5(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("python tools/validate_rc5_coverage.py --root .", workflow)
         self.assertNotIn("python tools/validate_rc5_coverage.py --root . --check-event", workflow)
+        self.assertIn("python3 tools/validate_rc5_coverage.py --root .", readme)
+        self.assertNotIn(
+            "python3 tools/validate_rc5_coverage.py --root . --check-worktree",
+            readme,
+        )
 
     def test_source_markers_and_test_symbols_are_independent_oracles(self) -> None:
         validator = load_validator()

@@ -10,7 +10,7 @@ applied the guidance.
 from __future__ import annotations
 
 import hashlib
-import os
+import json
 import re
 import subprocess
 import sys
@@ -34,15 +34,24 @@ class NativeResult:
 
 def _source_fingerprint(project: Path) -> str:
     digest = hashlib.sha256()
-    for source in sorted(project.rglob("*.py")):
+    sources = sorted(
+        path
+        for path in project.rglob("*")
+        if path.is_file()
+        and "__pycache__" not in path.parts
+        and path.suffix not in {".pyc", ".pyo"}
+    )
+    for source in sources:
         digest.update(source.relative_to(project).as_posix().encode())
         digest.update(source.read_bytes())
     return digest.hexdigest()
 
 
 def _run_native(project: Path, *, extra_env: dict[str, str] | None = None) -> NativeResult:
-    environment = os.environ.copy()
-    environment["PYTHONPATH"] = str(project)
+    environment = {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONPATH": str(project),
+    }
     if extra_env:
         environment.update(extra_env)
     source_fingerprint = _source_fingerprint(project)
@@ -57,18 +66,25 @@ def _run_native(project: Path, *, extra_env: dict[str, str] | None = None) -> Na
     output = completed.stdout + completed.stderr
     count = re.search(r"Ran (\d+) tests?", output)
     skipped = re.search(r"skipped=(\d+)", output)
-    test_ids = frozenset(re.findall(r"(?m)^(test_[A-Za-z0-9_]+) \(", output))
-    skipped_test_ids = frozenset(
-        re.findall(r"(?m)^(test_[A-Za-z0-9_]+) \([^\n]+\) \.\.\. skipped", output)
+    test_ids = frozenset(
+        re.findall(r"(?m)^test_[A-Za-z0-9_]+ \(([^)]+)\) \.\.\.", output)
     )
-    identity = hashlib.sha256()
-    identity.update(source_fingerprint.encode())
-    identity.update(sys.executable.encode())
-    identity.update(sys.version.encode())
-    identity.update(b"unittest-discover-tests-v1")
-    for key, value in sorted((extra_env or {}).items()):
-        identity.update(key.encode())
-        identity.update(value.encode())
+    skipped_test_ids = frozenset(
+        re.findall(
+            r"(?m)^test_[A-Za-z0-9_]+ \(([^)]+)\) \.\.\. skipped", output
+        )
+    )
+    identity_payload = {
+        "command": [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
+        "environment": environment,
+        "source_and_config": source_fingerprint,
+        "version": sys.version,
+    }
+    identity = hashlib.sha256(
+        json.dumps(
+            identity_payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+        ).encode()
+    )
     return NativeResult(
         returncode=completed.returncode,
         tests_run=int(count.group(1)) if count else 0,
@@ -168,6 +184,11 @@ class ReceiptBoundaryTests(unittest.TestCase):
 def _retry_disposition(attempts: list[NativeResult]) -> str:
     if not attempts or len({result.run_identity for result in attempts}) != 1:
         return "NOT COMPARABLE"
+    selections = {
+        (result.test_ids, result.skipped_test_ids) for result in attempts
+    }
+    if len(selections) != 1:
+        return "FLAKY"
     outcomes = {result.returncode == 0 for result in attempts}
     if len(outcomes) > 1:
         return "FLAKY"
@@ -270,9 +291,9 @@ class Rc7ExecutableTestingBehaviorTests(unittest.TestCase):
                     result,
                     expected_tests=frozenset(
                         {
-                            "test_vip_threshold",
-                            "test_negative_total_is_rejected",
-                            "test_real_filesystem_boundary",
+                            "test_quote.QuoteTests.test_vip_threshold",
+                            "test_quote.QuoteTests.test_negative_total_is_rejected",
+                            "test_receipt.ReceiptBoundaryTests.test_real_filesystem_boundary",
                         }
                     ),
                 ),
@@ -282,9 +303,9 @@ class Rc7ExecutableTestingBehaviorTests(unittest.TestCase):
     def test_expected_test_identity_and_skip_state_prevent_count_only_false_green(self) -> None:
         expected = frozenset(
             {
-                "test_vip_threshold",
-                "test_negative_total_is_rejected",
-                "test_real_filesystem_boundary",
+                "test_quote.QuoteTests.test_vip_threshold",
+                "test_quote.QuoteTests.test_negative_total_is_rejected",
+                "test_receipt.ReceiptBoundaryTests.test_real_filesystem_boundary",
             }
         )
         with tempfile.TemporaryDirectory() as directory:
@@ -300,7 +321,7 @@ class Rc7ExecutableTestingBehaviorTests(unittest.TestCase):
                 """import unittest
 
 class DummyTests(unittest.TestCase):
-    def test_unrelated_one(self): pass
+    def test_vip_threshold(self): pass
     def test_unrelated_two(self): pass
 """,
                 encoding="utf-8",
@@ -314,8 +335,32 @@ class DummyTests(unittest.TestCase):
             _write_project(project, skip_product=True)
             skipped = _run_native(project)
             self.assertEqual(skipped.returncode, 0, skipped.output)
-            self.assertIn("test_vip_threshold", skipped.skipped_test_ids)
+            self.assertIn(
+                "test_quote.QuoteTests.test_vip_threshold", skipped.skipped_test_ids
+            )
             self.assertEqual(_discovery_disposition(skipped, expected_tests=expected), "FAILED")
+
+    def test_retry_identity_binds_non_python_config_and_canonical_effective_environment(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            _write_project(project)
+            config = project / "settings.json"
+            config.write_text('{"mode":"a"}\n', encoding="utf-8")
+            first = _run_native(project, extra_env={"A": "BC"})
+
+            config.write_text('{"mode":"b"}\n', encoding="utf-8")
+            changed_config = _run_native(project, extra_env={"A": "BC"})
+            self.assertNotEqual(first.source_fingerprint, changed_config.source_fingerprint)
+            self.assertEqual(
+                _retry_disposition([first, changed_config]), "NOT COMPARABLE"
+            )
+
+            config.write_text('{"mode":"a"}\n', encoding="utf-8")
+            ambiguous_without_canonical_encoding = _run_native(
+                project, extra_env={"AB": "C"}
+            )
+            self.assertEqual(first.source_fingerprint, ambiguous_without_canonical_encoding.source_fingerprint)
+            self.assertNotEqual(first.run_identity, ambiguous_without_canonical_encoding.run_identity)
 
     def test_inert_assertion_and_mock_substitution_are_exposed_by_independent_oracles(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -365,6 +410,15 @@ class DummyTests(unittest.TestCase):
             )
             self.assertEqual(
                 _retry_disposition([stable, same_identity_failure]), "FLAKY"
+            )
+            changed_selection = replace(
+                stable,
+                test_ids=frozenset(
+                    {"test_dummy.ImpostorTests.test_vip_threshold"}
+                ),
+            )
+            self.assertEqual(
+                _retry_disposition([stable, changed_selection]), "FLAKY"
             )
 
             _write_project(project, product_fault=True, skip_product=True)

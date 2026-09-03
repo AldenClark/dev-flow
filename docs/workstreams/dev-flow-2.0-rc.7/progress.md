@@ -10,6 +10,7 @@
 - Child, nested-child, and clean-context reviewer dispatch no longer requires a separate authorization flag or prompt. Model/effort selection remains P0-P6; descendants cannot enlarge repository, semantic, external, destructive, sensitive-data, delivery, dependency, or model-campaign authority.
 - The compatibility-only `--independent-review-authorized` input is still parsed but has zero effect on route basis, dispatch decision, compact output, or full public JSON.
 - Product state, manifest, release-workflow default, active README/releasing/CHANGELOG projections, governance anchor, and this workstream now agree on RC.7 as the source candidate. Published/install/rollback truth remains `v2.0.0-rc.6`; local commit is `passed`. Post-commit independent review is `failed` until the repaired findings pass a clean-context recheck; hosted CI, cross-platform execution, artifact, tag, publication, and installation remain `not-run`.
+- Delivery state: commit=passed; hosted_ci=not-run; cross_platform=not-run; independent_review=failed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
 - Ordinary static context is `13473` bytes, below the `13500` warning line; all Skill descriptions total `1741` characters. The optional `12500` stretch target was not reached, but no warning or hard limit remains.
 
 ## Implemented groups
@@ -23,7 +24,7 @@
 
 ## Final local evidence
 
-- Final full regression after the committed-baseline repairs: `743` tests passed with `1` intentional skip under strict `ResourceWarning` handling.
+- Final full regression after the committed-baseline repairs: `745` tests passed with `1` intentional skip under strict `ResourceWarning` handling.
 - Maintainer suite: valid, `15` Skills, `1741` description characters, ordinary static path `13473`, no warnings or errors.
 - Capability contracts: `39` valid. RC.5 historical static ownership: `100%`. Product-state, method, knowledge, plugin, data-security, Python compilation, and `git diff --check` passed. The original RC.7 scan covered `95` changed paths; the post-commit repair scan covered `24`; both reported zero drift findings and `100%` static traceability.
 - The executable zero-discovery fixture classifies the result from collected-test identity/count rather than process exit convention: supported Python versions differ on whether zero discovery exits `0` or `5`. The Python 3.11/3.14 compatibility selection now includes this module.

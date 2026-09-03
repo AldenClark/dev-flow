@@ -71,6 +71,7 @@ def write_fixture(
         (workspace_workstream / name).write_text(contents, encoding="utf-8")
     delivery = state["delivery"]
     assert isinstance(delivery, dict)
+    delivery_summary = VALIDATOR._delivery_summary(delivery)
     legacy_review = (
         "| HC7 | Independent clean-context review | qualification | "
         f"{delivery['independent_review']} | fixture |\n"
@@ -81,7 +82,9 @@ def write_fixture(
             else "fixture\n"
         )
     )
-    (workstream / "progress.md").write_text(legacy_review, encoding="utf-8")
+    (workstream / "progress.md").write_text(
+        legacy_review + delivery_summary + "\n", encoding="utf-8"
+    )
     if workspace_workstream != workstream:
         (workspace_workstream / "progress.md").write_text("fixture", encoding="utf-8")
     source_label = "候选源码" if phase == "source-candidate" else "已发布源码"
@@ -107,7 +110,7 @@ def write_fixture(
         f"## {version} personal-assistant hardening {release_label}\n"
         f"`{latest['tag']}` is the latest public immutable RC tag\n"
         f"`{compatibility['rollback_target']}` is the rollback target for `{version}`\n"
-        f"Local commit: `{delivery['commit']}`. Independent review: `{delivery['independent_review']}`.\n"
+        f"{delivery_summary}\n"
         f"--version {version}\n-f version={version}\n",
         encoding="utf-8",
     )
@@ -231,12 +234,6 @@ class ProductStateTests(unittest.TestCase):
                 "releasing workflow example projection is stale",
             ),
             (
-                "docs/releasing.md",
-                "Local commit: `not-run`. Independent review: `not-run`.",
-                "Local commit: `passed`. Independent review: `passed`.",
-                "releasing delivery projection is stale",
-            ),
-            (
                 "docs/project/dev-flow-governance.md",
                 "../workstreams/dev-flow-2.0-rc.7/",
                 "../workstreams/dev-flow-2.0-rc.6/",
@@ -265,6 +262,36 @@ class ProductStateTests(unittest.TestCase):
                 path.write_text(original.replace(current, stale, 1), encoding="utf-8")
                 result = VALIDATOR.validate(target, check_git=False)
                 self.assertIn(expected, result["errors"])
+
+    def test_every_delivery_field_is_projected_to_both_current_state_surfaces(self) -> None:
+        for relative, expected in (
+            ("docs/releasing.md", "releasing delivery projection is stale"),
+            (
+                "docs/workstreams/dev-flow-2.0-rc.7/progress.md",
+                "progress delivery projection is stale",
+            ),
+        ):
+            for field in VALIDATOR.DELIVERY_ORDER:
+                with (
+                    self.subTest(relative=relative, field=field),
+                    tempfile.TemporaryDirectory() as directory,
+                ):
+                    target = Path(directory)
+                    write_fixture(
+                        target,
+                        self.rc7_candidate_state(),
+                        include_optional_workstream_docs=False,
+                    )
+                    path = target / relative
+                    original = path.read_text(encoding="utf-8")
+                    current = f"{field}=not-run"
+                    self.assertIn(current, original)
+                    path.write_text(
+                        original.replace(current, f"{field}=passed", 1),
+                        encoding="utf-8",
+                    )
+                    result = VALIDATOR.validate(target, check_git=False)
+                    self.assertIn(expected, result["errors"])
 
     def test_manifest_drift_is_rejected_without_git(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -402,23 +429,33 @@ class ProductStateTests(unittest.TestCase):
             result = VALIDATOR.validate(target, check_git=False)
         self.assertEqual(result["status"], "valid", result["errors"])
 
-    def test_released_rc_cannot_ignore_a_failed_optional_independent_review(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            target = Path(directory)
-            state = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
-            state["source"]["version"] = "2.0.0-rc.5"
-            state["source"]["phase"] = "released"
-            state["published"]["latest_rc"] = {"version": "2.0.0-rc.5", "tag": "v2.0.0-rc.5"}
-            state["compatibility"]["rollback_target"] = "v2.0.0-rc.4"
-            for key in ("commit", "hosted_ci", "cross_platform", "tag", "artifact", "publication", "isolated_install"):
-                state["delivery"][key] = "passed"
-            state["delivery"]["independent_review"] = "failed"
-            write_fixture(target, state)
-            result = VALIDATOR.validate(target, check_git=False)
-        self.assertIn(
-            "a release cannot ignore a failed or blocked independent_review",
-            result["errors"],
-        )
+    def test_released_rc_requires_an_explicit_independent_review_disposition(self) -> None:
+        for review_state in ("failed", "blocked", "not-run"):
+            with self.subTest(review_state=review_state), tempfile.TemporaryDirectory() as directory:
+                target = Path(directory)
+                state = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
+                state["source"]["version"] = "2.0.0-rc.5"
+                state["source"]["phase"] = "released"
+                state["published"]["latest_rc"] = {"version": "2.0.0-rc.5", "tag": "v2.0.0-rc.5"}
+                state["workspace"]["base_published"] = "v2.0.0-rc.5"
+                state["compatibility"]["rollback_target"] = "v2.0.0-rc.4"
+                for key in (
+                    "commit",
+                    "hosted_ci",
+                    "cross_platform",
+                    "tag",
+                    "artifact",
+                    "publication",
+                    "isolated_install",
+                ):
+                    state["delivery"][key] = "passed"
+                state["delivery"]["independent_review"] = review_state
+                write_fixture(target, state)
+                result = VALIDATOR.validate(target, check_git=False)
+            self.assertIn(
+                "released source requires an explicit independent_review disposition",
+                result["errors"],
+            )
 
     def test_released_rc_rejects_self_rollback_and_stale_latest(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
