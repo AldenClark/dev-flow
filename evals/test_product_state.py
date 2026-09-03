@@ -306,7 +306,13 @@ class ProductStateTests(unittest.TestCase):
             ),
         )
         for relative, expected_error in surfaces:
-            for camouflage in ("html-comment", "historical-section", "conflicting-copy"):
+            for camouflage in (
+                "html-comment",
+                "fenced-code",
+                "historical-section",
+                "nested-historical-section",
+                "conflicting-copy",
+            ):
                 with (
                     self.subTest(relative=relative, camouflage=camouflage),
                     tempfile.TemporaryDirectory() as directory,
@@ -327,9 +333,23 @@ class ProductStateTests(unittest.TestCase):
                     if camouflage == "html-comment":
                         changed = original.replace(summary, contradictory, 1)
                         changed += f"\n<!--\n{summary}\n-->\n"
+                    elif camouflage == "fenced-code":
+                        changed = original.replace(summary, contradictory, 1)
+                        changed = changed.replace(
+                            contradictory,
+                            contradictory + f"\n\n```text\n{summary}\n```",
+                            1,
+                        )
                     elif camouflage == "historical-section":
                         changed = original.replace(summary, contradictory, 1)
                         changed += f"\n## Historical\n\n{summary}\n"
+                    elif camouflage == "nested-historical-section":
+                        changed = original.replace(summary, contradictory, 1)
+                        changed = changed.replace(
+                            contradictory,
+                            contradictory + f"\n\n### Historical snapshot\n\n{summary}",
+                            1,
+                        )
                     else:
                         changed = original.replace(
                             summary, summary + "\n" + contradictory, 1

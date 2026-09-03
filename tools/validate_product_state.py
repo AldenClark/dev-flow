@@ -112,7 +112,28 @@ def _markdown_h2_section(text: str, title: str) -> str | None:
 
 
 def _visible_markdown(text: str) -> str:
-    return re.sub(r"<!--[\s\S]*?-->", "", text)
+    without_comments = re.sub(r"<!--[\s\S]*?-->", "", text)
+    visible: list[str] = []
+    fence_character: str | None = None
+    fence_length = 0
+    for line in without_comments.splitlines(keepends=True):
+        stripped_line = line.rstrip("\r\n")
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})", stripped_line)
+        if fence_character is None:
+            if marker is None:
+                visible.append(line)
+                continue
+            fence_character = marker.group(1)[0]
+            fence_length = len(marker.group(1))
+            continue
+        closing = re.fullmatch(
+            rf" {{0,3}}{re.escape(fence_character)}{{{fence_length},}}[ \t]*",
+            stripped_line,
+        )
+        if closing is not None:
+            fence_character = None
+            fence_length = 0
+    return "".join(visible)
 
 
 def _has_exact_delivery_projection(
@@ -124,6 +145,9 @@ def _has_exact_delivery_projection(
     section = _markdown_h2_section(_visible_markdown(text), section_title)
     if section is None:
         return False
+    nested_heading = re.search(r"(?m)^#{3,6}\s+", section)
+    if nested_heading is not None:
+        section = section[: nested_heading.start()]
     summaries = re.findall(r"(?m)^(?:- )?(Delivery state: [^\n]+\.)$", section)
     return summaries == [expected]
 
