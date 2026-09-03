@@ -2,14 +2,14 @@
 
 ## Current truth
 
-- Source candidate implementation: `2.0.0-rc.7` is implemented in this worktree; it is not committed, published, installed, or released.
+- Source candidate implementation: `2.0.0-rc.7` is implemented and committed locally; it is not pushed, published, installed, or released.
 - The main `dev-flow` Skill is now a thin adaptive lifecycle and professional-owner discovery spine. All 14 professional owners were strengthened in their own scope, including requirements/UX/knowledge, architecture/dependencies/debugging, verification/test-system/review, profiles/security/delivery, and Dev Flow maintenance.
 - Repository knowledge remains the detailed documentation owner. Material lifecycle work leaves a reusable result in its canonical owner; small repositories may use README, while `docs/` navigation appears only when durable knowledge topology needs it.
 - Testing now derives black-box outcomes and white-box risks, selects native layers by the real promise, challenges AI-authored tests with independent oracles and seeded faults, distinguishes host/mock/emulator/device evidence, and stops low-value fringe expansion without demoting rare high-consequence risks.
 - `evals/test_rc7_testing_behavior.py` supplies narrow executable new-/mature-project fixtures for native discovery, assertion sensitivity, real filesystem boundaries, mock substitution, stale cache identity, retry/skip interpretation, environment attribution, and value-based fringe stopping. These fixtures qualify deterministic method/harness sensitivity; live-model selection and application effect remain `NOT RUN`.
 - Child, nested-child, and clean-context reviewer dispatch no longer requires a separate authorization flag or prompt. Model/effort selection remains P0-P6; descendants cannot enlarge repository, semantic, external, destructive, sensitive-data, delivery, dependency, or model-campaign authority.
 - The compatibility-only `--independent-review-authorized` input is still parsed but has zero effect on route basis, dispatch decision, compact output, or full public JSON.
-- Product state, manifest, release-workflow default, active README/releasing/CHANGELOG projections, governance anchor, and this workstream now agree on RC.7 as the source candidate. Published/install/rollback truth remains `v2.0.0-rc.6`; independent review is `passed`, while commit, hosted CI, cross-platform execution, artifact, tag, publication, and installation remain `not-run` until independently performed.
+- Product state, manifest, release-workflow default, active README/releasing/CHANGELOG projections, governance anchor, and this workstream now agree on RC.7 as the source candidate. Published/install/rollback truth remains `v2.0.0-rc.6`; local commit and independent review are `passed`, while hosted CI, cross-platform execution, artifact, tag, publication, and installation remain `not-run` until independently performed.
 - Ordinary static context is `13473` bytes, below the `13500` warning line; all Skill descriptions total `1741` characters. The optional `12500` stretch target was not reached, but no warning or hard limit remains.
 
 ## Implemented groups
@@ -38,7 +38,7 @@
 
 ## Next action
 
-Implementation and authorized local verification are complete. The next possible actions are commit/hosted qualification/release operations or a separately bounded live-model comparison; none is authorized by this implementation request, so they remain unperformed rather than implicit follow-up work.
+Implementation, local commit, and authorized local verification are complete. The next possible actions are push/hosted qualification/release operations or a separately bounded live-model comparison; none is authorized by this request, so they remain unperformed rather than implicit follow-up work.
 
 ## Evidence limits
 
