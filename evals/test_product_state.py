@@ -311,52 +311,72 @@ class ProductStateTests(unittest.TestCase):
                 "fenced-code",
                 "historical-section",
                 "nested-historical-section",
+                "raw-html-before-nested-current",
                 "conflicting-copy",
             ):
-                with (
-                    self.subTest(relative=relative, camouflage=camouflage),
-                    tempfile.TemporaryDirectory() as directory,
-                ):
-                    target = Path(directory)
-                    state = self.rc7_candidate_state()
-                    write_fixture(
-                        target,
-                        state,
-                        include_optional_workstream_docs=False,
-                    )
-                    summary = VALIDATOR._delivery_summary(state["delivery"])
-                    contradictory = summary.replace(
-                        "publication=not-run", "publication=passed"
-                    )
-                    path = target / relative
-                    original = path.read_text(encoding="utf-8")
-                    if camouflage == "html-comment":
-                        changed = original.replace(summary, contradictory, 1)
-                        changed += f"\n<!--\n{summary}\n-->\n"
-                    elif camouflage == "fenced-code":
-                        changed = original.replace(summary, contradictory, 1)
-                        changed = changed.replace(
-                            contradictory,
-                            contradictory + f"\n\n```text\n{summary}\n```",
-                            1,
+                for field in VALIDATOR.DELIVERY_ORDER:
+                    with (
+                        self.subTest(
+                            relative=relative,
+                            camouflage=camouflage,
+                            field=field,
+                        ),
+                        tempfile.TemporaryDirectory() as directory,
+                    ):
+                        target = Path(directory)
+                        state = self.rc7_candidate_state()
+                        write_fixture(
+                            target,
+                            state,
+                            include_optional_workstream_docs=False,
                         )
-                    elif camouflage == "historical-section":
-                        changed = original.replace(summary, contradictory, 1)
-                        changed += f"\n## Historical\n\n{summary}\n"
-                    elif camouflage == "nested-historical-section":
-                        changed = original.replace(summary, contradictory, 1)
-                        changed = changed.replace(
-                            contradictory,
-                            contradictory + f"\n\n### Historical snapshot\n\n{summary}",
-                            1,
+                        summary = VALIDATOR._delivery_summary(state["delivery"])
+                        contradictory = summary.replace(
+                            f"{field}=not-run", f"{field}=passed"
                         )
-                    else:
-                        changed = original.replace(
-                            summary, summary + "\n" + contradictory, 1
-                        )
-                    path.write_text(changed, encoding="utf-8")
-                    result = VALIDATOR.validate(target, check_git=False)
-                    self.assertIn(expected_error, result["errors"])
+                        visible_contradiction = f"Current {field} status: passed."
+                        path = target / relative
+                        original = path.read_text(encoding="utf-8")
+                        if camouflage == "html-comment":
+                            changed = original.replace(
+                                summary, visible_contradiction, 1
+                            )
+                            changed += f"\n<!--\n{summary}\n-->\n"
+                        elif camouflage == "fenced-code":
+                            changed = original.replace(
+                                summary,
+                                visible_contradiction
+                                + f"\n\n```text\n{summary}\n```",
+                                1,
+                            )
+                        elif camouflage == "historical-section":
+                            changed = original.replace(
+                                summary, visible_contradiction, 1
+                            )
+                            changed += f"\n## Historical\n\n{summary}\n"
+                        elif camouflage == "nested-historical-section":
+                            changed = original.replace(
+                                summary,
+                                visible_contradiction
+                                + f"\n\n### Historical snapshot\n\n{summary}",
+                                1,
+                            )
+                        elif camouflage == "raw-html-before-nested-current":
+                            changed = original.replace(
+                                summary,
+                                "<details><summary>Historical example</summary>\n\n"
+                                + summary
+                                + "\n\n</details>\n\n### Current delivery state\n\n"
+                                + visible_contradiction,
+                                1,
+                            )
+                        else:
+                            changed = original.replace(
+                                summary, summary + "\n" + contradictory, 1
+                            )
+                        path.write_text(changed, encoding="utf-8")
+                        result = VALIDATOR.validate(target, check_git=False)
+                        self.assertIn(expected_error, result["errors"])
 
     def test_manifest_drift_is_rejected_without_git(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

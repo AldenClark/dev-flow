@@ -145,11 +145,15 @@ def _has_exact_delivery_projection(
     section = _markdown_h2_section(_visible_markdown(text), section_title)
     if section is None:
         return False
+    summary_pattern = r"(?m)^(?:- )?(Delivery state: [^\n]+\.)$"
+    if re.findall(summary_pattern, section) != [expected]:
+        return False
     nested_heading = re.search(r"(?m)^#{3,6}\s+", section)
     if nested_heading is not None:
         section = section[: nested_heading.start()]
-    summaries = re.findall(r"(?m)^(?:- )?(Delivery state: [^\n]+\.)$", section)
-    return summaries == [expected]
+    if re.search(r"<[A-Za-z!/][^>]*>", section):
+        return False
+    return re.findall(summary_pattern, section) == [expected]
 
 
 def _repository_path(root: Path, relative: Any, label: str, errors: list[str]) -> Path | None:
