@@ -24,7 +24,7 @@
 
 ## Final local evidence
 
-- Final full regression after the committed-baseline repairs: `745` tests passed with `1` intentional skip under strict `ResourceWarning` handling.
+- Final full regression after the committed-baseline repairs: `747` tests passed with `1` intentional skip under strict `ResourceWarning` handling.
 - Maintainer suite: valid, `15` Skills, `1741` description characters, ordinary static path `13473`, no warnings or errors.
 - Capability contracts: `39` valid. RC.5 historical static ownership: `100%`. Product-state, method, knowledge, plugin, data-security, Python compilation, and `git diff --check` passed. The original RC.7 scan covered `95` changed paths; the post-commit repair scan covered `24`; both reported zero drift findings and `100%` static traceability.
 - The executable zero-discovery fixture classifies the result from collected-test identity/count rather than process exit convention: supported Python versions differ on whether zero discovery exits `0` or `5`. The Python 3.11/3.14 compatibility selection now includes this module.

@@ -111,6 +111,23 @@ def _markdown_h2_section(text: str, title: str) -> str | None:
     return text[heading.end() : end]
 
 
+def _visible_markdown(text: str) -> str:
+    return re.sub(r"<!--[\s\S]*?-->", "", text)
+
+
+def _has_exact_delivery_projection(
+    text: str,
+    *,
+    section_title: str,
+    expected: str,
+) -> bool:
+    section = _markdown_h2_section(_visible_markdown(text), section_title)
+    if section is None:
+        return False
+    summaries = re.findall(r"(?m)^(?:- )?(Delivery state: [^\n]+\.)$", section)
+    return summaries == [expected]
+
+
 def _repository_path(root: Path, relative: Any, label: str, errors: list[str]) -> Path | None:
     if not isinstance(relative, str) or not relative.strip():
         errors.append(f"{label} must be a repository-relative path")
@@ -323,16 +340,6 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
         "releasing rollback": f"`{rollback_target}` is the rollback target for `{source_version}`",
         "releasing build example": f"--version {source_version}",
         "releasing workflow example": f"-f version={source_version}",
-        "releasing delivery": (
-            _delivery_summary(delivery)
-            if isinstance(delivery, dict)
-            else ""
-        ),
-        "progress delivery": (
-            _delivery_summary(delivery)
-            if isinstance(delivery, dict)
-            else ""
-        ),
         "changelog source": f"{changelog_label}: `{source_version}`",
         "changelog workspace": f"Current workspace state: `{workspace_phase}` from `{workspace_base}`",
         "workflow candidate": f'default: "{source_version}"',
@@ -370,6 +377,20 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
         )
     if isinstance(delivery, dict) and delivery.get("independent_review") == "passed":
         projections["changelog independent review"] = "Independent clean-context review passed"
+    if isinstance(delivery, dict):
+        delivery_summary = _delivery_summary(delivery)
+        if not _has_exact_delivery_projection(
+            releasing,
+            section_title=f"{source_version} personal-assistant hardening {release_label}",
+            expected=delivery_summary,
+        ):
+            errors.append("releasing delivery projection is stale")
+        if not _has_exact_delivery_projection(
+            progress,
+            section_title="Current truth",
+            expected=delivery_summary,
+        ):
+            errors.append("progress delivery projection is stale")
     for label, token in projections.items():
         target = {
             "README": readme,

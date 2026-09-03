@@ -33,7 +33,6 @@ class NativeResult:
 
 
 def _source_fingerprint(project: Path) -> str:
-    digest = hashlib.sha256()
     sources = sorted(
         path
         for path in project.rglob("*")
@@ -41,10 +40,16 @@ def _source_fingerprint(project: Path) -> str:
         and "__pycache__" not in path.parts
         and path.suffix not in {".pyc", ".pyo"}
     )
-    for source in sources:
-        digest.update(source.relative_to(project).as_posix().encode())
-        digest.update(source.read_bytes())
-    return digest.hexdigest()
+    entries = [
+        (
+            source.relative_to(project).as_posix(),
+            hashlib.sha256(source.read_bytes()).hexdigest(),
+        )
+        for source in sources
+    ]
+    return hashlib.sha256(
+        json.dumps(entries, separators=(",", ":"), ensure_ascii=True).encode()
+    ).hexdigest()
 
 
 def _run_native(project: Path, *, extra_env: dict[str, str] | None = None) -> NativeResult:
@@ -67,11 +72,11 @@ def _run_native(project: Path, *, extra_env: dict[str, str] | None = None) -> Na
     count = re.search(r"Ran (\d+) tests?", output)
     skipped = re.search(r"skipped=(\d+)", output)
     test_ids = frozenset(
-        re.findall(r"(?m)^test_[A-Za-z0-9_]+ \(([^)]+)\) \.\.\.", output)
+        re.findall(r"(?m)^\S+ \(([^)]+)\) \.\.\.", output)
     )
     skipped_test_ids = frozenset(
         re.findall(
-            r"(?m)^test_[A-Za-z0-9_]+ \(([^)]+)\) \.\.\. skipped", output
+            r"(?m)^\S+ \(([^)]+)\) \.\.\. skipped", output
         )
     )
     identity_payload = {
@@ -361,6 +366,49 @@ class DummyTests(unittest.TestCase):
             )
             self.assertEqual(first.source_fingerprint, ambiguous_without_canonical_encoding.source_fingerprint)
             self.assertNotEqual(first.run_identity, ambiguous_without_canonical_encoding.run_identity)
+
+            config.unlink()
+            (project / "a").write_text("bc\n", encoding="utf-8")
+            first_tree = _run_native(project)
+            (project / "a").unlink()
+            (project / "ab").write_text("c\n", encoding="utf-8")
+            distinct_tree = _run_native(project)
+            self.assertNotEqual(first_tree.source_fingerprint, distinct_tree.source_fingerprint)
+            self.assertEqual(
+                _retry_disposition([first_tree, distinct_tree]), "NOT COMPARABLE"
+            )
+
+    def test_native_ids_without_underscore_preserve_skip_and_selection_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            project = base / "project"
+            marker = base / "external-marker"
+            _write_project(project)
+            (project / "tests" / "test_dynamic.py").write_text(
+                f'''import unittest
+from pathlib import Path
+
+MARKER = Path({str(marker)!r})
+
+class DynamicTests(unittest.TestCase):
+    @unittest.skipIf(MARKER.exists(), "external selection state")
+    def testAlpha(self):
+        self.assertTrue(True)
+''',
+                encoding="utf-8",
+            )
+            selected = _run_native(project)
+            self.assertIn(
+                "test_dynamic.DynamicTests.testAlpha", selected.test_ids
+            )
+
+            marker.write_text("skip\n", encoding="utf-8")
+            skipped = _run_native(project)
+            self.assertEqual(selected.run_identity, skipped.run_identity)
+            self.assertIn(
+                "test_dynamic.DynamicTests.testAlpha", skipped.skipped_test_ids
+            )
+            self.assertEqual(_retry_disposition([selected, skipped]), "FLAKY")
 
     def test_inert_assertion_and_mock_substitution_are_exposed_by_independent_oracles(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

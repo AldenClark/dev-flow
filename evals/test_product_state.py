@@ -83,7 +83,11 @@ def write_fixture(
         )
     )
     (workstream / "progress.md").write_text(
-        legacy_review + delivery_summary + "\n", encoding="utf-8"
+        "# Progress\n\n## Current truth\n\n"
+        + legacy_review
+        + delivery_summary
+        + "\n",
+        encoding="utf-8",
     )
     if workspace_workstream != workstream:
         (workspace_workstream / "progress.md").write_text("fixture", encoding="utf-8")
@@ -292,6 +296,47 @@ class ProductStateTests(unittest.TestCase):
                     )
                     result = VALIDATOR.validate(target, check_git=False)
                     self.assertIn(expected, result["errors"])
+
+    def test_delivery_projection_rejects_hidden_historical_and_conflicting_copies(self) -> None:
+        surfaces = (
+            ("docs/releasing.md", "releasing delivery projection is stale"),
+            (
+                "docs/workstreams/dev-flow-2.0-rc.7/progress.md",
+                "progress delivery projection is stale",
+            ),
+        )
+        for relative, expected_error in surfaces:
+            for camouflage in ("html-comment", "historical-section", "conflicting-copy"):
+                with (
+                    self.subTest(relative=relative, camouflage=camouflage),
+                    tempfile.TemporaryDirectory() as directory,
+                ):
+                    target = Path(directory)
+                    state = self.rc7_candidate_state()
+                    write_fixture(
+                        target,
+                        state,
+                        include_optional_workstream_docs=False,
+                    )
+                    summary = VALIDATOR._delivery_summary(state["delivery"])
+                    contradictory = summary.replace(
+                        "publication=not-run", "publication=passed"
+                    )
+                    path = target / relative
+                    original = path.read_text(encoding="utf-8")
+                    if camouflage == "html-comment":
+                        changed = original.replace(summary, contradictory, 1)
+                        changed += f"\n<!--\n{summary}\n-->\n"
+                    elif camouflage == "historical-section":
+                        changed = original.replace(summary, contradictory, 1)
+                        changed += f"\n## Historical\n\n{summary}\n"
+                    else:
+                        changed = original.replace(
+                            summary, summary + "\n" + contradictory, 1
+                        )
+                    path.write_text(changed, encoding="utf-8")
+                    result = VALIDATOR.validate(target, check_git=False)
+                    self.assertIn(expected_error, result["errors"])
 
     def test_manifest_drift_is_rejected_without_git(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
