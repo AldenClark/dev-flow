@@ -9,8 +9,8 @@
 - `evals/test_rc7_testing_behavior.py` supplies narrow executable new-/mature-project fixtures for native discovery, assertion sensitivity, real filesystem boundaries, mock substitution, stale cache identity, retry/skip interpretation, environment attribution, and value-based fringe stopping. These fixtures qualify deterministic method/harness sensitivity; live-model selection and application effect remain `NOT RUN`.
 - Child, nested-child, and clean-context reviewer dispatch no longer requires a separate authorization flag or prompt. Model/effort selection remains P0-P6; descendants cannot enlarge repository, semantic, external, destructive, sensitive-data, delivery, dependency, or model-campaign authority.
 - The compatibility-only `--independent-review-authorized` input is still parsed but has zero effect on route basis, dispatch decision, compact output, or full public JSON.
-- Product state, manifest, release-workflow default, active README/releasing/CHANGELOG projections, governance anchor, and this workstream now agree on RC.7 as the source candidate. Published/install/rollback truth remains `v2.0.0-rc.6`; local commit is `passed`. A final clean-context review reopened delivery-projection camouflage, so independent review is `failed` pending repair recheck. Hosted CI, cross-platform execution, artifact, tag, publication, and installation remain `not-run`.
-- Delivery state: commit=passed; hosted_ci=not-run; cross_platform=not-run; independent_review=failed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+- Product state, manifest, release-workflow default, active README/releasing/CHANGELOG projections, governance anchor, and this workstream now agree on RC.7 as the source candidate. Published/install/rollback truth remains `v2.0.0-rc.6`; local commit and independent clean-context review are `passed`. Hosted CI, cross-platform execution, artifact, tag, publication, and installation remain `not-run`.
+- Delivery state: commit=passed; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
 - Ordinary static context is `13473` bytes, below the enforced `13500` hard ceiling; all Skill descriptions total `1741` characters. The optional `12500` stretch target was not reached; the current validator emits no warning or error.
 
 ## Implemented groups
@@ -42,10 +42,11 @@
 - Final-state review of `e0ab020` reproduced 32/32 fenced-example or nested-H3 camouflage false greens across both delivery surfaces and all fields. The parser now excludes fenced blocks and nested subsections, with those cases added to the executable negative controls; canonical review is returned to `failed` until recheck.
 - Rechecks of `aa49bb0` and `f7efdab` proved the first camouflage tests did not fail the old parser and exposed inverse-order raw HTML, indented CommonMark headings, and processing-instruction variants. The projection parser was replaced with a smaller fail-closed rule: one exact raw summary in the named H2, no raw HTML, no fenced copy, and no summary below any 0–3-space nested heading. The expanded two-surface/eight-field controls pass locally; independent recheck is still required.
 - Final holistic review of `07161fb` found that fencing the governed H2 itself bypassed post-heading fence filtering and corrected the static-budget wording. The parser now locates the H2 in whole-document visible Markdown before applying raw-section uniqueness, and the causal fenced-section counterexample is part of the two-surface/eight-field controls; recheck remains pending.
+- Two final reviews of `9390dde` returned `ACCEPT` in the user-confirmed core scope. The exact fenced-H2 parent failure reproduced in 16/16 cases and the repaired path rejected all 16; a clean-context clone then passed all `747` local tests, the complete repository gates, core lifecycle/discovery/authority checks, and the causal parser mutation. New exotic Markdown exploration was intentionally stopped as low-value fringe. Canonical independent review is `passed`.
 
 ## Next action
 
-Implementation, local commits, and deterministic verification are complete. The delivery-projection repair needs a clean-context recheck. Push, hosted qualification, release operations, and live-model comparison remain unperformed and require their own scope and evidence.
+Implementation, local commits, deterministic verification, and independent review are complete. Push, hosted qualification, release operations, and live-model comparison remain unperformed and require their own scope and evidence.
 
 ## Evidence limits
 

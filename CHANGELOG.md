@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 Current candidate source identity: `2.0.0-rc.7`. Current workspace state: `development` from `v2.0.0-rc.6`. Stable `2.0.0` remains intentionally deferred.
 
-Independent clean-context review found additional fenced-example and nested-history projection camouflage after earlier findings were repaired. The new parser repair is pending recheck; hosted CI, cross-platform execution, artifact, publication, and installation remain unperformed.
+Independent clean-context review passed after multiple rounds found, repaired, and causally rechecked consequential RC.7 issues, including delivery-projection camouflage. Hosted CI, cross-platform execution, artifact, publication, and installation remain unperformed.
 
 ### Changed
 
