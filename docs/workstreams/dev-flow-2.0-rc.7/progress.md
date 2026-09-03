@@ -2,15 +2,15 @@
 
 ## Current truth
 
-- Source candidate implementation: `2.0.0-rc.7` is implemented and committed locally; it is not pushed, published, installed, or released.
+- `v2.0.0-rc.7` is released from exact candidate `3c610e4ccff70ecbd736bc21df560c57dc3b5e00`; the annotated tag, public prerelease, verified artifacts, and isolated installation are complete.
 - The main `dev-flow` Skill is now a thin adaptive lifecycle and professional-owner discovery spine. All 14 professional owners were strengthened in their own scope, including requirements/UX/knowledge, architecture/dependencies/debugging, verification/test-system/review, profiles/security/delivery, and Dev Flow maintenance.
 - Repository knowledge remains the detailed documentation owner. Material lifecycle work leaves a reusable result in its canonical owner; small repositories may use README, while `docs/` navigation appears only when durable knowledge topology needs it.
 - Testing now derives black-box outcomes and white-box risks, selects native layers by the real promise, challenges AI-authored tests with independent oracles and seeded faults, distinguishes host/mock/emulator/device evidence, and stops low-value fringe expansion without demoting rare high-consequence risks.
 - `evals/test_rc7_testing_behavior.py` supplies narrow executable new-/mature-project fixtures for native discovery, assertion sensitivity, real filesystem boundaries, mock substitution, stale cache identity, retry/skip interpretation, environment attribution, and value-based fringe stopping. These fixtures qualify deterministic method/harness sensitivity; live-model selection and application effect remain `NOT RUN`.
 - Child, nested-child, and clean-context reviewer dispatch no longer requires a separate authorization flag or prompt. Model/effort selection remains P0-P6; descendants cannot enlarge repository, semantic, external, destructive, sensitive-data, delivery, dependency, or model-campaign authority.
 - The compatibility-only `--independent-review-authorized` input is still parsed but has zero effect on route basis, dispatch decision, compact output, or full public JSON.
-- Product state, manifest, release-workflow default, active README/releasing/CHANGELOG projections, governance anchor, and this workstream now agree on RC.7 as the source candidate. Published/install/rollback truth remains `v2.0.0-rc.6`; local commit and independent clean-context review are `passed`. Hosted CI, cross-platform execution, artifact, tag, publication, and installation remain `not-run`.
-- Delivery state: commit=passed; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+- Product state, manifest, release-workflow default, active README/releasing/CHANGELOG projections, governance anchor, and this workstream agree on RC.7 as the latest published source. The workspace base is `v2.0.0-rc.7`; the rollback target remains `v2.0.0-rc.6`.
+- Delivery state: commit=passed; hosted_ci=passed; cross_platform=passed; independent_review=passed; tag=passed; artifact=passed; publication=passed; isolated_install=passed.
 - Ordinary static context is `13473` bytes, below the enforced `13500` hard ceiling; all Skill descriptions total `1741` characters. The optional `12500` stretch target was not reached; the current validator emits no warning or error.
 
 ## Implemented groups
@@ -24,7 +24,10 @@
 
 ## Final local evidence
 
-- Final full regression after the committed-baseline repairs: `747` tests passed with `1` intentional skip under strict `ResourceWarning` handling.
+- Final full regression after the committed-baseline and Windows qualification repairs: `749` tests passed with `1` intentional skip under strict `ResourceWarning` handling.
+- Hosted CI run `33715312122` passed the complete Ubuntu/Python 3.14 semantic gate and Ubuntu, macOS, and Windows compatibility cells across Python 3.11/3.14. The first Windows failure remains preserved in run `33714695057`; CRLF projection and required host-environment regressions now cover both causes.
+- Release-evidence run `33715747338` built and attested candidate `3c610e4ccff70ecbd736bc21df560c57dc3b5e00`. The downloaded archive, manifest, SPDX 2.3 SBOM, and checksums verified locally; the public prerelease is `https://github.com/AldenClark/dev-flow/releases/tag/v2.0.0-rc.7`.
+- A fresh temporary `CODEX_HOME` discovered and installed all `15` RC.7 Skills, including `repository-knowledge`; packaged plugin validation passed, and uninstall removed the isolated cached plugin without touching the primary profile.
 - Maintainer suite: valid, `15` Skills, `1741` description characters, ordinary static path `13473`, no warnings or errors.
 - Capability contracts: `39` valid. RC.5 historical static ownership: `100%`. Product-state, method, knowledge, plugin, data-security, Python compilation, and `git diff --check` passed. The original RC.7 scan covered `95` changed paths; the post-commit repair scan covered `24`; both reported zero drift findings and `100%` static traceability.
 - The executable zero-discovery fixture classifies the result from collected-test identity/count rather than process exit convention: supported Python versions differ on whether zero discovery exits `0` or `5`. The Python 3.11/3.14 compatibility selection now includes this module.
@@ -46,8 +49,8 @@
 
 ## Next action
 
-Implementation, local commits, deterministic verification, and independent review are complete. Push, hosted qualification, release operations, and live-model comparison remain unperformed and require their own scope and evidence.
+RC.7 implementation, deterministic verification, independent review, push, hosted qualification, release artifacts, publication, and isolated installation are complete. Stable `2.0.0` qualification and live-model comparison remain separate future work.
 
 ## Evidence limits
 
-No hosted CI, cross-platform matrix, artifact build/attestation, physical-device/platform run, remote tag, publication, marketplace installation, production observation, or controlled RC.6-versus-RC.7 live-model comparison has run for RC.7. Local deterministic evidence cannot be upgraded to any of those claims.
+No physical-device/platform run, production observation, stable-release qualification, or controlled RC.6-versus-RC.7 live-model comparison has run for RC.7. Hosted, artifact, publication, and isolated-install evidence cannot be upgraded to any of those separate claims.

@@ -4,9 +4,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Current candidate source identity: `2.0.0-rc.7`. Current workspace state: `development` from `v2.0.0-rc.6`. Stable `2.0.0` remains intentionally deferred.
+Latest published source identity: `2.0.0-rc.7`. Current workspace state: `development` from `v2.0.0-rc.7`. Stable `2.0.0` remains intentionally deferred.
 
-Independent clean-context review passed after multiple rounds found, repaired, and causally rechecked consequential RC.7 issues, including delivery-projection camouflage. Hosted CI, cross-platform execution, artifact, publication, and installation remain unperformed.
+## [2.0.0-rc.7] - 2026-09-03
+
+The immutable `v2.0.0-rc.7` tag and public prerelease are published from candidate `3c610e4ccff70ecbd736bc21df560c57dc3b5e00`; exact-commit hosted semantic CI, the Linux/macOS/Windows compatibility matrix, archive/SBOM/provenance verification, and isolated public install/discovery/uninstall passed. Independent clean-context review passed after multiple rounds found, repaired, and causally rechecked consequential RC.7 issues, including delivery-projection camouflage. Stable `2.0.0` and live-model comparison remain separate and were not run.
 
 ### Changed
 
