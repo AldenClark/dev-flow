@@ -4,9 +4,12 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import re
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +32,19 @@ class ContextBudgetTests(unittest.TestCase):
         self.assertLessEqual(descriptions, VALIDATOR.DESCRIPTION_TARGET)
         self.assertLessEqual(ordinary, VALIDATOR.ORDINARY_STATIC_TARGET)
         self.assertLess(VALIDATOR.DESCRIPTION_WARNING, VALIDATOR.DESCRIPTION_TARGET)
-        self.assertLess(VALIDATOR.ORDINARY_STATIC_WARNING, VALIDATOR.ORDINARY_STATIC_TARGET)
+        self.assertLess(
+            VALIDATOR.ORDINARY_STATIC_STRETCH_TARGET,
+            VALIDATOR.ORDINARY_STATIC_TARGET,
+        )
+
+    def test_rc7_static_limit_is_an_error_not_a_warning(self) -> None:
+        ordinary = sum(len((ROOT / path).read_bytes()) for path in VALIDATOR.ORDINARY_STATIC_FILES)
+        output = io.StringIO()
+        with patch.object(VALIDATOR, "ORDINARY_STATIC_BUDGET", ordinary - 1):
+            with redirect_stdout(output):
+                code = VALIDATOR.main()
+        self.assertEqual(code, 2)
+        self.assertIn("ordinary static path exceeds", output.getvalue())
 
 
 if __name__ == "__main__":

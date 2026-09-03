@@ -28,11 +28,11 @@ This index routes contributors and agents to the smallest maintained knowledge o
 - [Release validation and benchmark separation](workstreams/dev-flow-2.0-benchmark-separation/): current stable-validation contract, independent Bench design, implementation, and evidence.
 - [Repository knowledge capability](workstreams/repository-knowledge/): repository-knowledge design, implementation, and evidence limits.
 
-## Candidate design research
+## RC.7 design and implementation references
 
-- [RC.7 development guidance](rc7-development-lifecycle.md): draft thin development spine, situational practices, adaptive depth, project knowledge, and research rationale.
-- [RC.7 methodology toolbox](rc7-methodology-system.md): draft problem-triggered use of the existing 117 methods and researched additions without lifecycle ceremony.
-- [RC.7 Skill evolution](rc7-skill-evolution-design.md): draft redesign of the Dev Flow kernel, specialist ownership, implementation order, and behavior-based validation.
+- [RC.7 development guidance](rc7-development-lifecycle.md): implemented thin development spine, situational practices, adaptive depth, project knowledge, and research rationale.
+- [RC.7 methodology toolbox](rc7-methodology-system.md): implemented problem-triggered use of the existing 117 methods and researched additions without lifecycle ceremony.
+- [RC.7 Skill evolution](rc7-skill-evolution-design.md): implemented redesign of the Dev Flow kernel, specialist ownership, implementation order, and behavior-based validation.
 - [RC.7 local-task audit](rc7-dogfood-audit.md): anonymized post-RC.5 dogfood findings and evidence-derived design constraints.
 - [RC.7 professional-Skill discovery audit](rc7-specialist-discovery-audit.md): suite-wide activation audit, industry/research synthesis and evidence-triggered discovery design, with `repository-knowledge` as the first concrete repair.
 

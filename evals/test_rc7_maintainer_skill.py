@@ -28,6 +28,30 @@ def method() -> dict[str, object]:
     }
 
 
+def rc4() -> dict[str, object]:
+    return {
+        "route": {
+            "initial": 1,
+            "material_transitions": 0,
+            "delta_routes": 0,
+            "unchanged_routes": 1,
+        },
+        "convergence": {
+            "checkpoint_required": False,
+            "checkpoint_resolved": False,
+            "third_tweak": False,
+        },
+        "resource": {"preflight": "observed", "lease": "none"},
+        "workstream": {"check": "not-applicable", "contradictions": []},
+        "test_system": {
+            "eligible": True,
+            "activated": True,
+            "negative_control": "failed-as-expected",
+        },
+        "evidence_status": "passed",
+    }
+
+
 def observation(*, slice_record: dict[str, object] | None = None) -> dict[str, object]:
     result: dict[str, object] = {
         "task_shape": "implementation",
@@ -38,6 +62,7 @@ def observation(*, slice_record: dict[str, object] | None = None) -> dict[str, o
         "method": method(),
     }
     if slice_record is not None:
+        result["rc4"] = rc4()
         result["slice"] = slice_record
     return result
 
@@ -74,6 +99,19 @@ class Rc7MaintainerBehaviorTests(unittest.TestCase):
         self.assertEqual(slices["claims"], {"behavior-repair-observed": 1})
         self.assertEqual(slices["affected_owners"], {"verification": 1})
         self.assertIsNone(slices["productivity_claim"])
+        self.assertEqual(result["rc4"]["route"]["initial"], 1)
+        self.assertEqual(result["rc4"]["test_system"]["activated"], 1)
+
+    def test_v3_is_additive_and_rejects_slice_only_observations(self) -> None:
+        slice_only = observation(slice_record=repair_slice())
+        del slice_only["rc4"]
+        with self.assertRaisesRegex(DogfoodContractError, "exact aggregate-safe schema"):
+            analyze(
+                {
+                    "schema_version": "dev-flow.dogfood.observations.v3",
+                    "observations": [slice_only],
+                }
+            )
 
     def test_structural_green_cannot_impersonate_behavior_repair(self) -> None:
         structural_only = repair_slice()

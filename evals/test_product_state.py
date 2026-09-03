@@ -107,6 +107,7 @@ def write_fixture(
         f"## {version} personal-assistant hardening {release_label}\n"
         f"`{latest['tag']}` is the latest public immutable RC tag\n"
         f"`{compatibility['rollback_target']}` is the rollback target for `{version}`\n"
+        f"Local commit: `{delivery['commit']}`. Independent review: `{delivery['independent_review']}`.\n"
         f"--version {version}\n-f version={version}\n",
         encoding="utf-8",
     )
@@ -228,6 +229,12 @@ class ProductStateTests(unittest.TestCase):
                 "-f version=2.0.0-rc.7",
                 "-f version=2.0.0-rc.6",
                 "releasing workflow example projection is stale",
+            ),
+            (
+                "docs/releasing.md",
+                "Local commit: `not-run`. Independent review: `not-run`.",
+                "Local commit: `passed`. Independent review: `passed`.",
+                "releasing delivery projection is stale",
             ),
             (
                 "docs/project/dev-flow-governance.md",

@@ -306,6 +306,12 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
         "releasing rollback": f"`{rollback_target}` is the rollback target for `{source_version}`",
         "releasing build example": f"--version {source_version}",
         "releasing workflow example": f"-f version={source_version}",
+        "releasing delivery": (
+            f"Local commit: `{delivery.get('commit')}`. Independent review: "
+            f"`{delivery.get('independent_review')}`."
+            if isinstance(delivery, dict)
+            else ""
+        ),
         "changelog source": f"{changelog_label}: `{source_version}`",
         "changelog workspace": f"Current workspace state: `{workspace_phase}` from `{workspace_base}`",
         "workflow candidate": f'default: "{source_version}"',

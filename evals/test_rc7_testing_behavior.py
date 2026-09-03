@@ -16,7 +16,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 
@@ -25,6 +25,10 @@ class NativeResult:
     returncode: int
     tests_run: int
     skipped: int
+    test_ids: frozenset[str]
+    skipped_test_ids: frozenset[str]
+    source_fingerprint: str
+    run_identity: str
     output: str
 
 
@@ -41,6 +45,7 @@ def _run_native(project: Path, *, extra_env: dict[str, str] | None = None) -> Na
     environment["PYTHONPATH"] = str(project)
     if extra_env:
         environment.update(extra_env)
+    source_fingerprint = _source_fingerprint(project)
     completed = subprocess.run(
         [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
         cwd=project,
@@ -52,10 +57,26 @@ def _run_native(project: Path, *, extra_env: dict[str, str] | None = None) -> Na
     output = completed.stdout + completed.stderr
     count = re.search(r"Ran (\d+) tests?", output)
     skipped = re.search(r"skipped=(\d+)", output)
+    test_ids = frozenset(re.findall(r"(?m)^(test_[A-Za-z0-9_]+) \(", output))
+    skipped_test_ids = frozenset(
+        re.findall(r"(?m)^(test_[A-Za-z0-9_]+) \([^\n]+\) \.\.\. skipped", output)
+    )
+    identity = hashlib.sha256()
+    identity.update(source_fingerprint.encode())
+    identity.update(sys.executable.encode())
+    identity.update(sys.version.encode())
+    identity.update(b"unittest-discover-tests-v1")
+    for key, value in sorted((extra_env or {}).items()):
+        identity.update(key.encode())
+        identity.update(value.encode())
     return NativeResult(
         returncode=completed.returncode,
         tests_run=int(count.group(1)) if count else 0,
         skipped=int(skipped.group(1)) if skipped else 0,
+        test_ids=test_ids,
+        skipped_test_ids=skipped_test_ids,
+        source_fingerprint=source_fingerprint,
+        run_identity=identity.hexdigest(),
         output=output,
     )
 
@@ -145,15 +166,46 @@ class ReceiptBoundaryTests(unittest.TestCase):
 
 
 def _retry_disposition(attempts: list[NativeResult]) -> str:
-    if any(result.returncode != 0 for result in attempts):
-        return "FLAKY" if attempts[-1].returncode == 0 else "FAILED"
-    return "PASSED"
+    if not attempts or len({result.run_identity for result in attempts}) != 1:
+        return "NOT COMPARABLE"
+    outcomes = {result.returncode == 0 for result in attempts}
+    if len(outcomes) > 1:
+        return "FLAKY"
+    return "PASSED" if outcomes == {True} else "FAILED"
 
 
-def _discovery_disposition(result: NativeResult, *, expected_tests: int) -> str:
-    if result.tests_run != expected_tests:
+def _discovery_disposition(
+    result: NativeResult, *, expected_tests: frozenset[str]
+) -> str:
+    if not expected_tests.issubset(result.test_ids):
+        return "FAILED"
+    if expected_tests.intersection(result.skipped_test_ids):
         return "FAILED"
     return "PASSED" if result.returncode == 0 else "FAILED"
+
+
+def _write_isolation_project(project: Path, *, isolated: bool) -> None:
+    tests = project / "tests"
+    tests.mkdir(parents=True)
+    (tests / "__init__.py").write_text("", encoding="utf-8")
+    setup = "    def setUp(self):\n        shared.clear()\n\n" if isolated else ""
+    (tests / "test_isolation.py").write_text(
+        """import unittest
+
+shared = []
+
+class IsolationTests(unittest.TestCase):
+"""
+        + setup
+        + """    def test_a_mutates_fixture(self):
+        shared.append("leak")
+        self.assertEqual(shared, ["leak"])
+
+    def test_b_requires_clean_fixture(self):
+        self.assertEqual(shared, [])
+""",
+        encoding="utf-8",
+    )
 
 
 def _environment_disposition(*, observed: str, promised: str, passed: bool) -> str:
@@ -213,7 +265,57 @@ class Rc7ExecutableTestingBehaviorTests(unittest.TestCase):
                 test_file.rename(test_file.with_name(f"disabled_{test_file.name}"))
             result = _run_native(project)
             self.assertEqual(result.tests_run, 0, result.output)
-            self.assertEqual(_discovery_disposition(result, expected_tests=3), "FAILED")
+            self.assertEqual(
+                _discovery_disposition(
+                    result,
+                    expected_tests=frozenset(
+                        {
+                            "test_vip_threshold",
+                            "test_negative_total_is_rejected",
+                            "test_real_filesystem_boundary",
+                        }
+                    ),
+                ),
+                "FAILED",
+            )
+
+    def test_expected_test_identity_and_skip_state_prevent_count_only_false_green(self) -> None:
+        expected = frozenset(
+            {
+                "test_vip_threshold",
+                "test_negative_total_is_rejected",
+                "test_real_filesystem_boundary",
+            }
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            _write_project(project)
+            result = _run_native(project)
+            self.assertEqual(_discovery_disposition(result, expected_tests=expected), "PASSED")
+
+            (project / "tests" / "test_quote.py").rename(
+                project / "tests" / "disabled_test_quote.py"
+            )
+            (project / "tests" / "test_dummy.py").write_text(
+                """import unittest
+
+class DummyTests(unittest.TestCase):
+    def test_unrelated_one(self): pass
+    def test_unrelated_two(self): pass
+""",
+                encoding="utf-8",
+            )
+            count_preserved = _run_native(project)
+            self.assertEqual(count_preserved.tests_run, 3, count_preserved.output)
+            self.assertEqual(
+                _discovery_disposition(count_preserved, expected_tests=expected), "FAILED"
+            )
+
+            _write_project(project, skip_product=True)
+            skipped = _run_native(project)
+            self.assertEqual(skipped.returncode, 0, skipped.output)
+            self.assertIn("test_vip_threshold", skipped.skipped_test_ids)
+            self.assertEqual(_discovery_disposition(skipped, expected_tests=expected), "FAILED")
 
     def test_inert_assertion_and_mock_substitution_are_exposed_by_independent_oracles(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -253,7 +355,17 @@ class Rc7ExecutableTestingBehaviorTests(unittest.TestCase):
             first = _run_native(project)
             _write_project(project)
             second = _run_native(project)
-            self.assertEqual(_retry_disposition([first, second]), "FLAKY")
+            self.assertNotEqual(first.run_identity, second.run_identity)
+            self.assertEqual(_retry_disposition([first, second]), "NOT COMPARABLE")
+
+            stable = _run_native(project)
+            same_identity_failure = replace(stable, returncode=1)
+            self.assertEqual(
+                _retry_disposition([same_identity_failure, stable]), "FLAKY"
+            )
+            self.assertEqual(
+                _retry_disposition([stable, same_identity_failure]), "FLAKY"
+            )
 
             _write_project(project, product_fault=True, skip_product=True)
             skipped = _run_native(project)
@@ -265,6 +377,20 @@ class Rc7ExecutableTestingBehaviorTests(unittest.TestCase):
                 ),
                 "NOT RUN",
             )
+
+    def test_fixture_pollution_is_detected_and_isolated_control_passes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            _write_isolation_project(project, isolated=False)
+            leaky = _run_native(project)
+            self.assertNotEqual(leaky.returncode, 0, leaky.output)
+            self.assertIn("test_b_requires_clean_fixture", leaky.output)
+
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            _write_isolation_project(project, isolated=True)
+            isolated = _run_native(project)
+            self.assertEqual((isolated.returncode, isolated.tests_run), (0, 2), isolated.output)
 
     def test_coverage_expands_for_material_faults_and_stops_low_value_fringe(self) -> None:
         cases = [

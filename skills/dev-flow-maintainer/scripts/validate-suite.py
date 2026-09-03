@@ -13,11 +13,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 HISTORICAL_FILES = {"CHANGELOG.md", "content-migration-v1.json"}
 DESCRIPTION_BUDGET = 2660
-ORDINARY_STATIC_BUDGET = 18000
+ORDINARY_STATIC_BUDGET = 13500
 DESCRIPTION_TARGET = 2128
-ORDINARY_STATIC_TARGET = 14400
+ORDINARY_STATIC_TARGET = 13500
+ORDINARY_STATIC_STRETCH_TARGET = 12500
 DESCRIPTION_WARNING = 1995
-ORDINARY_STATIC_WARNING = 13500
 ORDINARY_STATIC_FILES = (
     "skills/dev-flow/SKILL.md",
     "skills/repo-context/SKILL.md",
@@ -240,10 +240,6 @@ def main() -> int:
     )
     if ordinary_static_total > ORDINARY_STATIC_BUDGET:
         errors.append(f"ordinary static path exceeds {ORDINARY_STATIC_BUDGET} bytes: {ordinary_static_total}")
-    elif ordinary_static_total > ORDINARY_STATIC_WARNING:
-        warnings.append(
-            f"ordinary static path exceeds the 75% early-warning level {ORDINARY_STATIC_WARNING}: {ordinary_static_total}"
-        )
     maintainer_metadata = (ROOT / "skills" / "dev-flow-maintainer" / "agents" / "openai.yaml").read_text(encoding="utf-8")
     if "allow_implicit_invocation: false" not in maintainer_metadata:
         errors.append("dev-flow-maintainer must remain explicit-only")
@@ -321,6 +317,8 @@ def main() -> int:
                 "ordinary_static_bytes": ordinary_static_total,
                 "ordinary_static_target": ORDINARY_STATIC_TARGET,
                 "ordinary_static_target_met": ordinary_static_total <= ORDINARY_STATIC_TARGET,
+                "ordinary_static_stretch_target": ORDINARY_STATIC_STRETCH_TARGET,
+                "ordinary_static_stretch_target_met": ordinary_static_total <= ORDINARY_STATIC_STRETCH_TARGET,
                 "agent_dispatch_cases": dispatch_cases,
                 "warnings": warnings,
                 "errors": errors,

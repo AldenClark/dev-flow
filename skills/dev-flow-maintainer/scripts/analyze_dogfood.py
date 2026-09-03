@@ -286,7 +286,7 @@ def validate_payload(payload: Any) -> tuple[str, list[dict[str, Any]]]:
         "scope",
         "method",
     }
-    if schema == INPUT_SCHEMA_V2:
+    if schema in {INPUT_SCHEMA_V2, INPUT_SCHEMA_V3}:
         expected_fields.add("rc4")
     if schema == INPUT_SCHEMA_V3:
         expected_fields.add("slice")
@@ -308,7 +308,7 @@ def validate_payload(payload: Any) -> tuple[str, list[dict[str, Any]]]:
         mode = require_enum(scope["mode"], SCOPE_MODES, f"{label}.scope.mode")
         require_bool(scope["conformed"], f"{label}.scope.conformed")
         validate_method(observation["method"], f"{label}.method")
-        if schema == INPUT_SCHEMA_V2:
+        if schema in {INPUT_SCHEMA_V2, INPUT_SCHEMA_V3}:
             rc4 = observation["rc4"]
             rc4_fields = {"route", "convergence", "resource", "workstream", "test_system", "evidence_status"}
             if not isinstance(rc4, dict) or set(rc4) != rc4_fields:
@@ -435,7 +435,7 @@ def analyze(payload: Any) -> dict[str, Any]:
             "counts do not establish productivity or causal method value",
         ],
     }
-    if schema == INPUT_SCHEMA_V2:
+    if schema in {INPUT_SCHEMA_V2, INPUT_SCHEMA_V3}:
         rc4 = [item["rc4"] for item in observations]
         result["rc4"] = {
             "route": {

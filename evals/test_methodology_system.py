@@ -143,6 +143,15 @@ class MethodologySystemContractTests(unittest.TestCase):
         self.assertEqual(payload["engineering_risks_covered"], 55)
         self.assertEqual(payload["risk_aliases"], 23)
 
+    def test_current_methodology_guide_uses_only_supported_public_commands(self) -> None:
+        guide = (ROOT / "docs" / "methodology-pool.md").read_text(encoding="utf-8")
+        cli = guide.split("## CLI", 1)[1]
+        self.assertIn("dev-flow.py route-task", cli)
+        self.assertIn("dev-flow.py validate-methods", cli)
+        self.assertNotIn("dev-flow.py select-methods", cli)
+        self.assertNotIn("dev-flow.py record-methods", cli)
+        self.assertIn("已退出公共 CLI", cli)
+
     def test_low_risk_routine_selects_only_phase_foundation(self) -> None:
         result = self.select(
             phase="implementation",

@@ -15,6 +15,22 @@ ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "skills" / "dev-flow" / "scripts" / "flow_metrics.py"
 CATALOG = ROOT / "evals" / "flow-activation-cases.json"
 SEMANTIC_CATALOG = ROOT / "evals" / "flow-activation-semantic-cases.json"
+PROFESSIONAL_OWNERS = {
+    "architecture-decisions",
+    "change-review",
+    "company-data-security",
+    "delivery-readiness",
+    "dependency-decisions",
+    "dev-flow-maintainer",
+    "manage-engineering-profiles",
+    "product-ux-discovery",
+    "repo-context",
+    "repository-knowledge",
+    "requirements-design",
+    "systematic-debugging",
+    "test-system-engineering",
+    "verification",
+}
 
 
 class FlowActivationCoverageTests(unittest.TestCase):
@@ -103,6 +119,30 @@ class FlowActivationCoverageTests(unittest.TestCase):
         serialized = json.dumps(catalog).lower()
         for forbidden in ("productivity_score", "effect_score", "aggregate_score", "developer_rank"):
             self.assertNotIn(forbidden, serialized)
+
+    def test_semantic_catalog_has_an_owner_complete_discovery_matrix(self) -> None:
+        catalog = json.loads(SEMANTIC_CATALOG.read_text(encoding="utf-8"))
+        registered = {
+            path.parent.name
+            for path in (ROOT / "skills").glob("*/SKILL.md")
+            if path.parent.name != "dev-flow"
+        }
+        self.assertEqual(registered, PROFESSIONAL_OWNERS)
+        positive = {
+            value
+            for case in catalog["cases"]
+            for value in case["expected"]
+            if value in PROFESSIONAL_OWNERS
+        }
+        self.assertEqual(positive, PROFESSIONAL_OWNERS)
+        self.assertTrue(
+            any(
+                "dev-flow-maintainer" in case["forbidden"]
+                and "$dev-flow-maintainer" not in case["prompt"]
+                for case in catalog["cases"]
+            ),
+            "the explicit-only maintainer needs an implicit quietness case",
+        )
 
     def test_semantic_lane_evaluates_first_attempt_observations(self) -> None:
         catalog = json.loads(SEMANTIC_CATALOG.read_text(encoding="utf-8"))

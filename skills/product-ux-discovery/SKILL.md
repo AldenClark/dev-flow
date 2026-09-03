@@ -22,7 +22,7 @@ Walk one real user goal from its entry point to success or recovery using curren
 5. Resolve design truth in this order: explicit direction, accepted design, shipped behavior, canonical components/tokens, maintained product documentation.
 6. Use the least fidelity that resolves uncertainty: prose, flow/table, wireframe, or rendered prototype.
 7. Define accessibility and responsive intent across semantics, keyboard/focus, names/status, contrast, scaling, motion, input modes, and relevant viewports/devices.
-8. Write durable user-flow, information, state, accessibility, and design-truth decisions back to the existing design/product owner. Keep screenshots and raw test output as runtime evidence. If that owner or the next-reader path is missing, conflicting, or chat-only, hand the topology decision to `repository-knowledge` rather than creating a parallel design file.
+8. When repository mutation is explicitly in scope, write durable user-flow, information, state, accessibility, and design-truth decisions back to the existing design/product owner. If mutation is not authorized, return the proposed owner and exact update in chat without editing the repository. Keep screenshots and raw test output as runtime evidence. If that owner or the next-reader path is missing, conflicting, or chat-only, hand the topology decision to `repository-knowledge` rather than creating a parallel design file.
 
 Read `references/product-ux-contract.md` for complex state, accessibility, or design-truth conflicts.
 
@@ -36,4 +36,5 @@ Stop when the real task and its material exceptions are understandable enough to
 
 - Do not invent product semantics from a component library or screenshot.
 - Do not require a prototype, UX-ready artifact, or fixed schema for every UI change.
+- Do not mutate design or product documentation during a read-only or design-only request unless repository mutation is explicitly included.
 - Automated accessibility output is not complete accessibility evidence.

@@ -74,6 +74,25 @@ class RC7OperationsSkillTests(unittest.TestCase):
             self.assertLessEqual(len(match.group(1)), 64, name)
             self.assertIn(f"${name}", text, name)
 
+        delivery = (
+            ROOT / "skills" / "delivery-readiness" / "agents" / "openai.yaml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("specifically requested", delivery)
+        self.assertIn("without assuming it is authorized", delivery)
+        self.assertNotIn("specific authorized", delivery)
+
+    def test_design_only_skills_do_not_convert_read_only_work_into_writes(self) -> None:
+        requirements = skill_text("requirements-design")
+        product = skill_text("product-ux-discovery")
+        for name, text in (("requirements", requirements), ("product", product)):
+            with self.subTest(name=name):
+                self.assertIn("When repository mutation is explicitly in scope", text)
+                self.assertIn(
+                    "If mutation is not authorized, return the proposed owner and exact update in chat without editing the repository",
+                    text,
+                )
+                self.assertIn("read-only or design-only request", text)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -17,32 +17,19 @@ Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是
 
 三类信息互不替代：进度文档不能证明测试通过，本地测试不能证明生产部署，Hook 也不能替用户批准业务语义或外部动作。
 
-## 任务入口
+## 工作怎样推进
 
-2.0 不再让一个 `task_type` 同时承担规模、意图、风险和流程深度。入口按四个独立维度判断：
+从当前仓库和用户目标出发，自然地经过所需位置，而不是先完成一套分类仪式：
 
-- `intent`：`research`、`diagnose`、`design`、`change`、`review`、`delivery`；
-- `continuity`：`direct` 或 `managed`；
-- `risk overlays`：security、migration、external system、release、irreversible、UI 等；
-- `knowledge impact`：`none`、`current-truth`、`change-record`，managed 另有 workstream 连续性文档。
+1. 理解当前事实、目标、保护行为和真正仍需用户决定的语义；
+2. 梳理受影响的消费者、契约、状态、数据、失败恢复、兼容、资源和运行边界；
+3. 实现一个端到端可观察的连贯切片；
+4. 从外部结果和内部风险双向推导能暴露缺陷的原生测试与证据；
+5. 检查最终差异、知识接力、未运行环境和交付边界，只修复有实际后果的问题。
 
-Intent 只选择能力所有者，不是新的生命周期。2.0 调用方只应使用 intent；源码中残留的 `--task-type` 解析不属于公共兼容承诺。
+证据改变前提时回到相应位置；普通机械修改和预期行为已建立的局部缺陷不需要走完整循环。新增或改变产品语义时，`requirements-design` 负责反复澄清并在真正的产品选择上等待确认；需求深度分类保留在该专业 Skill 内部，不作为用户可见的主入口。
 
-`research` 用于收集、核对和比较事实，不判断目标是否存在缺陷；`review` 用于审计、代码审查、安全审查和其他需要验证发现的只读判断。`review` 默认不修改仓库；“审查并修复”使用 `change --need review`。2.0 不把旧 audit/task-type 别名定义为受支持接口。
-
-仓库修改和外部动作的授权仍在路由之前单独确认。`--mutation` 只描述是否修改仓库；它不代表 push、发布、部署、迁移执行或其他外部动作的权限。
-
-## 需求理解边界
-
-进入技术设计前，按“还需要决定多少业务语义”而不是按任务名称分类：
-
-- U1：新增或改变产品行为、公共契约、权限、数据生命周期、用户流程、集成或迁移语义；
-- U2：行为保持不变的结构、依赖、配置或性能调整；
-- U3：预期行为已由请求或仓库证据建立的缺陷修复；
-- U4：拼写、格式、精确替换或生成同步等机械修改；
-- U5：研究、审查和交付评估等只读工作，包括对候选设计的审查。
-
-U1 先调查仓库并解决可自行确认的事实，再输出完整、技术中立的需求理解，明确目标、场景、状态/失败/恢复、范围、保护行为、验收示例、事实/假设/未知和知识影响；随后停在 Default mode 等待用户明确确认。纠正意见会生成一份完整修订结果并再次停止。U2-U5 不因启用了 Dev Flow 而自动获得确认仪式；预期行为仍不明确的 bug 才从 U3 升为 U1。确认业务理解不等于授权依赖、提交、发布、部署或不可逆动作。
+主 Skill 会按真实决策需要发现专业 owner。`route-task` 只用于检查或调试确定性路由，并非开始工作的前置命令。内部仍区分研究、诊断、设计、修改、审查与交付，以及 direct/managed 连续性、风险 overlay 和知识影响；这些维度帮助选择能力，不构成阶段门禁。仓库修改和外部动作的授权始终单独判断，任何路由参数都不代表 push、发布、部署、迁移执行或不可逆动作的权限。
 
 ## Direct 与 Managed
 
@@ -54,7 +41,7 @@ U1 先调查仓库并解决可自行确认的事实，再输出完整、技术�
 4. 实现最小连贯变更，先运行聚焦检查，再运行受影响的更广检查；
 5. 审阅最终 diff，并如实区分 `PASSED`、`FAILED`、`FLAKY`、`BLOCKED`、`NOT RUN` 和 `WAIVED`。
 
-Direct 不创建 Dev Flow 状态或连续性文档。它优先更新既有架构、产品规则、契约、runbook、用户或运维事实；只有重要行为或理由无法由代码、测试、issue、changelog、ADR 或既有文档保留时，才增加一份轻量 change record。仓库无约定时使用 `docs/change-notes/<slug>.md`，不写命令、hash、agent 活动或逐文件流水。
+Direct 不创建 Dev Flow 状态或连续性文档。它优先更新既有架构、产品规则、契约、runbook、用户或运维事实；只有跨会话、owner 或独立切片的可靠接力确有需要，且代码、测试、issue、changelog、ADR 或既有文档都无法承载时，才增加一份轻量 change record。仓库无约定时使用 `docs/change-notes/<slug>.md`，不写命令、hash、agent 活动或逐文件流水。
 
 `managed` 只由连续性和协调需要触发：跨会话、多个可独立交付切片、跨模块/仓库/团队、重大设计取舍，或者用户明确要求长期计划、设计和交接。大功能、大重构和实质迁移默认使用 managed。
 
@@ -107,7 +94,7 @@ python3 skills/dev-flow/scripts/dev-flow.py init-workstream \
 
 ## 仓库知识与文档体系
 
-`repository-knowledge` 用于显式审计、设计、初始化、重构或检查一整套仓库知识体系，而不是替代普通任务中的就近文档更新。它同时面向人和 agent，区分：
+`repository-knowledge` 在用户显式要求审计、设计、初始化或重构知识体系时启用，也会在稳定 owner 缺失、冲突、陈旧、仅存在于聊天中，或下一位读者无法发现时被主动发现。清晰 owner 的普通就近更新不会触发它。它同时面向人和 agent，区分：
 
 - AGENTS.md 中始终可见的精简路由、命令和边界；
 - README 或 `docs/index.md` 中稳定的人类可读组件/知识索引；
@@ -175,7 +162,7 @@ python3 skills/dev-flow/scripts/dev-flow.py route-task \
 
 ## 专业 Skills
 
-Dev Flow 主 Skill 只负责模式、风险和最小路由。按真实决策加载聚焦 Skill：
+Dev Flow 主 Skill 负责自然开发循环、知识接力和最小专业发现。按真实决策加载聚焦 Skill：
 
 - `repo-context`：真实仓库根、指令、行为、边界和原生控制；
 - `requirements-design`：实质业务语义、范围、兼容和设计；
@@ -189,7 +176,7 @@ Dev Flow 主 Skill 只负责模式、风险和最小路由。按真实决策加�
 - `delivery-readiness`：动作级交付身份、证据、回滚和授权；
 - `company-data-security`：跨 Codex/ChatGPT/普通聊天的敏感数据控制；
 - `manage-engineering-profiles`：显式管理偏好/指令资产；
-- `repository-knowledge`：显式审计、建立、重构和检查面向人及 agent 的仓库知识体系；
+- `repository-knowledge`：审计/建立知识体系，并解决缺失、冲突、陈旧、聊天独占或不可发现的知识 owner 与读者路径；
 - `dev-flow-maintainer`：显式维护 Dev Flow 自身。
 
 方法池在普通工作中不启用；遇到上述高杠杆风险或方法不确定性时主动做 bounded、非持久化选择。它不参与生命周期门禁。

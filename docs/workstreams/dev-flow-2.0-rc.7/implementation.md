@@ -1,6 +1,6 @@
 # Dev Flow 2.0 RC.7 implementation
 
-> Status: implemented in the source-candidate worktree for `2.0.0-rc.7`; final independent rechecks and evidence reconciliation remain.
+> Status: implemented in the source-candidate worktree for `2.0.0-rc.7`; independent findings and affected rechecks are maintained in `progress.md`.
 
 This plan implements the RC.7 [development guidance](../../rc7-development-lifecycle.md), [methodology toolbox](../../rc7-methodology-system.md), [Skill evolution design](../../rc7-skill-evolution-design.md), and [acceptance reference](acceptance.md). The [local-task audit](../../rc7-dogfood-audit.md) supplies evidence and regression examples; the [professional-Skill discovery audit](../../rc7-specialist-discovery-audit.md) supplies the activation-gap baseline. Neither audit organizes the product or replaces the Skill-evolution mainline.
 

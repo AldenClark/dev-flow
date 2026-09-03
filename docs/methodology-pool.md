@@ -105,7 +105,7 @@ TDD/ATDD/BDD、typestate/smart types、coherent vertical slice、formal inspecti
 
 | 层 | 内容 | 选择方式 |
 |---|---|---|
-| Foundation | 每个阶段一个不可省略的最小纪律 | 只在对应阶段选择 |
+| Foundation | 注册表按内部适用位置保留的基础纪律 | 由当前专业 owner 按实际问题选择，不是阶段门禁 |
 | Automatic | 由风险模型和阶段触发的专业方法 | `starter` 或 `deep` |
 | Specialist | 形式化、高保证、高成本或需专家的方法 | 仅 `formal` 且显式 signal/前提满足 |
 | Source registry | 标准、原始方法、权威手册、研究与优秀实践 | 所有方法至少一个来源 |
@@ -118,7 +118,7 @@ TDD/ATDD/BDD、typestate/smart types、coherent vertical slice、formal inspecti
 
 ```text
 仓库与运行时事实
-  -> 当前生命周期阶段、task type、canonical risks
+  -> 当前任务位置（内部 phase 字段）、task type、canonical risks
   -> 失败信号（identity / interaction / temporal / oracle / hazard / rollout ...）
   -> 加权风险模型阈值
   -> “可能怎样失败”的具体假设
@@ -130,7 +130,9 @@ TDD/ATDD/BDD、typestate/smart types、coherent vertical slice、formal inspecti
 
 Signal 权重高于通用 risk/task type，避免“architecture/large-feature”这种宽标签自动触发 Alloy/TLA+/theorem proving。低风险 routine 的全局负向规则会压制形式化 specialist；显式 high-consequence/safety/regulatory signal 可以解除该抑制。缺失 prerequisite 会进入 `blocked_methods` 并提供 fallback，而不是从输出中消失。
 
-## 生命周期使用方式
+## 内部适用位置
+
+下表是方法注册表的兼容分类，用于专业 owner 判断某个方法是否适合当前问题；它不是要求用户或 AI 依次通关的阶段流水线。
 
 | 阶段 | Foundation | 典型 failure signal |
 |---|---|---|
@@ -145,7 +147,7 @@ Signal 权重高于通用 risk/task type，避免“architecture/large-feature�
 | Delivery | rollout-readiness | rollout, coexistence, abort, rollback, authority |
 | Operations | observability-use | saturation, SLO, recovery, incident learning |
 
-切换阶段或风险/前提/架构/oracle 发生变化时重新选择。不要因为已经写了某份模型就把方法永久留在任务中。
+风险、前提、架构或 oracle 发生实质变化时才重新考虑。不要因为已经写了某份模型就把方法永久留在任务中。
 
 ## CLI
 
@@ -155,28 +157,17 @@ Signal 权重高于通用 risk/task type，避免“architecture/large-feature�
 python3 skills/dev-flow/scripts/dev-flow.py validate-methods
 ```
 
-选择方法：
+检查某个任务会激活哪些专业 owner 和有界方法：
 
 ```bash
-python3 skills/dev-flow/scripts/dev-flow.py select-methods \
-  --phase verification --task-type large-feature \
-  --risk concurrency --risk weak-tests \
-  --signal temporal-progress --signal weak-oracle \
-  --available requirement-baseline --available state-model \
-  --available test-oracle --depth deep
+python3 skills/dev-flow/scripts/dev-flow.py route-task \
+  --intent change --risk concurrency --risk weak-tests \
+  --method-signal temporal-progress --method-signal weak-oracle \
+  --method-prerequisite requirement-baseline \
+  --method-prerequisite test-oracle --compact
 ```
 
-`--available` 必须有当前证据，不是愿望清单。输出 `method.selection.v1` 记录 foundation、匹配模型、方法栈、blocked/excluded、context budget、重选触发和 assurance boundary。
-
-维护 1.x 历史 packet 时仍可显式使用持久化命令：
-
-```bash
-python3 skills/dev-flow/scripts/dev-flow.py record-methods \
-  .codex/dev-flow/<change-id> --phase design \
-  --signal cross-language-boundary \
-  --available repository-facts --available requirement-baseline \
-  --available boundary-inventory --available consumer-toolchain --depth deep
-```
+`--method-prerequisite` 必须有当前证据，不是愿望清单。输出只用于解释当前路由、被阻塞的方法与 fallback；不要求落盘。`select-methods` 和 `record-methods` 是已退出公共 CLI 的 1.x 内部兼容能力，只能在历史实现与历史记录中解释，不能作为当前操作命令。
 
 2.0 `route-task` 是普通任务的集成入口：它接受八个稳定 canonical signals，并把 `concurrency-ordering`、`distributed-state`、`migration-rollback` 等常见说法归一化；当调用方只给出 concurrency、migration、security/privacy、persisted-data 等风险而没有 signal 时，派生最小基础 signal。`data-loss` 作为 task-facing 风险别名映射到 `persisted-data`。canonical signal、方法 ID 和低层 `method.selection.v1` 不变。
 

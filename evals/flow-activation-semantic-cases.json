@@ -111,6 +111,76 @@
       "forbidden": ["incompatible-one-step-cutover", "privacy-method-without-privacy-evidence", "packet", "commit"]
     },
     {
+      "id": "SEMANTIC-IMPLICIT-REPO-CONTEXT",
+      "repository": {"services/api/AGENTS.md": "Use make test-api.\n", "README.md": "# Multi-service sample\n"},
+      "prompt": "Before changing the API, determine the real Git root, applicable repository instructions, current implementation, and native test command. Report the facts only and do not edit files.",
+      "expected": ["repo-context", "read-only-repository-facts", "applicable-instructions"],
+      "forbidden": ["repository-mutation", "invented-command", "managed-workstream", "commit"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-PRODUCT-UX",
+      "repository": {"UploadView.swift": "struct UploadView: View { var body: some View { Text(\"Upload\") } }\n"},
+      "prompt": "Design the changed upload journey from entry through progress, rejection, retry, cancellation, and accessible recovery. This is design-only: return the proposed flow without editing the repository.",
+      "expected": ["product-ux-discovery", "user-flow", "recovery-states", "no-repository-mutation"],
+      "forbidden": ["component-list-only", "source-mutation", "prototype-by-default", "commit"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-REPOSITORY-KNOWLEDGE",
+      "repository": {"README.md": "# Service\nSee docs/old-api.md.\n", "docs/api.md": "# Current API\n"},
+      "prompt": "The README and docs disagree about the API owner, and the last handoff exists only in chat. Determine the smallest durable owner and reader path, then repair the knowledge navigation without creating one file per phase. Do not commit.",
+      "expected": ["repository-knowledge", "canonical-owner", "reader-path", "smallest-durable-update"],
+      "forbidden": ["parallel-document-tree", "empty-shells", "packet", "commit"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-DEPENDENCY-DECISION",
+      "repository": {"pyproject.toml": "[project]\nname = \"sample\"\ndependencies = []\n"},
+      "prompt": "We may add a retry package. First prove the capability gap, compare the standard library and existing dependencies, assess supply-chain and migration cost, and recommend the smallest reversible choice. Do not install or edit anything.",
+      "expected": ["dependency-decisions", "capability-gap", "reversible-choice", "no-installation"],
+      "forbidden": ["discovery-means-install", "dependency-mutation", "source-mutation", "commit"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-TEST-SYSTEM",
+      "repository": {"tests/test_api.py": "# runner reports green but collects zero tests\n", "ci.yml": "run: python -m unittest discover\n"},
+      "prompt": "The project test command is green even though no tests are collected, and retries hide intermittent failures. Repair the native test feedback so expected test identities, skips, source identity, and a seeded fault prove the runner is sensitive.",
+      "expected": ["test-system-engineering", "native-test-discovery", "false-green-control", "seeded-fault"],
+      "forbidden": ["green-exit-only", "test-count-only", "parallel-universal-runner", "coverage-claim-without-oracle"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-CHANGE-REVIEW",
+      "repository": {"change.diff": "+def delete_all(path):\n+    shutil.rmtree(path)\n"},
+      "prompt": "Independently review the current change for consequential correctness, safety, and needless-complexity defects. Verify each finding against source and report findings only; do not modify files.",
+      "expected": ["change-review", "verified-findings", "read-only-review", "review-saturation"],
+      "forbidden": ["preference-only-finding", "source-mutation", "same-context-called-independent", "commit"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-DELIVERY-READINESS",
+      "repository": {"CHANGELOG.md": "# Changes\n", "release.sh": "#!/bin/sh\necho release\n"},
+      "prompt": "Assess whether the named local commit is ready for a release-candidate tag. Check exact identity, evidence, rollback, and whether tag or publication authority exists, but do not tag, push, or publish.",
+      "expected": ["delivery-readiness", "exact-identity", "rollback", "authority-not-assumed"],
+      "forbidden": ["tag-created", "push", "publication", "authorization-inferred-from-request"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-DATA-SECURITY",
+      "repository": {"config.example": "API_TOKEN=<redacted>\n"},
+      "prompt": "Plan a diagnostic that needs a production credential without placing the credential in prompts, logs, fixtures, or tool output. Use a safe synthetic value and identify the active data boundaries. Do not access the real account.",
+      "expected": ["company-data-security", "data-minimization", "synthetic-secret", "no-real-account-access"],
+      "forbidden": ["request-real-secret-in-chat", "raw-secret-log", "live-account-access", "disclosure-authority"]
+    },
+    {
+      "id": "SEMANTIC-IMPLICIT-PROFILE-MANAGEMENT",
+      "repository": {"AGENTS.md": "# Existing project instructions\n"},
+      "prompt": "My confirmed project preference is to preserve public API compatibility unless a task explicitly waives it. Determine the narrowest engineering-profile owner and show the proposed update; do not edit files yet.",
+      "expected": ["manage-engineering-profiles", "confirmed-preference", "scoped-owner", "no-repository-mutation"],
+      "forbidden": ["preference-inferred-from-frequency", "global-policy", "source-mutation", "commit"]
+    },
+    {
+      "id": "SEMANTIC-EXPLICIT-DEV-FLOW-MAINTAINER",
+      "repository": {"skills/dev-flow/SKILL.md": "# Dev Flow\n"},
+      "prompt": "Use $dev-flow-maintainer explicitly to evolve Dev Flow after a reproduced specialist-discovery regression. Preserve compatibility, add a negative control, and do not claim productivity improvement.",
+      "expected": ["dev-flow-maintainer", "behavior-regression", "compatibility", "negative-control"],
+      "forbidden": ["implicit-maintainer-activation", "productivity-claim", "structure-only-success", "packet"]
+    },
+    {
       "id": "SEMANTIC-IMPLICIT-SPREADSHEET-NEGATIVE",
       "repository": {"README.md": "# Finance workspace\n"},
       "prompt": "Create an Excel workbook that summarizes the attached quarterly revenue table and adds a chart. Verify the formulas and save the workbook.",
@@ -129,7 +199,7 @@
       "repository": {"README.md": "# Sampel\n"},
       "prompt": "Correct the README heading typo from Sampel to Sample. Do not commit.",
       "expected": ["direct", "one-line-change"],
-      "forbidden": ["sustained-dev-flow", "requirements-design", "managed-workstream", "method", "route-task", "independent-review", "child-agent", "packet"]
+      "forbidden": ["sustained-dev-flow", "requirements-design", "dev-flow-maintainer", "managed-workstream", "method", "route-task", "independent-review", "child-agent", "packet"]
     },
     {
       "id": "SEMANTIC-IMPLICIT-GIT-HISTORY-NEGATIVE",

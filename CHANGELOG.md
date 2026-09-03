@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 Current candidate source identity: `2.0.0-rc.7`. Current workspace state: `development` from `v2.0.0-rc.6`. Stable `2.0.0` remains intentionally deferred.
 
-Independent clean-context review passed for the RC.7 source candidate; this is review evidence only and does not imply commit, hosted CI, artifact, publication, or installation.
+Post-commit independent review found consequential RC.7 issues; repairs are implemented but remain under independent recheck. This does not imply hosted CI, artifact, publication, or installation.
 
 ### Changed
 
@@ -16,6 +16,8 @@ Independent clean-context review passed for the RC.7 source candidate; this is r
 - Made child, nested-child, and clean-context reviewer dispatch independent of a separate spawn authorization while preserving inherited repository, action, sensitive-data, external, and destructive boundaries.
 - Reduced managed workstream requirements to `implementation.md` and `progress.md`; optional knowledge artifacts are created only when real content and repository topology require them.
 - Added project-native test-system construction, black/white-box coverage derivation, false-green controls, platform evidence attribution, and bounded low-value fringe exploration.
+- Hardened false-green evaluation with exact expected-test and skip identity, comparable retry identities, and executable fixture-pollution controls; dogfood v3 now preserves v2 observability instead of replacing it.
+- Enforced the RC.7 ordinary-static-path ceiling at `13500` bytes and synchronized current lifecycle, knowledge, method-command, authority, and delivery-state guidance after committed-baseline review.
 
 ## [2.0.0-rc.6] - 2026-09-01
 
