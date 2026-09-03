@@ -1,4 +1,4 @@
 interface:
   display_name: "Requirements and Design"
-  short_description: "Resolve requirements and design scope"
-  default_prompt: "Use $requirements-design to classify requirement depth and clarify only material product semantics; for U1, publish a technology-neutral understanding and stop in Default mode for user confirmation before technical design."
+  short_description: "Clarify material product behavior and scope"
+  default_prompt: "Use $requirements-design to clarify the observable result, counterexample, protected behavior, and material product choices; for U1, publish a technology-neutral understanding and stop in Default mode for user confirmation before technical design."

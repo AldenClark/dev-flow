@@ -225,15 +225,34 @@
       }
     },
     {
-      "id": "FLOW-INDEPENDENT-REVIEW-REQUIRES-EXECUTION-OR-DOWNGRADE",
-      "command": ["route-task", "--intent", "change", "--risk", "security", "--material-exposure", "--independent-review-authorized"],
+      "id": "FLOW-INDEPENDENT-REVIEW-ROUTES-WITHOUT-AUTHORIZATION-GATE",
+      "command": ["route-task", "--intent", "change", "--risk", "security", "--material-exposure"],
       "expect": {
         "capability_activation.independent_review.required": true,
-        "capability_activation.independent_review.execution": "route-agent-or-explicit-downgrade",
+        "capability_activation.independent_review.execution": "route-agent",
+        "capability_activation.independent_review.delegation_authorized": true,
+        "capability_activation.independent_review.authorization_from_route": false,
         "capability_activation.independent_review.same_context_is_independent": false,
         "capability_activation.independent_review.downgrade.required_report": "common-mode-risk"
       },
       "contains": {"capability_activation.independent_review.route_agent": ["dev-flow-red-reviewer", "high-risk-review", "independent-review"]}
+    },
+    {
+      "id": "FLOW-KNOWLEDGE-OWNER-ROUTES-ON-TOPOLOGY-NEED",
+      "command": ["route-task", "--intent", "change", "--need", "repository-knowledge"],
+      "contains": {
+        "routes": "repository-knowledge"
+      }
+    },
+    {
+      "id": "FLOW-KNOWLEDGE-IMPACT-DOES-NOT-FORCE-KNOWLEDGE-OWNER",
+      "command": ["route-task", "--intent", "change", "--knowledge-impact", "current-truth"],
+      "expect": {
+        "knowledge.disposition": ["current-truth"]
+      },
+      "excludes": {
+        "routes": "repository-knowledge"
+      }
     },
     {
       "id": "FLOW-MANAGED-RESUME-REQUIRES-RESTARTABLE-HANDOFF",

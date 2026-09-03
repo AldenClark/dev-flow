@@ -1,4 +1,4 @@
 interface:
   display_name: "Repository Context"
   short_description: "Discover repository facts and references"
-  default_prompt: "Use $repo-context to establish repository roots, instructions, behavior, and context readiness."
+  default_prompt: "Use $repo-context to find the smallest repository fact base and hand off any observed ownership or evidence gap."

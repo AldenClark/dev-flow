@@ -36,6 +36,7 @@ class CompatibilityChangeScopeTests(unittest.TestCase):
             "hooks/hooks.json",
             "skills/dev-flow/assets/agent-configs/dev-flow-worker.toml",
             "evals/test_agent_dispatch.py",
+            "evals/test_rc7_testing_behavior.py",
             "evals/test_resource_coordination.py",
             "benchmarks/dev_flow_bench_fixture_mcp.py",
             "benchmarks/dev_flow_bench.py",

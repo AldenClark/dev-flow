@@ -205,6 +205,7 @@ class IncrementalRouteTests(unittest.TestCase):
             for action in route._actions
             if action.dest not in {"help", "compact", "explain", "previous_route"}
         }
+        actual.remove("independent_review_authorized")  # accepted only for RC.6 CLI compatibility
         self.assertEqual(actual, set(route_incremental.ROUTE_BASIS_OPTION_DESTS))
 
     def test_every_route_input_mutation_changes_its_declared_basis_dimension(self) -> None:
@@ -218,7 +219,6 @@ class IncrementalRouteTests(unittest.TestCase):
             "ui_impact": ("--intent", "change", "--ui-impact", "material"),
             "ambiguity": ("--intent", "change", "--ambiguity"),
             "material_exposure": ("--intent", "change", "--material-exposure"),
-            "independent_review_authorized": ("--intent", "change", "--independent-review-authorized"),
             "repo_fact": ("--intent", "change", "--repo-fact", "language=python"),
             "effective_skill": ("--intent", "change", "--effective-skill", "test-system-engineering"),
             "method_signal": ("--intent", "change", "--method-signal", "oracle-challenge"),
@@ -260,6 +260,25 @@ class IncrementalRouteTests(unittest.TestCase):
                         <= set(recalibration["changed_dimensions"]),
                         recalibration,
                     )
+
+    def test_legacy_review_authorization_flag_does_not_change_route_basis(self) -> None:
+        baseline = run_flow("route-task", "--intent", "change", "--material-exposure")
+        legacy = run_flow(
+            "route-task",
+            "--intent",
+            "change",
+            "--material-exposure",
+            "--independent-review-authorized",
+        )
+        self.assertEqual(baseline.returncode, 0, baseline.stderr or baseline.stdout)
+        self.assertEqual(legacy.returncode, 0, legacy.stderr or legacy.stdout)
+        baseline_payload = json.loads(baseline.stdout)
+        legacy_payload = json.loads(legacy.stdout)
+        self.assertEqual(baseline_payload["route_basis"], legacy_payload["route_basis"])
+        self.assertEqual(
+            baseline_payload["capability_activation"]["independent_review"]["execution"],
+            legacy_payload["capability_activation"]["independent_review"]["execution"],
+        )
 
 
 class WorkstreamContractTests(unittest.TestCase):

@@ -1,0 +1,45 @@
+# Dev Flow 2.0 RC.7 progress
+
+## Current truth
+
+- Source candidate implementation: `2.0.0-rc.7` is implemented in this worktree; it is not committed, published, installed, or released.
+- The main `dev-flow` Skill is now a thin adaptive lifecycle and professional-owner discovery spine. All 14 professional owners were strengthened in their own scope, including requirements/UX/knowledge, architecture/dependencies/debugging, verification/test-system/review, profiles/security/delivery, and Dev Flow maintenance.
+- Repository knowledge remains the detailed documentation owner. Material lifecycle work leaves a reusable result in its canonical owner; small repositories may use README, while `docs/` navigation appears only when durable knowledge topology needs it.
+- Testing now derives black-box outcomes and white-box risks, selects native layers by the real promise, challenges AI-authored tests with independent oracles and seeded faults, distinguishes host/mock/emulator/device evidence, and stops low-value fringe expansion without demoting rare high-consequence risks.
+- `evals/test_rc7_testing_behavior.py` supplies narrow executable new-/mature-project fixtures for native discovery, assertion sensitivity, real filesystem boundaries, mock substitution, stale cache identity, retry/skip interpretation, environment attribution, and value-based fringe stopping. These fixtures qualify deterministic method/harness sensitivity; live-model selection and application effect remain `NOT RUN`.
+- Child, nested-child, and clean-context reviewer dispatch no longer requires a separate authorization flag or prompt. Model/effort selection remains P0-P6; descendants cannot enlarge repository, semantic, external, destructive, sensitive-data, delivery, dependency, or model-campaign authority.
+- The compatibility-only `--independent-review-authorized` input is still parsed but has zero effect on route basis, dispatch decision, compact output, or full public JSON.
+- Product state, manifest, release-workflow default, active README/releasing/CHANGELOG projections, governance anchor, and this workstream now agree on RC.7 as the source candidate. Published/install/rollback truth remains `v2.0.0-rc.6`; independent review is `passed`, while commit, hosted CI, cross-platform execution, artifact, tag, publication, and installation remain `not-run` until independently performed.
+- Ordinary static context is `13473` bytes, below the `13500` warning line; all Skill descriptions total `1741` characters. The optional `12500` stretch target was not reached, but no warning or hard limit remains.
+
+## Implemented groups
+
+1. Thin lifecycle, full active-surface discovery/dispatch migration, static-context reduction, route help, and compatibility behavior.
+2. Requirements, product/UX discovery, repository context, and repository-knowledge continuity.
+3. Architecture, dependency, and systematic-debugging decisions with smallest-option, falsification, and earliest-cause guidance.
+4. Verification, native test-system engineering, consequential review, coverage/oracle techniques, and executable seeded-fault fixtures.
+5. Engineering profiles, sensitive-data routing, delivery identity/rollback, and operational feedback handoff.
+6. Maintainer promotion/dogfood evidence, all-owner contracts/routing, method fixtures, product-state migration, and candidate projections.
+
+## Final local evidence
+
+- Final full regression on the implemented candidate: `736` tests passed with `1` intentional skip.
+- Maintainer suite: valid, `15` Skills, `1741` description characters, ordinary static path `13473`, no warnings or errors.
+- Capability contracts: `39` valid. RC.5 historical static ownership: `100%`. Product-state, static-scan, method, knowledge, plugin, data-security, Python compilation, and `git diff --check` all passed; static scan covered `95` changed paths with zero drift findings.
+- The executable zero-discovery fixture classifies the result from collected-test identity/count rather than process exit convention: supported Python versions differ on whether zero discovery exits `0` or `5`. The Python 3.11/3.14 compatibility selection now includes this module.
+- Method-effect data now pairs the boundary method with its boundary oracle, and its previously dangling model-evaluation fixture resolves to a maintained reference case.
+
+## Independent review disposition
+
+- Lifecycle review found stale pre-implementation headers/current truth; the indexed design headers, implementation status, governance anchor, and this progress owner were corrected.
+- Implementation review found stale RC workflow/examples/current status and a full-JSON difference from the compatibility flag; workflow/release projections gained product-state checks and the diagnostic output field was removed.
+- Testing review found prose-only false-green acceptance; narrow executable native fixtures and seeded negative controls were added, while live-model application-effect claims remain explicitly `NOT RUN`.
+- The lifecycle, implementation/current-state, and testing reviewers each rechecked only their repaired findings and returned `ACCEPT`; canonical `delivery.independent_review` is therefore `passed`.
+
+## Next action
+
+Implementation and authorized local verification are complete. The next possible actions are commit/hosted qualification/release operations or a separately bounded live-model comparison; none is authorized by this implementation request, so they remain unperformed rather than implicit follow-up work.
+
+## Evidence limits
+
+No hosted CI, cross-platform matrix, artifact build/attestation, physical-device/platform run, remote tag, publication, marketplace installation, production observation, or controlled RC.6-versus-RC.7 live-model comparison has run for RC.7. Local deterministic evidence cannot be upgraded to any of those claims.

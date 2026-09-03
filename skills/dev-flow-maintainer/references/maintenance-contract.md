@@ -10,8 +10,11 @@ A first-class Skill requires all of:
 4. decisions consumed rather than silently rewritten by other capabilities;
 5. independently testable trigger/output behavior;
 6. meaningful context or authority isolation benefit.
+7. stable marginal value against an unguided or existing-guidance baseline: the same decision changes and a bounded outcome, repair burden, or context burden is observably no worse across the predeclared comparison.
 
-Otherwise keep the topic as a profile, playbook/reference, protocol, snapshot, detector, route, or shared script.
+Start with the missing-guidance failure rather than a desired new structure. Bind the positive trigger, adjacent negative trigger, affected decision, black-box outcome, negative control, environment, claim limit, and stopping rule. Deterministic schema, link, route, activation, structure, or coverage checks qualify only their own invariants; they cannot supply the marginal-value observation or a behavior/productivity claim.
+
+Otherwise keep the topic as a profile, playbook/reference, protocol, snapshot, detector, route, or shared script. A promising but unobserved comparison remains a trial or diagnostic, not a promoted Skill.
 
 ## Public surfaces
 

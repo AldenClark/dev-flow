@@ -1261,8 +1261,7 @@ class RoutingTests(unittest.TestCase):
         control_plane = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn("Risk overlays", control_plane)
-        self.assertIn("An overlay adds only its relevant controls", control_plane)
+        self.assertIn("Reconsider routing only when intent, semantics, scope, platform, authority, principal risk", control_plane)
         self.assertIn("quality-calibration.md", control_plane)
         lifecycle = (
             ROOT / "skills" / "dev-flow" / "references" / "core-lifecycle.md"

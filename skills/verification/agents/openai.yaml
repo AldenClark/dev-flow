@@ -1,4 +1,4 @@
 interface:
   display_name: "Verification"
-  short_description: "Plan and execute risk-based verification"
-  default_prompt: "Use $verification to derive test obligations, control environments, and record fresh repository-native evidence."
+  short_description: "Design and run claim-focused evidence"
+  default_prompt: "Use $verification to derive black-box and white-box oracles, run the right native checks, and limit each claim to observed evidence."

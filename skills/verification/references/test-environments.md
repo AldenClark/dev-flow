@@ -33,7 +33,7 @@ Record detailed configuration, isolation key, reset, and cleanup only when anoth
 ## Environment-specific evidence
 
 - Browser/UI: distinguish engine/version, viewport, input mode, server/build, console/network errors, keyboard/focus, accessibility, and screenshot/trace evidence that matter to the claim.
-- Apple/Android: distinguish simulator/emulator from physical device, toolchain, architecture, signing/entitlements, install/launch, permissions, lifecycle, logs, and packaged consumer.
+- Apple/Android: distinguish host logic and mocks, simulator/emulator, and physical device; record toolchain, architecture, signing/entitlements, install/launch, permissions, lifecycle, logs, and packaged consumer. Only the environment that owns the promise can prove it.
 - Services/data: use explicit endpoints/storage/configuration, readiness, schema/seed identity, timeouts, and shutdown. Exercise restart, partial failure, duplicates, rollback, or mixed versions only where the changed behavior depends on them.
 
 Never point destructive tests at production or user data. Classify contradictory identical attempts as flaky; quarantine only with a real owner and removal condition.

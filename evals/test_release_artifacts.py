@@ -269,6 +269,7 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
         self.assertIn("validate-knowledge --root .", workflow)
         self.assertIn("doctor.py --plugin-root .", workflow)
         self.assertIn("evals.test_agent_dispatch", workflow)
+        self.assertIn("evals.test_rc7_testing_behavior", workflow)
         self.assertIn(
             "evals.test_dev_flow_bench_executor.DevFlowBenchExecutorTests", workflow
         )

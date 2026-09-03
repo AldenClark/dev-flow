@@ -18,7 +18,12 @@ VALIDATOR = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(VALIDATOR)
 
 
-def write_fixture(target: Path, state: dict[str, object]) -> None:
+def write_fixture(
+    target: Path,
+    state: dict[str, object],
+    *,
+    include_optional_workstream_docs: bool = True,
+) -> None:
     source = state["source"]
     workspace = state["workspace"]
     published = state["published"]
@@ -45,6 +50,7 @@ def write_fixture(target: Path, state: dict[str, object]) -> None:
     assert isinstance(workspace_relative, str)
     (target / "governance").mkdir(parents=True, exist_ok=True)
     (target / ".codex-plugin").mkdir(parents=True, exist_ok=True)
+    (target / ".github" / "workflows").mkdir(parents=True, exist_ok=True)
     workstream = target / workstream_relative
     workstream.mkdir(parents=True, exist_ok=True)
     workspace_workstream = target / workspace_relative
@@ -53,16 +59,29 @@ def write_fixture(target: Path, state: dict[str, object]) -> None:
     (target / ".codex-plugin" / "plugin.json").write_text(
         json.dumps({"version": version}), encoding="utf-8"
     )
-    for name in ("requirements.md", "design.md", "implementation.md", "decisions.md"):
-        (workstream / name).write_text("fixture", encoding="utf-8")
-        (workspace_workstream / name).write_text("fixture", encoding="utf-8")
+    required_names = ("implementation.md",)
+    optional_names = ("requirements.md", "design.md", "decisions.md") if include_optional_workstream_docs else ()
+    for name in (*required_names, *optional_names):
+        contents = (
+            f"> Status: implemented in the source-candidate worktree for `{version}`\n"
+            if name == "implementation.md" and phase == "source-candidate"
+            else "fixture"
+        )
+        (workstream / name).write_text(contents, encoding="utf-8")
+        (workspace_workstream / name).write_text(contents, encoding="utf-8")
     delivery = state["delivery"]
     assert isinstance(delivery, dict)
-    (workstream / "progress.md").write_text(
+    legacy_review = (
         "| HC7 | Independent clean-context review | qualification | "
-        f"{delivery['independent_review']} | fixture |\n",
-        encoding="utf-8",
+        f"{delivery['independent_review']} | fixture |\n"
+        if workstream_relative == "docs/workstreams/dev-flow-2.0-rc.6"
+        else (
+            f"- Source candidate implementation: `{version}` is implemented in this worktree.\n"
+            if phase == "source-candidate"
+            else "fixture\n"
+        )
     )
+    (workstream / "progress.md").write_text(legacy_review, encoding="utf-8")
     if workspace_workstream != workstream:
         (workspace_workstream / "progress.md").write_text("fixture", encoding="utf-8")
     source_label = "候选源码" if phase == "source-candidate" else "已发布源码"
@@ -73,15 +92,30 @@ def write_fixture(target: Path, state: dict[str, object]) -> None:
         f"`{latest['tag']}` 是最近已发布\n"
         f"--ref {latest['tag']}\n"
         f"`{stable['tag']}` 是最后一个 1.x 稳定标签\n"
-        f"回滚目标为 `{compatibility['rollback_target']}`\n",
+        f"回滚目标为 `{compatibility['rollback_target']}`\n"
+        f"## 版本和发布状态\n"
+        + (
+            f"- `{version}` 是当前候选源码身份。\n"
+            f"- `{latest['tag']}` 是最近已发布且可固定安装的 RC。\n"
+            if phase == "source-candidate"
+            else ""
+        ),
         encoding="utf-8",
     )
     (target / "docs").mkdir(exist_ok=True)
     (target / "docs" / "releasing.md").write_text(
         f"## {version} personal-assistant hardening {release_label}\n"
         f"`{latest['tag']}` is the latest public immutable RC tag\n"
-        f"`{compatibility['rollback_target']}` is the rollback target for `{version}`\n",
+        f"`{compatibility['rollback_target']}` is the rollback target for `{version}`\n"
+        f"--version {version}\n-f version={version}\n",
         encoding="utf-8",
+    )
+    (target / ".github" / "workflows" / "release-candidate.yml").write_text(
+        f'default: "{version}"\n', encoding="utf-8"
+    )
+    (target / "docs" / "project").mkdir(exist_ok=True)
+    (target / "docs" / "project" / "dev-flow-governance.md").write_text(
+        f"../workstreams/{Path(workstream_relative).name}/\n", encoding="utf-8"
     )
     review_claim = (
         "Independent clean-context review passed\n"
@@ -102,11 +136,64 @@ def write_fixture(target: Path, state: dict[str, object]) -> None:
 
 
 class ProductStateTests(unittest.TestCase):
+    def rc7_candidate_state(self) -> dict[str, object]:
+        state = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
+        state["source"].update({
+            "version": "2.0.0-rc.7",
+            "phase": "source-candidate",
+            "workstream": "docs/workstreams/dev-flow-2.0-rc.7",
+        })
+        state["workspace"]["workstream"] = "docs/workstreams/dev-flow-2.0-rc.7"
+        state["compatibility"]["rollback_target"] = state["published"]["latest_rc"]["tag"]
+        state["delivery"] = {key: "not-run" for key in state["delivery"]}
+        return state
+
+    def test_rc7_candidate_accepts_minimal_two_file_workstream(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            write_fixture(
+                target,
+                self.rc7_candidate_state(),
+                include_optional_workstream_docs=False,
+            )
+            result = VALIDATOR.validate(target, check_git=False)
+        self.assertEqual(result["status"], "valid", result["errors"])
+
+    def test_minimal_workstream_rejects_each_missing_required_file(self) -> None:
+        for missing in ("implementation.md", "progress.md"):
+            with self.subTest(missing=missing), tempfile.TemporaryDirectory() as directory:
+                target = Path(directory)
+                state = self.rc7_candidate_state()
+                write_fixture(target, state, include_optional_workstream_docs=False)
+                path = target / state["source"]["workstream"] / missing
+                path.unlink()
+                result = VALIDATOR.validate(target, check_git=False)
+                self.assertIn(f"source workstream is missing {missing}", result["errors"])
+
+    def test_rc6_legacy_workstream_keeps_hc7_projection(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            state = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
+            state["source"].update({
+                "version": "2.0.0-rc.6",
+                "phase": "released",
+                "workstream": "docs/workstreams/dev-flow-2.0-rc.6",
+            })
+            state["workspace"]["workstream"] = "docs/workstreams/dev-flow-2.0-rc.6"
+            state["compatibility"]["rollback_target"] = "v2.0.0-rc.5"
+            state["delivery"] = {key: "passed" for key in state["delivery"]}
+            state["delivery"]["independent_review"] = "waived"
+            write_fixture(target, state)
+            progress = target / state["source"]["workstream"] / "progress.md"
+            progress.write_text("fixture\n", encoding="utf-8")
+            result = VALIDATOR.validate(target, check_git=False)
+        self.assertIn("progress independent review projection is stale", result["errors"])
+
     def test_repository_product_state_is_valid(self) -> None:
         result = VALIDATOR.validate(ROOT)
         self.assertEqual(result["status"], "valid", result["errors"])
-        self.assertEqual(result["source_version"], "2.0.0-rc.6")
-        self.assertEqual(result["source_phase"], "released")
+        self.assertEqual(result["source_version"], "2.0.0-rc.7")
+        self.assertEqual(result["source_phase"], "source-candidate")
         self.assertEqual(result["workspace_phase"], "development")
         self.assertEqual(result["workspace_base"], "v2.0.0-rc.6")
         self.assertEqual(result["published_version"], "2.0.0-rc.6")
@@ -114,6 +201,63 @@ class ProductStateTests(unittest.TestCase):
         self.assertEqual(result["observations"]["workspace_head"], "diverged-from-published-tag")
         self.assertIn("not remote publication", result["claim_limit"])
         self.assertIn("no delivery", result["claim_limit"])
+
+    def test_candidate_current_state_surfaces_cannot_drift_independently(self) -> None:
+        mutations = (
+            (
+                "README.md",
+                "## 版本和发布状态\n"
+                "- `2.0.0-rc.7` 是当前候选源码身份。\n"
+                "- `v2.0.0-rc.6` 是最近已发布且可固定安装的 RC。",
+                "## 版本和发布状态\n"
+                "- `2.0.0-rc.7` 是当前候选源码身份。\n"
+                "- `v2.0.0-rc.6` 是最近已发布且可固定安装的 RC。\n"
+                "## 版本和发布状态\n"
+                "- `2.0.0-rc.6` 是当前候选源码身份。\n"
+                "- `v2.0.0-rc.5` 是最近已发布且可固定安装的 RC。",
+                "README status section is missing or duplicated",
+            ),
+            (
+                ".github/workflows/release-candidate.yml",
+                'default: "2.0.0-rc.7"',
+                'default: "2.0.0-rc.6"',
+                "workflow candidate projection is stale",
+            ),
+            (
+                "docs/releasing.md",
+                "-f version=2.0.0-rc.7",
+                "-f version=2.0.0-rc.6",
+                "releasing workflow example projection is stale",
+            ),
+            (
+                "docs/project/dev-flow-governance.md",
+                "../workstreams/dev-flow-2.0-rc.7/",
+                "../workstreams/dev-flow-2.0-rc.6/",
+                "governance workstream projection is stale",
+            ),
+            (
+                "docs/workstreams/dev-flow-2.0-rc.7/implementation.md",
+                "> Status: implemented in the source-candidate worktree for `2.0.0-rc.7`",
+                "> Status: implementation has not started",
+                "implementation candidate projection is stale",
+            ),
+            (
+                "docs/workstreams/dev-flow-2.0-rc.7/progress.md",
+                "- Source candidate implementation: `2.0.0-rc.7` is implemented",
+                "- Source candidate implementation: not started",
+                "progress candidate projection is stale",
+            ),
+        )
+        for relative, current, stale, expected in mutations:
+            with self.subTest(relative=relative), tempfile.TemporaryDirectory() as directory:
+                target = Path(directory)
+                write_fixture(target, self.rc7_candidate_state(), include_optional_workstream_docs=False)
+                path = target / relative
+                original = path.read_text(encoding="utf-8")
+                self.assertIn(current, original)
+                path.write_text(original.replace(current, stale, 1), encoding="utf-8")
+                result = VALIDATOR.validate(target, check_git=False)
+                self.assertIn(expected, result["errors"])
 
     def test_manifest_drift_is_rejected_without_git(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

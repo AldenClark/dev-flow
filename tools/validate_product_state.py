@@ -85,6 +85,16 @@ def _read_text(root: Path, relative: str, errors: list[str]) -> str:
         return ""
 
 
+def _markdown_h2_section(text: str, title: str) -> str | None:
+    headings = list(re.finditer(rf"(?m)^##\s+{re.escape(title)}\s*$", text))
+    if len(headings) != 1:
+        return None
+    heading = headings[0]
+    following = re.search(r"(?m)^##\s+", text[heading.end() :])
+    end = heading.end() + following.start() if following is not None else len(text)
+    return text[heading.end() : end]
+
+
 def _repository_path(root: Path, relative: Any, label: str, errors: list[str]) -> Path | None:
     if not isinstance(relative, str) or not relative.strip():
         errors.append(f"{label} must be a repository-relative path")
@@ -257,14 +267,14 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
     workstream_relative = source.get("workstream") if source_ok else None
     workstream = _repository_path(root, workstream_relative, "source.workstream", errors)
     if workstream is not None:
-        for name in ("requirements.md", "design.md", "implementation.md", "progress.md", "decisions.md"):
+        for name in ("implementation.md", "progress.md"):
             if (workstream / name).is_symlink() or not (workstream / name).is_file():
                 errors.append(f"source workstream is missing {name}")
 
     workspace_relative = workspace.get("workstream") if workspace_ok else None
     workspace_workstream = _repository_path(root, workspace_relative, "workspace.workstream", errors)
     if workspace_workstream is not None:
-        for name in ("requirements.md", "design.md", "implementation.md", "progress.md", "decisions.md"):
+        for name in ("implementation.md", "progress.md"):
             if (workspace_workstream / name).is_symlink() or not (workspace_workstream / name).is_file():
                 errors.append(f"workspace workstream is missing {name}")
 
@@ -272,6 +282,9 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
     releasing = _read_text(root, "docs/releasing.md", errors)
     changelog = _read_text(root, "CHANGELOG.md", errors)
     progress = _read_text(root, f"{workstream_relative}/progress.md", errors) if isinstance(workstream_relative, str) else ""
+    implementation = _read_text(root, f"{workstream_relative}/implementation.md", errors) if isinstance(workstream_relative, str) else ""
+    release_workflow = _read_text(root, ".github/workflows/release-candidate.yml", errors)
+    governance_doc = _read_text(root, "docs/project/dev-flow-governance.md", errors)
     latest_tag = latest.get("tag")
     stable_tag = stable.get("tag")
     source_label = "候选源码" if source_phase == "source-candidate" else "已发布源码"
@@ -291,25 +304,55 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
         "releasing source": f"## {source_version} personal-assistant hardening {release_label}",
         "releasing published": f"`{latest_tag}` is the latest public immutable RC tag",
         "releasing rollback": f"`{rollback_target}` is the rollback target for `{source_version}`",
+        "releasing build example": f"--version {source_version}",
+        "releasing workflow example": f"-f version={source_version}",
         "changelog source": f"{changelog_label}: `{source_version}`",
         "changelog workspace": f"Current workspace state: `{workspace_phase}` from `{workspace_base}`",
-        "progress independent review": (
-            f"| HC7 | Independent clean-context review | qualification | "
-            f"{delivery.get('independent_review') if isinstance(delivery, dict) else None} |"
+        "workflow candidate": f'default: "{source_version}"',
+        "governance workstream": (
+            f"../workstreams/{Path(workstream_relative).name}/"
+            if isinstance(workstream_relative, str)
+            else ""
         ),
     }
+    if source_phase == "source-candidate":
+        projections["implementation candidate"] = (
+            f"> Status: implemented in the source-candidate worktree for `{source_version}`"
+        )
+        projections["progress candidate"] = (
+            f"- Source candidate implementation: `{source_version}` is implemented"
+        )
+        status_section = _markdown_h2_section(readme, "版本和发布状态")
+        if status_section is None:
+            errors.append("README status section is missing or duplicated")
+        else:
+            candidate_versions = re.findall(
+                r"(?m)^- `([^`]+)` 是当前候选源码身份", status_section
+            )
+            published_tags = re.findall(
+                r"(?m)^- `([^`]+)` 是最近已发布", status_section
+            )
+            if candidate_versions != [source_version]:
+                errors.append("README status candidate projection is stale or ambiguous")
+            if published_tags != [latest_tag]:
+                errors.append("README status published projection is stale or ambiguous")
+    if workstream_relative == "docs/workstreams/dev-flow-2.0-rc.6":
+        projections["progress independent review"] = (
+            f"| HC7 | Independent clean-context review | qualification | "
+            f"{delivery.get('independent_review') if isinstance(delivery, dict) else None} |"
+        )
     if isinstance(delivery, dict) and delivery.get("independent_review") == "passed":
         projections["changelog independent review"] = "Independent clean-context review passed"
     for label, token in projections.items():
-        target = (
-            readme
-            if label.startswith("README")
-            else releasing
-            if label.startswith("releasing")
-            else progress
-            if label.startswith("progress")
-            else changelog
-        )
+        target = {
+            "README": readme,
+            "releasing": releasing,
+            "progress": progress,
+            "implementation": implementation,
+            "workflow": release_workflow,
+            "governance": governance_doc,
+            "changelog": changelog,
+        }[label.split()[0]]
         if token not in target:
             errors.append(f"{label} projection is stale")
     if (

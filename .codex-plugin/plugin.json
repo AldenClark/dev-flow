@@ -1,7 +1,7 @@
 {
   "name": "dev-flow",
-  "version": "2.0.0-rc.6",
-  "description": "A repository-first Codex development flow with proportional continuity, transition-aware capability activation, repository knowledge, and final-byte evidence.",
+  "version": "2.0.0-rc.7",
+  "description": "A repository-first Codex development guide spanning intent, design, implementation, testing, review, durable knowledge, and evidence.",
   "author": {
     "name": "Dev Flow Contributors",
     "url": "https://github.com/AldenClark/dev-flow"
@@ -22,8 +22,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Dev Flow",
-    "shortDescription": "Repository-first, proportionate development workflow for Codex.",
-    "longDescription": "Separates task intent, continuity, risk, and knowledge impact; defaults ordinary work to a packet-free direct path; and keeps long-running design and progress in the owning repository.",
+    "shortDescription": "Repository-first development from intent to tested outcome.",
+    "longDescription": "Guides Codex through the development positions a task actually needs, loads professional Skills by evidence, preserves durable knowledge in canonical owners, and verifies claims without fixed process artifacts.",
     "developerName": "Dev Flow Contributors",
     "category": "Developer Tools",
     "capabilities": [
@@ -33,7 +33,7 @@
     "defaultPrompt": [
       "Inspect this repository and implement my request with Dev Flow.",
       "Diagnose and fix this bug with focused native verification.",
-      "Design and implement this long-running change with repository-tracked requirements, design, and progress.",
+      "Design and implement this long-running change while keeping durable decisions and current progress in the owning repository.",
       "Audit this repository and propose a maintainable knowledge system for people and agents."
     ]
   }

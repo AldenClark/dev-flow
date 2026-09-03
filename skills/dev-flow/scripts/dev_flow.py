@@ -115,6 +115,7 @@ REQUIREMENT_CLASS_ALIASES = {
 }
 ROUTE_NEEDS = {
     "requirements",
+    "knowledge",
     "architecture",
     "dependency",
     "diagnosis",
@@ -125,6 +126,7 @@ ROUTE_NEEDS = {
 }
 ROUTE_NEED_ALIASES = {
     "requirements-design": "requirements",
+    "repository-knowledge": "knowledge",
     "architecture-decisions": "architecture",
     "dependency-decisions": "dependency",
     "systematic-debugging": "diagnosis",
@@ -1251,8 +1253,8 @@ def route_knowledge(args: argparse.Namespace, work_mode: str) -> dict[str, Any]:
         "default_change_record_path": "docs/change-notes/<slug>.md" if "change-record" in impacts else None,
         "superseded": superseded,
         "rules": [
-            "update repository-native current truth before adding a separate record",
-            "use a change record only for durable behavior or rationale not already clear from code and maintained docs",
+            "update the canonical repository owner before adding a separate record",
+            "use a change record only when existing owners cannot carry cross-session, cross-owner, or independently sliced continuation",
             "do not copy commands, logs, hashes, agent activity, or file-by-file history",
         ],
         "recheck_on": ["scope-or-design-change", "new-durable-impact", "before-close"],
@@ -1673,15 +1675,12 @@ def route_capability_activation(
                 "completed_result": True,
             },
             "empty_wait_is_independent": False,
-            "delegation_authorized": args.independent_review_authorized,
+            "delegation_authorized": True,
+            "delegation_authority_source": "internal-work-allocation-no-user-authorization-required",
             "authorization_from_route": False,
             "wait_precondition": "successful-dispatch-with-non-empty-reviewer-identity",
             "execution": (
-                "route-agent-or-explicit-downgrade"
-                if independent_review_required and args.independent_review_authorized
-                else "explicit-downgrade"
-                if independent_review_required
-                else "not-required"
+                "route-agent" if independent_review_required else "not-required"
             ),
             "route_agent": (
                 {
@@ -1689,12 +1688,12 @@ def route_capability_activation(
                     "workload": "high-risk-review",
                     "signal": "independent-review",
                 }
-                if independent_review_required and args.independent_review_authorized
+                if independent_review_required
                 else None
             ),
             "downgrade": (
                 {
-                    "allowed_when": "clean-context delegation is unavailable or not authorized",
+                    "allowed_when": "clean-context capability is unavailable, resource-conflicted, or the work is not independently decomposable",
                     "required_report": "common-mode-risk",
                     "claim": "same-context-review",
                 }
@@ -7213,6 +7212,11 @@ def route_task(args: argparse.Namespace) -> int:
         return emit(payload, 2)
     if args.profile_operation:
         add("manage-engineering-profiles", "explicit profile or instruction lifecycle operation")
+    if "knowledge" in needs:
+        add(
+            "repository-knowledge",
+            "missing or conflicting canonical owner, chat-only handoff, durable navigation, or knowledge-topology decision",
+        )
     if args.ui_impact in {"preserve", "material"} or "ui" in unknowns:
         add(
             "product-ux-discovery",
@@ -8212,8 +8216,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--independent-review-authorized",
         action="store_true",
         help=(
-            "Confirm separate authority to dispatch a clean-context reviewer; route-task "
-            "never grants that authority and otherwise requires an explicit same-context downgrade"
+            "Deprecated compatibility input; reviewer dispatch is internal work allocation and this flag has no routing effect"
         ),
     )
     route.add_argument(
@@ -8365,7 +8368,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     agent_route.add_argument("--role", required=True)
     agent_route.add_argument("--workload", required=True)
-    agent_route.add_argument("--risk", action="append", default=[])
+    agent_route.add_argument(
+        "--risk",
+        action="append",
+        choices=sorted(engineering_context.RISK_TOKENS),
+        default=[],
+        help="Observed engineering risk; repeat as needed",
+    )
     agent_route.add_argument("--signal", action="append", default=[])
     agent_route.add_argument("--profile")
     agent_route.add_argument(

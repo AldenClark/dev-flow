@@ -2,7 +2,7 @@
 
 Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是建立第二套工作流引擎，而是用最少的流程成本保持三件事：长期业务工作不漂移、技术结论有原生工程证据、高后果动作保留明确安全边界。
 
-已发布源码身份为 `2.0.0-rc.6`。当前工作区处于 `development` 状态，基于 `v2.0.0-rc.6`。`v2.0.0-rc.6` 是最近已发布且可固定安装的标签，回滚目标为 `v2.0.0-rc.5`。RC.6 将发布 Dev Flow Bench 与发布门禁分离，以及发布身份/运行时诊断的真实状态投影；完整重复模型研究仍不作为 RC 门禁。`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
+候选源码身份为 `2.0.0-rc.7`。当前工作区处于 `development` 状态，基于 `v2.0.0-rc.6`。`v2.0.0-rc.6` 是最近已发布且可固定安装的标签，回滚目标为 `v2.0.0-rc.6`。RC.7 在 RC.6 上把全生命周期指导、专业 Skill 发现、文档连续性、测试体系和无需额外授权的安全子代理派发落实为可执行能力；完整重复模型研究仍不作为 RC 门禁。`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
 
 ## 2.0 核心模型
 
@@ -230,7 +230,7 @@ python3 skills/dev-flow/scripts/dev-flow.py outcomes summary
 
 ## 安装
 
-固定安装当前发布的 RC.5 标签：
+固定安装当前发布的 RC.6 标签：
 
 ```bash
 codex plugin marketplace add AldenClark/dev-flow --ref v2.0.0-rc.6
@@ -264,11 +264,11 @@ CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job �
 
 ## 版本和发布状态
 
-- `2.0.0-rc.6` 是当前候选源码身份；它尚未发布，不能继承 RC.5 的 CI、兼容、制品、证明、安装或公开预发布结论。
-- `v2.0.0-rc.5` 是最近已发布的 personal-assistant-hardening RC，也是 RC.6 的固定安装回滚标签；RC.5 受影响语义 smoke 的终态检查/限制证据残余保留为已知边界，后续由累计稳定版复核重新判断，不触发完整目录重跑。
+- `2.0.0-rc.7` 是当前候选源码身份；它尚未发布，不能继承 RC.6 的 CI、兼容、制品、证明、安装或公开预发布结论。
+- `v2.0.0-rc.6` 是最近已发布且可固定安装的 personal-assistant-hardening RC，也是 RC.7 的固定回滚标签；RC.6 的交付证据只属于该不可变标签。
 - `v2.0.0-rc.2` 是上一 activation-hardening RC，也是 RC.3 的可固定安装回滚标签。
 - `v2.0.0-rc.1` 是上一 RC，包含 Default-mode 需求确认、主动高级能力激活、Luna P0-P2、Codex 原生适配和 Flow Activation Coverage。
 - `v1.1.2` 是最后一个 1.x 稳定标签；1.1.3 只存在于未发布源码历史，2.0 不提供 1.x 兼容或迁移保证。
 - 源码、commit、push、tag、GitHub Release、Marketplace 安装和生产使用是不同状态；只有逐项执行和复核后才能声称完成。
 
-RC.6 的需求、设计、实施拆解和当前证据边界位于 [docs/workstreams/dev-flow-2.0-rc.6](docs/workstreams/dev-flow-2.0-rc.6/)；发布验证与独立 Bench 的拆分位于 [docs/workstreams/dev-flow-2.0-benchmark-separation](docs/workstreams/dev-flow-2.0-benchmark-separation/)。2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)，历史版本见 [CHANGELOG.md](CHANGELOG.md)。
+RC.7 的实施与当前证据边界位于 [docs/workstreams/dev-flow-2.0-rc.7](docs/workstreams/dev-flow-2.0-rc.7/)；RC.6 的已发布历史位于 [docs/workstreams/dev-flow-2.0-rc.6](docs/workstreams/dev-flow-2.0-rc.6/)。发布验证与独立 Bench 的拆分位于 [docs/workstreams/dev-flow-2.0-benchmark-separation](docs/workstreams/dev-flow-2.0-benchmark-separation/)，2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)，历史版本见 [CHANGELOG.md](CHANGELOG.md)。

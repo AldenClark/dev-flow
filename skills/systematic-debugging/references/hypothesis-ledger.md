@@ -4,7 +4,7 @@ Use a scratch table for a complex or long-running incident when several causes r
 
 ## Reproduction
 
-Capture the exact symptom, expected and actual result, relevant environment/configuration, input, reliability, first known good/bad state, and useful logs or traces. If reproduction is unavailable, state the limitation and add the smallest useful observation point instead of guessing.
+Capture the exact symptom, expected and actual result, relevant environment/configuration, input, reliability, first known good/bad state, and useful logs or traces. Classify where it was observed: product code, command/configuration, harness/fixture/runner, local environment/resource, or target platform/integration. If reproduction is unavailable, state the limitation and add the smallest useful observation point instead of guessing.
 
 ## Competing hypotheses
 
@@ -20,7 +20,7 @@ Keep this in local scratch space unless the causal analysis itself will help fut
 
 ## Flakes and concurrency
 
-Repeat an identical check only enough to distinguish a deterministic failure, product race, test race, environment contamination, resource collision, timeout, or infrastructure outage. Preserve the first failure; a later pass does not erase it.
+Repeat an identical check only enough to distinguish a deterministic failure, product race, test race, environment contamination, resource collision, timeout, platform variance, or infrastructure outage. Preserve the first failure; a later pass does not erase it. A host pass cannot prove a device, deployed, or external integration path.
 
 For concurrent or distributed paths, inspect ownership, cancellation, ordering, idempotency, deadlines, retry/backoff, duplicates, queue bounds, locks across suspension, slow consumers, shutdown/drain, and crash recovery as applicable.
 

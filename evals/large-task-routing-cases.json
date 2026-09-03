@@ -1449,7 +1449,7 @@
       "expect": {
         "work_mode": "managed",
         "capability_activation.method.selection.phase": "requirements",
-        "capability_activation.independent_review.execution": "explicit-downgrade"
+        "capability_activation.independent_review.execution": "route-agent"
       },
       "contains": {
         "capability_activation.method.signal_normalization.canonical": [

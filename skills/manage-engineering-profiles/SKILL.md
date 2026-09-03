@@ -1,38 +1,42 @@
 ---
 name: manage-engineering-profiles
-description: Manage engineering profiles and AGENTS.md projections: create, validate, explain, diff, or audit.
+description: Resolve or maintain confirmed engineering preferences and AGENTS.md projections; do not infer policy from code frequency.
 ---
 
 # Manage Engineering Profiles
 
-For profile ownership, write, promotion, suppression, or waiver decisions, remain in Default mode and follow `../requirements-design/references/user-interaction.md`.
+Use this Skill when a confirmed personal, team, project, component, or task preference must be resolved, explained, changed, promoted, retired, waived, or projected. Do not load it merely because nearby code repeats a pattern: ordinary implementation consumes an already supplied effective snapshot, or follows repository facts and instructions.
 
-Manage preference assets without turning current code frequency, installed Skills, or personal taste into unreviewed team policy.
+## Responsibility
 
-## Responsibility contract
+- Owns profile lifecycle, layered resolution, conflicts, promotion/retirement/waiver, and concise projections.
+- Does not own architecture, dependency selection, product semantics, or verification; a resolved preference is an input to those owners, never their substitute.
+- Stops before an unauthorized write or an unresolved applicable `must` conflict. Missing optional profiles mean no preference, not an inferred replacement.
 
-- Consumes: repository context plus the target layer, owner, scope, and authority.
-- Owns: profile lifecycle, resolution, conflicts, promotion/retirement/waiver, and concise projection.
-- Stops: before a write that the request does not authorize or at an unresolved applicable must-level conflict.
-- Hands off: an effective snapshot to task and repository consumers when they need one; it never makes their decisions.
+Read [profile-contract.md](references/profile-contract.md) before changing a manifest, profile, decision, or projection.
 
-## Procedure
+## Resolve a confirmed value
 
-1. Read `references/profile-contract.md` completely before changing a manifest, profile, decision, or projection.
-2. Establish the target layer, owner, scope, authority, and canonical facts. Keep personal values out of shared project files.
-3. Extract candidates from manifests, CI, scripts, ADRs, source, and existing instructions. Label each `observed`, `inferred`, or `owner-input-required`.
-4. Propose minimal, separate changes for `AGENTS.md`, `.dev-flow/preferences.toml`, profiles, or decision records. Never infer a team-wide rule or public compatibility promise from frequency alone.
-5. Treat an explicit create/change/promote/retire/waive request from the authorized owner as write authority. Otherwise use `scripts/profile-tool.py` without `--write` for a review-first proposal; do not ask twice for the same authorized action.
-6. Validate and resolve the full affected layer stack and requested personal/team/CI modes; run the clean-profile invariance checks in `Resolution modes`. Applicable `must` conflicts require an authorized decision; missing optional layers degrade safely.
-7. Explain winners, shadowed entries, conflicts, exceptions, source hashes, mismatches, and recheck triggers.
-8. Promote only from trial evidence and owner approval; retire without erasing history.
+First identify the decision that the preference can change and resolve the applicable profile stack for the requested path and mode. Use only validated, unexpired entries with their declared scope, provenance, strength, exceptions, and source hashes. Keep these distinctions visible:
 
-Dev Flow may propose a personal workflow preference only from an explicit owner request or an authorized selected-history/dogfood review. Persist it only after the owner confirms the exact layer, scope, strength, observable effect, conflict behavior, and review trigger. Observed repetition, method frequency, repository statistics, or ordinary conversation never writes or activates a profile automatically.
+- repository source, CI, runtime, and tests are observed engineering facts;
+- a confirmed profile is a scoped preference or shared control;
+- a user decision is still required when neither fact nor confirmed value settles a material choice.
 
-Durable personal profiles must carry explicit-user provenance, path scope, future expiry, and fixed correction/deletion policies. Expiry or missing governance makes the profile invalid; do not silently renew or infer replacement values.
+Apply the winning value only where its selectors apply. A personal value supplies a default; it cannot weaken repository/team `must` controls, current user authority, safety boundaries, or native checks. Report the winner, shadowed values, conflicts, exceptions, and the condition that would require a recheck so the receiving task can make its own engineering decision.
 
-Read `references/quality-policy.md` when defining code-quality outcomes or specialist capability requirements.
-Use `references/rust-frontend-profile.example.toml` only as an inactive personal-profile example; review and update every entry before activation.
+Never turn code frequency, installed Skills, task history, dogfood aggregates, or ordinary conversation into an active personal or team policy. They may identify a candidate for review, but only explicit owner confirmation of the exact layer, scope, strength, observable effect, conflict behavior, and review trigger permits persistence or activation.
+Do not store exact installed versions, advisories, popularity, or “latest” claims as durable preferences.
+
+## Maintain a profile only with authority
+
+For a create, change, promotion, retirement, suppression, or waiver, establish target layer, owner, scope, and write authority. Use the CLI without `--write` to show a review-first proposal unless the current request already authorizes that exact action. Validate all affected modes, including clean-profile invariance for team-reproducible and CI resolution. Promote from named trial evidence plus owner approval; retire without erasing history.
+
+Use `references/quality-policy.md` only when defining code-quality outcomes or specialist capability requirements. The Rust example is inactive and must be reviewed entry by entry before use.
+
+## Useful result and handoff
+
+Return a small effective snapshot or a precise disposition, not a new policy document by default. Hand the snapshot to the active implementation, architecture, dependency, verification, or repository consumer; return to the main task once the preference no longer changes the next decision.
 
 ## CLI
 
@@ -45,12 +49,4 @@ python3 scripts/profile-tool.py agents-projection --root <repo>
 python3 scripts/profile-tool.py suppress --fingerprint <sha256> --owner <owner> --reason <reason> --tier T1 --output <repo>/.dev-flow/suppressions.json
 ```
 
-Add `--write` when the current request already authorizes that exact profile action or after the owner approves the shown artifact. Promotion, retirement, suppression, and waiver remain review-first when the request did not already authorize them.
-
-## Boundaries
-
-- Do not choose product architecture or a dependency implicitly; route to the corresponding decision Skill.
-- Do not store exact installed versions, advisories, popularity, or “latest” claims as durable preferences.
-- Do not let personal route preferences weaken team/project native checks.
-- Do not name one vendor Skill as the only acceptable quality outcome.
-- Do not infer or persist personal values from task history, dogfood aggregates, or ordinary conversations, and never let a personal layer weaken team/project `must` controls.
+Add `--write` only after the exact action is authorized or the owner approves the shown artifact.

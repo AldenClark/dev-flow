@@ -1,4 +1,4 @@
-# Dev Flow 2.0 lifecycle
+# Dev Flow 2.0 adaptive development loop
 
 ## Three evidence planes
 
@@ -8,15 +8,15 @@
 
 Keep ownership separate. A document does not prove runtime behavior; a test does not choose product meaning; a local result does not authorize delivery.
 
-## Always-on quality spine
+## Development spine
 
-Every task briefly establishes the observable outcome, current repository facts, assumptions, affected boundaries, smallest coherent slice, native oracle, and delivery limits. Scan for risks visible in code and dependencies, not only risks named by the request. This calibration creates no file or approval state.
+Establish the observable outcome, current repository facts, assumptions, affected boundaries, smallest coherent slice, native oracle, and delivery limits. Scan for risks visible in code and dependencies, not only risks named by the request. This creates no file or approval state.
 
 For substantial managed work, material risk, delegation, or repeated failure, use `quality-calibration.md` to decide whether a specialist Skill, P0-P6 child route, bounded assurance method, or independent review has positive decision value.
 
 Classify requirement understanding before technical design. Material new or changed product semantics publish a detailed technology-neutral understanding and stop in Default mode for explicit confirmation. Established defects proceed from proven expected/protected behavior, while ambiguous defects upgrade to semantic confirmation. Mechanical and read-only work never acquire the stop solely because Dev Flow is active.
 
-After repository discovery and after a material requirement confirmation, perform the ephemeral capability-activation pass: applicable effective-host specialist, bounded method, independent review, and child model/effort. It produces no artifact. Re-run only an affected decision when evidence changes.
+Load a specialist, method, independent reviewer, or child model only when it can change a real decision or evidence surface. Reconsider only the affected owner when evidence changes; ordinary continuation does not repeat routing.
 
 ## Direct path
 
@@ -27,11 +27,11 @@ After repository discovery and after a material requirement confirmation, perfor
 5. Run the narrowest sensitive oracle, then affected broader checks.
 6. Inspect the final diff and report outcomes, evidence, and limits.
 
-Direct work has no Dev Flow continuity artifact or lifecycle transition. It still maintains existing repository documentation when architecture, contracts, runbooks, product behavior, or operational truth changes. When no existing home preserves an otherwise durable product rule, public contract, data/security behavior, recovery rule, cross-boundary invariant, or non-obvious rationale, add one concise repository-native change note; do not duplicate code, tests, issues, changelogs, ADRs, or maintained docs.
+Direct work has no Dev Flow continuity artifact or lifecycle transition. It still updates the canonical repository owner when architecture, contracts, runbooks, product behavior, testing strategy, or operational truth changes. Create a new owner only when none exists. Add a minimal change note only when cross-session, cross-owner, or independently sliced continuation cannot be carried by those owners; do not duplicate code, tests, issues, changelogs, ADRs, or maintained docs.
 
 ## Managed path
 
-Use when continuity or coordination exceeds one coherent slice. Read the repository's current workstream documents at start/resume, verify their assumptions against current Git/repository facts, and update them only at meaningful boundaries.
+Use when continuity or coordination exceeds one coherent slice and existing canonical owners cannot carry current progress. Read the repository's current workstream documents at start/resume, verify their assumptions against current Git/repository facts, and update them only at meaningful boundaries.
 
 The implementation plan keeps scope, acceptance behavior, and a dependency-aware list of outcomes; it is not a tool ledger. `progress.md` is the current handoff snapshot. Add `requirements.md` only when complex or cross-team semantics need a durable source beyond the request or issue. Create `design.md` only for real trade-offs; material design changes update it. Durable decisions use the repository ADR convention or optional `decisions.md`.
 
@@ -51,7 +51,7 @@ Escalation adds the specific missing control. It does not recreate a full govern
 
 ## Incremental route continuity
 
-The caller may retain one full RC.4 route result in active context. When outcome, roots, discovery mode, authority/mutation boundary, risks, needs, method prerequisites, repository facts, review requirement, and terminal condition are unchanged, continue without another route call. Dev Flow does not write, discover, or cache that result.
+The caller may retain one full route result in active context. When outcome, roots, discovery mode, authority/mutation boundary, risks, needs, method prerequisites, repository facts, review requirement, and terminal condition are unchanged, continue without another route call. Dev Flow does not write, discover, or cache that result.
 
 After a material fact changes, pass the caller-owned prior JSON with `route-task --previous-route <file>`. The returned route is always a complete current route; `recalibration` states whether the prior basis was unchanged, changed with bounded invalidated decision classes, or incompatible. A malformed, oversized, symlinked, or semantically incompatible prior route never grants reuse: continue from the full current route and retain the reported comparison limitation. Do not treat formatting-only changes or repeated narration as a material transition.
 

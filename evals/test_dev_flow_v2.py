@@ -57,17 +57,9 @@ class RuntimeGuidanceContractTests(unittest.TestCase):
     def test_continuation_contract_has_semantic_checkpoint_and_negative_trigger(self) -> None:
         guidance = DEV_FLOW_SKILL.read_text(encoding="utf-8")
         continuation = QUALITY_CALIBRATION.read_text(encoding="utf-8")
-        self.assertIn("semantic checkpoint", guidance)
-        self.assertIn("never automatically creates a host task or worktree", guidance)
-        self.assertIn("an unchanged narrow follow-up", guidance.lower())
-        for phrase in (
-            "exact final state",
-            "current diff/check evidence",
-            "unrun limits",
-            "explicit delivery boundaries",
-            "a bare completion acknowledgement is not final evidence",
-        ):
-            self.assertIn(phrase, guidance)
+        self.assertIn("Reconsider routing only when intent, semantics, scope, platform, authority", guidance)
+        self.assertIn("not for continuation, tool interruption, compaction, or a restated goal", guidance)
+        self.assertIn("Bind claims to observed bytes and environment", guidance)
         for phrase in (
             "affected Git roots",
             "user-owned changes",
@@ -88,11 +80,10 @@ class RuntimeGuidanceContractTests(unittest.TestCase):
 
     def test_release_review_uses_bounded_realized_methods_without_replaying_tests(self) -> None:
         guidance = DELIVERY_READINESS_SKILL.read_text(encoding="utf-8")
-        self.assertIn("at most three ready starter methods", guidance)
-        self.assertIn("concrete finding, counterexample, changed oracle", guidance)
-        self.assertIn("does not rerun tests", guidance)
-        self.assertIn("complete repeated-model studies belong to Dev Flow Bench", guidance)
-        self.assertIn("never a release gate", guidance)
+        self.assertIn("one lightweight static review", guidance)
+        self.assertIn("finding, counterexample, changed oracle, or explicit no-finding conclusion", guidance)
+        self.assertIn("Repeated model studies belong to Bench", guidance)
+        self.assertIn("Do not create a packet closeout, acceptance ledger, or maximum-gate ritual", guidance)
 
 
 class RoutingTests(unittest.TestCase):
@@ -219,6 +210,14 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(payload["knowledge"]["disposition"], ["current-truth", "change-record"])
         self.assertEqual(payload["knowledge"]["default_change_record_path"], "docs/change-notes/<slug>.md")
         self.assertFalse(payload["knowledge"]["artifact_created"])
+        self.assertNotIn("repository-knowledge", [item["skill"] for item in payload["routes"]])
+
+    def test_repository_knowledge_owner_is_explicitly_routable_with_alias(self) -> None:
+        canonical = route("--intent", "change", "--need", "knowledge")
+        aliased = route("--intent", "change", "--need", "repository-knowledge")
+        for payload in (canonical, aliased):
+            self.assertIn("repository-knowledge", [item["skill"] for item in payload["routes"]])
+        self.assertEqual(canonical["route_basis"], aliased["route_basis"])
 
     def test_managed_workstream_supersedes_separate_change_record(self) -> None:
         payload = route(
@@ -1239,10 +1238,10 @@ class RoutingTests(unittest.TestCase):
             "non-empty-dispatched-reviewer-or-receiver-id",
         )
         self.assertTrue(review["evidence_required"]["completed_result"])
-        self.assertEqual(review["execution"], "explicit-downgrade")
-        self.assertFalse(review["delegation_authorized"])
+        self.assertEqual(review["execution"], "route-agent")
+        self.assertTrue(review["delegation_authorized"])
         self.assertFalse(review["authorization_from_route"])
-        self.assertIsNone(review["route_agent"])
+        self.assertEqual(review["route_agent"]["role"], "dev-flow-red-reviewer")
         self.assertEqual(review["downgrade"]["required_report"], "common-mode-risk")
 
         authorized = route(
@@ -1254,8 +1253,9 @@ class RoutingTests(unittest.TestCase):
             "--independent-review-authorized",
         )["capability_activation"]["independent_review"]
         self.assertTrue(authorized["delegation_authorized"])
-        self.assertEqual(authorized["execution"], "route-agent-or-explicit-downgrade")
+        self.assertEqual(authorized["execution"], "route-agent")
         self.assertEqual(authorized["route_agent"]["role"], "dev-flow-red-reviewer")
+        self.assertEqual(review, authorized)
 
     def test_intrinsically_consequential_risks_require_review_without_extra_flag(self) -> None:
         for risk in ("data-deletion", "rollback", "version-compatibility"):
@@ -1427,7 +1427,7 @@ class ActiveGuidanceTests(unittest.TestCase):
     def test_child_proposal_cannot_expand_root_mutation_scope(self) -> None:
         skill = DEV_FLOW_SKILL.read_text(encoding="utf-8")
         calibration = QUALITY_CALIBRATION.read_text(encoding="utf-8")
-        self.assertIn("reject and defer any useful out-of-scope child proposal", skill)
+        self.assertIn("They cannot restore authority or add repositories", skill)
         for phrase in (
             "never as a `necessary enabler` or root mutation authority",
             "must reject integration and report or defer the proposal",
@@ -1441,14 +1441,11 @@ class ActiveGuidanceTests(unittest.TestCase):
     def test_unavailable_optional_capability_stays_repository_local(self) -> None:
         skill = DEV_FLOW_SKILL.read_text(encoding="utf-8")
         calibration = QUALITY_CALIBRATION.read_text(encoding="utf-8")
-        frontmatter = skill.split("---", 2)[1]
-        self.assertIn("optional capability/scanner failure", frontmatter)
+        self.assertIn("If unavailable, report the capability limit", skill)
         for phrase in (
-            "does not authorize discovery, install, or an external call",
-            "do not substitute Web, browser, MCP, app, computer-use, image-generation, or dynamic tools",
+            "is not authority to search for, install, or invoke a substitute",
             "continue safe native checks",
-            "execute them in that turn rather than asking the user to restate the task",
-            "Never invent MCP server/tool names or treat unrelated local MCP as authorized",
+            "Never synthesize a tool identity or use an unrelated local MCP",
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, skill + "\n" + calibration)
@@ -1457,27 +1454,13 @@ class ActiveGuidanceTests(unittest.TestCase):
         guidance = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn(
-            "A diagnosis-only request stops there; repair only when requested.",
-            guidance,
-        )
+        self.assertIn("A diagnosis-only request stops at a supported cause", guidance)
+        self.assertIn("does not silently become repair", guidance)
 
     def test_main_skill_is_implicitly_discoverable_from_repository_task_language(self) -> None:
         skill = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
         frontmatter = skill.split("---", 2)[1]
-        for trigger in (
-            "repository engineering",
-            "diagnose/fix bugs",
-            "change behavior or architecture",
-            "review/verify changes",
-            "persistent-data",
-            "concurrency",
-            "migration",
-            "cross-module",
-            "external-system",
-            "assess delivery",
-            "long-running work",
-        ):
+        for trigger in ("repository work", "bugs", "material behavior", "architecture changes"):
             self.assertIn(trigger, frontmatter)
         policy = (ROOT / "skills" / "dev-flow" / "agents" / "openai.yaml").read_text(
             encoding="utf-8"
@@ -1487,14 +1470,8 @@ class ActiveGuidanceTests(unittest.TestCase):
     def test_main_skill_excludes_narrow_read_only_repository_lookups(self) -> None:
         skill = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
         frontmatter = skill.split("---", 2)[1]
-        for phrase in (
-            "Exclude narrow read-only.",
-            "use `repo-context` alone",
-            "do not run `route-task`",
-            "do not sustain Dev Flow",
-        ):
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, frontmatter if phrase.startswith("Exclude") else skill)
+        self.assertIn("exclude narrow read-only facts", frontmatter)
+        self.assertIn("Use `repo-context` alone for a narrow read-only repository fact", skill)
 
     def test_engineering_specialists_reconnect_material_work_to_kernel(self) -> None:
         specialists = (
@@ -1508,46 +1485,29 @@ class ActiveGuidanceTests(unittest.TestCase):
             "change-review",
             "delivery-readiness",
         )
+        contracts = json.loads((ROOT / "governance" / "capability-contracts.json").read_text())
+        registered = {item["skill"] for item in contracts["capabilities"]}
+        main = DEV_FLOW_SKILL.read_text(encoding="utf-8")
         for name in specialists:
             with self.subTest(skill=name):
-                text = (ROOT / "skills" / name / "SKILL.md").read_text(encoding="utf-8")
-                self.assertIn("load `dev-flow` as the coordinating kernel", text)
-                self.assertIn("not already active", text)
+                self.assertIn(name, registered)
+                self.assertIn(f"`{name}`", main)
 
     def test_explicit_material_route_and_review_downgrade_are_active_guidance(self) -> None:
         skill = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("one compact `route-task` is mandatory", skill)
-        self.assertIn("before technical design or implementation", skill)
-        self.assertIn("Do not replace this inspectable activation step", skill)
-        self.assertIn("python3 <dev-flow-skill-dir>/scripts/dev-flow.py route-task", skill)
-        self.assertIn("Confirmation changes the gate state, not the requirement class", skill)
-        self.assertIn("design or change public contracts, data lifecycles", skill)
-
-        for owner in ("requirements-design", "architecture-decisions"):
-            owner_skill = (ROOT / "skills" / owner / "SKILL.md").read_text(encoding="utf-8")
-            self.assertIn("even when", owner_skill)
-            self.assertIn("Load `dev-flow` before technical design", owner_skill)
-        self.assertIn("Run the route as a standalone command", skill)
-        self.assertIn('JSON says `"status": "routed"`', skill)
-        self.assertIn("use its exact `corrected_command` at most once", skill)
-        self.assertIn("Canonical `--need` values", skill)
-        self.assertIn("Continuity facts are part of the route contract", skill)
-        self.assertIn("does not justify a stub requirements file", skill)
-        self.assertIn("optional only for a one-line mechanical change", skill)
-        self.assertIn("exceptions override explicit invocation", skill)
-        self.assertIn("show its non-persisted decision", skill)
-        self.assertIn("explicitly downgrade the claim", skill)
-        self.assertIn("never independent review", skill)
-        self.assertIn("non-empty reviewer/receiver identity", skill)
-        self.assertIn("Never call `wait` or poll unless", skill)
-        self.assertIn("label its findings same-context", skill)
-        self.assertIn("review requirement never grants delegation authority", skill)
-        self.assertIn("execution=explicit-downgrade", skill)
+        self.assertIn("`route-task` is an inspectable diagnostic, not a precondition", skill)
+        self.assertIn("reviewer needs no separate user authorization", skill)
+        payload = route("--intent", "change", "--material-exposure")
+        review = payload["capability_activation"]["independent_review"]
+        self.assertEqual(review["execution"], "route-agent")
+        self.assertIsNotNone(review["route_agent"])
+        self.assertFalse(review["same_context_is_independent"])
+        self.assertEqual(review["downgrade"]["required_report"], "common-mode-risk")
 
     def test_review_and_fix_is_explicit_in_the_active_skill(self) -> None:
-        skill = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("review-and-fix request as change intent with a review need", skill)
-        self.assertIn("then use `change-review` against the final diff", skill)
+        payload = route("--intent", "change", "--need", "review")
+        self.assertIn("change-review", [item["skill"] for item in payload["routes"]])
+        self.assertTrue(payload["capability_activation"]["independent_review"]["required"])
 
     def test_method_selection_accepts_the_same_intent_vocabulary(self) -> None:
         result = subprocess.run(

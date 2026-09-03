@@ -139,6 +139,7 @@ def scan(root: Path, *, check_event: bool = False) -> dict[str, Any]:
         for action in route._actions
         if action.dest not in {"help", "compact", "explain", "previous_route"}
     }
+    actual_route_inputs.discard("independent_review_authorized")  # RC.6 compatibility input; no route effect
     declared_route_inputs = set(route_incremental.ROUTE_BASIS_OPTION_DESTS)
     if actual_route_inputs != declared_route_inputs:
         errors.append(
@@ -156,7 +157,7 @@ def scan(root: Path, *, check_event: bool = False) -> dict[str, Any]:
         errors.append(f"route-basis table names unknown dimensions: {sorted(invalid_dimensions)}")
 
     required_guidance = {
-        "skills/dev-flow/SKILL.md": ("--previous-route", "check-workstream"),
+        "skills/dev-flow/SKILL.md": ("route-task", "managed continuity"),
         "skills/dev-flow/references/core-lifecycle.md": ("Incremental route continuity", "structural-consistency"),
         "skills/verification/references/test-environments.md": ("resource-lease acquire", "resource-preflight"),
         "skills/test-system-engineering/SKILL.md": ("all six obligations", "negative control"),

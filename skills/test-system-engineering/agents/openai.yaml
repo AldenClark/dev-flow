@@ -1,4 +1,4 @@
 interface:
   display_name: "Test System Engineering"
-  short_description: "Prove test harness integrity"
-  default_prompt: "Use $test-system-engineering to diagnose discovery, selection, sensitivity, isolation, interpretation, and representativeness before handing evidence to verification."
+  short_description: "Build trustworthy native test feedback"
+  default_prompt: "Use $test-system-engineering to build or repair project-native test feedback and prove it detects the intended faults without false-green runner behavior."

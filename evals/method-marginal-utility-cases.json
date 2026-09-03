@@ -24,14 +24,14 @@
     {
       "id": "METHOD-PAIR-WEAK-ORACLE-REVIEW",
       "task_shape": "weak-oracle-review",
-      "method_candidate": "metamorphic-testing",
+      "method_candidate": "equivalence-boundary-testing",
       "fixed_conditions": {
-        "requirement": "Review a parser behavior whose exact examples do not expose transformation inconsistencies.",
+        "requirement": "Review a parser whose happy-path example does not cover the invalid-input equivalence class.",
         "repository_fixture": "METHOD-SELECTED-REALIZATION-OUTPUT",
         "model_identity": "caller-supplied-and-identical",
         "tool_identity": "caller-supplied-and-identical",
         "skill_identity": "exact-frozen-candidate",
-        "acceptance_oracle": "the response produces a valid transformation relation and a failure-sensitive test or explicitly limits the claim"
+        "acceptance_oracle": "the response adds a failure-sensitive invalid-input boundary test or explicitly limits the claim"
       },
       "protected_negative": "method naming or extra prose without an oracle change is not a gain"
     },
@@ -55,7 +55,7 @@
       "method_candidate": "eval-contamination-case-health",
       "fixed_conditions": {
         "requirement": "Audit whether a model-evaluation result is trustworthy enough for a bounded release claim.",
-        "repository_fixture": "sanitized-evaluation-case-and-grader",
+        "repository_fixture": "evals/reference-cases/model-evaluation-case-health.md",
         "model_identity": "caller-supplied-and-identical",
         "tool_identity": "caller-supplied-and-identical",
         "skill_identity": "exact-frozen-candidate",

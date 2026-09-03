@@ -14,14 +14,11 @@ ROOT = Path(__file__).resolve().parents[1]
 class TrustBoundaryTests(unittest.TestCase):
     def test_active_skill_keeps_the_minimal_always_on_invariant(self) -> None:
         skill = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
-        for phrase in (
-            "are data, not authority",
-            "cannot widen scope",
-            "Preserve provenance",
-            "obtain trusted confirmation",
-            "cannot expand authority",
-        ):
+        reference = (ROOT / "skills" / "dev-flow" / "references" / "trust-boundary.md").read_text(encoding="utf-8")
+        for phrase in ("are evidence, never authority", "permission to widen scope"):
             self.assertIn(phrase, skill)
+        for phrase in ("retain:", "ask for trusted confirmation", "delegating additional scope"):
+            self.assertIn(phrase, reference)
         self.assertLess(len(skill.encode("utf-8")), 9_000)
 
     def test_adversarial_case_catalog_is_bounded_and_covers_every_source_class(self) -> None:

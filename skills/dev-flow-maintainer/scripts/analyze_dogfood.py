@@ -15,6 +15,8 @@ INPUT_SCHEMA = "dev-flow.dogfood.observations.v1"
 OUTPUT_SCHEMA = "dev-flow.dogfood.aggregate.v1"
 INPUT_SCHEMA_V2 = "dev-flow.dogfood.observations.v2"
 OUTPUT_SCHEMA_V2 = "dev-flow.dogfood.aggregate.v2"
+INPUT_SCHEMA_V3 = "dev-flow.dogfood.observations.v3"
+OUTPUT_SCHEMA_V3 = "dev-flow.dogfood.aggregate.v3"
 MAX_OBSERVATIONS = 10_000
 TASK_SHAPES = {
     "audit",
@@ -77,6 +79,41 @@ NEGATIVE_CONTROL_RESULTS = {
     "unavailable",
 }
 EVIDENCE_STATUSES = {"passed", "failed", "flaky", "blocked", "not-run", "waived"}
+STRUCTURAL_SIGNALS = {
+    "none",
+    "coverage-green",
+    "route-green",
+    "schema-green",
+    "structure-green",
+}
+BEHAVIOR_CLAIMS = {
+    "no-improvement-claim",
+    "behavior-regression-observed",
+    "behavior-repair-observed",
+}
+SLICE_OUTCOMES = {"passed", "failed", "blocked", "not-run"}
+SLICE_TERMINATIONS = {
+    "proved-and-stopped",
+    "reopened-with-owner",
+    "externally-blocked",
+}
+KNOWN_OWNERS = {
+    "architecture-decisions",
+    "change-review",
+    "company-data-security",
+    "delivery-readiness",
+    "dependency-decisions",
+    "dev-flow",
+    "dev-flow-maintainer",
+    "manage-engineering-profiles",
+    "product-ux-discovery",
+    "repo-context",
+    "repository-knowledge",
+    "requirements-design",
+    "systematic-debugging",
+    "test-system-engineering",
+    "verification",
+}
 
 
 class DogfoodContractError(ValueError):
@@ -169,15 +206,68 @@ def validate_method(value: Any, label: str) -> dict[str, Any]:
     return value
 
 
+def validate_slice(value: Any, label: str) -> dict[str, Any]:
+    """Validate a bounded, aggregate-safe behavior observation.
+
+    This is deliberately not a productivity score. It only permits a behavior
+    claim when a black-box oracle, owner, and terminal disposition are present.
+    """
+    fields = {
+        "black_box_oracle",
+        "claim",
+        "outcome",
+        "owner",
+        "structural_signals",
+        "termination",
+    }
+    if not isinstance(value, dict) or set(value) != fields:
+        raise DogfoodContractError(f"{label} must use the exact bounded slice schema")
+    oracle = require_bool(value["black_box_oracle"], f"{label}.black_box_oracle")
+    claim = require_enum(value["claim"], BEHAVIOR_CLAIMS, f"{label}.claim")
+    outcome = require_enum(value["outcome"], SLICE_OUTCOMES, f"{label}.outcome")
+    owner = value["owner"]
+    if owner != "not-applicable" and owner not in KNOWN_OWNERS:
+        raise DogfoodContractError(f"{label}.owner must be a known affected owner or not-applicable")
+    signals = require_enum_list(
+        value["structural_signals"], STRUCTURAL_SIGNALS, f"{label}.structural_signals"
+    )
+    if "none" in signals and len(signals) != 1:
+        raise DogfoodContractError(f"{label}.structural_signals cannot mix none with green signals")
+    termination = require_enum(
+        value["termination"], SLICE_TERMINATIONS, f"{label}.termination"
+    )
+    if claim == "behavior-repair-observed":
+        if not oracle or outcome != "passed" or owner == "not-applicable":
+            raise DogfoodContractError(
+                f"{label}: a behavior repair needs a black-box pass and affected owner"
+            )
+        if termination != "proved-and-stopped":
+            raise DogfoodContractError(f"{label}: a proven repair must stop the slice")
+    if claim == "behavior-regression-observed":
+        if not oracle or outcome != "failed" or owner == "not-applicable":
+            raise DogfoodContractError(
+                f"{label}: a behavior regression needs a black-box failure and affected owner"
+            )
+        if termination != "reopened-with-owner":
+            raise DogfoodContractError(f"{label}: a regression must reopen with its owner")
+    if claim == "no-improvement-claim" and owner == "not-applicable" and termination == "reopened-with-owner":
+        raise DogfoodContractError(f"{label}: reopening requires an affected owner")
+    if outcome in {"blocked", "not-run"} and termination != "externally-blocked":
+        raise DogfoodContractError(f"{label}: blocked or not-run slices must end externally-blocked")
+    if termination == "externally-blocked" and outcome not in {"blocked", "not-run"}:
+        raise DogfoodContractError(f"{label}: external blocking requires blocked or not-run outcome")
+    return value
+
+
 def validate_payload(payload: Any) -> tuple[str, list[dict[str, Any]]]:
     if not isinstance(payload, dict) or set(payload) != {"schema_version", "observations"}:
         raise DogfoodContractError(
             "input must contain only schema_version and observations; raw transcripts, ids, paths, scores, and free-form notes are forbidden"
         )
     schema = payload["schema_version"]
-    if schema not in {INPUT_SCHEMA, INPUT_SCHEMA_V2}:
+    if schema not in {INPUT_SCHEMA, INPUT_SCHEMA_V2, INPUT_SCHEMA_V3}:
         raise DogfoodContractError(
-            f"schema_version must be {INPUT_SCHEMA} or {INPUT_SCHEMA_V2}"
+            f"schema_version must be {INPUT_SCHEMA}, {INPUT_SCHEMA_V2}, or {INPUT_SCHEMA_V3}"
         )
     observations = payload["observations"]
     if (
@@ -198,6 +288,8 @@ def validate_payload(payload: Any) -> tuple[str, list[dict[str, Any]]]:
     }
     if schema == INPUT_SCHEMA_V2:
         expected_fields.add("rc4")
+    if schema == INPUT_SCHEMA_V3:
+        expected_fields.add("slice")
     for index, observation in enumerate(observations):
         label = f"observations[{index}]"
         if not isinstance(observation, dict) or set(observation) != expected_fields:
@@ -268,6 +360,8 @@ def validate_payload(payload: Any) -> tuple[str, list[dict[str, Any]]]:
                 EVIDENCE_STATUSES,
                 f"{label}.rc4.evidence_status",
             )
+        if schema == INPUT_SCHEMA_V3:
+            validate_slice(observation["slice"], f"{label}.slice")
         if shape == "ordinary-conversation" and (expected or mode != "not-applicable"):
             raise DogfoodContractError(
                 f"{label}: ordinary conversation must remain a negative control"
@@ -307,7 +401,11 @@ def analyze(payload: Any) -> dict[str, Any]:
     }
     result = {
         "status": "analyzed",
-        "schema_version": OUTPUT_SCHEMA if schema == INPUT_SCHEMA else OUTPUT_SCHEMA_V2,
+        "schema_version": {
+            INPUT_SCHEMA: OUTPUT_SCHEMA,
+            INPUT_SCHEMA_V2: OUTPUT_SCHEMA_V2,
+            INPUT_SCHEMA_V3: OUTPUT_SCHEMA_V3,
+        }[schema],
         "purpose": "privacy-minimized behavior diagnostics only",
         "privacy": {
             "raw_content_retained": False,
@@ -362,6 +460,21 @@ def analyze(payload: Any) -> dict[str, Any]:
                 "negative_controls": dict(sorted(Counter(item["test_system"]["negative_control"] for item in rc4).items())),
             },
             "evidence_status": dict(sorted(Counter(item["evidence_status"] for item in rc4).items())),
+        }
+    if schema == INPUT_SCHEMA_V3:
+        slices = [item["slice"] for item in observations]
+        result["behavior_slices"] = {
+            "claims": dict(sorted(Counter(item["claim"] for item in slices).items())),
+            "outcomes": dict(sorted(Counter(item["outcome"] for item in slices).items())),
+            "terminations": dict(sorted(Counter(item["termination"] for item in slices).items())),
+            "affected_owners": dict(
+                sorted(Counter(item["owner"] for item in slices if item["owner"] != "not-applicable").items())
+            ),
+            "black_box_oracles": sum(item["black_box_oracle"] for item in slices),
+            "structural_signals": dict(
+                sorted(Counter(signal for item in slices for signal in item["structural_signals"]).items())
+            ),
+            "productivity_claim": None,
         }
     return result
 

@@ -14,9 +14,9 @@
     },
     {
       "skill": "repo-context",
-      "direct_trigger": "Establish repository facts, current behavior, ECR, or EQAC.",
+      "direct_trigger": "Establish repository roots, instructions, current behavior, affected paths, controls, or a missing knowledge owner before the next decision.",
       "negative_trigger": "The request is self-contained and has no repository dependency.",
-      "primary_outputs": ["repository fact set", "affected scope and instruction context", "context gaps and readiness"],
+      "primary_outputs": ["repository fact set", "affected scope and instruction context", "context gaps and readiness", "canonical owner and reader path when topology is unclear"],
       "owner": "roots, instructions, path-specific artifact facts, current behavior, repository controls, bounded specialist discovery, neutral capability outcomes, and context gaps",
       "consumes": ["task objective", "candidate paths", "observed risks"],
       "stops": ["repository fact cannot be resolved safely", "user-owned change conflicts with scope"],
@@ -25,14 +25,14 @@
     },
     {
       "skill": "repository-knowledge",
-      "direct_trigger": "Audit, plan, map, bootstrap, repair, or check a repository-owned documentation and knowledge system.",
+      "direct_trigger": "Audit, bootstrap, or repair repository knowledge, including missing entry points, chat-only handoff, ambiguous owners, duplicate or stale truth, and unresolved durable strategy.",
       "negative_trigger": "An ordinary task only updates one already-owned nearby document, or the request is release execution.",
-      "primary_outputs": ["repository knowledge inventory", "knowledge topology and disposition plan", "task-specific repository map", "repository knowledge bootstrap", "knowledge drift findings"],
+      "primary_outputs": ["repository knowledge inventory", "knowledge topology and disposition plan", "task-specific repository map", "repository knowledge bootstrap", "knowledge drift findings", "canonical owner, reader path, freshness signal, and minimum continuity record"],
       "owner": "repository shape, documentation inventory, knowledge placement, progressive disclosure, human-and-agent readability, bootstrap disposition, and deterministic knowledge drift",
       "consumes": ["repository fact set", "existing documentation and instruction conventions", "knowledge owner and workspace authority decisions"],
-      "stops": ["unapproved maintained-document replacement", "inferred rule promotion", "unconfirmed program-level authority", "external delivery action"],
+      "stops": ["unapproved maintained-document replacement", "inferred rule promotion", "unconfirmed program-level authority", "external delivery action", "clear existing owner makes additional topology unnecessary"],
       "handoff_to": ["manage-engineering-profiles", "architecture-decisions", "verification", "dev-flow"],
-      "orchestrated_conditions": ["explicit-repository-knowledge-operation"]
+      "orchestrated_conditions": ["explicit-repository-knowledge-operation", "knowledge-topology-or-handoff-failure"]
     },
     {
       "skill": "manage-engineering-profiles",
@@ -47,9 +47,9 @@
     },
     {
       "skill": "requirements-design",
-      "direct_trigger": "Resolve material semantics, design, scope, compatibility, or approval.",
+      "direct_trigger": "Resolve material product semantics, scope, compatibility, permission, lifecycle, recovery, or approval before technical design.",
       "negative_trigger": "Clear bounded work has no material alternative or contract change.",
-      "primary_outputs": ["detailed requirement-understanding result", "confirmed requirements and scope", "design rationale and trade-offs", "material ambiguity disposition"],
+      "primary_outputs": ["detailed requirement-understanding result", "confirmed requirements and scope", "design rationale and trade-offs", "material ambiguity disposition", "representative examples, counterexamples, states, and recovery semantics", "canonical requirement owner and technical-design handoff"],
       "owner": "understanding-depth classification, user-owned semantics, Default-mode confirmation boundary, acceptance, scope, compatibility intent, and durable design decisions",
       "consumes": ["repository fact set", "product and UX intent when applicable", "user objective"],
       "stops": ["open material ambiguity", "unconfirmed semantic creation or change", "missing user disposition", "design premise contradicted by current facts"],
@@ -58,9 +58,9 @@
     },
     {
       "skill": "product-ux-discovery",
-      "direct_trigger": "Establish product position, IA, flows, states, accessibility, or design truth.",
+      "direct_trigger": "Establish product intent, real user journeys, information architecture, states, recovery, accessibility, or rendered design truth.",
       "negative_trigger": "UI impact is none.",
-      "primary_outputs": ["product and UX intent", "protected interface behavior", "UX readiness decision"],
+      "primary_outputs": ["product and UX intent", "protected interface behavior", "UX readiness decision", "implementation-ready state, recovery, and accessibility handoff"],
       "owner": "product and UX intent, protected interface behavior, and UX Ready",
       "consumes": ["repository fact set", "explicit product direction", "current rendered behavior"],
       "stops": ["open material product choice", "conflicting design truth", "insufficient current UI evidence"],
@@ -69,20 +69,20 @@
     },
     {
       "skill": "systematic-debugging",
-      "direct_trigger": "Reproduce and diagnose a bug, failure, flake, crash, hang, or anomaly.",
+      "direct_trigger": "Reproduce and diagnose a bug, failure, flake, crash, hang, anomaly, or other causal uncertainty.",
       "negative_trigger": "The task has no incorrect behavior or causal uncertainty.",
-      "primary_outputs": ["reproduction and root-cause diagnosis", "regression oracle proposal"],
+      "primary_outputs": ["reproduction and root-cause diagnosis", "regression oracle proposal", "earliest bad state and code, command, harness, environment, or platform classification"],
       "owner": "reproduction, competing hypotheses, earliest root cause, invariant, and regression oracle proposal",
       "consumes": ["repository fact set", "expected behavior", "first failure evidence"],
-      "stops": ["missing semantic or environment authority", "repeated hypotheses fail without new evidence"],
+      "stops": ["missing semantic or environment authority", "repeated hypotheses fail without new evidence", "observation boundary prevents discriminating the remaining hypotheses"],
       "handoff_to": ["requirements-design", "architecture-decisions", "verification", "dev-flow"],
       "orchestrated_conditions": ["bugfix", "diagnosis-need", "uncertain-reproduction"]
     },
     {
       "skill": "architecture-decisions",
-      "direct_trigger": "Make a material language-native architecture or boundary choice.",
+      "direct_trigger": "Make a material boundary, ownership, state, lifecycle, concurrency, compatibility, FFI, recovery, or performance choice.",
       "negative_trigger": "Existing sound architecture resolves the bounded implementation without a material choice.",
-      "primary_outputs": ["architecture decision and consequences", "boundary and lifecycle design"],
+      "primary_outputs": ["architecture decision and consequences", "boundary and lifecycle design", "smallest credible option, alternatives, falsification evidence, and revisit trigger"],
       "owner": "types, boundaries, ownership, state, concurrency, lifecycle, compatibility mechanics, and performance architecture",
       "consumes": ["repository fact set", "accepted requirements and constraints", "root-cause diagnosis when applicable", "focused specialist evidence"],
       "stops": ["context gap", "unresolved user semantics", "named dependency selection", "unmeasured performance premise"],
@@ -91,9 +91,9 @@
     },
     {
       "skill": "dependency-decisions",
-      "direct_trigger": "Select or change a dependency, tool, plugin, service, generator, runtime, or feature.",
-      "negative_trigger": "No manifest, graph, tool, service, or dependency capability changes.",
-      "primary_outputs": ["dependency decision and rollback plan", "dependency evidence"],
+      "direct_trigger": "Fill a demonstrated capability gap by adding or materially expanding a dependency, tool, plugin, service, generator, or runtime.",
+      "negative_trigger": "Routine use of an existing approved capability without a graph, supply-chain, service, or runtime decision.",
+      "primary_outputs": ["dependency decision and rollback plan", "dependency evidence", "existing-capability check, primary-source and supply-chain evidence, migration and exit path"],
       "owner": "candidate comparison, named approval, graph, supply chain, migration, rollback, and removal",
       "consumes": ["repository fact set", "approved capability need", "architecture boundary", "operation authority"],
       "stops": ["unapproved addition or material expansion", "stale primary evidence", "missing material dependency authority"],
@@ -102,18 +102,18 @@
     },
     {
       "skill": "test-system-engineering",
-      "direct_trigger": "Change or diagnose test discovery, selection, harness wiring, oracle sensitivity, fixture isolation, runner interpretation, or false-green behavior.",
-      "negative_trigger": "Ordinary feature tests and verification with no observed harness-integrity mechanism.",
+      "direct_trigger": "Create a missing project-native test system or change/diagnose discovery, selection, harness wiring, oracle sensitivity, fixture isolation, runner interpretation, or false-green behavior.",
+      "negative_trigger": "Ordinary feature tests whose discovery, harness, fixtures, runner, and oracle sensitivity are already trustworthy.",
       "primary_outputs": ["test-system integrity diagnosis", "harness validity evidence and verification handoff"],
-      "owner": "test discovery, selection, harness wiring, fixture isolation, runner interpretation, oracle sensitivity, negative controls, flake discrimination, and test-resource cleanup",
+      "owner": "test-system construction and integrity: discovery, selection, harness wiring, fixture isolation, runner interpretation, oracle sensitivity, negative controls, flake discrimination, and cleanup; it cannot declare product correctness",
       "consumes": ["suspect test result or harness change", "repository-native runner contract", "verification claim boundary"],
       "stops": ["product semantics mistaken for harness semantics", "unsafe negative control", "unresolved shared-resource isolation"],
-      "handoff_to": ["verification", "systematic-debugging", "dev-flow"],
+      "handoff_to": ["verification", "systematic-debugging", "repository-knowledge", "dev-flow"],
       "orchestrated_conditions": ["explicit-test-system-need", "weak-test-mechanism"]
     },
     {
       "skill": "verification",
-      "direct_trigger": "Plan or execute tests and fresh evidence.",
+      "direct_trigger": "Derive and execute risk-based black-box and white-box evidence for a repository claim.",
       "negative_trigger": "No product or repository claim requires verification.",
       "primary_outputs": ["verification plan and results", "claim evidence status"],
       "owner": "separate black-box and white-box derivation, risk-based oracles, test validity, native checks, environments, resources, evidence, and evidence status",
@@ -130,7 +130,7 @@
       "owner": "blue and red review, finding verification, classification, severity, and repair disposition",
       "consumes": ["frozen source or change scope", "applicable contract and intent", "specialist decisions", "raw verification evidence when available"],
       "stops": ["review target is not stable enough to assess", "verified blocking finding", "unresolved architecture conflict"],
-      "handoff_to": ["requirements-design", "systematic-debugging", "architecture-decisions", "verification", "delivery-readiness", "dev-flow"],
+      "handoff_to": ["requirements-design", "systematic-debugging", "architecture-decisions", "verification", "test-system-engineering", "delivery-readiness", "dev-flow"],
       "orchestrated_conditions": ["review-intent", "explicit-review-need", "material-exposure", "evidence-conflict", "policy-required-review"]
     },
     {
@@ -141,7 +141,7 @@
       "owner": "surface-aware data classification, least-data handling, reference/local-compute/redaction choices, and disclosure limits",
       "consumes": ["user task", "current product surface", "selected data sources and actions"],
       "stops": ["high-confidence secret disclosure", "unnecessary credential-store access", "unsupported enforcement claim", "unapproved high-impact external disclosure"],
-      "handoff_to": ["dev-flow"],
+      "handoff_to": ["requirements-design", "product-ux-discovery", "systematic-debugging", "verification", "test-system-engineering", "delivery-readiness", "repository-knowledge", "dev-flow"],
       "orchestrated_conditions": ["explicit-confidentiality-operation"]
     },
     {
@@ -149,10 +149,10 @@
       "direct_trigger": "Assess explicit acceptance, commit, PR, release, migration execution, deployment, rollback, or external-delivery eligibility.",
       "negative_trigger": "The task has no explicit delivery intent or delivery action to assess.",
       "primary_outputs": ["delivery readiness assessment", "authority and rollback accounting"],
-      "owner": "exact readiness level, changed-file accounting, residual gates, rollback, and action-specific authority",
-      "consumes": ["accepted outcome and scope", "final artifact and diff", "verification results", "review findings when routed", "delivery authority"],
+      "owner": "exact readiness level, functional Git units, changed-file accounting, UX and test evidence, runtime feedback, residual gates, rollback, and action-specific authority",
+      "consumes": ["accepted outcome and scope", "final artifact and diff", "verification results", "review findings when routed", "delivery authority", "repository knowledge and operation feedback"],
       "stops": ["required failed flaky blocked or not-run cell", "artifact or identity mismatch", "missing exact action authority"],
-      "handoff_to": ["requirements-design", "architecture-decisions", "verification", "change-review", "dev-flow"],
+      "handoff_to": ["requirements-design", "product-ux-discovery", "architecture-decisions", "verification", "test-system-engineering", "change-review", "repository-knowledge", "dev-flow"],
       "orchestrated_conditions": ["delivery-need", "release-hotfix", "rollback-operation"]
     },
     {

@@ -1,25 +1,24 @@
 ---
 name: systematic-debugging
-description: Reproduce and diagnose failures with competing hypotheses and discriminating evidence.
+description: Diagnose uncertain failures from competing causes; exclude routine fixes with a clear oracle.
 ---
 
 # Systematic Debugging
 
-Trace the earliest incorrect state rather than patching the final symptom.
+Trace the earliest incorrect state rather than patching the final symptom. Use it when cause is uncertain, reproduction is flaky, or a prior repair did not explain the failure—not for a known, bounded fix with a clear oracle.
 
 This Skill may operate alone for narrow diagnosis. If the repair becomes a material repository mutation, crosses boundaries, needs managed continuity, or exposes high-risk delivery, load `dev-flow` as the coordinating kernel when it is available and not already active; keep this Skill as the causal-diagnosis owner.
 
-## Procedure
+## Find the causal boundary
 
-1. Capture the symptom, expected and actual behavior, environment, input, version, and reproduction reliability.
-2. Reduce to the smallest faithful reproducer and preserve the first failure.
-3. Form a small set of competing hypotheses with observations that would distinguish them.
-4. Run the cheapest discriminating experiment and trace backward across boundaries.
-5. Identify the earliest actionable cause and the invariant it violates before changing code.
-6. When implementation is authorized, add or identify a regression oracle that fails on the broken behavior when practical, apply one causal correction, then rerun the reproducer and nearby regressions.
-7. After repeated failed hypotheses or repairs, stop layering changes and reassess the reproducer, model, architecture, environment, and oracle.
+1. Capture the expected and actual result, exact input/configuration, version, environment/platform, reliability, and first failure. Preserve the first failure even if a retry passes.
+2. Reduce to the smallest faithful reproducer, then classify the observed boundary: product code, invocation command/configuration, test harness/fixture/runner, local environment/resource, or target platform/integration. Do not let a passing host or harness check erase a target-platform observation.
+3. State a small set of competing causal hypotheses. For each, predict the earliest wrong state and one observation that would distinguish it from the others; prefer one changed variable and the cheapest discriminating experiment.
+4. Trace backward across inputs, state transitions, process/network/FFI boundaries, ownership, ordering, retries, cancellation, resource limits, and recovery until the earliest actionable invariant violation is supported and credible alternatives no longer fit.
+5. Only when repair is authorized, add or identify an oracle that exposes the broken behavior where practical, make one causal correction, and rerun the reproducer plus nearby regressions. A diagnostic request remains diagnosis unless the user also asked for a fix.
+6. Stop adding retries or patches when experiments no longer add information, collateral risk rises, or the observation boundary is unresolved. Reassess the reproducer, causal model, harness, environment, platform, and oracle instead of turning a terminal symptom into a root cause.
 
-Use `references/hypothesis-ledger.md` for complex or long-running incidents. A local scratch table may help; no persisted diagnosis ledger is required for ordinary bugs.
+Use [hypothesis-ledger guidance](references/hypothesis-ledger.md) for complex or long-running incidents. A local scratch table may help; no persisted diagnosis ledger is required for ordinary bugs.
 
 ## Boundaries
 

@@ -2,6 +2,8 @@
 
 Use one agent by default. Delegate only an independently useful unit when parallel isolation or a clean independent review is likely to save more time or improve evidence than coordination will cost. A long sequential chain, high tool-call density, or large context does not by itself justify more agents; coupled steps remain with one owner unless a safe interface makes them genuinely separable.
 
+Starting a child, allowing a child to start another child inside the inherited envelope, and dispatching a clean-context reviewer are internal work allocation and need no separate user authorization. Real actions and scope expansion keep their own authority requirements.
+
 Before every actual child dispatch, resolve the task-relative route with `route-agent` using the intended role, workload, observed engineering risks, and reasoning signals. Use the returned model, reasoning effort, and fork request. Do not create a routing receipt, add the profile to a workstream, or treat a high profile as proof of quality.
 
 Delegation exists only after a successful dispatch returns a non-empty child identity. Never wait or poll before that identity exists. An empty receiver list or empty agent state is not delegation; self-execution, rereading, or an inferred answer cannot substitute for a child result. Report the branch as unavailable or downgraded and never attribute a result to a child.
@@ -21,7 +23,7 @@ Every delegated task states:
 
 Every child boundary is a subset of the parent envelope. Carry the intersection of all ancestor outcome, read/write, tool, dependency, external-action, resource, and re-delegation limits into nested work. A child may narrow its own work but cannot restore authority removed by an ancestor, promote an optional finding, add a platform/repository/dependency, reinterpret product semantics, or expand a public contract. When the subset is insufficient, stop the affected branch and return a bounded expansion request or finding to the root.
 
-The root must not execute that expansion merely because the child requested it. Continue beyond the original envelope only after explicit renewed authority from the user or already-admitted owner for the exact added repository, path, dependency, platform, external action, or semantic scope; otherwise narrow, defer, or block the branch.
+The root must not execute that expansion merely because the child requested it. An admitted owner may allocate work only inside authority already granted by the user and retained by every ancestor envelope; owner admission never creates authority. Continue beyond the original envelope only after exact renewed user authority for the added repository, path, dependency, platform, external action, destructive action, or semantic scope; otherwise narrow, defer, or block the branch.
 
 Do not require packet IDs, AC/SC/VO mappings, context fingerprints, generated reports, profile IDs, lease epochs, or copied parent history unless a repository-native system genuinely consumes them.
 

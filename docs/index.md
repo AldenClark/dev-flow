@@ -24,7 +24,16 @@ This index routes contributors and agents to the smallest maintained knowledge o
 - [Dev Flow 2.0 RC.4](workstreams/dev-flow-2.0-rc.4/): RC.4 convergence and operations hardening requirements, design, implementation slices, decisions, audit, and current progress.
 - [Dev Flow 2.0 RC.5](workstreams/dev-flow-2.0-rc.5/): published personal-assistant-hardening release record.
 - [Dev Flow 2.0 RC.6](workstreams/dev-flow-2.0-rc.6/): published release record, delivery boundary, and evidence progress.
+- [Dev Flow 2.0 RC.7](workstreams/dev-flow-2.0-rc.7/): current main-Skill/professional-Skill implementation plan, representative behavior evaluation reference, evidence limits, and design progress.
 - [Release validation and benchmark separation](workstreams/dev-flow-2.0-benchmark-separation/): current stable-validation contract, independent Bench design, implementation, and evidence.
 - [Repository knowledge capability](workstreams/repository-knowledge/): repository-knowledge design, implementation, and evidence limits.
+
+## Candidate design research
+
+- [RC.7 development guidance](rc7-development-lifecycle.md): draft thin development spine, situational practices, adaptive depth, project knowledge, and research rationale.
+- [RC.7 methodology toolbox](rc7-methodology-system.md): draft problem-triggered use of the existing 117 methods and researched additions without lifecycle ceremony.
+- [RC.7 Skill evolution](rc7-skill-evolution-design.md): draft redesign of the Dev Flow kernel, specialist ownership, implementation order, and behavior-based validation.
+- [RC.7 local-task audit](rc7-dogfood-audit.md): anonymized post-RC.5 dogfood findings and evidence-derived design constraints.
+- [RC.7 professional-Skill discovery audit](rc7-specialist-discovery-audit.md): suite-wide activation audit, industry/research synthesis and evidence-triggered discovery design, with `repository-knowledge` as the first concrete repair.
 
 Historical material under `docs/changes/` and older workstreams preserves rationale and migration history. It is not the current task entrypoint unless a maintained document links to it for a specific decision.

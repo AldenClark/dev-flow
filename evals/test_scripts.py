@@ -7416,9 +7416,9 @@ class RepositoryContractTests(unittest.TestCase):
             ROOT / "skills" / "verification" / "references" / "test-strategy.md"
         ).read_text(encoding="utf-8")
         for control_plane_boundary in (
-            "implementation does not imply commit, push, publish, deploy",
-            "Irreversible",
-            "explicit delivery boundaries",
+            "do not authorize commit, push, tag, publish, deploy",
+            "destructive cleanup",
+            "Bind claims to observed bytes and environment",
         ):
             self.assertIn(control_plane_boundary, dev_flow)
         self.assertIn("Requirements Design owns product meaning and semantic answer records", interaction)
@@ -7427,11 +7427,11 @@ class RepositoryContractTests(unittest.TestCase):
             "Default-mode control, waiver state, and post-interaction continuation are owned by Dev Flow",
             interaction,
         )
-        self.assertIn("A configured test is not executed evidence", verification)
-        self.assertIn("the test name, code, command, and result are usually enough", test_strategy)
+        self.assertIn("Configuration is not execution", verification)
+        self.assertIn("test code, commands, results, and a short limit are enough", test_strategy)
         self.assertIn("Do not create IDs, digests, approval records", interaction)
-        self.assertIn("explicit as `NOT RUN`", test_strategy)
-        self.assertIn("evidence for one side never proves the other", test_strategy)
+        self.assertIn("preserve `BLOCKED`/`NOT RUN`", test_strategy)
+        self.assertIn("The two views can land in the same test when it proves both", test_strategy)
 
     def test_release_tiers_and_proportional_quality_contracts_are_actionable(self) -> None:
         devflow = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
@@ -7467,21 +7467,20 @@ class RepositoryContractTests(unittest.TestCase):
             self.assertIn(release_contract, releasing)
 
         for proportional_contract in (
-            "An overlay adds only its relevant controls",
-            "Load only specialists that own real decisions or evidence",
-            "smallest coherent slice",
+            "Load the smallest set that can change a decision or evidence surface",
+            "Implement a coherent slice",
+            "Advanced test methods need a specific blind spot",
         ):
             self.assertIn(proportional_contract, devflow)
-        self.assertIn("Record a concise ADR or managed-work decision only when", architecture)
-        self.assertIn("Run affected behavior", dependency)
-        self.assertIn("Use the narrowest evidence that can falsify", verification)
-        self.assertIn("ordinary changes do not require ceremonial blue/red reports", change_review)
-        self.assertIn("Do not replay a complete maximum gate set", delivery)
+        self.assertIn("chosen minimum", architecture)
+        self.assertIn("existing capabilities", dependency)
+        self.assertIn("cheapest truthful layer", verification)
+        self.assertIn("ordinary changes do not require ceremonial reports", change_review)
+        self.assertIn("Do not create a packet closeout", delivery)
 
-        self.assertIn("freeze the exact source commit, version, target", delivery)
-        self.assertIn("checksums, SBOM/provenance/signature", delivery)
-        self.assertIn("Local checks do not prove hosted CI", delivery)
-        self.assertIn("No packet closeout", delivery)
+        self.assertIn("exact source commit/tree and version", delivery)
+        self.assertIn("checksum/provenance/signature", delivery)
+        self.assertIn("unobserved CI", delivery)
 
     def test_ffi_mobile_work_unit_merge_preserves_facet_contract(self) -> None:
         contract = json.loads(

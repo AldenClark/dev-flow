@@ -32,6 +32,13 @@ These are portable preferences among correct options. They do not override expli
 - Prefer structured concurrency, explicit resource owners, cancellation and join paths, deadlines, bounded queues, and named overload behavior.
 - Make acquisition, handoff, shutdown, drain, callback quiescence, and cleanup observable when the system owns such resources.
 
+## Falsifiable design choices
+
+- Compare the existing convention, a smaller/local alternative, and any option with a demonstrated benefit; record only the decision facts that would matter to a future change.
+- State the assumption, consumer or workload that makes a material choice worthwhile and the condition that reopens it. Use a spike, contract check, measurement, or failure/recovery scenario when prose cannot distinguish alternatives.
+- AHA and design ablation apply only when a proposed abstraction, layer, dependency, cache, state machine, or extension point has unclear value. Keep local duplication or remove/bypass the isolated component, compare required behavior and failure surface, then simplify or retain the demonstrated responsibility.
+- Parse untrusted representation into a trusted type at the boundary when it centralizes normalization and error classification. It does not replace authorization or state checks that remain dynamic.
+
 ## Dependencies and performance
 
 - Prefer platform/standard library, an existing capability, a bounded local implementation, then an external dependency.
@@ -45,7 +52,7 @@ These are portable preferences among correct options. They do not override expli
 - Test behavior, contracts, risks, states, failures, limits, cancellation, and compatibility rather than implementation trivia or a coverage target.
 - Challenge high-risk or easy-to-fake oracles with a practical negative control.
 - Add comments where they preserve why, invariants, safety/privacy, compatibility, ownership/lifecycle, non-obvious trade-offs, workaround removal, or public limits.
-- Avoid comments that narrate obvious code, preserve dead code, hide a poor abstraction, or leave an unowned `TODO`.
+- Avoid comments that narrate obvious code, preserve dead code, hide a poor abstraction, or leave an unowned deferred marker.
 - Document maintained public contracts, operational limits, migration/rollback, and unsafe/FFI safety contracts.
 - Emit actionable telemetry without secrets or unbounded-cardinality labels.
 

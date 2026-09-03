@@ -33,6 +33,17 @@ def run_route(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 class AgentDispatchBlackBoxTests(unittest.TestCase):
+    def test_risk_help_lists_canonical_tokens_and_rejects_unknown_values(self) -> None:
+        help_result = run_route("--help")
+        self.assertEqual(help_result.returncode, 0, help_result.stderr or help_result.stdout)
+        self.assertIn("concurrency", help_result.stdout)
+        self.assertIn("security", help_result.stdout)
+        invalid = run_route(
+            "--role", "dev-flow-worker", "--workload", "bounded-change", "--risk", "invented-risk"
+        )
+        self.assertEqual(invalid.returncode, 2)
+        self.assertIn("invalid choice", invalid.stderr)
+
     def test_frozen_routing_cases(self) -> None:
         catalog = json.loads(CASES.read_text(encoding="utf-8"))
         self.assertEqual(catalog["schema_version"], "1.0")

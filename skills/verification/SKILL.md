@@ -1,30 +1,39 @@
 ---
 name: verification
-description: Derive risk-based oracles, run native checks, and report fresh evidence and limits honestly.
+description: Verify changed behavior with risk-based oracles and fresh native evidence.
 ---
 
 # Verification
 
-Use the narrowest evidence that can falsify the changed behavior, then broaden only across affected risks.
+Own evidence that can falsify a claim; broaden only for affected promises or risks.
 
-This Skill may operate alone for a bounded read-only check. If verification accompanies material repository mutation, crosses compatibility or runtime boundaries, needs managed continuity, or supports high-risk delivery, load `dev-flow` as the coordinating kernel when it is available and not already active; keep this Skill as the evidence owner.
+A bounded read-only check may run alone. With material mutation, cross-boundary coordination, or managed continuity, load `dev-flow` as the coordinating kernel when it is available and not already active.
+
+Route suspected runner/fixture/cache/retry/skip/isolation false evidence to `test-system-engineering`.
 
 ## Procedure
 
-1. Map changed behavior, failure states, contracts, and risks to observable oracles.
-2. Run the smallest relevant reproducer or focused test first, followed by affected module, integration, compatibility, security, UI, performance, or migration checks.
-3. Use black-box, white-box, property, differential, manual, or adversarial views where they add distinct failure sensitivity. Do not require each view or a prose `N/A` for every ordinary change.
-4. Challenge whether changed tests would fail if protected behavior regressed. Use a practical negative control for high-risk or easy-to-fake oracles.
-5. For a warranted method, execute a ready method, use a blocked fallback with its limit, or abstain because this procedure is sufficient. Require an owner oracle/counterexample/evidence/claim change; a method name is not evidence.
-6. Preserve the first failure and diagnose it before retrying. A retry does not turn a flake into `PASSED`.
-7. Bind conclusions to final relevant bytes, environment, platform/device/account, and compatibility direction; invalidate affected evidence after later edits.
-8. Report `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, and `WAIVED` distinctly, with concise commands/results and evidence limits.
+1. State the promise, credible failure, target environment, and disproof.
+2. For new or material behavior, derive both views:
+   - **Black-box:** user outcomes/contracts, including material failure, recovery, permission, and compatibility.
+   - **White-box:** final implementation branches/conditions, states, boundaries, errors, concurrency, resources, cancellation, retry, and rollback.
+   They may share a test. Use views where they add distinct failure sensitivity. Do not require each view or a prose `N/A`.
+3. Choose the cheapest truthful layer: unit, component, real-boundary integration/contract, runtime E2E, or native platform/device. Do not fill a fixed matrix.
+4. Preserve the focused run's first failure. Challenge high-risk or easy-to-fake evidence with a practical negative control: pre-fix failure, negative fixture, seeded fault, changed-code mutation, or independent cross-oracle. Restore it, then broaden.
+5. Re-read the final diff, invalidate stale runs, and report `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, or `WAIVED` with command, environment, result, and limit. A retry does not turn a flake into `PASSED`.
 
-Read `references/test-strategy.md` for non-trivial strategy, `references/test-environments.md` before shared or controlled resources, and `references/evidence-contract.md` before retaining artifacts.
+Read `references/test-strategy.md` for strategy, `references/coverage-techniques.md` for a concrete gap, `references/test-environments.md` before controlled resources, and `references/evidence-contract.md` before retaining artifacts.
+
+## Budget and stopping
+
+- **Core:** principal outcomes, material failure/recovery, changed structure/contracts, regressions, and high-consequence risks.
+- **Extended:** common combinations/environments and plausible abnormal paths that add confidence.
+- **Fringe:** stop when costly low-probability, low-consequence cases add no obligation or sensitivity. Rare high-consequence failures stay core.
 
 ## Boundaries
 
-- A configured test is not executed evidence and a green test does not prove an unobserved runtime or delivery environment.
-- A fallback proves only its own narrower claim, never a blocked specialist, independent-context, device, or real-system gate.
+- Configuration is not execution. Host/mock/simulator/emulator evidence never upgrades to device/platform/hosted/production evidence.
+- A fallback proves only its own narrower claim, never a blocked real-boundary or target-environment gate.
+- Coverage/counts/method names cannot replace an oracle.
 - Do not modify product code during an explicitly independent test-runner assignment.
-- Do not retain unnecessary sensitive payloads, bulk logs, or generated ledgers.
+- Do not retain unnecessary sensitive payloads or bulk logs.

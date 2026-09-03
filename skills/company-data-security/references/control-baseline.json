@@ -1,8 +1,8 @@
 {
   "files": {
     "hooks/data_security_hook.py": "sha256:ab0a0ab17627dfe2e2c03a141129a3b819cca2f55aa367326df9b6f9b6af28cd",
-    "skills/company-data-security/SKILL.md": "sha256:26efce4b68629d4abe3ac5a13d4435cd8cb237bbe0625a2a76e06814daa149d3",
-    "skills/company-data-security/agents/openai.yaml": "sha256:8eb36f8640ad24b4b17abd1c805f80028da422ef4ff477212eb9a45e3b4a9f52",
+    "skills/company-data-security/SKILL.md": "sha256:bb7db889799fdec68f1d0fe4ded1d26f0840c8cb1443067e1231140a8bc832b3",
+    "skills/company-data-security/agents/openai.yaml": "sha256:744850ccdf171f7388fc4fc56193ffe24ae4c2d52cba69b6e23cbf159242928b",
     "skills/company-data-security/assets/chatgpt-work-instructions.md": "sha256:3bf085d72471b041c6791da2894bce2af30febd80c9d06509ad6a119303fdb80",
     "skills/company-data-security/assets/codex-agents-baseline.md": "sha256:24543ce1cdf25d9cae8e9247569d29c2ac5e1492f74d07510c34cff6bfd4a921",
     "skills/company-data-security/assets/ordinary-chat-instructions.md": "sha256:88658af74574702bb634f19fe90225be3c1f60cd9ba83e6e3772895b4f57ffdd",

@@ -4,7 +4,18 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Latest published source identity: `2.0.0-rc.6`. Current workspace state: `development` from `v2.0.0-rc.6`. Stable `2.0.0` remains intentionally deferred.
+Current candidate source identity: `2.0.0-rc.7`. Current workspace state: `development` from `v2.0.0-rc.6`. Stable `2.0.0` remains intentionally deferred.
+
+Independent clean-context review passed for the RC.7 source candidate; this is review evidence only and does not imply commit, hosted CI, artifact, publication, or installation.
+
+### Changed
+
+- Recast the main Skill as the thin “Dev Flow · Repository Engineering” guide and moved detailed decisions into strengthened professional owners instead of phase packets.
+- Added evidence-triggered discovery for all professional Skills, including repository knowledge topology and handoff failures, while retaining adjacent negative triggers and a bounded static-context budget.
+- Strengthened requirements, UX, architecture, dependency, debugging, verification, test-system, review, security, profile, delivery, repository-knowledge, and maintainer guidance with outcome-first procedures and stop conditions.
+- Made child, nested-child, and clean-context reviewer dispatch independent of a separate spawn authorization while preserving inherited repository, action, sensitive-data, external, and destructive boundaries.
+- Reduced managed workstream requirements to `implementation.md` and `progress.md`; optional knowledge artifacts are created only when real content and repository topology require them.
+- Added project-native test-system construction, black/white-box coverage derivation, false-green controls, platform evidence attribution, and bounded low-value fringe exploration.
 
 ## [2.0.0-rc.6] - 2026-09-01
 

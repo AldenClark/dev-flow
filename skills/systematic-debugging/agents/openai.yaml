@@ -1,4 +1,4 @@
 interface:
   display_name: "Systematic Debugging"
-  short_description: "Trace failures to verified root causes"
-  default_prompt: "Use $systematic-debugging to reproduce a failure, test competing hypotheses, and prove a root-cause correction."
+  short_description: "Trace failures to their earliest cause"
+  default_prompt: "Use $systematic-debugging to distinguish competing causes and locate the earliest failing boundary."

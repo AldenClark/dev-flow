@@ -1,6 +1,6 @@
 interface:
   display_name: "Company Data Security"
-  short_description: "Protect sensitive data across Codex and ChatGPT work"
-  default_prompt: "Use $company-data-security to handle this task with the strongest available confidentiality controls for the current product surface."
+  short_description: "Protect sensitive data at active data boundaries"
+  default_prompt: "Use $company-data-security to minimize sensitive-data exposure in this task."
 policy:
   allow_implicit_invocation: true

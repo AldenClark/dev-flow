@@ -11,7 +11,7 @@ from typing import Any
 
 
 ROUTE_BASIS_SCHEMA = "dev-flow.route-basis.v1"
-ROUTER_SEMANTICS_VERSION = "dev-flow.route-semantics.rc5.v1"
+ROUTER_SEMANTICS_VERSION = "dev-flow.route-semantics.rc7.v1"
 MAX_PREVIOUS_ROUTE_BYTES = 512 * 1024
 MAX_BASIS_LIST_ITEMS = 64
 MAX_BASIS_VALUE_CHARS = 256
@@ -23,7 +23,6 @@ ROUTE_BASIS_OPTION_DIMENSIONS = {
     "ui_impact": {"requirement", "scope_owners"},
     "ambiguity": {"requirement"},
     "material_exposure": {"review"},
-    "independent_review_authorized": {"review"},
     "repo_fact": {"repository_readiness"},
     "effective_skill": {"repository_readiness"},
     "method_signal": {"method"},
@@ -158,7 +157,6 @@ def build_basis(args: Any, context: dict[str, Any]) -> dict[str, Any]:
         },
         "review": {
             "material_exposure": bool(args.material_exposure),
-            "independent_review_authorized": bool(args.independent_review_authorized),
             "required": bool(context["capability_activation"].get("independent_review", {}).get("required")),
         },
         "knowledge": {

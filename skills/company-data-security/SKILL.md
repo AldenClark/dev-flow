@@ -1,67 +1,41 @@
 ---
 name: company-data-security
-description: Protect credentials, personal/customer records, non-public data, and sensitive actions. Use for confidentiality, DLP, redaction, least privilege, or risky tool/data flows; exclude public-only work.
+description: Protect credentials and sensitive data in requirements, fixtures, logs, connectors, and delivery evidence; exclude public-only work.
 ---
 
 # Company Data Security
 
-Reduce unnecessary data exposure while keeping normal work moving. Apply one data-handling policy, then use only the controls that the current product surface actually supports.
+Use this Skill when the next action may expose credentials, personal/customer records, non-public material, or disclose sensitive data through a tool or external action. Do not load it for ordinary public-only code, public documentation, or routine build/test work with no sensitive source, connector, output, or disclosure path.
 
-## Responsibility contract
+This is the cross-cutting owner for the data boundary, not a second repository lifecycle. Make the smallest safe data-handling decision, hand the resulting constraint back to the active product, design, debugging, verification, delivery, or knowledge owner, and return to the task.
 
-- Consumes: the user's task, selected sources/tools, current product surface, data classification, and action authority.
-- Owns: a confidentiality-safe work plan, least-data source selection, reference/local-compute/redaction choices, and explicit disclosure limits.
-- Stops: on unconfirmed or non-test high-confidence C4 disclosure, an unnecessary credential-store read, an unapproved high-impact external action, or a claim of enforcement that the current surface cannot provide.
-- Hands off: repository lifecycle, architecture, verification, delivery, or domain-specific decisions to their normal owners after the data boundary is safe.
+## First action: identify the data boundary
 
-For a user-owned classification, disclosure, or external-action decision, remain in Default mode and follow `../requirements-design/references/user-interaction.md`. Never request a secret through ordinary chat; use a host-approved secure input surface or stop.
+Before opening a sensitive source, name the source, recipient/tool, intended result, and smallest data needed. Classify only as far as needed: C0 public, C1 internal, C2 confidential, C3 restricted, or C4 secret. If uncertain between adjacent classes, select the safer handling level without manufacturing a blocker.
 
-## First resolve the surface
+Use the first option that accomplishes the task:
 
-Choose one path before reading sensitive sources:
+1. Reference a path, record ID, environment-variable name, or secret-manager key without opening the value.
+2. Compute, filter, join, or summarize where the data already resides.
+3. Pseudonymize repeated identifiers, then redact unused values, columns, rows, log bodies, and metadata.
+4. Warn about residual disclosure or seek confirmation at the actual high-impact external action.
+5. Stop for non-test/high-risk C4, unnecessary credential-store access, an unauthorized external disclosure, invalid one-shot approval, or a claimed control the surface cannot enforce.
 
-1. **Codex with local Hooks:** use reference-preserving shell/tool calls and let the packaged Hook enforce supported prompt/tool boundaries. Personal mode may offer one exact, expiring, session-bound, one-shot confirmation for an explicitly declared test credential; a tool request advances only after the user submits its marker through `UserPromptSubmit`. Strict mode retains hard blocking. Do not treat a confirmation as a reusable bypass or read credential values merely to inspect configuration.
-2. **ChatGPT Work:** minimize selected sources and connector scope, keep computation local when available, draft before an external action, and request confirmation before sending or publishing. Do not claim that a Codex Hook protects this flow.
-3. **Ordinary Chat:** ask for only the smallest necessary excerpt, prefer placeholders or synthetic examples, transform locally before upload when possible, and warn briefly if the user is about to paste a high-confidence secret. No deterministic pre-send Hook is assumed.
+Never request a secret in ordinary chat or repeat a discovered secret in a command, patch, test, log, or evidence file. Use a secure input surface or a reference instead.
 
-Read [surface-playbooks.md](references/surface-playbooks.md) when the task uses files, connectors, production data, external actions, or more than one product surface.
+## Short routes for common surfaces
 
-## Classify only as far as needed
+- **Requirements and design:** use representative synthetic values or a minimal redacted schema. Return the privacy constraint to `requirements-design` or `product-ux-discovery`; do not choose the product policy on their behalf.
+- **Fixtures and tests:** make synthetic data the default. A production-derived fixture needs the smallest permitted, redacted or pseudonymized subset and belongs with the test/verification owner after this boundary is set.
+- **Logs and failures:** query a narrow time/error slice, cap output, and retain only redacted diagnostics. Hand causal evidence to `systematic-debugging`; hand oracle or isolation gaps to `verification` or `test-system-engineering`.
+- **Connectors and external tools:** minimize source/search scope and keep send, post, update, publish, and share actions as drafts until confirmed. Connector access does not authorize disclosure or change the action owner.
+- **Release and operational evidence:** record hashes, versions, classifications, and redacted summaries rather than raw credentials, customer payloads, or full production logs. `delivery-readiness` owns readiness, target identity, and action authority.
 
-Use the highest applicable class:
+Read [surface-playbooks.md](references/surface-playbooks.md) for files, connectors, production data, external actions, or more than one product surface. Read [data-handling-policy.md](references/data-handling-policy.md) for classification examples and output rules.
 
-- **C0 Public:** published or intentionally public information.
-- **C1 Internal:** ordinary non-public work with low disclosure impact.
-- **C2 Confidential:** proprietary plans, code, documents, aggregates, or business records.
-- **C3 Restricted:** direct identifiers, customer/employee records, production samples, security findings, or regulated data.
-- **C4 Secret:** credentials, private keys, session material, recovery codes, raw authentication headers, or equivalent access-enabling values.
+## Surface limits
 
-If uncertain between adjacent classes, use the higher class for source selection but do not turn uncertainty alone into a workflow-blocking event. See [data-handling-policy.md](references/data-handling-policy.md) for examples and output rules.
-
-## Apply the low-friction treatment order
-
-Use the first method that still accomplishes the task:
-
-1. **Reference:** use an environment-variable name, secret-manager reference, file path, record ID, schema, or source pointer without opening the value.
-2. **Local compute:** run filtering, joins, validation, or summarization where the data already resides; return only the necessary result.
-3. **Pseudonymize:** replace entities with stable non-reversible labels while preserving repeated relationships.
-4. **Redact and minimize:** remove values, unused columns, irrelevant rows, long log bodies, and unnecessary metadata.
-5. **Warn or confirm:** use a short warning for residual disclosure risk and confirm high-impact external actions.
-6. **Block:** reserve for non-test or high-risk C4, explicit credential-store/exfiltration paths, invalid confirmation state, or an external disclosure without authority.
-
-Do not ask ordinary users to run a tokenization ceremony. Perform safe transformations yourself when the surface permits it.
-
-## Work without seeing secrets
-
-- Generate commands that reference `$VARIABLE`, a secret-manager key, or a credential file through the target program's native loading behavior; never interpolate the value into the command.
-- Inspect configuration shape, key names, permissions, exit codes, and redacted diagnostics before reading values.
-- For logs, query around timestamps/error codes and cap results; never dump an entire production log by default.
-- For documents/spreadsheets, select required sections/columns and use aggregates or local formulas before upload.
-- For customer/HR data, use synthetic rows for method design and execute the final transform locally.
-- For connectors, scope the search narrowly and keep send/post/update actions as drafts until confirmed.
-- Never repeat a discovered secret in an explanation, generated command, patch, test, log, or evidence file. A user-confirmed test value may cross only the exact supported prompt/tool boundary covered by its consumed one-shot approval; subsequent work returns to category and reference names.
-
-## Use the local helper in Codex
+For Codex with local Hooks, use reference-preserving calls and rely only on the packaged Hook's supported prompt/tool boundaries. Personal mode may offer one exact, expiring, session-bound confirmation for an explicitly declared test credential; it is neither reusable nor permission to inspect credential values. Strict mode blocks it. In ChatGPT Work, minimize selected sources and connector scope, compute locally when available, and draft before external action; do not claim Hook protection. In ordinary chat, request the smallest excerpt, prefer placeholders/synthetic examples, and warn briefly before a likely secret paste.
 
 The helper is standard-library-only and does not retain raw mappings:
 
@@ -72,15 +46,4 @@ python3 "$PLUGIN_ROOT/skills/company-data-security/scripts/dlp_approval.py" conf
 python3 "$PLUGIN_ROOT/skills/company-data-security/scripts/doctor.py" --plugin-root "$PLUGIN_ROOT"
 ```
 
-`scan` returns categories and counts, never matched values. `redact` emits only transformed content. The approval helper stores private keyed metadata and configures mode; it exposes no Agent-runnable approval command. `doctor` proves packaged/configuration state at check time, not central immutability, cryptographic isolation from a malicious same-user process, or live account compliance.
-
-## Communicate decisions briefly
-
-- On safe automatic handling: continue the task and mention the transformation only if it changes the result.
-- On a C4 block or confirmation: state the category and action status without echoing the value, then provide one platform-appropriate storage command, an environment-variable reference, and the exact retry/confirmation boundary.
-- On Work/Chat limitations: say that source minimization and instructions are active guidance, not a guaranteed pre-send interception layer.
-- On external actions: prepare the draft and ask for confirmation at the actual disclosure boundary.
-
-## Never overclaim
-
-This Skill and the packaged Hooks are defense in depth. They do not replace enterprise policy, endpoint DLP, network egress controls, access-control review, connector administration, or incident response. Hosted/specialized tool paths can fall outside local Hook coverage. Report live installation, Hook trust, and account configuration as `NOT RUN` or `not_observed` unless they were actually checked.
+`scan` returns categories/counts and `redact` emits transformed content. `doctor` proves packaged/configuration state at check time only. Hooks and this Skill are defense in depth, not enterprise DLP, egress control, connector administration, or incident response; unobserved installation, account, and enforcement state remains `NOT RUN` or `not_observed`.

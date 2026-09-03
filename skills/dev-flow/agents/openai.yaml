@@ -1,6 +1,6 @@
 interface:
-  display_name: "Dev Flow"
-  short_description: "Route repository work by intent, continuity, risk, and knowledge"
-  default_prompt: "Use $dev-flow to identify task intent, choose direct or managed continuity, preserve only durable repository knowledge, add relevant risk controls, and close with native evidence and honest limits."
+  display_name: "Dev Flow · Repository Engineering"
+  short_description: "Guide repository work from intent to tested outcome"
+  default_prompt: "Use $dev-flow to understand the outcome, implement the smallest complete change, preserve durable repository knowledge, and verify it with honest evidence."
 policy:
   allow_implicit_invocation: true

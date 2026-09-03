@@ -25,6 +25,7 @@
     "evals/test_outcome_observation.py",
     "evals/test_product_state.py",
     "evals/test_public_cli.py",
+    "evals/test_rc7_testing_behavior.py",
     "evals/test_release_artifacts.py",
     "evals/test_resource_coordination.py",
     "evals/test_repository_knowledge.py",

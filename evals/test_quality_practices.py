@@ -80,7 +80,7 @@ class QualityPracticesContractTests(unittest.TestCase):
             "public limits",
             "narrate obvious code",
             "preserve dead code",
-            "unowned `TODO`",
+            "unowned deferred marker",
             "distinct failure sensitivity",
         ):
             self.assertIn(term, policy)

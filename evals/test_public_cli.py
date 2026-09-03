@@ -60,12 +60,12 @@ class PublicCliTests(unittest.TestCase):
         self.assertEqual(internal.returncode, 0)
         self.assertIn("init-packet", internal.stdout)
 
-    def test_supported_route_uses_compact_rc5_contract(self) -> None:
+    def test_supported_route_uses_compact_rc7_contract(self) -> None:
         result = run(FLOW, "route-task", "--intent", "change", "--compact")
         self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
         payload = json.loads(result.stdout)
         self.assertEqual(set(payload["route_basis"]), {"schema", "router_semantics", "digest"})
-        self.assertEqual(payload["route_basis"]["router_semantics"], "dev-flow.route-semantics.rc5.v1")
+        self.assertEqual(payload["route_basis"]["router_semantics"], "dev-flow.route-semantics.rc7.v1")
         self.assertEqual(set(payload["method"]), {"action", "status", "selected", "blocked"})
 
     def test_explain_is_the_explicit_full_form_and_conflicts_with_compact(self) -> None:

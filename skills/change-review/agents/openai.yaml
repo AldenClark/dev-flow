@@ -1,4 +1,4 @@
 interface:
   display_name: "Change Review"
-  short_description: "Review changes against intent and risk"
-  default_prompt: "Use $change-review to perform independent integration and adversarial review against a frozen intent and diff."
+  short_description: "Find consequential defects and complexity"
+  default_prompt: "Use $change-review to inspect current source and final diffs, verify consequential findings, challenge needless complexity, and stop at review saturation."

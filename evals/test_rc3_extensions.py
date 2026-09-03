@@ -175,18 +175,17 @@ class ScopeAndContinuationContracts(unittest.TestCase):
         ):
             self.assertIn(phrase, guidance)
 
-        active = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(
-            encoding="utf-8"
-        )
+        active = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
+        agent_reference = (ROOT / "skills" / "dev-flow" / "references" / "multi-agent-v2-orchestration.md").read_text(encoding="utf-8")
+        calibration = (ROOT / "skills" / "dev-flow" / "references" / "quality-calibration.md").read_text(encoding="utf-8")
         for phrase in (
-            "successful dispatch returns a non-empty child/receiver identity",
-            "Never call `wait` or poll unless",
+            "successful dispatch returns a non-empty child identity",
+            "Never wait or poll before that identity exists",
             "never attribute a result to a child",
-            "Child proposals grant no scope; exact renewed authority is required",
-            "Root reconciliation must state",
-            "even with clean diff",
         ):
-            self.assertIn(phrase, active)
+            self.assertIn(phrase, agent_reference)
+        self.assertIn("They cannot restore authority", active)
+        self.assertIn("must reject integration and report or defer the proposal", calibration)
 
         catalog = json.loads(TRANSITIONS.read_text(encoding="utf-8"))
         case = next(
@@ -232,23 +231,15 @@ class ScopeAndContinuationContracts(unittest.TestCase):
             self.assertIn(phrase, guidance)
 
         orchestration = ORCHESTRATION.read_text(encoding="utf-8")
-        self.assertIn("explicit renewed authority", orchestration)
+        self.assertIn("exact renewed user authority", orchestration)
         self.assertIn("must not execute that expansion merely because the child requested it", orchestration)
 
     def test_reference_comparison_is_active_and_decision_useful(self) -> None:
         active = DEV_FLOW_SKILL.read_text(encoding="utf-8")
-        for phrase in (
-            "named reference repository or source",
-            "explicit scope and repository confirmation",
-            "confirmed authority applies only to the confirmed edge",
-            "Choose everything else from target truth",
-            "abstain with the comparison and limitation",
-        ):
-            self.assertIn(phrase, active)
+        self.assertIn("Use `repo-context` alone for a narrow read-only repository fact", active)
 
         context_owner = REPO_CONTEXT_SKILL.read_text(encoding="utf-8")
         for phrase in (
-            "target/reference comparisons",
             "target/reference comparison is atomic even without paths",
             "inspect the bounded repository before asking",
             "With one plausible pair",
@@ -327,6 +318,10 @@ class MethodDispositionContracts(unittest.TestCase):
             item["id"]
             for item in json.loads(METHOD_POOL.read_text(encoding="utf-8"))["methods"]
         }
+        transition_ids = {
+            item["id"]
+            for item in json.loads(TRANSITIONS.read_text(encoding="utf-8"))["cases"]
+        }
         case_ids = set()
         for case in catalog["cases"]:
             self.assertNotIn(case["id"], case_ids)
@@ -345,6 +340,14 @@ class MethodDispositionContracts(unittest.TestCase):
             )
             self.assertTrue(all(case["fixed_conditions"].values()))
             self.assertTrue(case["protected_negative"])
+            fixture = case["fixed_conditions"]["repository_fixture"]
+            self.assertTrue(
+                fixture in transition_ids or (ROOT / fixture).is_file(),
+                f"dangling method-effect fixture: {fixture}",
+            )
+        weak_oracle = next(item for item in catalog["cases"] if item["id"] == "METHOD-PAIR-WEAK-ORACLE-REVIEW")
+        self.assertEqual(weak_oracle["method_candidate"], "equivalence-boundary-testing")
+        self.assertIn("invalid-input boundary", weak_oracle["fixed_conditions"]["acceptance_oracle"])
 
     def test_review_oracle_challenge_prefers_ready_verification(self) -> None:
         payload = route(

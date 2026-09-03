@@ -174,4 +174,4 @@ python3 skills/dev-flow/scripts/dev-flow.py route-agent \
 
 Freeze the relevant objective, contracts, diff/scope, and raw evidence for the review. Recheck findings in current source. Do not require a review packet, profile record, or generated report.
 
-When the route requires independent review, either execute that clean-context route or explicitly downgrade to same-context review and report `common-mode-risk`. A blue/red sequence performed by the implementer is a pair of useful lenses, not independent evidence. Do not silently treat unavailable or unauthorized delegation as satisfied review.
+When independent review has decision value, execute that clean-context route without a separate spawn authorization. If the host cannot provide an independent context, explicitly downgrade to same-context review and report `common-mode-risk`. A blue/red sequence performed by the implementer is a pair of useful lenses, not independent evidence. Never turn a capability or resource limit into an authorization claim.

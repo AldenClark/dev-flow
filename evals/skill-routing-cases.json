@@ -15,7 +15,15 @@
       "work_mode": "direct",
       "expected": ["repo-context", "verification"],
       "required": ["repo-context", "verification"],
-      "forbidden": ["requirements-design", "product-ux-discovery", "architecture-decisions", "systematic-debugging", "dependency-decisions", "change-review", "delivery-readiness"]
+      "forbidden": ["requirements-design", "product-ux-discovery", "architecture-decisions", "systematic-debugging", "dependency-decisions", "repository-knowledge", "change-review", "delivery-readiness"]
+    },
+    {
+      "id": "ROUTE-REPOSITORY-KNOWLEDGE",
+      "args": ["--intent", "change", "--need", "knowledge"],
+      "work_mode": "direct",
+      "expected": ["repo-context", "repository-knowledge", "verification"],
+      "required": ["repository-knowledge", "verification"],
+      "forbidden": ["requirements-design", "product-ux-discovery", "architecture-decisions", "systematic-debugging", "dependency-decisions", "test-system-engineering", "change-review", "delivery-readiness"]
     },
     {
       "id": "ROUTE-BUGFIX",

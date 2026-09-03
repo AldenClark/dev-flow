@@ -135,6 +135,7 @@ jobs:
           evals.test_outcome_observation
           evals.test_product_state
           evals.test_public_cli
+          evals.test_rc7_testing_behavior
           evals.test_scripts.PreflightTests
           evals.test_scripts.RuntimeInstallerTests
           evals.test_release_artifacts.RuntimeLifecycleSmokeTests
