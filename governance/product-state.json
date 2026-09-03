@@ -30,7 +30,7 @@
     "commit": "passed",
     "hosted_ci": "not-run",
     "cross_platform": "not-run",
-    "independent_review": "failed",
+    "independent_review": "passed",
     "tag": "not-run",
     "artifact": "not-run",
     "publication": "not-run",
