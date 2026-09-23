@@ -20,12 +20,11 @@ Use `repo-context` alone for a narrow read-only repository fact. Handle a self-c
 
 Move through only the positions the work needs. Revisit one when evidence changes its premise.
 
-1. **Understand.** Inspect current truth. For new or changed semantics, use `requirements-design` to clarify behavior, examples/counterexamples, states, recovery, non-goals, assumptions, and genuine user choices. Confirm only choices that materially change the product.
-   User-owned choices stop in Default mode via requirements-design's `user-interaction.md`.
-2. **Shape.** Trace affected consumers, contracts, data, state, errors, compatibility, resources, and operations. Load a professional owner when it can change a decision. Compare the smallest credible option with alternatives; make material choices falsifiable.
+1. **Understand.** Inspect current truth. For changed semantics, use `requirements-design` to clarify behavior, counterexamples, recovery, and genuine user choices. Pause in Default mode only for a surviving material choice under `user-interaction.md`; an already confirmed plan proceeds.
+2. **Shape.** Trace affected boundaries and consumers. Load a professional owner when it can change a decision. For uncertain meaning or cause, compare decision-changing alternatives and one disconfirming case; closed work needs no broad ideation.
 3. **Implement a coherent slice.** Prefer an end-to-end result over disconnected layers. Separate behavior from broad refactoring where practical. Parse at untrusted boundaries, make invalid states harder to represent, follow repository conventions, and update generated and consumer surfaces together.
 4. **Build sensitive evidence.** Derive black-box checks from outcomes/contracts and white-box checks from changed branches, states, boundaries, errors, concurrency, resources, and recovery. Choose native layers that can disprove the claim. Challenge weak oracles with a pre-fix failure, negative control, mutation, seeded fault, independent relation, or equivalent evidence.
-5. **Integrate and close.** Inspect the final diff, user changes, dependencies, knowledge, compatibility, unrun environments, and delivery boundary. Repair consequential findings and recheck affected evidence. Stop when outcome and material risks are resolved; avoid completeness theatre.
+5. **Integrate and close.** Reconcile the user's goal, authoritative source, final diff, last applicable oracle, and unrun environments. Repair consequential findings and recheck only affected evidence. Finish the authorized outcome, not just the first implementation.
 
 `systematic-debugging` owns reproduction and earliest-cause diagnosis. A diagnosis-only request stops at a supported cause; it does not silently become repair.
 
@@ -35,7 +34,7 @@ Load the smallest set that can change a decision or evidence surface. Discovery 
 
 Their descriptions own detailed triggers. Keep `repository-knowledge` quiet for ordinary updates to a clear owner; consume only confirmed profiles; use `dev-flow-maintainer` only for explicit suite maintenance. Advice never grants repair or delivery authority.
 
-Reconsider routing only when intent, semantics, scope, platform, authority, principal risk, or evidence needs materially change—not for continuation, tool interruption, compaction, or a restated goal. `route-task` is an inspectable diagnostic, not a precondition; activation alone is not evidence of benefit.
+Reconsider routing only when intent, semantics, scope, platform, authority, principal risk, or evidence needs materially change—not for continuation, tool interruption, compaction, or a restated goal. Invalidate only affected plans, checks, and child results after a real change. `route-task` is an inspectable diagnostic, not a precondition.
 
 ## Knowledge for the next step
 
@@ -51,9 +50,9 @@ Stop low-probability, low-consequence, high-cost fringe exploration unless reque
 
 ## Agents and review
 
-Dispatch an independently useful unit with net parallel, isolation, or clean-context value. Starting a child, bounded nested child, or reviewer needs no separate user authorization. Use `route-agent` before real dispatch to choose a P0–P6 profile.
+Dispatch an independently useful unit with net parallel, isolation, or clean-context value. Starting a child, bounded nested child, or reviewer needs no separate user authorization. Use `route-agent` to choose a P0–P6 profile; dispatch only when its `delegate` and `dispatch_ready` are true for the actual host.
 
-Give children an outcome, path ownership, checks, resource limits, stops, and return shape. Descendants inherit intersected ancestor boundaries. They cannot restore authority or add repositories, dependencies, semantics, platforms, external actions, or destructive operations. The parent verifies and integrates.
+Give children an outcome, path ownership, checks, resource limits, stops, and return shape. Descendants inherit intersected ancestor boundaries. They cannot restore authority or add repositories, dependencies, semantics, platforms, external actions, or destructive operations. After steering, update or cancel affected children; late results are stale until reconciled against the current scope. The parent verifies actual writes and evidence before integration.
 
 Independent review needs a separate context and stable target. If unavailable, report the capability limit and common-mode risk—not missing user authorization. Stop after repaired findings are rechecked and only non-consequential preferences remain.
 

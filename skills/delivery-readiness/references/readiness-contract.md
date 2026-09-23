@@ -20,6 +20,8 @@ Never collapse these states.
 4. For compatibility or migration, cover only relevant reader/writer, client/server, platform, data, ordering, resumability, observation, restore/rollback, and cleanup directions.
 5. Freeze exact source commit, version, configuration, artifact names, and intended target before constructing or publishing immutable artifacts.
 
+For a real-environment outcome, check the applicable causal chain with evidence from the target: the final tested bytes produced the identified artifact; the intended target actually has those bytes; its effective configuration and data are the expected version; the intended actor's user flow caused the external effect; an observation signal can detect failure; and a safe recovery or rollback has an owner, trigger, and executable path. Do not mark a downstream link passed from an upstream command alone. If artifact or effective config differs, treat dependent observations as stale and inspect the first mismatch before another attempt.
+
 ## Artifact integrity
 
 For an artifact/security change, verify archive contents, manifest/version/commit, non-empty SBOM, checksums, provenance or signature as applicable, and rejection of the concrete tamper/substitution failures the builder can expose. Two clean builds are useful when reproducibility is claimed; they are not mandatory for unrelated documentation or Skill prose changes.

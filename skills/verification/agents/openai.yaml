@@ -1,4 +1,4 @@
 interface:
   display_name: "Verification"
   short_description: "Design and run claim-focused evidence"
-  default_prompt: "Use $verification to derive black-box and white-box oracles, run the right native checks, and limit each claim to observed evidence."
+  default_prompt: "Use $verification to derive outcome and final-code oracles, run the right native and target-environment checks, and limit each claim to observed actor, bytes, and environment evidence."

@@ -1,6 +1,6 @@
 interface:
   display_name: "Dev Flow · Repository Engineering"
   short_description: "Guide repository work from intent to tested outcome"
-  default_prompt: "Use $dev-flow to understand the outcome, implement the smallest complete change, preserve durable repository knowledge, and verify it with honest evidence."
+  default_prompt: "Use $dev-flow to reach the requested outcome, explore alternatives only where uncertainty changes a decision, verify the final behavior with the relevant native oracle, and report unrun environments honestly."
 policy:
   allow_implicit_invocation: true

@@ -4,7 +4,7 @@
   "cases": [
     {
       "id": "FLOW-U1-STOPS-BEFORE-DESIGN",
-      "command": ["route-task", "--intent", "change", "--requirement-class", "semantic-change"],
+      "command": ["route-task", "--intent", "change", "--requirement-class", "semantic-change", "--user-choice-open"],
       "expect": {
         "requirement_understanding.confirmation": "required",
         "requirement_understanding.design_allowed": false,
@@ -12,6 +12,16 @@
       },
       "contains": {"routes": "requirements-design"},
       "excludes": {"routes": "architecture-decisions"}
+    },
+    {
+      "id": "FLOW-U1-WITH-CLEAR-SEMANTICS-CONTINUES",
+      "command": ["route-task", "--intent", "change", "--requirement-class", "semantic-change"],
+      "expect": {
+        "requirement_understanding.confirmation": "not-required",
+        "requirement_understanding.design_allowed": true,
+        "requirement_understanding.next_action": "publish-understanding-and-continue"
+      },
+      "contains": {"routes": "requirements-design"}
     },
     {
       "id": "FLOW-U1-CONFIRMATION-RESUMES",
@@ -71,27 +81,37 @@
     {
       "id": "FLOW-P0-LUNA-EXACT",
       "command": ["route-agent", "--role", "dev-flow-explorer", "--workload", "exact-lookup"],
-      "expect": {"selected_profile": "P0", "requested_model": "gpt-5.6-luna", "requested_reasoning_effort": "low"}
+      "expect": {"selected_profile": "P0", "requested_model": "gpt-6-luna", "requested_reasoning_effort": "low"}
     },
     {
       "id": "FLOW-P2-LUNA-CONTAINED-STRUCTURED-WORK",
       "command": ["route-agent", "--role", "dev-flow-worker", "--workload", "bounded-change", "--risk", "concurrency", "--signal", "closed-scope", "--signal", "confirmed-semantics", "--signal", "deterministic-oracle"],
-      "expect": {"selected_profile": "P2", "requested_model": "gpt-5.6-luna", "requested_reasoning_effort": "high"}
+      "expect": {"selected_profile": "P2", "requested_model": "gpt-6-luna", "requested_reasoning_effort": "high"}
     },
     {
-      "id": "FLOW-P4-TERRA-JUDGMENT",
+      "id": "FLOW-P5-SOL-ORACLE-CHALLENGE",
       "command": ["route-agent", "--role", "dev-flow-explorer", "--workload", "broad-mapping", "--signal", "oracle-challenge"],
-      "expect": {"selected_profile": "P4", "requested_model": "gpt-5.6-terra", "requested_reasoning_effort": "high"}
+      "expect": {"selected_profile": "P5", "requested_model": "gpt-6-sol", "requested_reasoning_effort": "xhigh"}
     },
     {
-      "id": "FLOW-P5-SOL-CRITICAL-BOUNDARY",
+      "id": "FLOW-P2-LUNA-CLOSED-RISK",
       "command": ["route-agent", "--role", "dev-flow-worker", "--workload", "bounded-change", "--risk", "authorization"],
-      "expect": {"selected_profile": "P5", "requested_model": "gpt-5.6-sol", "requested_reasoning_effort": "high"}
+      "expect": {"selected_profile": "P2", "requested_model": "gpt-6-luna", "requested_reasoning_effort": "high"}
     },
     {
-      "id": "FLOW-P6-SOL-IRREVERSIBLE-ACCEPTANCE",
+      "id": "FLOW-P4-SOL-ORDINARY-DIAGNOSIS",
+      "command": ["route-agent", "--role", "dev-flow-explorer", "--workload", "causal-debugging"],
+      "expect": {"selected_profile": "P4", "requested_model": "gpt-6-sol", "requested_reasoning_effort": "medium"}
+    },
+    {
+      "id": "FLOW-P5-SOL-CRITICAL-ACCEPTANCE",
       "command": ["route-agent", "--role", "dev-flow-red-reviewer", "--workload", "high-risk-review", "--signal", "irreversible"],
-      "expect": {"selected_profile": "P6", "requested_model": "gpt-5.6-sol", "requested_reasoning_effort": "xhigh"}
+      "expect": {"selected_profile": "P5", "requested_model": "gpt-6-sol", "requested_reasoning_effort": "xhigh"}
+    },
+    {
+      "id": "FLOW-P6-ASTRA-COMPOUND-UNKNOWN",
+      "command": ["route-agent", "--role", "dev-flow-worker", "--workload", "cross-component-change", "--signal", "deep-unresolved", "--signal", "interacting-unknowns", "--signal", "cross-boundary-impact"],
+      "expect": {"selected_profile": "P6", "requested_model": "gpt-6-astra", "requested_reasoning_effort": "xhigh"}
     },
     {
       "id": "FLOW-DELIVERY-IS-READ-ONLY-UNTIL-AUTHORIZED",
@@ -107,7 +127,7 @@
     },
     {
       "id": "FLOW-DESIGN-STOPS-ON-UNCONFIRMED-SEMANTICS",
-      "command": ["route-task", "--intent", "design", "--requirement-class", "semantic-change"],
+      "command": ["route-task", "--intent", "design", "--requirement-class", "semantic-change", "--user-choice-open"],
       "expect": {"mutation_intent": "none", "requirement_understanding.design_allowed": false},
       "contains": {"routes": "requirements-design"},
       "excludes": {"routes": "architecture-decisions"}
@@ -120,7 +140,7 @@
     },
     {
       "id": "FLOW-AMBIGUOUS-DEFECT-UPGRADES-TO-U1",
-      "command": ["route-task", "--intent", "diagnose", "--requirement-class", "defect-correction", "--ambiguity"],
+      "command": ["route-task", "--intent", "diagnose", "--requirement-class", "defect-correction", "--ambiguity", "--user-choice-open"],
       "expect": {
         "requirement_understanding.class": "semantic-change",
         "requirement_understanding.confirmation": "required",
@@ -153,12 +173,12 @@
     {
       "id": "FLOW-P1-LUNA-MECHANICAL",
       "command": ["route-agent", "--role", "dev-flow-worker", "--workload", "mechanical-change"],
-      "expect": {"selected_profile": "P1", "requested_model": "gpt-5.6-luna", "requested_reasoning_effort": "medium"}
+      "expect": {"selected_profile": "P1", "requested_model": "gpt-6-luna", "requested_reasoning_effort": "medium"}
     },
     {
-      "id": "FLOW-P3-TERRA-ORDINARY-MULTI-STEP",
+      "id": "FLOW-P3-LUNA-ORDINARY-MULTI-STEP",
       "command": ["route-agent", "--role", "dev-flow-worker", "--workload", "broad-multi-step"],
-      "expect": {"selected_profile": "P3", "requested_model": "gpt-5.6-terra", "requested_reasoning_effort": "medium"}
+      "expect": {"selected_profile": "P3", "requested_model": "gpt-6-luna", "requested_reasoning_effort": "xhigh"}
     },
     {
       "id": "FLOW-ROOT-DECISIONS-ARE-NOT-DELEGATED",

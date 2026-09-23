@@ -926,6 +926,8 @@ def corrected_route_command(
         command.extend(("--intent", args.intent))
     else:
         command.extend(("--task-type", args.task_type))
+    if args.target_revision is not None:
+        command.extend(("--target-revision", args.target_revision))
     for risk in args.risk:
         command.extend(("--risk", risk_replacements.get(risk, risk)))
     for need in args.need:
@@ -954,6 +956,8 @@ def corrected_route_command(
         command.append("--understanding-confirmed")
     if args.waive_understanding_confirmation:
         command.append("--waive-understanding-confirmation")
+    if args.user_choice_open:
+        command.append("--user-choice-open")
     if args.profile_operation:
         command.append("--profile-operation")
     if args.suite_maintenance:
@@ -1303,8 +1307,11 @@ def route_requirement_understanding(
     if requirement_class == "defect-correction" and args.ambiguity:
         requirement_class = "semantic-change"
         source = "ambiguous-defect-upgrade"
+    if args.user_choice_open and requirement_class != "semantic-change":
+        requirement_class = "semantic-change"
+        source = "unresolved-user-choice-upgrade"
 
-    confirmation_required = requirement_class == "semantic-change"
+    confirmation_required = requirement_class == "semantic-change" and args.user_choice_open
     if args.understanding_confirmed:
         confirmation = "confirmed"
     elif args.waive_understanding_confirmation:
@@ -1325,6 +1332,8 @@ def route_requirement_understanding(
         "next_action": (
             "publish-detailed-understanding-and-stop"
             if confirmation_required and not design_allowed
+            else "publish-understanding-and-continue"
+            if requirement_class == "semantic-change" and confirmation == "not-required"
             else "continue"
         ),
         "stop_before": "technical-design" if confirmation_required and not design_allowed else None,
@@ -1332,6 +1341,7 @@ def route_requirement_understanding(
         "rules": [
             "remain in Default mode",
             "resolve repository facts before asking the user",
+            "stop only for an unresolved user-owned choice that changes the outcome",
             "a correction requires a complete revised understanding",
             "confirmation does not authorize dependencies, delivery, or destructive/external action",
         ],
@@ -1438,7 +1448,7 @@ def route_capability_activation(
         inferred_prerequisites: set[str] = set()
         if repository_facts:
             inferred_prerequisites.add("repository-facts")
-        if understanding["design_allowed"]:
+        if understanding["class"] != "semantic-change" or understanding["confirmation"] in {"confirmed", "waived"}:
             inferred_prerequisites.add("requirement-baseline")
         available_prerequisites = supplied_prerequisites | inferred_prerequisites
         method_phase, method_phase_source = task_facing_method_phase(
@@ -7333,6 +7343,19 @@ def route_task(args: argparse.Namespace) -> int:
                 ]
                 if work_mode == "managed"
                 else [],
+                "terminal_reconciliation": [
+                    "user-outcome",
+                    "authoritative-source-and-contract",
+                    "final-diff",
+                    "last-applicable-oracle",
+                    "unrun-environments-and-delivery-boundary",
+                ],
+                "scope_change": [
+                    "retain-unaffected-evidence",
+                    "invalidate-affected-plan-and-checks",
+                    "mark-stale-descendant-results",
+                    "continue-current-slice",
+                ],
             },
             "knowledge": knowledge,
             "quality_calibration": {
@@ -7932,7 +7955,7 @@ def deactivate_packet(args: argparse.Namespace) -> int:
     return emit({"status": "deactivated", "packet": str(packet), "current": str(current)})
 
 
-def build_parser() -> argparse.ArgumentParser:
+def build_parser(*, supported_only: bool = False) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -7953,21 +7976,22 @@ def build_parser() -> argparse.ArgumentParser:
     preflight.add_argument("--require-delegation", action="store_true")
     preflight.set_defaults(func=codex_preflight)
 
-    init = sub.add_parser("init-packet")
-    init.add_argument("--root", type=Path, required=True)
-    init.add_argument("--change-id", required=True)
-    init.add_argument("--task-type", required=True)
-    init.add_argument("--objective", required=True)
-    init.add_argument("--authority", default="local edits and tests only")
-    init.add_argument("--profile", action="append", default=[])
-    init.add_argument("--risk", action="append", default=[])
-    init.add_argument("--collaboration-profile", choices=sorted(COLLABORATION_PROFILES))
-    init.add_argument("--ui-impact", choices=sorted(UI_IMPACTS), default="none")
-    init.add_argument("--compatibility-required", action="store_true")
-    init.add_argument("--mutation", choices=("none", "persistent"))
-    init.add_argument("--reuse", action="store_true")
-    init.add_argument("--work-mode", choices=("auto", *sorted(WORK_MODES)), default="auto")
-    init.set_defaults(func=init_packet)
+    if not supported_only:
+        init = sub.add_parser("init-packet")
+        init.add_argument("--root", type=Path, required=True)
+        init.add_argument("--change-id", required=True)
+        init.add_argument("--task-type", required=True)
+        init.add_argument("--objective", required=True)
+        init.add_argument("--authority", default="local edits and tests only")
+        init.add_argument("--profile", action="append", default=[])
+        init.add_argument("--risk", action="append", default=[])
+        init.add_argument("--collaboration-profile", choices=sorted(COLLABORATION_PROFILES))
+        init.add_argument("--ui-impact", choices=sorted(UI_IMPACTS), default="none")
+        init.add_argument("--compatibility-required", action="store_true")
+        init.add_argument("--mutation", choices=("none", "persistent"))
+        init.add_argument("--reuse", action="store_true")
+        init.add_argument("--work-mode", choices=("auto", *sorted(WORK_MODES)), default="auto")
+        init.set_defaults(func=init_packet)
 
     workstream = sub.add_parser(
         "init-workstream",
@@ -7990,54 +8014,55 @@ def build_parser() -> argparse.ArgumentParser:
     workstream.add_argument("--reuse", action="store_true")
     workstream.set_defaults(func=init_workstream)
 
-    validate = sub.add_parser("validate-packet")
-    validate.add_argument("packet", type=Path)
-    validate.set_defaults(func=validate_packet)
+    if not supported_only:
+        validate = sub.add_parser("validate-packet")
+        validate.add_argument("packet", type=Path)
+        validate.set_defaults(func=validate_packet)
 
-    transition = sub.add_parser("transition")
-    transition.add_argument("packet", type=Path)
-    transition.add_argument("state", choices=sorted(STATES))
-    transition.add_argument("--note", required=True)
-    transition.add_argument("--approved-by")
-    transition.add_argument("--ambiguity-id", help="Open material AMB-n that justifies content-bound reopening")
-    transition.set_defaults(func=transition_packet)
+        transition = sub.add_parser("transition")
+        transition.add_argument("packet", type=Path)
+        transition.add_argument("state", choices=sorted(STATES))
+        transition.add_argument("--note", required=True)
+        transition.add_argument("--approved-by")
+        transition.add_argument("--ambiguity-id", help="Open material AMB-n that justifies content-bound reopening")
+        transition.set_defaults(func=transition_packet)
 
-    checkpoint = sub.add_parser("record-checkpoint", help="Persist a digest-bound semantic recovery checkpoint")
-    checkpoint.add_argument("packet", type=Path)
-    checkpoint.add_argument("--trigger", choices=sorted(CONTINUITY_TRIGGERS), required=True)
-    checkpoint.add_argument("--objective", required=True)
-    checkpoint.add_argument("--active-id", action="append", required=True)
-    checkpoint.add_argument("--last-evidence", required=True)
-    checkpoint.add_argument("--next-action", required=True)
-    checkpoint.add_argument("--stop-condition", required=True)
-    checkpoint.add_argument(
-        "--repository-reconciliation",
-        help="required when repository identity, HEAD, or worktree bytes changed since the prior checkpoint",
-    )
-    checkpoint.add_argument(
-        "--accept-head",
-        action="append",
-        default=[],
-        metavar="ROOT=OID",
-        help="exact current Git OID accepted for each changed repository root; repeat per root",
-    )
-    checkpoint.add_argument("--drift", choices=("aligned", "reopened"), default="aligned")
-    checkpoint.set_defaults(func=record_checkpoint)
+        checkpoint = sub.add_parser("record-checkpoint", help="Persist a digest-bound semantic recovery checkpoint")
+        checkpoint.add_argument("packet", type=Path)
+        checkpoint.add_argument("--trigger", choices=sorted(CONTINUITY_TRIGGERS), required=True)
+        checkpoint.add_argument("--objective", required=True)
+        checkpoint.add_argument("--active-id", action="append", required=True)
+        checkpoint.add_argument("--last-evidence", required=True)
+        checkpoint.add_argument("--next-action", required=True)
+        checkpoint.add_argument("--stop-condition", required=True)
+        checkpoint.add_argument(
+            "--repository-reconciliation",
+            help="required when repository identity, HEAD, or worktree bytes changed since the prior checkpoint",
+        )
+        checkpoint.add_argument(
+            "--accept-head",
+            action="append",
+            default=[],
+            metavar="ROOT=OID",
+            help="exact current Git OID accepted for each changed repository root; repeat per root",
+        )
+        checkpoint.add_argument("--drift", choices=("aligned", "reopened"), default="aligned")
+        checkpoint.set_defaults(func=record_checkpoint)
 
-    resume = sub.add_parser("resume-packet", help="Rehydrate the current requirement, design, context, and checkpoint")
-    resume.add_argument("packet", type=Path)
-    resume.set_defaults(func=resume_packet)
+        resume = sub.add_parser("resume-packet", help="Rehydrate the current requirement, design, context, and checkpoint")
+        resume.add_argument("packet", type=Path)
+        resume.set_defaults(func=resume_packet)
 
-    bind = sub.add_parser("bind-knowledge", help="Bind a final knowledge disposition or tracked change dossier")
-    bind.add_argument("packet", type=Path)
-    bind.add_argument("--impact", choices=sorted(knowledge_system.KNOWLEDGE_IMPACTS), required=True)
-    bind.add_argument("--rationale", required=True)
-    bind.add_argument("--root", type=Path)
-    bind.add_argument("--project-root")
-    bind.add_argument("--changes-root")
-    bind.add_argument("--convention-path", default=knowledge_system.DEFAULT_CONVENTION_PATH)
-    bind.add_argument("--manifest", help="repository-relative path to the change dossier manifest")
-    bind.set_defaults(func=bind_knowledge)
+        bind = sub.add_parser("bind-knowledge", help="Bind a final knowledge disposition or tracked change dossier")
+        bind.add_argument("packet", type=Path)
+        bind.add_argument("--impact", choices=sorted(knowledge_system.KNOWLEDGE_IMPACTS), required=True)
+        bind.add_argument("--rationale", required=True)
+        bind.add_argument("--root", type=Path)
+        bind.add_argument("--project-root")
+        bind.add_argument("--changes-root")
+        bind.add_argument("--convention-path", default=knowledge_system.DEFAULT_CONVENTION_PATH)
+        bind.add_argument("--manifest", help="repository-relative path to the change dossier manifest")
+        bind.set_defaults(func=bind_knowledge)
 
     knowledge = sub.add_parser("validate-knowledge", help="Validate tracked project truth and change dossiers")
     knowledge.add_argument("--root", type=Path, required=True)
@@ -8047,67 +8072,69 @@ def build_parser() -> argparse.ArgumentParser:
     knowledge.add_argument("--change-id")
     knowledge.set_defaults(func=validate_knowledge_command)
 
-    iteration = sub.add_parser("record-iteration", help="Record a causal hypothesis or repair attempt and enforce the three-round breaker")
-    iteration.add_argument("packet", type=Path)
-    iteration.add_argument("--kind", choices=sorted(ITERATION_KINDS), required=True)
-    iteration.add_argument("--cause-id", required=True)
-    iteration.add_argument("--cause-file", required=True, help="relative path below packet artifacts/ containing stable causal evidence")
-    iteration.add_argument("--outcome", choices=sorted(ITERATION_OUTCOMES), required=True)
-    iteration.add_argument("--reopened-owner", choices=sorted(ITERATION_OWNERS))
-    iteration.add_argument("--note", required=True)
-    iteration.set_defaults(func=record_iteration)
+    if not supported_only:
+        iteration = sub.add_parser("record-iteration", help="Record a causal hypothesis or repair attempt and enforce the three-round breaker")
+        iteration.add_argument("packet", type=Path)
+        iteration.add_argument("--kind", choices=sorted(ITERATION_KINDS), required=True)
+        iteration.add_argument("--cause-id", required=True)
+        iteration.add_argument("--cause-file", required=True, help="relative path below packet artifacts/ containing stable causal evidence")
+        iteration.add_argument("--outcome", choices=sorted(ITERATION_OUTCOMES), required=True)
+        iteration.add_argument("--reopened-owner", choices=sorted(ITERATION_OWNERS))
+        iteration.add_argument("--note", required=True)
+        iteration.set_defaults(func=record_iteration)
 
-    approval = sub.add_parser("record-approval")
-    approval.add_argument("packet", type=Path)
-    approval.add_argument("kind", choices=("requirements", "ux", "dependencies", "waivers", "delivery"))
-    approval.add_argument("--id", required=True)
-    approval.add_argument("--by", required=True)
-    approval.add_argument("--note", required=True)
-    approval.add_argument("--scope", action="append", default=[])
-    approval.add_argument("--blocker", action="append", default=[])
-    approval.add_argument("--residual-risk")
-    approval.add_argument("--expires-at")
-    approval.add_argument("--recheck-trigger")
-    approval.add_argument("--dependency-ecosystem", choices=("cargo", "npm", "github-actions", "other"))
-    approval.add_argument("--dependency-name")
-    approval.add_argument("--dependency-version")
-    approval.add_argument("--dependency-ref")
-    approval.add_argument("--dependency-command")
-    approval.add_argument("--dependency-file", action="append", default=[])
-    approval.add_argument("--dependency-operation", action="append", choices=("add", "update", "remove"), default=[])
-    approval.add_argument("--dependency-result-sha256", action="append", default=[])
-    approval.set_defaults(func=record_approval)
+        approval = sub.add_parser("record-approval")
+        approval.add_argument("packet", type=Path)
+        approval.add_argument("kind", choices=("requirements", "ux", "dependencies", "waivers", "delivery"))
+        approval.add_argument("--id", required=True)
+        approval.add_argument("--by", required=True)
+        approval.add_argument("--note", required=True)
+        approval.add_argument("--scope", action="append", default=[])
+        approval.add_argument("--blocker", action="append", default=[])
+        approval.add_argument("--residual-risk")
+        approval.add_argument("--expires-at")
+        approval.add_argument("--recheck-trigger")
+        approval.add_argument("--dependency-ecosystem", choices=("cargo", "npm", "github-actions", "other"))
+        approval.add_argument("--dependency-name")
+        approval.add_argument("--dependency-version")
+        approval.add_argument("--dependency-ref")
+        approval.add_argument("--dependency-command")
+        approval.add_argument("--dependency-file", action="append", default=[])
+        approval.add_argument("--dependency-operation", action="append", choices=("add", "update", "remove"), default=[])
+        approval.add_argument("--dependency-result-sha256", action="append", default=[])
+        approval.set_defaults(func=record_approval)
 
-    ambiguity = sub.add_parser("record-ambiguity", help="Record a structured content-bound semantic ambiguity")
-    ambiguity.add_argument("packet", type=Path)
-    ambiguity.add_argument("--summary", required=True)
-    ambiguity.add_argument("--source", required=True)
-    ambiguity.add_argument("--interpretation", action="append", required=True)
-    ambiguity.add_argument("--evidence", action="append", default=[])
-    ambiguity.add_argument("--materiality", choices=sorted(AMBIGUITY_MATERIALITIES), required=True)
-    ambiguity.add_argument("--owner", choices=sorted(AMBIGUITY_OWNERS), required=True)
-    ambiguity.add_argument("--affects", action="append", default=[])
-    ambiguity.add_argument("--recommendation", required=True)
-    ambiguity.set_defaults(func=record_ambiguity)
+        ambiguity = sub.add_parser("record-ambiguity", help="Record a structured content-bound semantic ambiguity")
+        ambiguity.add_argument("packet", type=Path)
+        ambiguity.add_argument("--summary", required=True)
+        ambiguity.add_argument("--source", required=True)
+        ambiguity.add_argument("--interpretation", action="append", required=True)
+        ambiguity.add_argument("--evidence", action="append", default=[])
+        ambiguity.add_argument("--materiality", choices=sorted(AMBIGUITY_MATERIALITIES), required=True)
+        ambiguity.add_argument("--owner", choices=sorted(AMBIGUITY_OWNERS), required=True)
+        ambiguity.add_argument("--affects", action="append", default=[])
+        ambiguity.add_argument("--recommendation", required=True)
+        ambiguity.set_defaults(func=record_ambiguity)
 
-    resolution = sub.add_parser("resolve-ambiguity", help="Resolve an open content-bound semantic ambiguity")
-    resolution.add_argument("packet", type=Path)
-    resolution.add_argument("--id", required=True)
-    resolution.add_argument(
-        "--status",
-        choices=sorted(AMBIGUITY_STATUSES - {"open"}),
-        required=True,
-    )
-    resolution.add_argument("--by", required=True)
-    resolution.add_argument("--resolution", required=True)
-    resolution.add_argument("--evidence", action="append", required=True)
-    resolution.set_defaults(func=resolve_ambiguity)
+        resolution = sub.add_parser("resolve-ambiguity", help="Resolve an open content-bound semantic ambiguity")
+        resolution.add_argument("packet", type=Path)
+        resolution.add_argument("--id", required=True)
+        resolution.add_argument(
+            "--status",
+            choices=sorted(AMBIGUITY_STATUSES - {"open"}),
+            required=True,
+        )
+        resolution.add_argument("--by", required=True)
+        resolution.add_argument("--resolution", required=True)
+        resolution.add_argument("--evidence", action="append", required=True)
+        resolution.set_defaults(func=resolve_ambiguity)
 
-    audit = sub.add_parser("audit-preferences")
-    audit.add_argument("--root", type=Path, required=True)
-    audit.add_argument("--packet", type=Path)
-    audit.add_argument("--base")
-    audit.set_defaults(func=audit_preferences)
+    if not supported_only:
+        audit = sub.add_parser("audit-preferences")
+        audit.add_argument("--root", type=Path, required=True)
+        audit.add_argument("--packet", type=Path)
+        audit.add_argument("--base")
+        audit.set_defaults(func=audit_preferences)
 
     profile = sub.add_parser("validate-profile", help="Validate one engineering profile TOML file")
     profile.add_argument("profile", type=Path)
@@ -8123,22 +8150,23 @@ def build_parser() -> argparse.ArgumentParser:
     resolve.add_argument("--profile-mode", choices=sorted(engineering_context.PROFILE_MODES), default="personal-interactive")
     resolve.set_defaults(func=resolve_profiles_command)
 
-    readiness = sub.add_parser("assess-context", help="Assess task-relative Engineering Context Readiness and quality coverage")
-    readiness.add_argument("--root", type=Path, required=True)
-    readiness.add_argument("--task-type", choices=sorted(TASK_TYPES), required=True)
-    readiness.add_argument("--risk", action="append", default=[])
-    readiness.add_argument("--path", action="append", default=[])
-    readiness.add_argument("--fact", action="append", default=[])
-    readiness.add_argument("--tier", choices=sorted(engineering_context.TIERS))
-    readiness.add_argument("--task-profile", type=Path, action="append", default=[])
-    readiness.add_argument("--skill-root", type=Path, action="append", default=[])
-    readiness.add_argument("--codex-home", type=Path)
-    readiness.add_argument("--profile-mode", choices=sorted(engineering_context.PROFILE_MODES), default="personal-interactive")
-    readiness.add_argument("--working-directory", type=Path)
-    readiness.add_argument("--detail", choices=sorted(engineering_context.READINESS_DETAILS), default="compact")
-    readiness.add_argument("--packet", type=Path)
-    readiness.add_argument("--output", type=Path)
-    readiness.set_defaults(func=assess_context_command)
+    if not supported_only:
+        readiness = sub.add_parser("assess-context", help="Assess task-relative Engineering Context Readiness and quality coverage")
+        readiness.add_argument("--root", type=Path, required=True)
+        readiness.add_argument("--task-type", choices=sorted(TASK_TYPES), required=True)
+        readiness.add_argument("--risk", action="append", default=[])
+        readiness.add_argument("--path", action="append", default=[])
+        readiness.add_argument("--fact", action="append", default=[])
+        readiness.add_argument("--tier", choices=sorted(engineering_context.TIERS))
+        readiness.add_argument("--task-profile", type=Path, action="append", default=[])
+        readiness.add_argument("--skill-root", type=Path, action="append", default=[])
+        readiness.add_argument("--codex-home", type=Path)
+        readiness.add_argument("--profile-mode", choices=sorted(engineering_context.PROFILE_MODES), default="personal-interactive")
+        readiness.add_argument("--working-directory", type=Path)
+        readiness.add_argument("--detail", choices=sorted(engineering_context.READINESS_DETAILS), default="compact")
+        readiness.add_argument("--packet", type=Path)
+        readiness.add_argument("--output", type=Path)
+        readiness.set_defaults(func=assess_context_command)
 
     validate_methods = sub.add_parser(
         "validate-methods",
@@ -8148,43 +8176,44 @@ def build_parser() -> argparse.ArgumentParser:
     validate_methods.add_argument("--root", type=Path)
     validate_methods.set_defaults(func=validate_methods_command)
 
-    select_methods = sub.add_parser(
-        "select-methods",
-        help="Select a bounded method stack from lifecycle, risk, and observed failure signals",
-    )
-    select_methods.add_argument("--phase", required=True)
-    select_method_kind = select_methods.add_mutually_exclusive_group(required=True)
-    select_method_kind.add_argument("--intent", choices=sorted(ACCEPTED_TASK_INTENTS))
-    select_method_kind.add_argument(
-        "--task-type",
-        choices=sorted(TASK_TYPES),
-        help="Unsupported 1.x parser residue; 2.0 callers use --intent",
-    )
-    select_methods.add_argument("--risk", action="append", default=[])
-    select_methods.add_argument("--signal", action="append", default=[])
-    select_methods.add_argument("--available", action="append", default=[])
-    select_methods.add_argument("--depth", choices=("starter", "deep", "formal"), default="starter")
-    select_methods.add_argument("--max-methods", type=int)
-    select_methods.add_argument("--registry", type=Path)
-    select_methods.add_argument("--root", type=Path)
-    select_methods.set_defaults(func=select_methods_command)
+    if not supported_only:
+        select_methods = sub.add_parser(
+            "select-methods",
+            help="Select a bounded method stack from lifecycle, risk, and observed failure signals",
+        )
+        select_methods.add_argument("--phase", required=True)
+        select_method_kind = select_methods.add_mutually_exclusive_group(required=True)
+        select_method_kind.add_argument("--intent", choices=sorted(ACCEPTED_TASK_INTENTS))
+        select_method_kind.add_argument(
+            "--task-type",
+            choices=sorted(TASK_TYPES),
+            help="Unsupported 1.x parser residue; 2.0 callers use --intent",
+        )
+        select_methods.add_argument("--risk", action="append", default=[])
+        select_methods.add_argument("--signal", action="append", default=[])
+        select_methods.add_argument("--available", action="append", default=[])
+        select_methods.add_argument("--depth", choices=("starter", "deep", "formal"), default="starter")
+        select_methods.add_argument("--max-methods", type=int)
+        select_methods.add_argument("--registry", type=Path)
+        select_methods.add_argument("--root", type=Path)
+        select_methods.set_defaults(func=select_methods_command)
 
-    record_methods = sub.add_parser(
-        "record-methods",
-        help="Select and persist a packet-bound method stack for a lifecycle gate",
-    )
-    record_methods.add_argument("packet", type=Path)
-    record_methods.add_argument(
-        "--phase", choices=("design", "verification", "review"), required=True
-    )
-    record_methods.add_argument("--risk", action="append", default=[])
-    record_methods.add_argument("--signal", action="append", default=[])
-    record_methods.add_argument("--available", action="append", default=[])
-    record_methods.add_argument(
-        "--depth", choices=("starter", "deep", "formal"), default="starter"
-    )
-    record_methods.add_argument("--max-methods", type=int)
-    record_methods.set_defaults(func=record_methods_command)
+        record_methods = sub.add_parser(
+            "record-methods",
+            help="Select and persist a packet-bound method stack for a lifecycle gate",
+        )
+        record_methods.add_argument("packet", type=Path)
+        record_methods.add_argument(
+            "--phase", choices=("design", "verification", "review"), required=True
+        )
+        record_methods.add_argument("--risk", action="append", default=[])
+        record_methods.add_argument("--signal", action="append", default=[])
+        record_methods.add_argument("--available", action="append", default=[])
+        record_methods.add_argument(
+            "--depth", choices=("starter", "deep", "formal"), default="starter"
+        )
+        record_methods.add_argument("--max-methods", type=int)
+        record_methods.set_defaults(func=record_methods_command)
 
     route = sub.add_parser("route-task", help="Select the minimal built-in Skill composition for a classified task")
     route_kind = route.add_mutually_exclusive_group(required=True)
@@ -8199,6 +8228,10 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         help="Affected engineering consequence; repeat as needed and use structured invalid output for canonical values",
+    )
+    route.add_argument(
+        "--target-revision",
+        help="Optional opaque target/scope epoch; change it after a material objective, path, or authority correction",
     )
     route.add_argument(
         "--need",
@@ -8267,6 +8300,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--waive-understanding-confirmation",
         action="store_true",
         help="The request explicitly waives U1 reconfirmation; retain semantic-change and continue",
+    )
+    route_confirmation.add_argument(
+        "--user-choice-open",
+        action="store_true",
+        help="A surviving user-owned semantic choice changes the result; publish U1 understanding and pause",
     )
     route.add_argument("--profile-operation", action="store_true")
     route.add_argument("--suite-maintenance", action="store_true")
@@ -8437,17 +8475,18 @@ def build_parser() -> argparse.ArgumentParser:
     uninstall.add_argument("--destination", type=Path)
     uninstall.set_defaults(func=uninstall_runtime)
 
-    archive = sub.add_parser("archive-packet")
-    archive.add_argument("packet", type=Path)
-    archive.add_argument("--note", required=True)
-    archive.set_defaults(func=archive_packet)
+    if not supported_only:
+        archive = sub.add_parser("archive-packet")
+        archive.add_argument("packet", type=Path)
+        archive.add_argument("--note", required=True)
+        archive.set_defaults(func=archive_packet)
 
-    deactivate = sub.add_parser(
-        "deactivate-packet",
-        help="Remove a matching accepted/archived packet from the active current pointer without deleting the packet",
-    )
-    deactivate.add_argument("packet", type=Path)
-    deactivate.set_defaults(func=deactivate_packet)
+        deactivate = sub.add_parser(
+            "deactivate-packet",
+            help="Remove a matching accepted/archived packet from the active current pointer without deleting the packet",
+        )
+        deactivate.add_argument("packet", type=Path)
+        deactivate.set_defaults(func=deactivate_packet)
     return parser
 
 

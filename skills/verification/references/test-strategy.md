@@ -15,7 +15,7 @@ For a material change, check coverage across six lenses: user behavior/contract;
 
 ## Put the oracle at the promise boundary
 
-Choose the cheapest layer that still observes the promised behavior:
+Choose the cheapest layer that still observes the promised behavior. For traffic or an external effect, identify the initiating actor and request/event at the real boundary; a successful response caused by background activity is a false green. Use a wrong-source negative control when this attribution is easy to fake:
 
 - **Unit:** independent rules, transformations, invariants, limits, and state transitions.
 - **Component:** a module with controlled collaborators when its public behavior is the promise.
@@ -46,6 +46,8 @@ When the blind spot is non-trivial, read [coverage-techniques.md](coverage-techn
 3. Restore perturbations, rerun the focused check, then run affected native module and boundary suites.
 4. Inspect the final diff and test changes. Rerun any check invalidated by later source, fixture, generated output, environment, or oracle edits.
 5. Add broader regression, compatibility, or environment waves only where blast radius, delivery, or consequence requires them.
+
+For a target-environment promise, verify only its applicable links: final tested bytes, built artifact, installed/deployed target, effective config and data, intended user flow or effect, observation, and recovery. Read the target's effective state rather than trusting a source file or build command. A stale artifact or configuration change invalidates downstream evidence. Record host, simulator/emulator, device, hosted, and production claims separately.
 
 Do not skip a cheap focused check because a broad suite will run later. If retries disagree, record `FLAKY`; a retry is evidence about instability, not permission to keep the green attempt.
 

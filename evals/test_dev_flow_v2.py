@@ -259,6 +259,16 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("first-surprising-failure", payload["quality_calibration"]["recheck_on"])
         self.assertIn("route-agent", payload["delegation"])
 
+    def test_direct_and_managed_routes_preserve_terminal_and_scope_reconciliation(self) -> None:
+        for args in (("--intent", "change"), ("--intent", "change", "--multi-session")):
+            with self.subTest(args=args):
+                continuity = route(*args)["continuity"]
+                self.assertIn("final-diff", continuity["terminal_reconciliation"])
+                self.assertIn("last-applicable-oracle", continuity["terminal_reconciliation"])
+                self.assertIn("unrun-environments-and-delivery-boundary", continuity["terminal_reconciliation"])
+                self.assertIn("mark-stale-descendant-results", continuity["scope_change"])
+                self.assertIn("retain-unaffected-evidence", continuity["scope_change"])
+
     def test_managed_continuity_alone_does_not_imply_requirements(self) -> None:
         review = route("--intent", "review", "--multi-session")
         self.assertEqual(review["work_mode"], "managed")
@@ -299,10 +309,10 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(direct["work_mode"], "direct")
         self.assertIn("requirements-design", [item["skill"] for item in direct["routes"]])
         self.assertEqual(direct["requirement_understanding"]["class"], "semantic-change")
-        self.assertFalse(direct["requirement_understanding"]["design_allowed"])
+        self.assertTrue(direct["requirement_understanding"]["design_allowed"])
         self.assertEqual(
             direct["requirement_understanding"]["next_action"],
-            "publish-detailed-understanding-and-stop",
+            "publish-understanding-and-continue",
         )
 
         managed = route("--intent", "design", "--durable-plan")
@@ -310,12 +320,18 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("durable-plan", managed["work_mode_reasons"])
         self.assertTrue(managed["requirement_understanding"]["durable_requirement_source"])
 
-    def test_semantic_change_requires_default_mode_confirmation_before_design(self) -> None:
+    def test_semantic_change_stops_only_for_a_surviving_user_choice(self) -> None:
+        clear = route("--intent", "change", "--requirement-class", "semantic-change")
+        self.assertFalse(clear["requirement_understanding"]["confirmation_required"])
+        self.assertTrue(clear["requirement_understanding"]["design_allowed"])
+        self.assertEqual(clear["requirement_understanding"]["next_action"], "publish-understanding-and-continue")
+
         pending = route(
             "--intent",
             "change",
             "--requirement-class",
             "semantic-change",
+            "--user-choice-open",
         )
         understanding = pending["requirement_understanding"]
         self.assertTrue(understanding["detailed_output"])
@@ -324,6 +340,7 @@ class RoutingTests(unittest.TestCase):
         self.assertFalse(understanding["design_allowed"])
         self.assertEqual(understanding["stop_before"], "technical-design")
         self.assertIn("remain in Default mode", understanding["rules"])
+        self.assertTrue(any("stop only for an unresolved user-owned choice" in rule for rule in understanding["rules"]))
         self.assertIn("requirements-design", [item["skill"] for item in pending["routes"]])
 
         confirmed = route(
@@ -365,12 +382,16 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(mechanical["requirement_understanding"]["next_action"], "continue")
 
     def test_ambiguous_defect_upgrades_to_semantic_confirmation(self) -> None:
+        bounded = route("--task-type", "bugfix", "--requirement-class", "defect-correction", "--ambiguity")
+        self.assertEqual(bounded["requirement_understanding"]["class"], "semantic-change")
+        self.assertTrue(bounded["requirement_understanding"]["design_allowed"])
         payload = route(
             "--task-type",
             "bugfix",
             "--requirement-class",
             "defect-correction",
             "--ambiguity",
+            "--user-choice-open",
         )
         understanding = payload["requirement_understanding"]
         self.assertEqual(understanding["class"], "semantic-change")
@@ -688,6 +709,8 @@ class RoutingTests(unittest.TestCase):
         original = (
             "--intent",
             "change",
+            "--target-revision",
+            "objective-v1",
             "--risk",
             "concurrency",
             "--need",
@@ -740,6 +763,7 @@ class RoutingTests(unittest.TestCase):
                 "--repository-fact",
                 "--repository-facts",
                 "--waive-understanding-confirmation",
+                "--user-choice-open",
                 "--previous-route",
                 "--compact",
                 "--explain",

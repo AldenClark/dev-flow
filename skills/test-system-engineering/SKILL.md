@@ -5,16 +5,16 @@ description: Build or repair native test feedback when harness results or covera
 
 # Test System Engineering
 
-Use this Skill when the test system itself must be established or changed, or evidence shows false green, zero discovery, selector uncertainty, inert assertions, mock bypass, fixture pollution, misleading runner success, or baseline flakiness.
+Use this Skill when the test system itself must be established or changed, or evidence shows false green, zero discovery, selector uncertainty, inert assertions, mock bypass, wrong actor/source attribution, stale cache, fixture pollution, misleading runner success, or baseline flakiness.
 
 Do not activate it merely because a feature has tests or verification is requested. `verification` still owns the product/repository claim; this Skill owns whether the harness can produce trustworthy evidence and hands the result back to `verification`.
 
 ## Choose the mode
 
 - **Diagnose/repair:** preserve the first suspicious result, separate product failure from harness failure, read `references/test-system-integrity.md`, account for all six obligations at the affected boundary, and challenge the native runner with the smallest safe negative control.
-- **Establish/strengthen:** when a new project lacks sustainable feedback or a mature project's native system cannot cover an important boundary, read `references/system-design.md`. Build the smallest project-native capability that closes the observed gap.
+- **Establish/strengthen:** when a real task lacks the start, health, focused-test, boundary-oracle, targeted-log, or recovery feedback needed to see its outcome, read `references/system-design.md`. Build the smallest project-native capability that closes the observed gap. A small closed task with adequate feedback needs no setup expansion.
 
-In either mode, confirm what was discovered and executed, repair only the causal boundary, rerun the negative control and affected suite, then hand the six integrity dispositions and exact claim limits to `verification`.
+In either mode, confirm what was discovered and executed. For an external effect, make the oracle identify the intended actor/source, request or event, and target effect; a background event or a mock call is not that outcome. Repair only the causal boundary, rerun the negative control and affected suite, then hand the six integrity dispositions and exact claim limits to `verification`.
 
 Audit AI-authored tests against a source independent of the implementation—requirements/public contracts, final-code branch risks, properties/models, differential or metamorphic relations, or seeded faults. Test count and green execution do not resolve self-confirmation.
 

@@ -10,10 +10,22 @@ from typing import Any, Iterable
 import engineering_context
 
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 RESULT_SCHEMA_VERSION = "agent.dispatch.result.v1"
 EXPECTED_PROFILES = {"P0", "P1", "P2", "P3", "P4", "P5", "P6", "PX"}
 EXPECTED_CAPABILITIES = {"E", "B", "F"}
+EXPECTED_MODELS = {"E": "gpt-6-luna", "B": "gpt-6-sol", "F": "gpt-6-astra"}
+ORDERED_PROFILES = ("P0", "P1", "P2", "P3", "P4", "P5", "P6", "PX")
+EXPECTED_PROFILE_VECTORS = {
+    "P0": ("E", "low"),
+    "P1": ("E", "medium"),
+    "P2": ("E", "high"),
+    "P3": ("E", "xhigh"),
+    "P4": ("B", "medium"),
+    "P5": ("B", "xhigh"),
+    "P6": ("F", "xhigh"),
+    "PX": ("F", "max"),
+}
 EXPECTED_ROLES = {
     "dev-flow-explorer",
     "dev-flow-worker",
@@ -63,7 +75,7 @@ def validate_registry(registry: Any) -> dict[str, Any]:
         "signal_vocabulary",
         "upgrade_rules",
     }:
-        raise DispatchContractError("dispatch registry must use the exact schema 1.0 fields")
+        raise DispatchContractError("dispatch registry must use the exact schema 1.1 fields")
     if registry.get("schema_version") != SCHEMA_VERSION or not _nonempty(registry.get("policy")):
         raise DispatchContractError("dispatch registry has invalid schema_version or policy")
 
@@ -91,6 +103,8 @@ def validate_registry(registry: Any) -> dict[str, Any]:
             raise DispatchContractError("capability ranks and models must be unique")
         if not _nonempty(record["purpose"]):
             raise DispatchContractError(f"capability {capability} purpose must be non-empty")
+        if record["model"] != EXPECTED_MODELS[capability]:
+            raise DispatchContractError(f"capability {capability} must use the active GPT-6 model")
         capability_ranks.add(record["rank"])
         models.add(record["model"])
     if capability_ranks != {0, 1, 2}:
@@ -105,6 +119,8 @@ def validate_registry(registry: Any) -> dict[str, Any]:
     profiles = _unique_records(registry.get("profiles"), field="id", label="profiles")
     if set(profiles) != EXPECTED_PROFILES:
         raise DispatchContractError("profiles must be exactly P0 through P6 plus PX")
+    if [profile["id"] for profile in registry["profiles"]] != list(ORDERED_PROFILES):
+        raise DispatchContractError("profiles must be ordered P0 through P6 plus PX")
     vectors: set[tuple[str, str]] = set()
     for profile_id, record in profiles.items():
         if set(record) != {"id", "capability", "reasoning_effort", "exception", "purpose"}:
@@ -112,6 +128,8 @@ def validate_registry(registry: Any) -> dict[str, Any]:
         vector = (record["capability"], record["reasoning_effort"])
         if vector[0] not in capabilities or vector[1] not in efforts or vector in vectors:
             raise DispatchContractError(f"profile {profile_id} has an invalid or duplicate vector")
+        if vector != EXPECTED_PROFILE_VECTORS[profile_id]:
+            raise DispatchContractError(f"profile {profile_id} must use its active GPT-6 capability/effort vector")
         if not isinstance(record["exception"], bool) or not _nonempty(record["purpose"]):
             raise DispatchContractError(f"profile {profile_id} has invalid exception or purpose")
         if record["exception"] != (profile_id == "PX"):
@@ -147,44 +165,28 @@ def validate_registry(registry: Any) -> dict[str, Any]:
     for rule_id, rule in rules.items():
         allowed = {
             "id",
-            "any_risk",
             "any_signal",
-            "unless_all_signals",
-            "minimum_capability",
-            "minimum_effort",
+            "all_signals",
+            "minimum_profile",
             "reason",
         }
         if not set(rule).issubset(allowed) or not _nonempty(rule.get("reason")):
             raise DispatchContractError(f"upgrade rule {rule_id} has invalid fields")
-        risk_values = rule.get("any_risk", [])
-        signal_values = rule.get("any_signal", [])
-        suppressing_signals = rule.get("unless_all_signals", [])
-        if (
-            not isinstance(risk_values, list)
-            or not isinstance(signal_values, list)
-            or not isinstance(suppressing_signals, list)
-        ):
-            raise DispatchContractError(f"upgrade rule {rule_id} conditions must be lists")
-        if (
-            len(risk_values) != len(set(risk_values))
-            or len(signal_values) != len(set(signal_values))
-            or len(suppressing_signals) != len(set(suppressing_signals))
-        ):
-            raise DispatchContractError(f"upgrade rule {rule_id} conditions must be unique")
-        if not risk_values and not signal_values:
-            raise DispatchContractError(f"upgrade rule {rule_id} requires a condition")
-        if any(value not in engineering_context.RISK_TOKENS for value in risk_values):
-            raise DispatchContractError(f"upgrade rule {rule_id} contains an unknown risk")
-        if any(value not in signals for value in signal_values):
+        any_signals = rule.get("any_signal")
+        all_signals = rule.get("all_signals")
+        if (any_signals is None) == (all_signals is None):
+            raise DispatchContractError(f"upgrade rule {rule_id} needs exactly one signal condition")
+        condition = any_signals if any_signals is not None else all_signals
+        if not isinstance(condition, list) or not condition or len(condition) != len(set(condition)):
+            raise DispatchContractError(f"upgrade rule {rule_id} conditions must be unique non-empty lists")
+        if any(value not in signals for value in condition):
             raise DispatchContractError(f"upgrade rule {rule_id} contains an unknown signal")
-        if any(value not in signals for value in suppressing_signals):
-            raise DispatchContractError(f"upgrade rule {rule_id} contains an unknown suppressing signal")
-        if "minimum_capability" in rule and rule["minimum_capability"] not in capabilities:
-            raise DispatchContractError(f"upgrade rule {rule_id} has an unknown capability")
-        if "minimum_effort" in rule and rule["minimum_effort"] not in efforts:
-            raise DispatchContractError(f"upgrade rule {rule_id} has an unknown effort")
-        if "minimum_capability" not in rule and "minimum_effort" not in rule:
-            raise DispatchContractError(f"upgrade rule {rule_id} must raise capability or effort")
+        if rule.get("minimum_profile") not in profiles or rule["minimum_profile"] == "PX":
+            raise DispatchContractError(f"upgrade rule {rule_id} needs a non-exception minimum profile")
+        if rule["minimum_profile"] == "P6" and (
+            all_signals is None or len(all_signals) < 2 or "deep-unresolved" not in all_signals
+        ):
+            raise DispatchContractError(f"upgrade rule {rule_id} requires compound unresolved reasoning for P6")
     return registry
 
 
@@ -199,33 +201,48 @@ def load_registry(path: Path | None = None) -> dict[str, Any]:
     return validate_registry(payload)
 
 
-def _profile_vector(profile: dict[str, Any], registry: dict[str, Any]) -> tuple[int, int]:
-    runtime = registry["runtime"]
-    return (
-        runtime["capabilities"][profile["capability"]]["rank"],
-        runtime["efforts"][profile["reasoning_effort"]],
-    )
+def _profile_rank(profile_id: str) -> int:
+    return ORDERED_PROFILES.index(profile_id)
 
 
-def _least_profile(registry: dict[str, Any], minimum: tuple[int, int]) -> dict[str, Any]:
-    profiles = [profile for profile in registry["profiles"] if not profile["exception"]]
-    candidates = [
-        profile
-        for profile in profiles
-        if _profile_vector(profile, registry)[0] >= minimum[0]
-        and _profile_vector(profile, registry)[1] >= minimum[1]
+def _host_capability_result(
+    registry: dict[str, Any], selected: dict[str, Any], host_capabilities: Iterable[tuple[str, str]] | None
+) -> dict[str, Any]:
+    if host_capabilities is None:
+        return {
+            "status": "not_checked",
+            "reason": "check the actual host model and effort before dispatch",
+            "suggested_profile": None,
+        }
+    try:
+        available = set(host_capabilities)
+    except TypeError as exc:
+        raise DispatchContractError("host capabilities require MODEL:EFFORT pairs") from exc
+    efforts = registry["runtime"]["efforts"]
+    for pair in available:
+        if not isinstance(pair, tuple) or len(pair) != 2:
+            raise DispatchContractError("host capabilities require MODEL:EFFORT pairs")
+        model, effort = pair
+        if not _nonempty(model) or effort not in efforts:
+            raise DispatchContractError("host capabilities require MODEL:EFFORT with a supported effort")
+    capabilities = registry["runtime"]["capabilities"]
+    requested = (capabilities[selected["capability"]]["model"], selected["reasoning_effort"])
+    if requested in available:
+        return {"status": "available", "reason": "requested model and effort observed on host", "suggested_profile": None}
+    alternatives = [
+        profile for profile in registry["profiles"]
+        if not profile["exception"]
+        and _profile_rank(profile["id"]) >= _profile_rank(selected["id"])
+        and (capabilities[profile["capability"]]["model"], profile["reasoning_effort"]) in available
     ]
-    if not candidates:
-        raise DispatchContractError(f"no non-exception profile satisfies vector {minimum}")
-    return min(
-        candidates,
-        key=lambda profile: (
-            sum(_profile_vector(profile, registry)),
-            _profile_vector(profile, registry)[0],
-            _profile_vector(profile, registry)[1],
-            profile["id"],
-        ),
-    )
+    suggested = min(alternatives, key=lambda item: _profile_rank(item["id"])) if alternatives else None
+    return {
+        "status": "capability_limit",
+        "reason": "requested model or effort is unavailable on the observed host; do not dispatch this route",
+        "suggested_profile": suggested["id"] if suggested else None,
+        "suggested_model": capabilities[suggested["capability"]]["model"] if suggested else None,
+        "suggested_reasoning_effort": suggested["reasoning_effort"] if suggested else None,
+    }
 
 
 def route_agent(
@@ -241,6 +258,7 @@ def route_agent(
     task_structure: str = "independent",
     parallel_units: int = 1,
     tool_density: str = "low",
+    host_capabilities: Iterable[tuple[str, str]] | None = None,
 ) -> dict[str, Any]:
     registry = load_registry(registry_path)
     workloads = {item["id"]: item for item in registry["workloads"]}
@@ -277,6 +295,7 @@ def route_agent(
             "selected_profile": None,
             "requested_model": None,
             "requested_reasoning_effort": None,
+            "dispatch_ready": False,
             "fork_turns": None,
             "risks": sorted(risk_set),
             "signals": sorted(signal_set),
@@ -306,6 +325,7 @@ def route_agent(
             "selected_profile": None,
             "requested_model": None,
             "requested_reasoning_effort": None,
+            "dispatch_ready": False,
             "fork_turns": None,
             "risks": sorted(risk_set),
             "signals": sorted(signal_set),
@@ -325,7 +345,7 @@ def route_agent(
         }
 
     base = profiles[workload_record["default_profile"]]
-    minimum_capability, minimum_effort = _profile_vector(base, registry)
+    minimum_profile = base["id"]
     reasons: list[dict[str, Any]] = [
         {
             "id": "workload-default",
@@ -334,52 +354,32 @@ def route_agent(
         }
     ]
     for rule in registry["upgrade_rules"]:
-        matched_risks = sorted(risk_set & set(rule.get("any_risk", [])))
-        matched_signals = sorted(signal_set & set(rule.get("any_signal", [])))
-        if not matched_risks and not matched_signals:
+        any_signals = set(rule.get("any_signal", []))
+        all_signals = set(rule.get("all_signals", []))
+        matched_signals = sorted(signal_set & (any_signals or all_signals))
+        if any_signals and not matched_signals:
             continue
-        suppressing_signals = set(rule.get("unless_all_signals", []))
-        if suppressing_signals and suppressing_signals.issubset(signal_set):
-            reasons.append(
-                {
-                    "id": f"{rule['id']}-contained",
-                    "reason": "closed semantics, scope, and oracle contain this structured execution risk",
-                    "matched_risks": matched_risks,
-                    "matched_signals": sorted(suppressing_signals),
-                }
-            )
+        if all_signals and not all_signals.issubset(signal_set):
             continue
-        if "minimum_capability" in rule:
-            minimum_capability = max(
-                minimum_capability,
-                registry["runtime"]["capabilities"][rule["minimum_capability"]]["rank"],
-            )
-        if "minimum_effort" in rule:
-            minimum_effort = max(
-                minimum_effort,
-                registry["runtime"]["efforts"][rule["minimum_effort"]],
-            )
+        if _profile_rank(rule["minimum_profile"]) > _profile_rank(minimum_profile):
+            minimum_profile = rule["minimum_profile"]
         reasons.append(
             {
                 "id": rule["id"],
                 "reason": rule["reason"],
-                "matched_risks": matched_risks,
                 "matched_signals": matched_signals,
             }
         )
-    policy_profile = _least_profile(registry, (minimum_capability, minimum_effort))
+    policy_profile = profiles[minimum_profile]
     selected = policy_profile
     source = "policy"
     if requested_profile is not None:
         if requested_profile not in profiles:
             raise DispatchContractError(f"unknown profile {requested_profile!r}")
         selected = profiles[requested_profile]
-        selected_vector = _profile_vector(selected, registry)
         if selected["exception"] and not acknowledge_exception:
             raise DispatchContractError("PX requires --acknowledge-exception")
-        if (
-            selected_vector[0] < minimum_capability or selected_vector[1] < minimum_effort
-        ) and not acknowledge_downgrade:
+        if _profile_rank(requested_profile) < _profile_rank(minimum_profile) and not acknowledge_downgrade:
             raise DispatchContractError(
                 f"requested profile {requested_profile} is below policy profile {policy_profile['id']}; "
                 "use --acknowledge-downgrade to make the downgrade explicit"
@@ -394,10 +394,11 @@ def route_agent(
             }
         )
     capability = registry["runtime"]["capabilities"][selected["capability"]]
+    host_capability = _host_capability_result(registry, selected, host_capabilities)
     return {
-        "status": "routed",
+        "status": "capability_limit" if host_capability["status"] == "capability_limit" else "routed",
         "schema_version": RESULT_SCHEMA_VERSION,
-        "delegate": True,
+        "delegate": host_capability["status"] == "available",
         "role": role,
         "workload": workload,
         "selection_source": source,
@@ -407,9 +408,11 @@ def route_agent(
         "capability": selected["capability"],
         "requested_model": capability["model"],
         "requested_reasoning_effort": selected["reasoning_effort"],
+        "dispatch_ready": host_capability["status"] == "available",
         "fork_turns": registry["runtime"]["default_fork_turns"],
         "risks": sorted(risk_set),
         "signals": sorted(signal_set),
+        "host_capability": host_capability,
         "dispatch_precondition": {
             "task_structure": task_structure,
             "parallel_units": parallel_units,
@@ -418,5 +421,5 @@ def route_agent(
             "reason": "caller identified an independently useful child unit",
         },
         "upgrade_reasons": reasons,
-        "runtime_fallback": "if unavailable, state the observed fallback in the current task result; inherit platform or parent selection only when safe",
+        "runtime_fallback": "verify model and effort on the actual host before dispatch; if unavailable, report the capability limit in the current task result without silent substitution",
     }

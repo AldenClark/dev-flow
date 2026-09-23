@@ -5,55 +5,157 @@
       "id": "DISPATCH-EXACT-LOOKUP",
       "args": ["--role", "dev-flow-explorer", "--workload", "exact-lookup"],
       "exit": 0,
-      "expected": {"delegate": true, "selected_profile": "P0", "requested_model": "gpt-5.6-luna", "requested_reasoning_effort": "low"}
+      "expected": {"delegate": false, "selected_profile": "P0", "requested_model": "gpt-6-luna", "requested_reasoning_effort": "low", "host_capability": {"status": "not_checked", "reason": "check the actual host model and effort before dispatch", "suggested_profile": null}}
     },
     {
-      "id": "DISPATCH-DOCS-RESEARCH",
-      "args": ["--role", "dev-flow-explorer", "--workload", "docs-research"],
+      "id": "DISPATCH-MECHANICAL",
+      "args": ["--role", "dev-flow-worker", "--workload", "mechanical-change"],
       "exit": 0,
-      "expected": {"delegate": true, "selected_profile": "P1", "requested_model": "gpt-5.6-luna", "requested_reasoning_effort": "medium"}
+      "expected": {"delegate": false, "selected_profile": "P1", "requested_model": "gpt-6-luna", "requested_reasoning_effort": "medium"}
     },
     {
-      "id": "DISPATCH-ORDINARY-WORKER",
+      "id": "DISPATCH-BOUNDED-CHANGE",
       "args": ["--role", "dev-flow-worker", "--workload", "bounded-change"],
       "exit": 0,
-      "expected": {"delegate": true, "selected_profile": "P2", "requested_model": "gpt-5.6-luna", "requested_reasoning_effort": "high"}
+      "expected": {"delegate": false, "selected_profile": "P2", "requested_model": "gpt-6-luna", "requested_reasoning_effort": "high"}
+    },
+    {
+      "id": "DISPATCH-CLEAR-MULTI-FILE",
+      "args": ["--role", "dev-flow-worker", "--workload", "broad-multi-step", "--signal", "closed-scope", "--signal", "confirmed-semantics", "--signal", "deterministic-oracle"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "P3", "requested_model": "gpt-6-luna", "requested_reasoning_effort": "xhigh"}
+    },
+    {
+      "id": "DISPATCH-CLOSED-HIGH-RISK-FFI",
+      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--risk", "ffi", "--signal", "closed-scope", "--signal", "confirmed-semantics", "--signal", "deterministic-oracle"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "P2", "requested_model": "gpt-6-luna", "requested_reasoning_effort": "high", "risks": ["ffi"]}
+    },
+    {
+      "id": "DISPATCH-RISK-ONLY-DOES-NOT-PROMOTE",
+      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--risk", "security", "--signal", "high-risk-acceptance"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "P2", "requested_model": "gpt-6-luna", "risks": ["security"]}
+    },
+    {
+      "id": "DISPATCH-OPEN-FFI-CONTRACT",
+      "args": ["--role", "dev-flow-worker", "--workload", "cross-component-change", "--risk", "ffi", "--signal", "ambiguity"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "P5", "requested_model": "gpt-6-sol", "requested_reasoning_effort": "xhigh", "risks": ["ffi"]}
+    },
+    {
+      "id": "DISPATCH-ORDINARY-AMBIGUITY",
+      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--signal", "ambiguity"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "P4", "requested_model": "gpt-6-sol", "requested_reasoning_effort": "medium"}
+    },
+    {
+      "id": "DISPATCH-CONTEXT-AND-JUDGMENT-DO-NOT-OVERPROMOTE",
+      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--signal", "large-context", "--signal", "ambiguity"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "P4", "requested_model": "gpt-6-sol", "requested_reasoning_effort": "medium"}
     },
     {
       "id": "DISPATCH-BOUNDED-DEPTH",
       "args": ["--role", "dev-flow-explorer", "--workload", "broad-mapping", "--signal", "oracle-challenge"],
       "exit": 0,
-      "expected": {"delegate": true, "selected_profile": "P4", "requested_model": "gpt-5.6-terra", "requested_reasoning_effort": "high"}
+      "expected": {"delegate": false, "selected_profile": "P5", "requested_model": "gpt-6-sol", "requested_reasoning_effort": "xhigh"}
     },
     {
       "id": "DISPATCH-BROAD-CAPABILITY",
       "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--signal", "large-context"],
       "exit": 0,
-      "expected": {"delegate": true, "selected_profile": "P4", "requested_model": "gpt-5.6-terra", "requested_reasoning_effort": "high"}
+      "expected": {"delegate": false, "selected_profile": "P3", "requested_model": "gpt-6-luna", "requested_reasoning_effort": "xhigh"}
     },
     {
       "id": "DISPATCH-BROAD-AND-DEEP",
       "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--signal", "large-context", "--signal", "oracle-challenge"],
       "exit": 0,
-      "expected": {"delegate": true, "selected_profile": "P4", "requested_model": "gpt-5.6-terra", "requested_reasoning_effort": "high"}
+      "expected": {"delegate": false, "selected_profile": "P5", "requested_model": "gpt-6-sol", "requested_reasoning_effort": "xhigh"}
     },
     {
       "id": "DISPATCH-CRITICAL-RISK",
       "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--risk", "concurrency"],
       "exit": 0,
-      "expected": {"delegate": true, "selected_profile": "P5", "requested_model": "gpt-5.6-sol", "requested_reasoning_effort": "high"}
-    },
-    {
-      "id": "DISPATCH-CONTAINED-STRUCTURED-RISK",
-      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--risk", "concurrency", "--signal", "closed-scope", "--signal", "confirmed-semantics", "--signal", "deterministic-oracle"],
-      "exit": 0,
-      "expected": {"delegate": true, "selected_profile": "P2", "requested_model": "gpt-5.6-luna", "requested_reasoning_effort": "high"}
+      "expected": {"delegate": false, "selected_profile": "P2", "requested_model": "gpt-6-luna", "requested_reasoning_effort": "high", "risks": ["concurrency"]}
     },
     {
       "id": "DISPATCH-CRITICAL-ACCEPTANCE",
       "args": ["--role", "dev-flow-red-reviewer", "--workload", "high-risk-review", "--signal", "high-risk-acceptance"],
       "exit": 0,
-      "expected": {"delegate": true, "selected_profile": "P6", "requested_model": "gpt-5.6-sol", "requested_reasoning_effort": "xhigh"}
+      "expected": {"delegate": false, "selected_profile": "P5", "requested_model": "gpt-6-sol", "requested_reasoning_effort": "xhigh"}
+    },
+    {
+      "id": "DISPATCH-DISPUTED-CAUSAL-DIAGNOSIS",
+      "args": ["--role", "dev-flow-explorer", "--workload", "causal-debugging", "--signal", "conflicting-evidence", "--signal", "oracle-challenge"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "P5", "requested_model": "gpt-6-sol", "requested_reasoning_effort": "xhigh"}
+    },
+    {
+      "id": "DISPATCH-ROUTINE-REVIEW",
+      "args": ["--role", "dev-flow-blue-reviewer", "--workload", "routine-review"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "P4", "requested_model": "gpt-6-sol", "requested_reasoning_effort": "medium"}
+    },
+    {
+      "id": "DISPATCH-HIGH-RISK-REVIEW",
+      "args": ["--role", "dev-flow-red-reviewer", "--workload", "high-risk-review", "--risk", "security", "--signal", "irreversible"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "P5", "requested_model": "gpt-6-sol", "requested_reasoning_effort": "xhigh"}
+    },
+    {
+      "id": "DISPATCH-CRITICAL-ACCEPTANCE-SETTLED",
+      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--signal", "high-risk-acceptance", "--signal", "confirmed-semantics", "--signal", "deterministic-oracle", "--risk", "data-deletion"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "P2", "requested_model": "gpt-6-luna", "risks": ["data-deletion"]}
+    },
+    {
+      "id": "DISPATCH-DEEP-ALONE-IS-SOL",
+      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--signal", "deep-unresolved"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "P5", "requested_model": "gpt-6-sol"}
+    },
+    {
+      "id": "DISPATCH-DEEP-WITHOUT-BOUNDARY-IS-SOL",
+      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--signal", "deep-unresolved", "--signal", "interacting-unknowns"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "P5", "requested_model": "gpt-6-sol"}
+    },
+    {
+      "id": "DISPATCH-UNRESOLVED-ARCHITECTURE",
+      "args": ["--role", "dev-flow-worker", "--workload", "cross-component-change", "--signal", "deep-unresolved", "--signal", "interacting-unknowns", "--signal", "cross-boundary-impact"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "P6", "requested_model": "gpt-6-astra", "requested_reasoning_effort": "xhigh"}
+    },
+    {
+      "id": "DISPATCH-FAILED-SOL-ALONE-IS-SOL",
+      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--signal", "failed-sol-discrimination"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "P5", "requested_model": "gpt-6-sol"}
+    },
+    {
+      "id": "DISPATCH-FAILED-SOL-COMPOUND",
+      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--signal", "failed-sol-discrimination", "--signal", "deep-unresolved"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "P6", "requested_model": "gpt-6-astra"}
+    },
+    {
+      "id": "DISPATCH-HOST-AVAILABLE",
+      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--host-capability", "gpt-6-luna:high"],
+      "exit": 0,
+      "expected": {"delegate": true, "selected_profile": "P2", "host_capability": {"status": "available", "reason": "requested model and effort observed on host", "suggested_profile": null}}
+    },
+    {
+      "id": "DISPATCH-HOST-EFFORT-LIMIT",
+      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--host-capability", "gpt-6-luna:medium", "--host-capability", "gpt-6-sol:xhigh"],
+      "exit": 2,
+      "expected": {"status": "capability_limit", "delegate": false, "selected_profile": "P2", "requested_model": "gpt-6-luna", "host_capability": {"status": "capability_limit", "reason": "requested model or effort is unavailable on the observed host; do not dispatch this route", "suggested_profile": "P5", "suggested_model": "gpt-6-sol", "suggested_reasoning_effort": "xhigh"}}
+    },
+    {
+      "id": "DISPATCH-HOST-LEGACY-ONLY-NO-DISPATCH",
+      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--host-capability", "gpt-5.6-luna:high"],
+      "exit": 2,
+      "expected": {"status": "capability_limit", "delegate": false, "host_capability": {"status": "capability_limit", "reason": "requested model or effort is unavailable on the observed host; do not dispatch this route", "suggested_profile": null, "suggested_model": null, "suggested_reasoning_effort": null}}
     },
     {
       "id": "DISPATCH-ROOT-ONLY",
@@ -74,8 +176,14 @@
       "expected": {"status": "invalid"}
     },
     {
+      "id": "DISPATCH-PX-ACKNOWLEDGED",
+      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--profile", "PX", "--acknowledge-exception"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "PX", "requested_model": "gpt-6-astra", "requested_reasoning_effort": "max"}
+    },
+    {
       "id": "DISPATCH-DOWNGRADE-GUARD",
-      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--risk", "security", "--profile", "P0"],
+      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--signal", "deep-unresolved", "--profile", "P0"],
       "exit": 2,
       "expected": {"status": "invalid"}
     },

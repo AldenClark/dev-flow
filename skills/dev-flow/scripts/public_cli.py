@@ -2,7 +2,8 @@
 """Supported Dev Flow 2.0 command boundary.
 
 The implementation module still contains packet-era migration residue. This
-wrapper deliberately exposes only commands with an RC.5 support contract.
+wrapper builds only supported commands; direct legacy parser use remains an
+internal regression surface until a separately bounded removal.
 """
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ import argparse
 import sys
 from collections.abc import Iterable
 
+import agent_dispatch
 import dev_flow
 
 
@@ -56,19 +58,53 @@ INTERNAL_COMMANDS = frozenset(
 )
 
 
+def route_agent_command(args: argparse.Namespace) -> int:
+    """Resolve a route against an optional observed host model/effort inventory."""
+    try:
+        host_capabilities = None
+        if args.host_capability is not None:
+            host_capabilities = []
+            for value in args.host_capability:
+                if ":" not in value:
+                    raise agent_dispatch.DispatchContractError("host capability must be MODEL:EFFORT")
+                model, effort = value.rsplit(":", 1)
+                host_capabilities.append((model, effort))
+        result = agent_dispatch.route_agent(
+            role=args.role,
+            workload=args.workload,
+            risks=args.risk,
+            signals=args.signal,
+            requested_profile=args.profile,
+            acknowledge_exception=args.acknowledge_exception,
+            acknowledge_downgrade=args.acknowledge_downgrade,
+            registry_path=args.registry,
+            task_structure=args.task_structure,
+            parallel_units=args.parallel_units,
+            tool_density=args.tool_density,
+            host_capabilities=host_capabilities,
+        )
+    except ValueError as exc:
+        return dev_flow.emit({"status": "invalid", "errors": [str(exc)]}, 2)
+    return dev_flow.emit(result, 2 if result["status"] == "capability_limit" else 0)
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = dev_flow.build_parser()
+    parser = dev_flow.build_parser(supported_only=True)
     subparsers = next(
         action
         for action in parser._actions
         if isinstance(action, argparse._SubParsersAction) and action.dest == "command"
     )
-    for command in tuple(subparsers.choices):
-        if command not in PUBLIC_COMMAND_SET:
-            del subparsers.choices[command]
-    subparsers._choices_actions = [
-        action for action in subparsers._choices_actions if action.dest in PUBLIC_COMMAND_SET
-    ]
+    if set(subparsers.choices) != PUBLIC_COMMAND_SET:
+        raise RuntimeError("supported parser inventory differs from public command contract")
+    agent_route = subparsers.choices["route-agent"]
+    agent_route.add_argument(
+        "--host-capability",
+        action="append",
+        metavar="MODEL:EFFORT",
+        help="Observed dispatch-host model/effort pair; repeat for the host inventory. Omit only when the host is not yet checked.",
+    )
+    agent_route.set_defaults(func=route_agent_command)
     parser.description = "Dev Flow 2.0 supported personal repository-engineering commands"
     return parser
 

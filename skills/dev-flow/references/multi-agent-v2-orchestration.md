@@ -34,6 +34,7 @@ Do not require packet IDs, AC/SC/VO mappings, context fingerprints, generated re
 - The root reconciles returned work against the current Git state, inspects the actual diff, resolves conflicts, and reruns affected checks.
 - The root verifies actual returned writes, dependencies, generated surfaces, tools, resources, and evidence against the delegated subset; a compliant report never overrides an out-of-scope diff.
 - When a parent boundary narrows or changes, update or cancel affected descendants before accepting their work. Use host-enforced path/tool/resource boundaries when available, but do not claim enforcement when only guidance exists.
+- A child result belongs to the objective, slice, paths, oracle, and resource owner in its brief. After user steering, late output from an old brief is evidence to inspect, never a current-scope integration instruction; rebase the relevant child or reject that result. Unchanged children may continue.
 - A child final is a report, not proof that integration or repository-wide behavior passed.
 - Stop or narrow delegation when coordination, rework, conflicts, or context cost exceed accepted progress.
 

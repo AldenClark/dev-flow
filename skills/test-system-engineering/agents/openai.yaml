@@ -1,4 +1,4 @@
 interface:
   display_name: "Test System Engineering"
   short_description: "Build trustworthy native test feedback"
-  default_prompt: "Use $test-system-engineering to build or repair project-native test feedback and prove it detects the intended faults without false-green runner behavior."
+  default_prompt: "Use $test-system-engineering to repair the smallest missing project-native feedback and prove the intended outcome oracle rejects a wrong actor, stale result, or other false green when relevant."

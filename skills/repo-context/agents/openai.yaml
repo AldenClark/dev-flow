@@ -1,4 +1,4 @@
 interface:
   display_name: "Repository Context"
   short_description: "Discover repository facts and references"
-  default_prompt: "Use $repo-context to find the smallest repository fact base and hand off any observed ownership or evidence gap."
+  default_prompt: "Use $repo-context to find the smallest fact base, including project-native feedback and the applicable source-to-target path, then hand off observed ownership or evidence gaps."

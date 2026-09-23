@@ -5,39 +5,33 @@ description: Use when repository facts, ownership, or an evidence handoff block 
 
 # Repository Context
 
-Establish the smallest safe fact base for the next decision. Resolve repository facts yourself; do not ask the user to rediscover code, configuration, branches, or tool output.
+Establish the smallest fact base for the next decision; resolve repository facts yourself.
 
-This Skill may operate alone for narrow read-only lookup. For material mutation, cross-boundary work, managed continuity, or high-risk delivery, load `dev-flow` as the coordinating kernel when available and not already active; keep this Skill as fact owner.
+Use alone for narrow read-only lookup. For material or cross-boundary work, use `dev-flow` as coordinator when available.
 
 ## First action
 
-Name the decision that lacks evidence, then inspect the smallest path that can change it. A bug report might begin at the failing call and its regression test; a proposed compatibility change starts with consumers and the current contract. Do not begin with a repository-wide inventory merely because the repository is unfamiliar.
+Name the missing decision evidence; inspect the smallest path that can change it. Do not inventory an unfamiliar repository by default.
 
 ## Procedure
 
-1. Resolve Git roots and scoped paths; a workspace may not be a repository root.
-2. Read effective instructions and preserve user changes. Report conflicts or overlapping edits before mutation.
-3. Inspect only the relevant manifests, source, tests, CI, generated surfaces, architecture records, runtime configuration, and nearby analogues. Follow the normal and error paths, affected consumers, and an existing test far enough to distinguish a fact from a plausible inference.
+1. Resolve Git roots, scope, effective instructions, and protected user changes before mutation.
+2. Inspect relevant source, tests, contracts, configuration, generated surfaces, consumers, and normal/error paths. Separate facts from inference.
    A target/reference comparison is atomic even without paths: inspect the bounded repository before asking. With one plausible pair, inspect both before any answer; that response must name each side's facts, differences, and authority. Never omit either side. Otherwise state ambiguity and ask. Analogy is non-authoritative.
-4. Trace affected call, data, errors, consumers, artifacts, and compatibility enough to separate fact from inference.
-5. Find native controls and missing environment evidence; configured is not passed.
-6. Compare affected technology/framework/risk evidence with the effective Skills exposed in the current turn. Return only useful specialist routes and honest native/manual fallbacks; do not infer availability from installed files or a registry. Surface `repository-knowledge` only for an observed missing project entry, chat-only material handoff, ambiguous canonical owner, duplicate/stale truth, or unresolved durable strategy location; report that signal, not a generic documentation recommendation.
-7. Return compact roots, instructions, behavior, boundaries, facts versus inference, unknowns, specialist routes, and recheck triggers. State what later evidence would invalidate the fact base.
+3. Trace affected calls, data, errors, artifacts, and compatibility only as far as the next decision requires.
+4. Find applicable project-native start, health, focused-test, boundary-oracle, targeted-log, and recovery controls. If a missing control blocks the outcome, hand its smallest repair point to `test-system-engineering`. For external effects, identify the intended actor/source and target effect. Configured is not passed.
+5. For target-environment outcomes, trace applicable source → artifact → actual install → effective config/data → user effect → observation/recovery links. Hand evidence gaps to `verification` and action readiness to `delivery-readiness`; host evidence cannot prove a target result.
+6. Select specialist Skills from affected evidence and the current-turn catalog only; offer honest native/manual fallbacks. Surface `repository-knowledge` for observed missing ownership, chat-only material handoff, or stale/conflicting durable truth.
+7. Return facts, inference, unknowns, boundaries, useful routes, and recheck triggers. Changes to source, artifact, target, config, or data may invalidate the fact base.
 
-## Examples and stopping
+## Stop
 
-- A clear owner and one affected design page: return that page and its readers; the ordinary update stays direct and quiet.
-- Two active documents disagree about an API rule, or no successor can find a material decision outside chat: hand off the topology decision to `repository-knowledge`.
-- A mechanical README correction or self-contained question: do not expand discovery or create a handoff.
+Stop when the next owner can decide from facts and explicit unknowns. Route product choices to `requirements-design`; refresh only contradicted paths.
 
-Stop when the next owner can make its decision from observed facts and explicit unknowns. If an ambiguity is a product choice, return it to `requirements-design`; if evidence contradicts the working model, refresh only the affected path rather than accumulating a ledger.
-
-Use `references/repository-discovery.md` for complicated root, instruction, runtime, source-quality, or cross-repository discovery. Use `references/context-readiness.md` only to diagnose why context is insufficient, not as a mandatory persisted gate.
+Read `references/repository-discovery.md` for complex roots, instructions, or runtime paths. `references/context-readiness.md` diagnoses insufficient context; it is not a gate.
 
 ## Boundaries
 
 - Do not decide product semantics, architecture, dependencies, or verification outcomes.
-- Do not create fingerprints, packet records, context ledgers, or profile snapshots for ordinary work.
-- Do not install or activate a Skill from discovery alone.
-- Do not load every matching Skill. A candidate needs an affected owner surface, positive decision/evidence value, and no applicable negative trigger.
+- Do not create routine ledgers, install Skills from discovery, or load every matching Skill.
 - Keep volatile observations and secrets out of maintained documentation.

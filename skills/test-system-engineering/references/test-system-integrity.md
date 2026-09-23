@@ -14,6 +14,8 @@ Prove filters, paths, schemes, tags, feature flags, build variants, shards, and 
 
 Use a pre-fix result, negative fixture, safe changed-code/semantic mutation, seeded fault, deliberate assertion inversion, property violation, or independent oracle to show the gate fails when its claim is false. Confirm it fails because of the target assertion rather than setup or unrelated infrastructure. Restore perturbations before retaining evidence.
 
+For an external effect, seed an event from the wrong actor/source or with the wrong request identity. The intended user-flow oracle must fail even if a generic health check, network packet, log line, or mock invocation exists. Then show the intended actor produces the promised effect at the real boundary.
+
 ## Isolation
 
 Check fixtures, clocks, randomness/seeds, environment, caches, files, ports, processes, devices, databases, network controls, ordering, reset, and teardown that can leak between cases or runs. Exercise order reversal or a fresh cache when that distinguishes pollution. A shared resource needs isolation or serialization, and production/user data must not become a fixture.
@@ -21,6 +23,8 @@ Check fixtures, clocks, randomness/seeds, environment, caches, files, ports, pro
 ## Interpretation
 
 Distinguish runner launch, collection, executed tests, assertion outcomes, skips, expected failures, quarantines, cached results, retries, flaky disagreement, timeout, crash, cancellation, and infrastructure error. Inspect whether a retry hid the first failure and whether a cache reused results for different bytes/configuration. Do not collapse them into exit zero/nonzero.
+
+A green run from old source, generated inputs, configuration, or selected artifact is stale evidence. Bind the retained result to those inputs and repeat the smallest affected native check on the final inputs.
 
 ## Representativeness
 

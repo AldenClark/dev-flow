@@ -21,10 +21,10 @@ Before high-growth work, `resource-preflight --path <target>` may measure disk a
 
 ## Controlled run
 
-1. Check the relevant configuration and prerequisites.
+1. Check the relevant configuration and prerequisites, then distinguish declared settings from the effective settings read at the running target when they affect the claim.
 2. Allocate temporary state through a safe platform primitive.
 3. Start the narrowest environment and wait on an observable readiness condition.
-4. Run the focused check; preserve a first failure before retry or repair.
+4. Run the focused check from the intended actor/source when that attribution matters; preserve a first failure before retry or repair.
 5. Capture only the artifact needed for the oracle and redact it.
 6. Tear down on success or failure and confirm important resources were released.
 

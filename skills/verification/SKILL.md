@@ -13,14 +13,15 @@ Route suspected runner/fixture/cache/retry/skip/isolation false evidence to `tes
 
 ## Procedure
 
-1. State the promise, credible failure, target environment, and disproof.
+1. State the promise, intended actor or source when relevant, credible failure, target environment, and disproof. An unrelated event cannot satisfy the user's flow.
 2. For new or material behavior, derive both views:
    - **Black-box:** user outcomes/contracts, including material failure, recovery, permission, and compatibility.
    - **White-box:** final implementation branches/conditions, states, boundaries, errors, concurrency, resources, cancellation, retry, and rollback.
    They may share a test. Use views where they add distinct failure sensitivity. Do not require each view or a prose `N/A`.
 3. Choose the cheapest truthful layer: unit, component, real-boundary integration/contract, runtime E2E, or native platform/device. Do not fill a fixed matrix.
-4. Preserve the focused run's first failure. Challenge high-risk or easy-to-fake evidence with a practical negative control: pre-fix failure, negative fixture, seeded fault, changed-code mutation, or independent cross-oracle. Restore it, then broaden.
-5. Re-read the final diff, invalidate stale runs, and report `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, or `WAIVED` with command, environment, result, and limit. A retry does not turn a flake into `PASSED`.
+4. Preserve the focused run's first failure. Challenge high-risk or easy-to-fake evidence with a practical negative control: pre-fix failure, wrong actor/source or request, negative fixture, seeded fault, changed-code mutation, or independent cross-oracle. Confirm that the protected assertion fails, restore the perturbation, then broaden.
+5. For an installed, deployed, external, or production promise, connect the applicable observed links: test on final relevant bytes; artifact identity; actual target and install; effective configuration and data; intended user flow or external effect; observation; and safe recovery or rollback where consequential. A build, upload, install command, or health response alone proves only its own link. If an earlier link changes, rerun the smallest affected downstream evidence.
+6. Re-read the final diff, invalidate stale runs, and report `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, or `WAIVED` with command, actor/source, artifact and target identity where applicable, effective environment, result, and limit. A retry does not turn a flake into `PASSED`.
 
 Read `references/test-strategy.md` for strategy, `references/coverage-techniques.md` for a concrete gap, `references/test-environments.md` before controlled resources, and `references/evidence-contract.md` before retaining artifacts.
 
@@ -32,7 +33,7 @@ Read `references/test-strategy.md` for strategy, `references/coverage-techniques
 
 ## Boundaries
 
-- Configuration is not execution. Host/mock/simulator/emulator evidence never upgrades to device/platform/hosted/production evidence.
+- Configuration is not execution; declared configuration is not effective runtime configuration. Host/mock/simulator/emulator evidence never upgrades to device/platform/hosted/production evidence; an unobserved required target is `NOT RUN` or `BLOCKED`, even with green host tests.
 - A fallback proves only its own narrower claim, never a blocked real-boundary or target-environment gate.
 - Coverage/counts/method names cannot replace an oracle.
 - Do not modify product code during an explicitly independent test-runner assignment.

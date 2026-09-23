@@ -2796,9 +2796,14 @@ print(json.dumps(result))
         self.assertEqual(identity["adapter"], "evals/codex_model_adapter.py")
         self.assertEqual(identity["result_schema_version"], "1.3")
         self.assertEqual(identity["receipt_schema_version"], "1.2")
-        self.assertEqual(identity["inventory"], {"model": "gpt-5.6-sol", "reasoning_effort": "medium"})
-        self.assertEqual(identity["assembler"], {"model": "gpt-5.6-sol", "reasoning_effort": "high"})
-        self.assertEqual(identity["grader"], {"model": "gpt-5.6-sol", "reasoning_effort": "medium"})
+        self.assertEqual(identity["backend"]["version"], "codex-cli 0.154.0")
+        self.assertEqual(
+            identity["backend"]["artifacts"]["darwin-arm64"],
+            "sha256:4f85982624b3898c8991cb80c0981b2aa71070e3537046c9a95950318a95afcc",
+        )
+        self.assertEqual(identity["inventory"], {"model": "gpt-6-sol", "reasoning_effort": "medium"})
+        self.assertEqual(identity["assembler"], {"model": "gpt-6-sol", "reasoning_effort": "high"})
+        self.assertEqual(identity["grader"], {"model": "gpt-6-sol", "reasoning_effort": "medium"})
         self.assertEqual(
             validated["executor_pipeline"],
             {

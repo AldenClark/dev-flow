@@ -11,12 +11,13 @@ from typing import Any
 
 
 ROUTE_BASIS_SCHEMA = "dev-flow.route-basis.v1"
-ROUTER_SEMANTICS_VERSION = "dev-flow.route-semantics.rc7.v1"
+ROUTER_SEMANTICS_VERSION = "dev-flow.route-semantics.rc8.v1"
 MAX_PREVIOUS_ROUTE_BYTES = 512 * 1024
 MAX_BASIS_LIST_ITEMS = 64
 MAX_BASIS_VALUE_CHARS = 256
 ROUTE_BASIS_OPTION_DIMENSIONS = {
     "intent": {"intent_task"},
+    "target_revision": {"intent_task"},
     "task_type": {"intent_task"},
     "risk": {"capabilities"},
     "need": {"capabilities"},
@@ -31,6 +32,7 @@ ROUTE_BASIS_OPTION_DIMENSIONS = {
     "requirement_class": {"requirement"},
     "understanding_confirmed": {"requirement"},
     "waive_understanding_confirmation": {"requirement"},
+    "user_choice_open": {"requirement"},
     "profile_operation": {"scope_owners"},
     "suite_maintenance": {"scope_owners"},
     "mutation": {"scope_owners"},
@@ -47,15 +49,15 @@ ROUTE_BASIS_OPTION_DIMENSIONS = {
 }
 ROUTE_BASIS_OPTION_DESTS = tuple(ROUTE_BASIS_OPTION_DIMENSIONS)
 INVALIDATIONS = {
-    "router_identity": {"requirement-understanding", "work-mode", "routes", "risk-overlays", "specialist-readiness", "method-selection", "independent-review", "knowledge-disposition"},
-    "intent_task": {"requirement-understanding", "work-mode", "routes", "method-selection"},
-    "requirement": {"requirement-understanding", "routes"},
-    "continuity": {"work-mode", "routes", "knowledge-disposition"},
-    "scope_owners": {"routes", "risk-overlays", "knowledge-disposition"},
-    "capabilities": {"routes", "risk-overlays", "specialist-readiness", "method-selection", "independent-review"},
-    "repository_readiness": {"routes", "specialist-readiness", "method-selection"},
-    "method": {"method-selection"},
-    "review": {"independent-review", "routes"},
+    "router_identity": {"requirement-understanding", "work-mode", "routes", "risk-overlays", "specialist-readiness", "method-selection", "independent-review", "knowledge-disposition", "terminal-evidence", "descendant-results"},
+    "intent_task": {"requirement-understanding", "work-mode", "routes", "method-selection", "terminal-evidence", "descendant-results"},
+    "requirement": {"requirement-understanding", "routes", "terminal-evidence", "descendant-results"},
+    "continuity": {"work-mode", "routes", "knowledge-disposition", "terminal-evidence", "descendant-results"},
+    "scope_owners": {"routes", "risk-overlays", "knowledge-disposition", "terminal-evidence", "descendant-results"},
+    "capabilities": {"routes", "risk-overlays", "specialist-readiness", "method-selection", "independent-review", "terminal-evidence", "descendant-results"},
+    "repository_readiness": {"routes", "specialist-readiness", "method-selection", "terminal-evidence", "descendant-results"},
+    "method": {"method-selection", "terminal-evidence", "descendant-results"},
+    "review": {"independent-review", "routes", "terminal-evidence", "descendant-results"},
     "knowledge": {"knowledge-disposition"},
 }
 
@@ -95,6 +97,9 @@ def _normalized(values: list[str]) -> list[str]:
 
 
 def build_basis(args: Any, context: dict[str, Any]) -> dict[str, Any]:
+    revision = args.target_revision
+    if revision is not None and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", revision) is None:
+        raise RouteBasisError("target revision must be an opaque 1-64 character identifier")
     facts = _normalized(list(args.repo_fact))
     method = context["capability_activation"].get("method", {})
     normalization = method.get("signal_normalization", {})
@@ -109,11 +114,14 @@ def build_basis(args: Any, context: dict[str, Any]) -> dict[str, Any]:
             "intent": context["intent"],
             "intent_source": context["intent_source"],
             "legacy_task_type": args.task_type,
+            "target_revision_present": revision is not None,
+            "target_revision_sha256": _digest(revision) if revision is not None else None,
         },
         "requirement": {
             "class": context["understanding"]["class"],
             "confirmed": bool(args.understanding_confirmed),
             "waived": bool(args.waive_understanding_confirmation),
+            "user_choice_open": bool(args.user_choice_open),
             "ambiguity": bool(args.ambiguity),
             "ui_impact": args.ui_impact,
             "material_tradeoff": bool(args.material_tradeoff),
@@ -213,15 +221,22 @@ def compare(current: dict[str, Any], previous: dict[str, Any]) -> dict[str, Any]
             "reason": previous.get("reason", "incompatible-prior-route"),
             "changed_dimensions": [],
             "invalidated_decisions": [],
+            "descendant_result_disposition": "reject-until-rebased",
             "next_action": "use-complete-current-route",
         }
     prior = previous["basis"]
     if prior["digest"] == current["digest"]:
+        revision_bound = current["dimensions"]["intent_task"]["target_revision_present"]
         return {
             "status": "unchanged",
             "changed_dimensions": [],
             "invalidated_decisions": [],
-            "next_action": "continue-without-reloading",
+            "descendant_result_disposition": (
+                "retain" if revision_bound else "reconcile-objective-before-retain"
+            ),
+            "next_action": (
+                "continue-without-reloading" if revision_bound else "reconcile-current-objective"
+            ),
         }
     if previous.get("detail") == "digest-only":
         return {
@@ -231,6 +246,7 @@ def compare(current: dict[str, Any], previous: dict[str, Any]) -> dict[str, Any]
             "invalidated_decisions": sorted(
                 {decision for decisions in INVALIDATIONS.values() for decision in decisions}
             ),
+            "descendant_result_disposition": "reject-until-rebased",
             "next_action": "use-complete-current-route",
         }
     changed = sorted(
@@ -243,5 +259,8 @@ def compare(current: dict[str, Any], previous: dict[str, Any]) -> dict[str, Any]
         "status": "changed",
         "changed_dimensions": changed,
         "invalidated_decisions": invalidated,
+        "descendant_result_disposition": (
+            "reject-until-rebased" if "descendant-results" in invalidated else "retain-unaffected"
+        ),
         "next_action": "recalibrate-invalidated-decisions",
     }

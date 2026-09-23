@@ -14,18 +14,18 @@ Establish the observable outcome, current repository facts, assumptions, affecte
 
 For substantial managed work, material risk, delegation, or repeated failure, use `quality-calibration.md` to decide whether a specialist Skill, P0-P6 child route, bounded assurance method, or independent review has positive decision value.
 
-Classify requirement understanding before technical design. Material new or changed product semantics publish a detailed technology-neutral understanding and stop in Default mode for explicit confirmation. Established defects proceed from proven expected/protected behavior, while ambiguous defects upgrade to semantic confirmation. Mechanical and read-only work never acquire the stop solely because Dev Flow is active.
+Classify requirement understanding before technical design. Material new or changed product semantics publish a detailed technology-neutral understanding; stop in Default mode only for a surviving material user-owned choice or an explicit review request. A confirmed plan with settled semantics proceeds. Established defects use proven expected/protected behavior; ambiguous defects upgrade to semantic understanding, not an automatic pause. Mechanical and read-only work never acquire a confirmation stop solely because Dev Flow is active.
 
 Load a specialist, method, independent reviewer, or child model only when it can change a real decision or evidence surface. Reconsider only the affected owner when evidence changes; ordinary continuation does not repeat routing.
 
 ## Direct path
 
 1. Resolve objective, authority, roots, instructions, current behavior, scope, and user changes.
-2. Clarify only a material decision. For semantic creation/change, publish the full understanding and stop for confirmation before design; otherwise proceed with a reversible repository-grounded assumption.
+2. Clarify only a material decision. For semantic creation/change, publish the full understanding and stop before design only if a material user-owned choice remains; otherwise proceed with the settled semantics and bounded repository-grounded assumptions.
 3. Reproduce a defect before repair when practical.
 4. Implement one coherent slice.
 5. Run the narrowest sensitive oracle, then affected broader checks.
-6. Inspect the final diff and report outcomes, evidence, and limits.
+6. Reconcile the goal, source/contract, final diff, last sensitive oracle, and unrun environments before reporting the exact outcome.
 
 Direct work has no Dev Flow continuity artifact or lifecycle transition. It still updates the canonical repository owner when architecture, contracts, runbooks, product behavior, testing strategy, or operational truth changes. Create a new owner only when none exists. Add a minimal change note only when cross-session, cross-owner, or independently sliced continuation cannot be carried by those owners; do not duplicate code, tests, issues, changelogs, ADRs, or maintained docs.
 
@@ -47,6 +47,8 @@ Re-evaluate mode, design, or overlays when:
 
 The first surprising failure triggers a focused assumption/risk recheck. Two failed repairs or hypotheses for the same symptom trigger explicit recalibration before another repair.
 
+On a user correction, keep unaffected work but mark dependent plans, descendant results, and checks stale. A restatement or compaction alone does not invalidate evidence. At closure, compare the current user goal with authoritative source/contract, final changed bytes, last applicable oracle, and the environments actually observed; report the narrowest supported claim.
+
 Escalation adds the specific missing control. It does not recreate a full governance lifecycle or automatically change direct work into managed work.
 
 ## Incremental route continuity
@@ -54,6 +56,8 @@ Escalation adds the specific missing control. It does not recreate a full govern
 The caller may retain one full route result in active context. When outcome, roots, discovery mode, authority/mutation boundary, risks, needs, method prerequisites, repository facts, review requirement, and terminal condition are unchanged, continue without another route call. Dev Flow does not write, discover, or cache that result.
 
 After a material fact changes, pass the caller-owned prior JSON with `route-task --previous-route <file>`. The returned route is always a complete current route; `recalibration` states whether the prior basis was unchanged, changed with bounded invalidated decision classes, or incompatible. A malformed, oversized, symlinked, or semantically incompatible prior route never grants reuse: continue from the full current route and retain the reported comparison limitation. Do not treat formatting-only changes or repeated narration as a material transition.
+
+For result reuse, an optional opaque `--target-revision` binds the confirmed objective and scope epoch, including protected paths and authority. Increment it after a material correction; never pass raw task text or secrets. Without it, an unchanged route only permits `reconcile-objective-before-retain`, not automatic child-result reuse. New methods or review obligations invalidate prior terminal evidence.
 
 ## Managed contract check
 

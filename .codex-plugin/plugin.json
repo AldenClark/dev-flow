@@ -31,7 +31,7 @@
       "Write"
     ],
     "defaultPrompt": [
-      "Inspect this repository and implement my request with Dev Flow.",
+      "Inspect this repository and complete my request with Dev Flow, verifying the final behavior and naming unrun environments.",
       "Diagnose and fix this bug with focused native verification.",
       "Design and implement this long-running change while keeping durable decisions and current progress in the owning repository.",
       "Audit this repository and propose a maintainable knowledge system for people and agents."

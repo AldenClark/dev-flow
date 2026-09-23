@@ -63,6 +63,18 @@ class AgentDispatchBlackBoxTests(unittest.TestCase):
                     self.assertIn("current task result", payload["runtime_fallback"])
                     self.assertNotIn("record", payload["runtime_fallback"])
 
+    def test_host_inventory_controls_dispatch_readiness(self) -> None:
+        base = ("--role", "dev-flow-worker", "--workload", "bounded-change")
+        unchecked = json.loads(run_route(*base).stdout)
+        available = json.loads(run_route(*base, "--host-capability", "gpt-6-luna:high").stdout)
+        limited = json.loads(run_route(*base, "--host-capability", "gpt-6-luna:medium").stdout)
+        self.assertFalse(unchecked["dispatch_ready"])
+        self.assertFalse(unchecked["delegate"])
+        self.assertTrue(available["dispatch_ready"])
+        self.assertTrue(available["delegate"])
+        self.assertFalse(limited["dispatch_ready"])
+        self.assertFalse(limited["delegate"])
+
     def test_same_request_is_byte_stable(self) -> None:
         args = (
             "--role",
@@ -98,8 +110,8 @@ class AgentDispatchBlackBoxTests(unittest.TestCase):
             "dev-flow-worker",
             "--workload",
             "bounded-change",
-            "--risk",
-            "security",
+            "--signal",
+            "deep-unresolved",
             "--profile",
             "P0",
             "--acknowledge-downgrade",
@@ -149,8 +161,14 @@ class AgentDispatchWhiteBoxTests(unittest.TestCase):
         profiles = {item["id"]: item for item in registry["profiles"]}
         self.assertEqual(set(profiles), {"P0", "P1", "P2", "P3", "P4", "P5", "P6", "PX"})
         self.assertEqual((profiles["P2"]["capability"], profiles["P2"]["reasoning_effort"]), ("E", "high"))
-        self.assertEqual((profiles["P3"]["capability"], profiles["P3"]["reasoning_effort"]), ("B", "medium"))
-        self.assertEqual((profiles["P4"]["capability"], profiles["P4"]["reasoning_effort"]), ("B", "high"))
+        self.assertEqual((profiles["P3"]["capability"], profiles["P3"]["reasoning_effort"]), ("E", "xhigh"))
+        self.assertEqual((profiles["P4"]["capability"], profiles["P4"]["reasoning_effort"]), ("B", "medium"))
+        self.assertEqual((profiles["P5"]["capability"], profiles["P5"]["reasoning_effort"]), ("B", "xhigh"))
+        self.assertEqual((profiles["P6"]["capability"], profiles["P6"]["reasoning_effort"]), ("F", "xhigh"))
+        self.assertEqual(
+            {capability["model"] for capability in registry["runtime"]["capabilities"].values()},
+            {"gpt-6-luna", "gpt-6-sol", "gpt-6-astra"},
+        )
         self.assertTrue(profiles["PX"]["exception"])
         self.assertFalse(any(profiles[name]["exception"] for name in profiles if name != "PX"))
 
@@ -176,15 +194,32 @@ class AgentDispatchWhiteBoxTests(unittest.TestCase):
         )
         mutations.append(duplicate_condition)
 
-        dangling_suppression = json.loads(json.dumps(baseline))
-        dangling_suppression["upgrade_rules"][-2]["unless_all_signals"].append("unknown-signal")
-        mutations.append(dangling_suppression)
+        dangling_compound = json.loads(json.dumps(baseline))
+        dangling_compound["upgrade_rules"][-2]["all_signals"].append("unknown-signal")
+        mutations.append(dangling_compound)
 
-        duplicate_suppression = json.loads(json.dumps(baseline))
-        duplicate_suppression["upgrade_rules"][-2]["unless_all_signals"].append(
-            duplicate_suppression["upgrade_rules"][-2]["unless_all_signals"][0]
+        duplicate_compound = json.loads(json.dumps(baseline))
+        duplicate_compound["upgrade_rules"][-2]["all_signals"].append(
+            duplicate_compound["upgrade_rules"][-2]["all_signals"][0]
         )
-        mutations.append(duplicate_suppression)
+        mutations.append(duplicate_compound)
+
+        invalid_minimum = json.loads(json.dumps(baseline))
+        invalid_minimum["upgrade_rules"][0]["minimum_profile"] = "PX"
+        mutations.append(invalid_minimum)
+
+        risk_promotion = json.loads(json.dumps(baseline))
+        risk_promotion["upgrade_rules"][0]["any_risk"] = ["ffi"]
+        mutations.append(risk_promotion)
+
+        legacy_model = json.loads(json.dumps(baseline))
+        legacy_model["runtime"]["capabilities"]["E"]["model"] = "gpt-5.6-luna"
+        mutations.append(legacy_model)
+
+        swapped_profiles = json.loads(json.dumps(baseline))
+        swapped_profiles["profiles"][0]["capability"] = "F"
+        swapped_profiles["profiles"][0]["reasoning_effort"] = "low"
+        mutations.append(swapped_profiles)
 
         for index, payload in enumerate(mutations):
             with self.subTest(mutation=index), tempfile.TemporaryDirectory() as temp:
@@ -192,6 +227,27 @@ class AgentDispatchWhiteBoxTests(unittest.TestCase):
                 path.write_text(json.dumps(payload), encoding="utf-8")
                 with self.assertRaises(agent_dispatch.DispatchContractError):
                     agent_dispatch.load_registry(path)
+
+    def test_compound_p6_negative_control_detects_missing_boundary(self) -> None:
+        baseline = agent_dispatch.route_agent(
+            role="dev-flow-worker",
+            workload="bounded-change",
+            signals=["deep-unresolved", "interacting-unknowns"],
+        )
+        self.assertEqual(baseline["selected_profile"], "P5")
+        registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
+        case = next(rule for rule in registry["upgrade_rules"] if rule["id"] == "compound-frontier-reasoning")
+        case["all_signals"].remove("cross-boundary-impact")
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "registry.json"
+            path.write_text(json.dumps(registry), encoding="utf-8")
+            result = agent_dispatch.route_agent(
+                role="dev-flow-worker",
+                workload="bounded-change",
+                signals=["deep-unresolved", "interacting-unknowns"],
+                registry_path=path,
+            )
+        self.assertEqual(result["selected_profile"], "P6")
 
     def test_role_configs_remain_model_neutral(self) -> None:
         role_root = ROOT / "skills" / "dev-flow" / "assets" / "agent-configs"

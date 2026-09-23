@@ -1,6 +1,6 @@
 # Sustainable native test systems
 
-Use this reference when the missing capability is project-level feedback rather than one broken test. Start from the promises and risks the project actually has; do not prebuild every layer or copy a standard lane matrix.
+Use this reference when the missing capability is project-level feedback rather than one broken test. Start from the promises and risks the project actually has; do not prebuild every layer or copy a standard lane matrix. For a task already in progress, identify which missing start, health, focused-test, real-boundary, targeted-log, or recovery signal prevents a decision and repair that entry in the project's own commands and conventions. Keep the first failure and stop once that causal gap is closed.
 
 ## New project: minimum sustainable skeleton
 
@@ -33,6 +33,8 @@ Partition checks by feedback need and resource cost. A project may call these Fo
 - the integration role protects affected real boundaries and consumers;
 - slower roles may cover broad compatibility, randomized/fuzz exploration, performance, soak, devices, or packaged behavior;
 - a delivery-oriented role, when the project has one, protects exact candidate identity and required target environments.
+
+For a traffic or external-effect oracle, bind the event to the initiating actor/source and request identity, then observe the effect at the promised boundary. A response or log line from background traffic can make a weak check green while the user's flow never ran. Challenge it with a wrong-source event that must fail before accepting the repaired path.
 
 Every role states what it protects, how selection is proven, what resources it owns, how failures are interpreted, and which evidence remains outside it. Do not duplicate the same tests across roles without a feedback or environment reason. A label never proves a lane ran.
 

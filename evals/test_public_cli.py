@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Supported RC.5 CLI boundary tests."""
+"""Supported Dev Flow CLI boundary tests."""
 
 from __future__ import annotations
 
+import argparse
 import importlib.util
 import json
 import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,6 +35,17 @@ def run(script: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 class PublicCliTests(unittest.TestCase):
+    def test_supported_parser_never_constructs_packet_commands(self) -> None:
+        original = argparse._SubParsersAction.add_parser
+
+        def reject_internal(self: argparse._SubParsersAction, name: str, **kwargs: object):
+            if name in PUBLIC.INTERNAL_COMMANDS:
+                raise AssertionError(f"supported parser constructed legacy command: {name}")
+            return original(self, name, **kwargs)
+
+        with patch.object(argparse._SubParsersAction, "add_parser", reject_internal):
+            PUBLIC.build_parser()
+
     def test_help_contains_exact_supported_inventory(self) -> None:
         parser = PUBLIC.build_parser()
         subparsers = next(action for action in parser._actions if action.dest == "command")
@@ -60,12 +73,12 @@ class PublicCliTests(unittest.TestCase):
         self.assertEqual(internal.returncode, 0)
         self.assertIn("init-packet", internal.stdout)
 
-    def test_supported_route_uses_compact_rc7_contract(self) -> None:
+    def test_supported_route_uses_compact_rc8_contract(self) -> None:
         result = run(FLOW, "route-task", "--intent", "change", "--compact")
         self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
         payload = json.loads(result.stdout)
         self.assertEqual(set(payload["route_basis"]), {"schema", "router_semantics", "digest"})
-        self.assertEqual(payload["route_basis"]["router_semantics"], "dev-flow.route-semantics.rc7.v1")
+        self.assertEqual(payload["route_basis"]["router_semantics"], "dev-flow.route-semantics.rc8.v1")
         self.assertEqual(set(payload["method"]), {"action", "status", "selected", "blocked"})
 
     def test_explain_is_the_explicit_full_form_and_conflicts_with_compact(self) -> None:

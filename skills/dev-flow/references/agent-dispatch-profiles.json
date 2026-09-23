@@ -1,13 +1,13 @@
 {
-  "schema_version": "1.0",
-  "policy": "Task-relative child-agent dispatch. Roles own permissions; workloads and risk signals select capability, reasoning effort, and runtime request fields.",
+  "schema_version": "1.1",
+  "policy": "Task-relative child-agent dispatch. Semantic uncertainty and context breadth select model and effort; risks remain visible for verification and delivery evidence, not automatic model promotion.",
   "runtime": {
     "minimum_codex": "0.147.0",
     "default_fork_turns": "none",
     "capabilities": {
-      "E": {"rank": 0, "model": "gpt-5.6-luna", "purpose": "efficient directed work with closed semantics and bounded evidence"},
-      "B": {"rank": 1, "model": "gpt-5.6-terra", "purpose": "balanced bounded engineering work"},
-      "F": {"rank": 2, "model": "gpt-5.6-sol", "purpose": "frontier broad, ambiguous, or high-risk work"}
+      "E": {"rank": 0, "model": "gpt-6-luna", "purpose": "efficient directed work with closed semantics"},
+      "B": {"rank": 1, "model": "gpt-6-sol", "purpose": "everyday coding and judgment"},
+      "F": {"rank": 2, "model": "gpt-6-astra", "purpose": "deep unresolved compound reasoning"}
     },
     "efforts": {
       "low": 0,
@@ -21,10 +21,10 @@
     {"id": "P0", "capability": "E", "reasoning_effort": "low", "exception": false, "purpose": "exact lookup, fixed command, log filtering, or formatting"},
     {"id": "P1", "capability": "E", "reasoning_effort": "medium", "exception": false, "purpose": "narrow research, structured summary, or deterministic mechanical change"},
     {"id": "P2", "capability": "E", "reasoning_effort": "high", "exception": false, "purpose": "confirmed bounded implementation or repetitive change with a deterministic oracle"},
-    {"id": "P3", "capability": "B", "reasoning_effort": "medium", "exception": false, "purpose": "ordinary exploration, implementation, failure classification, or clear multi-step work"},
-    {"id": "P4", "capability": "B", "reasoning_effort": "high", "exception": false, "purpose": "complex causal depth, routine independent review, or bounded engineering trade-offs"},
-    {"id": "P5", "capability": "F", "reasoning_effort": "high", "exception": false, "purpose": "cross-component, public-contract, migration, concurrency, FFI, security, or complex review"},
-    {"id": "P6", "capability": "F", "reasoning_effort": "xhigh", "exception": false, "purpose": "critical adversarial acceptance, irreversibility, or data-loss risk"},
+    {"id": "P3", "capability": "E", "reasoning_effort": "xhigh", "exception": false, "purpose": "large but clear context or a coordinated task with closed semantics"},
+    {"id": "P4", "capability": "B", "reasoning_effort": "medium", "exception": false, "purpose": "everyday coding, moderate ambiguity, ordinary diagnosis, or routine review"},
+    {"id": "P5", "capability": "B", "reasoning_effort": "xhigh", "exception": false, "purpose": "competing causes, disputed oracle, cross-component contract, or careful high-risk review"},
+    {"id": "P6", "capability": "F", "reasoning_effort": "xhigh", "exception": false, "purpose": "deep unresolved reasoning with interacting unknowns and cross-boundary impact"},
     {"id": "PX", "capability": "F", "reasoning_effort": "max", "exception": true, "purpose": "explicitly acknowledged and evaluated exceptional work only"}
   ],
   "roles": [
@@ -39,15 +39,15 @@
     {"id": "exact-lookup", "roles": ["dev-flow-explorer"], "delegate": true, "default_profile": "P0", "purpose": "exact file, symbol, or call-site location"},
     {"id": "docs-research", "roles": ["dev-flow-explorer"], "delegate": true, "default_profile": "P1", "purpose": "official documentation, version note, or API research"},
     {"id": "broad-mapping", "roles": ["dev-flow-explorer"], "delegate": true, "default_profile": "P2", "purpose": "directed repository-wide impact or call-chain mapping"},
-    {"id": "causal-debugging", "roles": ["dev-flow-explorer"], "delegate": true, "default_profile": "P4", "purpose": "complex causal diagnosis"},
+    {"id": "causal-debugging", "roles": ["dev-flow-explorer"], "delegate": true, "default_profile": "P4", "purpose": "ordinary causal diagnosis; conflicting evidence can raise the route"},
     {"id": "exact-verification", "roles": ["dev-flow-test-runner"], "delegate": true, "default_profile": "P0", "purpose": "execute an exact command and preserve its first result"},
     {"id": "failure-triage", "roles": ["dev-flow-test-runner"], "delegate": true, "default_profile": "P1", "purpose": "classify bounded logs, failures, or environment evidence"},
     {"id": "mechanical-change", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P1", "purpose": "fully specified mechanical change with a deterministic oracle"},
     {"id": "bounded-change", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P2", "purpose": "confirmed bounded bug fix or feature slice with a deterministic oracle"},
-    {"id": "broad-multi-step", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P3", "purpose": "multi-step work with a clear outcome and ordinary exploration"},
-    {"id": "cross-component-change", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P5", "purpose": "cross-component or high-risk contract change"},
+    {"id": "broad-multi-step", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P3", "purpose": "multi-step work with a clear outcome and closed semantics"},
+    {"id": "cross-component-change", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P5", "purpose": "open cross-component contract change"},
     {"id": "routine-review", "roles": ["dev-flow-blue-reviewer", "dev-flow-red-reviewer"], "delegate": true, "default_profile": "P4", "purpose": "routine independent integration or adversarial review"},
-    {"id": "high-risk-review", "roles": ["dev-flow-blue-reviewer", "dev-flow-red-reviewer"], "delegate": true, "default_profile": "P5", "purpose": "high-risk security, data, compatibility, or rollback review"},
+    {"id": "high-risk-review", "roles": ["dev-flow-blue-reviewer", "dev-flow-red-reviewer"], "delegate": true, "default_profile": "P5", "purpose": "careful security, data, compatibility, or rollback review"},
     {"id": "root-decision", "roles": ["root"], "delegate": false, "default_profile": null, "purpose": "requirement semantics, dependency choice, architecture adjudication, or final claim"}
   ],
   "signal_vocabulary": [
@@ -58,10 +58,14 @@
     "consequential-judgment",
     "conflicting-evidence",
     "cross-root",
+    "cross-boundary-impact",
     "data-loss-risk",
     "deterministic-oracle",
+    "deep-unresolved",
+    "failed-sol-discrimination",
     "high-risk-acceptance",
     "independent-review",
+    "interacting-unknowns",
     "irreversible",
     "large-context",
     "multi-step",
@@ -70,47 +74,34 @@
   ],
   "upgrade_rules": [
     {
-      "id": "judgmental-depth",
-      "any_signal": ["causal-uncertainty", "independent-review", "nondeterminism", "oracle-challenge"],
-      "minimum_capability": "B",
-      "minimum_effort": "high",
-      "reason": "causal, adversarial, or oracle judgment requires balanced capability and deeper reasoning"
-    },
-    {
-      "id": "bounded-breadth",
+      "id": "clear-context-depth",
       "any_signal": ["cross-root", "large-context", "multi-step"],
-      "minimum_capability": "B",
-      "minimum_effort": "medium",
-      "reason": "breadth alone needs balanced synthesis but does not require frontier judgment"
+      "minimum_profile": "P3",
+      "reason": "larger working context with a clear brief can stay on Luna xhigh"
     },
     {
-      "id": "frontier-judgment",
-      "any_signal": ["ambiguity", "conflicting-evidence", "consequential-judgment"],
-      "minimum_capability": "F",
-      "minimum_effort": "high",
-      "reason": "open semantics, conflicting evidence, or consequential judgment requires frontier capability"
+      "id": "ordinary-judgment",
+      "any_signal": ["ambiguity", "causal-uncertainty", "consequential-judgment", "cross-boundary-impact", "independent-review", "interacting-unknowns"],
+      "minimum_profile": "P4",
+      "reason": "semantic or causal judgment needs Sol medium"
     },
     {
-      "id": "critical-engineering-risk",
-      "any_risk": ["authorization", "data-deletion", "ffi", "privacy", "regulated", "security", "unsafe"],
-      "minimum_capability": "F",
-      "minimum_effort": "high",
-      "reason": "critical engineering contracts require frontier capability and high checking depth"
+      "id": "disputed-reasoning",
+      "any_signal": ["conflicting-evidence", "deep-unresolved", "failed-sol-discrimination", "nondeterminism", "oracle-challenge"],
+      "minimum_profile": "P5",
+      "reason": "competing causes or an uncertain oracle needs Sol xhigh"
     },
     {
-      "id": "structured-engineering-risk",
-      "any_risk": ["abi", "concurrency", "migration", "persisted-data", "protocol", "public-api", "release", "rollback", "schema"],
-      "unless_all_signals": ["closed-scope", "confirmed-semantics", "deterministic-oracle"],
-      "minimum_capability": "F",
-      "minimum_effort": "high",
-      "reason": "an open structured engineering contract requires frontier judgment until semantics, scope, and oracle are closed"
+      "id": "compound-frontier-reasoning",
+      "all_signals": ["deep-unresolved", "interacting-unknowns", "cross-boundary-impact"],
+      "minimum_profile": "P6",
+      "reason": "deep unresolved reasoning, interacting unknowns, and cross-boundary impact justify Astra xhigh"
     },
     {
-      "id": "critical-acceptance",
-      "any_signal": ["data-loss-risk", "high-risk-acceptance", "irreversible"],
-      "minimum_capability": "F",
-      "minimum_effort": "xhigh",
-      "reason": "critical acceptance or irreversibility requires explicit P6-class scrutiny"
+      "id": "failed-sol-compound",
+      "all_signals": ["failed-sol-discrimination", "deep-unresolved"],
+      "minimum_profile": "P6",
+      "reason": "a documented Sol discrimination failure on unresolved reasoning justifies Astra xhigh"
     }
   ]
 }
