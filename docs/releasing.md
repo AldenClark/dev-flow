@@ -4,9 +4,9 @@ This runbook selects evidence from the changed surface. It separates implementat
 
 ## 2.0.0-rc.8 personal-assistant hardening candidate
 
-`v2.0.0-rc.7` is the latest public immutable RC tag. `v2.0.0-rc.7` is the rollback target for `2.0.0-rc.8`. RC.8 is a local source-candidate worktree, not a frozen commit, attested artifact, or published release. It changes model-facing guidance and the public CLI/runtime path, so the applicable publication tier is R2: affected semantic smoke, exact-SHA semantic CI, the focused Linux/macOS/Windows compatibility matrix, and isolated install/discovery/uninstall must be qualified on the final candidate. Model execution, commit, push, tag, publication, and installation each retain separate authority.
+`v2.0.0-rc.7` is the latest public immutable RC tag. `v2.0.0-rc.7` is the rollback target for `2.0.0-rc.8`. RC.8 has a local committed source candidate, not an attested artifact or published release. It changes model-facing guidance and the public CLI/runtime path, so the applicable publication tier is R2: affected semantic smoke, exact-SHA semantic CI, the focused Linux/macOS/Windows compatibility matrix, and isolated install/discovery/uninstall must be qualified on the final candidate. Model execution, push, tag, publication, and installation retain separate authority.
 
-Delivery state: commit=not-run; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+Delivery state: commit=passed; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
 
 ## 2.0.0-rc.7 personal-assistant hardening release
 

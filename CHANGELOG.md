@@ -8,7 +8,7 @@ Current candidate source identity: `2.0.0-rc.8`. Current workspace state: `devel
 
 ## [2.0.0-rc.8] - Unreleased
 
-RC.8 is a local source candidate based on the published RC.7 tag. No RC.8 commit, hosted CI, cross-platform matrix, attested artifact, public prerelease, or isolated marketplace installation has been claimed.
+RC.8 is a locally committed source candidate based on the published RC.7 tag. Hosted CI, cross-platform matrix, attested artifact, public prerelease, and published-tag marketplace installation have not yet been claimed.
 
 Independent clean-context review passed after finding and correcting an obsolete README child-model map; a registry-derived test now guards all eight published profiles. This review does not qualify model behavior, hosted platforms, artifacts, or installation.
 
