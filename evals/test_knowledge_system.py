@@ -18,7 +18,6 @@ import knowledge_system as ks  # noqa: E402
 
 
 SCRIPT = SCRIPTS / "knowledge_system.py"
-DEV_FLOW_SCRIPT = SCRIPTS / "dev_flow.py"
 
 
 def write_json(path: Path, value: object) -> None:
@@ -233,7 +232,7 @@ class KnowledgeSystemTests(unittest.TestCase):
             report = ks.validate_knowledge_system(root)
             self.assert_invalid(report, "repository-local ignore rule")
 
-    def test_linked_worktree_accepts_the_exact_local_exclude_written_by_init_packet(self) -> None:
+    def test_linked_worktree_accepts_the_exact_git_local_runtime_exclude(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             container = Path(temp)
             primary = container / "primary"
@@ -251,30 +250,8 @@ class KnowledgeSystemTests(unittest.TestCase):
                 result = subprocess.run(command, cwd=primary, check=False, capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
 
-            # The linked checkout must rely only on the Git-owned exclude that
-            # init-packet resolves through `git rev-parse --git-path`.
+            # A linked checkout must resolve Git's own local exclude path.
             (linked / ".gitignore").unlink()
-            initialized = subprocess.run(
-                [
-                    sys.executable,
-                    str(DEV_FLOW_SCRIPT),
-                    "init-packet",
-                    "--root",
-                    str(linked),
-                    "--change-id",
-                    "linked-ignore",
-                    "--task-type",
-                    "routine",
-                    "--objective",
-                    "Verify linked worktree ignore discovery",
-                    "--work-mode",
-                    "traced",
-                ],
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-            self.assertEqual(initialized.returncode, 0, initialized.stderr or initialized.stdout)
             exclude_result = subprocess.run(
                 ["git", "rev-parse", "--git-path", "info/exclude"],
                 cwd=linked,
@@ -286,6 +263,9 @@ class KnowledgeSystemTests(unittest.TestCase):
             exclude = Path(exclude_result.stdout.strip())
             if not exclude.is_absolute():
                 exclude = linked / exclude
+            exclude.parent.mkdir(parents=True, exist_ok=True)
+            existing = exclude.read_text(encoding="utf-8") if exclude.is_file() else ""
+            exclude.write_text(existing + "\n.codex/dev-flow/\n", encoding="utf-8")
             self.assertIn(".codex/dev-flow/", exclude.read_text(encoding="utf-8").splitlines())
 
             report = ks.validate_knowledge_system(linked)

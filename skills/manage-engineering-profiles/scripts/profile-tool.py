@@ -230,32 +230,6 @@ def record_waiver(args: argparse.Namespace) -> int:
     return emit({"status": "written", "target": str(target), "record": record})
 
 
-def record_suppression(args: argparse.Namespace) -> int:
-    if not re.fullmatch(r"sha256:[0-9a-f]{64}", args.fingerprint):
-        return emit({"status": "invalid", "errors": ["fingerprint must be sha256:<64 lowercase hex characters>"]}, 2)
-    record = {
-        "fingerprint": args.fingerprint,
-        "owner": args.owner,
-        "reason": args.reason,
-        "tiers": args.tier,
-        "expires_at": args.expires_at,
-    }
-    target = args.output.resolve()
-    existing: dict[str, Any] = {"schema_version": "1.0", "suppressions": []}
-    if target.is_file():
-        try:
-            existing = engineering_context.read_json(target)
-        except Exception as exc:
-            return emit({"status": "invalid", "errors": [str(exc)]}, 2)
-    if existing.get("schema_version") != "1.0" or not isinstance(existing.get("suppressions"), list):
-        return emit({"status": "invalid", "errors": ["suppression ledger must use schema_version 1.0 and a suppressions list"]}, 2)
-    proposed = {**existing, "suppressions": [*existing["suppressions"], record]}
-    if not args.write:
-        return emit({"status": "proposal", "target": str(target), "record": record, "ledger": proposed})
-    engineering_context.write_json(target, proposed)
-    return emit({"status": "written", "target": str(target), "record": record})
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -325,15 +299,6 @@ def build_parser() -> argparse.ArgumentParser:
     waiver_parser.add_argument("--write", action="store_true")
     waiver_parser.set_defaults(func=record_waiver)
 
-    suppress_parser = sub.add_parser("suppress")
-    suppress_parser.add_argument("--fingerprint", required=True)
-    suppress_parser.add_argument("--owner", required=True)
-    suppress_parser.add_argument("--reason", required=True)
-    suppress_parser.add_argument("--tier", action="append", choices=sorted(engineering_context.TIERS), default=[])
-    suppress_parser.add_argument("--expires-at")
-    suppress_parser.add_argument("--output", type=Path, required=True)
-    suppress_parser.add_argument("--write", action="store_true")
-    suppress_parser.set_defaults(func=record_suppression)
     return parser
 
 

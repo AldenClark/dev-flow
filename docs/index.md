@@ -24,8 +24,8 @@ This index routes contributors and agents to the smallest maintained knowledge o
 - [Dev Flow 2.0 RC.4](workstreams/dev-flow-2.0-rc.4/): RC.4 convergence and operations hardening requirements, design, implementation slices, decisions, audit, and current progress.
 - [Dev Flow 2.0 RC.5](workstreams/dev-flow-2.0-rc.5/): published personal-assistant-hardening release record.
 - [Dev Flow 2.0 RC.6](workstreams/dev-flow-2.0-rc.6/): published release record, delivery boundary, and evidence progress.
-- [Dev Flow 2.0 RC.7](workstreams/dev-flow-2.0-rc.7/): current main-Skill/professional-Skill implementation plan, representative behavior evaluation reference, evidence limits, and design progress.
-- [Dev Flow 2.0 RC.8 implementation](workstreams/dev-flow-2.0-rc.8/implementation.md): GPT-6 model routing, the five delivery-depth directions, implementation slices, and [current progress](workstreams/dev-flow-2.0-rc.8/progress.md). RC.8 is not a candidate or release.
+- [Dev Flow 2.0 RC.7](workstreams/dev-flow-2.0-rc.7/): published main-Skill/professional-Skill release history and evidence limits.
+- [Dev Flow 2.0 RC.8 implementation](workstreams/dev-flow-2.0-rc.8/implementation.md): GPT-6 model routing, the five delivery-depth directions, implementation slices, and [candidate progress](workstreams/dev-flow-2.0-rc.8/progress.md). RC.8 is a local source candidate, not a release.
 - [Release validation and benchmark separation](workstreams/dev-flow-2.0-benchmark-separation/): current stable-validation contract, independent Bench design, implementation, and evidence.
 - [Repository knowledge capability](workstreams/repository-knowledge/): repository-knowledge design, implementation, and evidence limits.
 

@@ -15,7 +15,6 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 FLOW = ROOT / "skills" / "dev-flow" / "scripts" / "dev-flow.py"
-LEGACY_FLOW = ROOT / "skills" / "dev-flow" / "scripts" / "dev_flow.py"
 DEV_FLOW_SKILL = ROOT / "skills" / "dev-flow" / "SKILL.md"
 QUALITY_CALIBRATION = ROOT / "skills" / "dev-flow" / "references" / "quality-calibration.md"
 VERIFICATION_SKILL = ROOT / "skills" / "verification" / "SKILL.md"
@@ -195,6 +194,24 @@ class RoutingTests(unittest.TestCase):
             self.assertEqual([item["skill"] for item in payload["routes"]], ["repo-context", "verification"])
             self.assertFalse(payload["continuity"]["documents_required"])
             self.assertEqual(list(root.iterdir()), before)
+
+    def test_read_only_legacy_intent_cannot_request_persistent_mutation(self) -> None:
+        result = run_flow("route-task", "--task-type", "read-only-audit", "--mutation", "persistent")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("cannot declare persistent mutation", result.stdout)
+
+    def test_current_route_keeps_ui_and_privacy_evidence_separate_from_packet_mode(self) -> None:
+        material = route("--task-type", "large-feature", "--ui-impact", "material", "--work-mode", "direct")
+        self.assertEqual(material["work_mode"], "direct")
+        self.assertEqual([item["overlay"] for item in material["risk_overlays"]], ["ui-product"])
+
+        privacy = route("--task-type", "routine", "--risk", "privacy")
+        self.assertEqual(privacy["work_mode"], "direct")
+        self.assertEqual([item["overlay"] for item in privacy["risk_overlays"]], ["security"])
+        self.assertNotIn("change-review", [item["skill"] for item in privacy["routes"]])
+
+        reviewed = route("--task-type", "routine", "--risk", "privacy", "--need", "review")
+        self.assertIn("change-review", [item["skill"] for item in reviewed["routes"]])
 
     def test_direct_work_can_request_durable_knowledge_without_managed_state(self) -> None:
         payload = route(
@@ -1535,7 +1552,7 @@ class ActiveGuidanceTests(unittest.TestCase):
 
     def test_method_selection_accepts_the_same_intent_vocabulary(self) -> None:
         result = subprocess.run(
-            [sys.executable, str(LEGACY_FLOW), "select-methods", "--phase", "design", "--intent", "change"],
+            [sys.executable, str(ROOT / "skills" / "dev-flow-maintainer" / "scripts" / "select-methods.py"), "--phase", "design", "--intent", "change"],
             cwd=ROOT,
             check=False,
             capture_output=True,

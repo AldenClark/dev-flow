@@ -113,6 +113,14 @@ def _markdown_h2_section(text: str, title: str) -> str | None:
     return text[heading.end() : end]
 
 
+def _current_changelog_scope(text: str, source_version: str) -> str:
+    headings = list(re.finditer(r"(?m)^## \[([^\]\n]+)\][^\n]*$", text))
+    for index, heading in enumerate(headings):
+        if heading.group(1) == source_version:
+            return text[: headings[index + 1].start()] if index + 1 < len(headings) else text
+    return text
+
+
 def _visible_markdown(text: str) -> str:
     without_comments = re.sub(r"<!--[\s\S]*?-->", "", text)
     visible: list[str] = []
@@ -439,7 +447,8 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
     if (
         isinstance(delivery, dict)
         and delivery.get("independent_review") != "passed"
-        and "Independent clean-context review passed" in changelog
+        and "Independent clean-context review passed"
+        in _current_changelog_scope(changelog, source_version)
     ):
         errors.append("changelog independent review claim outruns canonical delivery state")
 

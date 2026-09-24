@@ -4,7 +4,24 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Latest published source identity: `2.0.0-rc.7`. Current workspace state: `development` from `v2.0.0-rc.7`. Stable `2.0.0` remains intentionally deferred.
+Current candidate source identity: `2.0.0-rc.8`. Current workspace state: `development` from `v2.0.0-rc.7`. Stable `2.0.0` remains intentionally deferred.
+
+## [2.0.0-rc.8] - Unreleased
+
+RC.8 is a local source candidate based on the published RC.7 tag. No RC.8 commit, hosted CI, cross-platform matrix, attested artifact, public prerelease, or isolated marketplace installation has been claimed.
+
+Independent clean-context review passed after finding and correcting an obsolete README child-model map; a registry-derived test now guards all eight published profiles. This review does not qualify model behavior, hosted platforms, artifacts, or installation.
+
+### Changed
+
+- Migrated active child-agent routing from GPT-5.6 to GPT-6 Luna/Sol/Astra with task-relative effort, compound Astra escalation, explicit host-availability limits, and no silent fallback. The development paired evaluator uses GPT-6 Sol; RC.7 acceptance evidence remains historical.
+- Shortened unconditional workflow guidance and made material user choices, bounded exploration, terminal reconciliation, scope changes, and stale child results explicit.
+- Strengthened project-native outcome oracles and the final-bytes-to-target delivery evidence chain without inferring device or production success from host tests.
+- Kept the public 2.0 CLI at 17 commands while removing unsupported packet lifecycle code, packet-only tests, obsolete readiness assessment, and an inert profile-suppression writer. Preserved historical data and still-used templates.
+
+### Verification
+
+- Local deterministic and structural checks are tracked in the [RC.8 progress record](docs/workstreams/dev-flow-2.0-rc.8/progress.md). Exact-commit hosted, model-semantic, artifact, publication, and target-installation results remain separate.
 
 ## [2.0.0-rc.7] - 2026-09-03
 

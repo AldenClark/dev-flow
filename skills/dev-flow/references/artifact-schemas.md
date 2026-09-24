@@ -67,7 +67,7 @@ Governed files split the same chain:
 
 Before verifying, `knowledge_manifest` is mandatory: `none` binds only rationale; `add|update|deprecate` binds root, dossier `manifest.json`, and SHA-256. Structural validation must pass. Acceptance also needs terminal dossier status/disposition.
 
-Only root writes core packet state and owns claims. Child briefs/results bind baselines and ownership; terminal child state is not root completion. In 1.x, `current` activated process Hooks; Dev Flow 2.0 no longer registers those Hooks and treats the pointer only as explicit legacy CLI state. `deactivate-packet` removes only a matching terminal regular-file pointer and preserves the packet.
+Only root writes core packet state and owns claims. Child briefs/results bind baselines and ownership; terminal child state is not root completion. In 1.x, `current` activated process Hooks. Dev Flow 2.0 no longer registers those Hooks; packet terminal commands are unsupported historical behavior, and this schema is not a current operation guide.
 
 ## Identifiers and evidence
 

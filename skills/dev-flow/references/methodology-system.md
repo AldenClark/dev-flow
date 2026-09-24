@@ -45,8 +45,8 @@ An invalid task-facing signal or risk returns the canonical values, accepted ali
 The machine-readable pool is `governance/methodology-pool.json`. The lower-level selector is for pool maintenance or an explicit methodology study, not the ordinary runtime entry:
 
 ```text
-python3 skills/dev-flow/scripts/dev_flow.py validate-methods
-python3 skills/dev-flow/scripts/dev_flow.py select-methods \
+python3 skills/dev-flow/scripts/dev-flow.py validate-methods
+python3 skills/dev-flow-maintainer/scripts/select-methods.py \
   --phase design \
   --intent change \
   --risk public-api \
@@ -56,7 +56,7 @@ python3 skills/dev-flow/scripts/dev_flow.py select-methods \
   --depth deep
 ```
 
-Its `--root` identifies the Dev Flow methodology source repository, never the target product repository. A standalone selection is advisory, ephemeral, and non-persisted. It is not a workstream artifact, approval, checkpoint, or verification result. Persist only a resulting durable design decision, test strategy, or finding when a future maintainer needs it.
+Its `--root` identifies the Dev Flow methodology source repository, never the target product repository. `--method-task-type` can narrow an explicit maintainer study without reviving the 1.x packet CLI. A standalone selection is advisory, ephemeral, and non-persisted. It is not a workstream artifact, approval, checkpoint, or verification result. Persist only a resulting durable design decision, test strategy, or finding when a future maintainer needs it.
 
 `record-methods` is unsupported 1.x residue. Do not invoke it for 2.0 direct or managed work.
 

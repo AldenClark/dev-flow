@@ -205,8 +205,8 @@ class ProductStateTests(unittest.TestCase):
     def test_repository_product_state_is_valid(self) -> None:
         result = VALIDATOR.validate(ROOT)
         self.assertEqual(result["status"], "valid", result["errors"])
-        self.assertEqual(result["source_version"], "2.0.0-rc.7")
-        self.assertEqual(result["source_phase"], "released")
+        self.assertEqual(result["source_version"], "2.0.0-rc.8")
+        self.assertEqual(result["source_phase"], "source-candidate")
         self.assertEqual(result["workspace_phase"], "development")
         self.assertEqual(result["workspace_base"], "v2.0.0-rc.7")
         self.assertEqual(result["published_version"], "2.0.0-rc.7")
@@ -504,6 +504,19 @@ class ProductStateTests(unittest.TestCase):
                 stream.write("Independent clean-context review passed\n")
             result = VALIDATOR.validate(target, check_git=False)
         self.assertIn("changelog independent review claim outruns canonical delivery state", result["errors"])
+
+    def test_candidate_does_not_inherit_historical_review_claim(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            state = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
+            state["delivery"]["independent_review"] = "not-run"
+            write_fixture(target, state)
+            with (target / "CHANGELOG.md").open("a", encoding="utf-8") as stream:
+                stream.write("\n## [2.0.0-rc.8] - Unreleased\nCandidate review pending.\n")
+                stream.write("\n## [2.0.0-rc.7] - 2026-09-03\n")
+                stream.write("Independent clean-context review passed for RC.7.\n")
+            result = VALIDATOR.validate(target, check_git=False)
+        self.assertEqual(result["status"], "valid", result["errors"])
 
     def test_released_rc_keeps_previous_known_good_rollback(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

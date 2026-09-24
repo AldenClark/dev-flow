@@ -30,7 +30,7 @@ Do not store exact installed versions, advisories, popularity, or “latest” c
 
 ## Maintain a profile only with authority
 
-For a create, change, promotion, retirement, suppression, or waiver, establish target layer, owner, scope, and write authority. Use the CLI without `--write` to show a review-first proposal unless the current request already authorizes that exact action. Validate all affected modes, including clean-profile invariance for team-reproducible and CI resolution. Promote from named trial evidence plus owner approval; retire without erasing history.
+For a create, change, promotion, retirement, or waiver, establish target layer, owner, scope, and write authority. Use the CLI without `--write` to show a review-first proposal unless the current request already authorizes that exact action. Validate all affected modes, including clean-profile invariance for team-reproducible and CI resolution. Promote from named trial evidence plus owner approval; retire without erasing history.
 
 Use `references/quality-policy.md` only when defining code-quality outcomes or specialist capability requirements. The Rust example is inactive and must be reviewed entry by entry before use.
 
@@ -46,7 +46,6 @@ python3 scripts/profile-tool.py explain --root <repo> --path <path> --fact langu
 python3 scripts/profile-tool.py scaffold --id <id> --layer project --owner <owner> --output <path>
 python3 scripts/profile-tool.py scaffold-manifest --root <repo> --profile-path profiles/project.toml --profile-id <id> --layer project
 python3 scripts/profile-tool.py agents-projection --root <repo>
-python3 scripts/profile-tool.py suppress --fingerprint <sha256> --owner <owner> --reason <reason> --tier T1 --output <repo>/.dev-flow/suppressions.json
 ```
 
 Add `--write` only after the exact action is authorized or the owner approves the shown artifact.

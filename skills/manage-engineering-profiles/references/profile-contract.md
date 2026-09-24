@@ -30,7 +30,6 @@ ${CODEX_HOME}/dev-flow/profiles/*.toml
 <repo>/.dev-flow/preferences.toml
 <repo>/.dev-flow/profiles/*.toml
 <repo>/.dev-flow/decisions/PREF-*.json
-<repo>/.dev-flow/suppressions.json
 <caller-selected-output>/effective-preferences.json  # optional replaceable audit output
 ```
 
@@ -73,8 +72,6 @@ Block only unresolved applicable `must` conflicts, invalid required sources, or 
 - Validate preference exceptions against `preference-decision-schema.json`; expired, malformed, out-of-scope, or wrong-key records never authorize a `must` override.
 - Recheck on recorded ecosystem, project, exception, or contract triggers.
 - Retire without rewriting history.
-
-Reminder suppression is not policy and never resolves an applicable `must` conflict. When suppression output is explicitly requested, bind it to the resolved profile fingerprint, owner, reason, scope, and optional expiry; re-evaluate when the resolved inputs change.
 
 ## AGENTS projection
 

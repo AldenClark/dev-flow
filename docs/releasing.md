@@ -2,6 +2,12 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
+## 2.0.0-rc.8 personal-assistant hardening candidate
+
+`v2.0.0-rc.7` is the latest public immutable RC tag. `v2.0.0-rc.7` is the rollback target for `2.0.0-rc.8`. RC.8 is a local source-candidate worktree, not a frozen commit, attested artifact, or published release. It changes model-facing guidance and the public CLI/runtime path, so the applicable publication tier is R2: affected semantic smoke, exact-SHA semantic CI, the focused Linux/macOS/Windows compatibility matrix, and isolated install/discovery/uninstall must be qualified on the final candidate. Model execution, commit, push, tag, publication, and installation each retain separate authority.
+
+Delivery state: commit=not-run; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+
 ## 2.0.0-rc.7 personal-assistant hardening release
 
 `v2.0.0-rc.7` is the latest public immutable RC tag. `v2.0.0-rc.6` is the rollback target for `2.0.0-rc.7`. RC.7 turns the lifecycle into a thin adaptive guide, strengthens every professional Skill and its discovery contract, keeps durable results in canonical repository owners, expands project-native test-system guidance and sensitive black/white-box evidence, and removes the obsolete reviewer-spawn authorization gate without widening any descendant action boundary. Final core-scope clean-context review, exact-commit hosted semantic CI, the Linux/macOS/Windows compatibility matrix, archive/SBOM/provenance verification, public prerelease publication, and isolated install/discovery/uninstall all passed for candidate `3c610e4ccff70ecbd736bc21df560c57dc3b5e00`.
@@ -97,14 +103,14 @@ For an R3 change, two local builds can establish deterministic behavior before h
 ```bash
 git rev-parse HEAD
 python3 tools/build_release.py build \
-  --root . --output dist-a --version 2.0.0-rc.7 --commit FULL_COMMIT_SHA
+  --root . --output dist-a --version 2.0.0-rc.8 --commit FULL_COMMIT_SHA
 python3 tools/build_release.py build \
-  --root . --output dist-b --version 2.0.0-rc.7 --commit FULL_COMMIT_SHA
-cmp dist-a/dev-flow-2.0.0-rc.7.tar.gz dist-b/dev-flow-2.0.0-rc.7.tar.gz
+  --root . --output dist-b --version 2.0.0-rc.8 --commit FULL_COMMIT_SHA
+cmp dist-a/dev-flow-2.0.0-rc.8.tar.gz dist-b/dev-flow-2.0.0-rc.8.tar.gz
 cmp dist-a/release-manifest.json dist-b/release-manifest.json
 cmp dist-a/SHA256SUMS dist-b/SHA256SUMS
 python3 tools/build_release.py verify \
-  --artifact-dir dist-a --expected-version 2.0.0-rc.7 --expected-commit FULL_COMMIT_SHA
+  --artifact-dir dist-a --expected-version 2.0.0-rc.8 --expected-commit FULL_COMMIT_SHA
 ```
 
 Determinism is asserted within the pinned environment. Promotion reuses attested bytes instead of rebuilding on another zlib/toolchain version.
@@ -115,17 +121,17 @@ After applicable exact-SHA CI is green:
 
 ```bash
 gh workflow run release-candidate.yml \
-  --ref main -f version=2.0.0-rc.7 -f expected_sha=FULL_COMMIT_SHA
+  --ref main -f version=2.0.0-rc.8 -f expected_sha=FULL_COMMIT_SHA
 ```
 
 The workflow has `contents: read`, `id-token: write`, and `attestations: write`. It has no release-publication permission. After download:
 
 ```bash
 python3 tools/build_release.py verify \
-  --artifact-dir dist --expected-version 2.0.0-rc.7 --expected-commit FULL_COMMIT_SHA
-gh attestation verify dist/dev-flow-2.0.0-rc.7.tar.gz \
+  --artifact-dir dist --expected-version 2.0.0-rc.8 --expected-commit FULL_COMMIT_SHA
+gh attestation verify dist/dev-flow-2.0.0-rc.8.tar.gz \
   --repo AldenClark/dev-flow
-gh attestation verify dist/dev-flow-2.0.0-rc.7.tar.gz \
+gh attestation verify dist/dev-flow-2.0.0-rc.8.tar.gz \
   --repo AldenClark/dev-flow \
   --predicate-type https://spdx.dev/Document/v2.3
 ```

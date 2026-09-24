@@ -89,7 +89,7 @@ def route_agent_command(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = dev_flow.build_parser(supported_only=True)
+    parser = dev_flow.build_parser()
     subparsers = next(
         action
         for action in parser._actions
@@ -112,13 +112,17 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Iterable[str] | None = None) -> int:
     raw_argv = list(argv) if argv is not None else sys.argv[1:]
     if raw_argv and raw_argv[0] in INTERNAL_COMMANDS:
+        guidance = (
+            "ordinary tasks use route-task; explicit methodology-pool studies use "
+            "skills/dev-flow-maintainer/scripts/select-methods.py"
+            if raw_argv[0] == "select-methods"
+            else "legacy command is unsupported; use a repository workstream or a supported 2.0 command"
+        )
         return dev_flow.emit(
             {
                 "status": "unsupported",
                 "command": raw_argv[0],
-                "errors": [
-                    "packet-era command is internal unsupported residue; use a repository workstream or a supported 2.0 command"
-                ],
+                "errors": [guidance],
                 "supported_commands": list(PUBLIC_COMMANDS),
             },
             2,

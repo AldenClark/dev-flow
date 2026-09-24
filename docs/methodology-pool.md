@@ -167,13 +167,13 @@ python3 skills/dev-flow/scripts/dev-flow.py route-task \
   --method-prerequisite test-oracle --compact
 ```
 
-`--method-prerequisite` 必须有当前证据，不是愿望清单。输出只用于解释当前路由、被阻塞的方法与 fallback；不要求落盘。`select-methods` 和 `record-methods` 是已退出公共 CLI 的 1.x 内部兼容能力，只能在历史实现与历史记录中解释，不能作为当前操作命令。
+`--method-prerequisite` 必须有当前证据，不是愿望清单。输出只用于解释当前路由、被阻塞的方法与 fallback；不要求落盘。`record-methods` 是已退出公共 CLI 的 1.x packet 内部残留，不能作为当前操作命令；显式方法池维护研究使用独立的 `skills/dev-flow-maintainer/scripts/select-methods.py`。
 
 2.0 `route-task` 是普通任务的集成入口：它接受八个稳定 canonical signals，并把 `concurrency-ordering`、`distributed-state`、`migration-rollback` 等常见说法归一化；当调用方只给出 concurrency、migration、security/privacy、persisted-data 等风险而没有 signal 时，派生最小基础 signal。`data-loss` 作为 task-facing 风险别名映射到 `persisted-data`。canonical signal、方法 ID 和低层 `method.selection.v1` 不变。
 
 Task-facing 投影分别限制 ready 与 blocked：最多给出三个可执行 guidance 和两个直接相关的缺前提 fallback；blocked 不占 ready 名额。若 change/implementation 阶段没有匹配方法，但 signal 明确属于 requirements、diagnosis、design 或 verification owner，route 会选择相邻 owner phase，而不是返回空的 implementation 结果。宽 security 不会单独引出隐私方法，persistent-agent-memory 需要 agentic system 与 memory-store 证据，多 Agent 方法需要真实 delegation signal。若仍没有可执行或直接相关的 blocked 方法，结果明确为 `no-actionable-match` 并回退到 owner Skill，而不是用一个无关名称假装覆盖。
 
-独立 `select-methods` 仍可做显式维护研究；旧 packet 的 `record-methods` 和风险翻译继续作为兼容接口。
+独立维护选择器仍可做显式方法池研究；旧 packet 的 `record-methods` 和风险翻译仅作内部历史兼容，不是 2.0 任务入口。
 
 ## 扩展治理
 

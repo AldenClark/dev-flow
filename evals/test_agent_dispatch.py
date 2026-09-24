@@ -156,6 +156,19 @@ class AgentDispatchBlackBoxTests(unittest.TestCase):
 
 
 class AgentDispatchWhiteBoxTests(unittest.TestCase):
+    def test_readme_dispatch_summary_matches_registry(self) -> None:
+        registry = agent_dispatch.load_registry(REGISTRY)
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        summary = next(line for line in readme.splitlines() if line.startswith("子任务模型以"))
+        models = {
+            name: details["model"].removeprefix("gpt-6-").capitalize()
+            for name, details in registry["runtime"]["capabilities"].items()
+        }
+        for profile in registry["profiles"]:
+            expected = f"{profile['id']}={models[profile['capability']]} {profile['reasoning_effort']}"
+            with self.subTest(profile=profile["id"]):
+                self.assertIn(expected, summary)
+
     def test_registry_is_exact_and_profiles_are_orthogonal(self) -> None:
         registry = agent_dispatch.load_registry(REGISTRY)
         profiles = {item["id"]: item for item in registry["profiles"]}

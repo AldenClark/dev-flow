@@ -5,7 +5,7 @@
 - Knowledge ID: `KT-DEV-FLOW-GOVERNANCE`
 - Owner: Dev Flow maintainers.
 - Review triggers: a change to routing, continuity, risk overlays, Hooks, knowledge ownership, verification, compatibility, or release policy.
-- Source anchors: [product state](../../governance/product-state.json), [plugin manifest](../../.codex-plugin/plugin.json), [main Skill](../../skills/dev-flow/SKILL.md), [public CLI](../../skills/dev-flow/scripts/dev-flow.py), [Hook manifest](../../hooks/hooks.json), [release model](../releasing.md), and [RC.7 workstream](../workstreams/dev-flow-2.0-rc.7/). The immutable [RC.6 workstream](../workstreams/dev-flow-2.0-rc.6/) remains published history.
+- Source anchors: [product state](../../governance/product-state.json), [plugin manifest](../../.codex-plugin/plugin.json), [main Skill](../../skills/dev-flow/SKILL.md), [public CLI](../../skills/dev-flow/scripts/dev-flow.py), [Hook manifest](../../hooks/hooks.json), [release model](../releasing.md), and the [RC.8 development workstream](../workstreams/dev-flow-2.0-rc.8/). The immutable [RC.7 workstream](../workstreams/dev-flow-2.0-rc.7/) remains published history.
 
 ## Current truth
 
@@ -31,7 +31,7 @@ Release evidence is selected by changed surface: R1 standard, R2 runtime, or R3 
 
 ## Legacy compatibility
 
-Explicit packet, method, knowledge, profile, and evaluation CLI surfaces remain readable and validatable for existing 1.x data. Legacy packet state is inert for 2.0 work and cannot block implementation. Historical dossiers under `docs/changes` retain the rationale and evidence for earlier versions; they are not current workflow instructions.
+The public 2.0 CLI does not load, validate, mutate, or reactivate 1.x packet state. Historical methodology and knowledge data retain their supported validation commands; engineering-profile operations remain separate from packet readiness. Legacy packet state is inert for 2.0 work and cannot block implementation. Historical dossiers under `docs/changes` retain the rationale and evidence for earlier versions; they are not current workflow instructions.
 
 The following records remain useful source history:
 

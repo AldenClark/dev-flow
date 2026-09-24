@@ -2,7 +2,7 @@
 
 Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是建立第二套工作流引擎，而是用最少的流程成本保持三件事：长期业务工作不漂移、技术结论有原生工程证据、高后果动作保留明确安全边界。
 
-已发布源码身份为 `2.0.0-rc.7`。当前工作区处于 `development` 状态，基于 `v2.0.0-rc.7`。`v2.0.0-rc.7` 是最近已发布且可固定安装的标签，回滚目标为 `v2.0.0-rc.6`。RC.7 在 RC.6 上把全生命周期指导、专业 Skill 发现、文档连续性、测试体系和无需额外授权的安全子代理派发落实为可执行能力；完整重复模型研究仍不作为 RC 门禁。`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
+候选源码身份为 `2.0.0-rc.8`。当前工作区处于 `development` 状态，基于 `v2.0.0-rc.7`。`v2.0.0-rc.7` 是最近已发布且可固定安装的标签，回滚目标为 `v2.0.0-rc.7`。RC.8 在 RC.7 上调整 GPT-6 模型分配、目标连续性、项目原生反馈和交付证据，并清理不受支持的 packet 内部；候选源码尚未通过发布交付门槛。`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
 
 ## 2.0 核心模型
 
@@ -158,7 +158,7 @@ python3 skills/dev-flow/scripts/dev-flow.py route-task \
 
 方法论不会以“选中了几个方法”作为质量指标。高价值验证、测试、评审和审计场景需要形成一次明确处置：执行已就绪方法、对受阻方法执行 fallback 并保留限制，或因 owner Skill 的原生程序已足够而合理弃用。真正的落地必须改变测试/oracle、反例、状态或兼容模型、评审攻击面、证据矩阵或最终 claim 限制。
 
-子任务模型以闭合度和后果而不是工作量或价格单独决定：P0-P2 分别使用 Luna low/medium/high 处理精确、机械或已确认且有确定性 oracle 的工作；P3-P4 使用 Terra medium/high 处理普通探索、因果分析和常规取舍；P5-P6 使用 Sol high/xhigh 处理开放的跨组件契约和高后果审查/验收；PX Sol max 仅用于显式评估并确认的例外。根上下文不会仅为使用廉价模型而创建子代理。
+子任务模型以语义不确定性和上下文广度决定，风险仍交给验证与交付证据处理：P0=Luna low、P1=Luna medium、P2=Luna high、P3=Luna xhigh 适用于从精确查找到语义已闭合的多步工作；P4=Sol medium 是日常编码、普通诊断和评审默认档，P5=Sol xhigh 处理证据冲突或跨组件契约；P6=Astra xhigh 只处理交织未知量的深层未决推理，PX=Astra max 仅用于显式评估并确认的例外。根上下文不会仅为使用廉价模型而创建子代理。
 
 ## 专业 Skills
 
@@ -213,7 +213,7 @@ python3 skills/dev-flow/scripts/dev-flow.py outcomes summary
 
 ## 2.0 破坏性切换
 
-2.0 不提供 1.x packet、状态、命令、安装布局或工作流的兼容承诺，也不提供自动迁移、升级或回滚路径。旧 `.codex/dev-flow/current` 不得阻断 2.0 的搜索、修改、测试、委派或最终回复；需要保留的历史文件由使用者自行归档。源码中暂时仍存在的旧 reader、validator 或 CLI 只属于未公开内部遗留，不是 2.0 公共接口，可在后续版本直接删除。
+2.0 不提供 1.x packet、状态、命令、安装布局或工作流的兼容承诺，也不提供自动迁移、升级或回滚路径。旧 `.codex/dev-flow/current` 不得阻断 2.0 的搜索、修改、测试、委派或最终回复；需要保留的历史文件由使用者自行归档。RC.8 开发源码已移除旧 packet 命令和内部生命周期；历史方法与知识数据的校验入口仍保留，但不恢复 packet 工作流。
 
 ## 安装
 
@@ -251,6 +251,7 @@ CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job �
 
 ## 版本和发布状态
 
+- `2.0.0-rc.8` 是当前候选源码身份；本地验证不能继承 RC.7 的 CI、兼容、制品、证明、安装或公开预发布结论。
 - `v2.0.0-rc.7` 是最近已发布且可固定安装的 personal-assistant-hardening RC；它的 CI、兼容、制品、证明、隔离安装和公开预发布证据只属于该不可变标签。
 - `v2.0.0-rc.6` 是 RC.7 的固定回滚标签；RC.6 的交付证据仍只属于它自身。
 - `v2.0.0-rc.2` 是上一 activation-hardening RC，也是 RC.3 的可固定安装回滚标签。
@@ -258,4 +259,4 @@ CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job �
 - `v1.1.2` 是最后一个 1.x 稳定标签；1.1.3 只存在于未发布源码历史，2.0 不提供 1.x 兼容或迁移保证。
 - 源码、commit、push、tag、GitHub Release、Marketplace 安装和生产使用是不同状态；只有逐项执行和复核后才能声称完成。
 
-RC.7 的实施与当前证据边界位于 [docs/workstreams/dev-flow-2.0-rc.7](docs/workstreams/dev-flow-2.0-rc.7/)；RC.6 的已发布历史位于 [docs/workstreams/dev-flow-2.0-rc.6](docs/workstreams/dev-flow-2.0-rc.6/)。发布验证与独立 Bench 的拆分位于 [docs/workstreams/dev-flow-2.0-benchmark-separation](docs/workstreams/dev-flow-2.0-benchmark-separation/)，2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)，历史版本见 [CHANGELOG.md](CHANGELOG.md)。
+RC.8 的实施与当前证据边界位于 [docs/workstreams/dev-flow-2.0-rc.8](docs/workstreams/dev-flow-2.0-rc.8/)；RC.7 的已发布历史位于 [docs/workstreams/dev-flow-2.0-rc.7](docs/workstreams/dev-flow-2.0-rc.7/)。发布验证与独立 Bench 的拆分位于 [docs/workstreams/dev-flow-2.0-benchmark-separation](docs/workstreams/dev-flow-2.0-benchmark-separation/)，2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)，历史版本见 [CHANGELOG.md](CHANGELOG.md)。

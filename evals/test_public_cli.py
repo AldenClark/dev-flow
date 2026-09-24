@@ -54,16 +54,13 @@ class PublicCliTests(unittest.TestCase):
         internal_subparsers = next(
             action for action in internal_parser._actions if action.dest == "command"
         )
-        self.assertEqual(
-            set(internal_subparsers.choices),
-            set(PUBLIC.PUBLIC_COMMANDS) | set(PUBLIC.INTERNAL_COMMANDS),
-        )
+        self.assertEqual(set(internal_subparsers.choices), set(PUBLIC.PUBLIC_COMMANDS))
         help_result = run(FLOW, "--help")
         self.assertEqual(help_result.returncode, 0, help_result.stderr)
         for command in PUBLIC.INTERNAL_COMMANDS:
             self.assertNotIn(command, help_result.stdout)
 
-    def test_packet_command_is_structurally_unsupported_but_internal_regression_remains(self) -> None:
+    def test_packet_command_is_structurally_unsupported_in_both_entrypoints(self) -> None:
         public = run(FLOW, "init-packet")
         self.assertEqual(public.returncode, 2)
         payload = json.loads(public.stdout)
@@ -71,7 +68,32 @@ class PublicCliTests(unittest.TestCase):
         self.assertNotIn("init-packet", payload["supported_commands"])
         internal = run(LEGACY, "--help")
         self.assertEqual(internal.returncode, 0)
-        self.assertIn("init-packet", internal.stdout)
+        self.assertNotIn("init-packet", internal.stdout)
+
+    def test_retired_assess_context_cannot_run_through_either_entry(self) -> None:
+        public = run(FLOW, "assess-context")
+        self.assertEqual(public.returncode, 2)
+        self.assertEqual(json.loads(public.stdout)["status"], "unsupported")
+        internal = run(LEGACY, "assess-context", "--help")
+        self.assertEqual(internal.returncode, 2)
+        self.assertNotIn("Assess task-relative Engineering Context Readiness", internal.stdout)
+
+    def test_maintainer_selector_no_longer_uses_legacy_entry(self) -> None:
+        public = run(FLOW, "select-methods")
+        payload = json.loads(public.stdout)
+        self.assertEqual(payload["status"], "unsupported")
+        self.assertIn("skills/dev-flow-maintainer/scripts/select-methods.py", payload["errors"][0])
+        direct = run(LEGACY, "select-methods", "--help")
+        self.assertEqual(direct.returncode, 2)
+
+    def test_retired_packet_terminal_commands_are_not_executable(self) -> None:
+        for command in ("archive-packet", "deactivate-packet", "audit-preferences"):
+            with self.subTest(command=command):
+                public = run(FLOW, command)
+                self.assertEqual(public.returncode, 2)
+                self.assertEqual(json.loads(public.stdout)["status"], "unsupported")
+                direct = run(LEGACY, command, "--help")
+                self.assertEqual(direct.returncode, 2)
 
     def test_supported_route_uses_compact_rc8_contract(self) -> None:
         result = run(FLOW, "route-task", "--intent", "change", "--compact")
