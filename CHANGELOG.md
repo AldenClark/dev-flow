@@ -4,11 +4,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Current candidate source identity: `2.0.0-rc.8`. Current workspace state: `development` from `v2.0.0-rc.7`. Stable `2.0.0` remains intentionally deferred.
+Latest published source identity: `2.0.0-rc.8`. Current workspace state: `development` from `v2.0.0-rc.8`. Stable `2.0.0` remains intentionally deferred.
 
-## [2.0.0-rc.8] - Unreleased
+## [2.0.0-rc.8] - 2026-09-25
 
-RC.8 is a locally committed source candidate based on the published RC.7 tag. Hosted CI, cross-platform matrix, attested artifact, public prerelease, and published-tag marketplace installation have not yet been claimed.
+The immutable `v2.0.0-rc.8` tag and public prerelease are published from candidate `503f5e487580afed9fb905130c4206e1e018ed1d`. Exact-commit hosted CI, the Linux/macOS/Windows matrix, archive/SBOM/provenance verification, and isolated public-tag install/discovery/uninstall passed. Stable `2.0.0` remains separate.
 
 Independent clean-context review passed after finding and correcting an obsolete README child-model map; a registry-derived test now guards all eight published profiles. This review does not qualify model behavior, hosted platforms, artifacts, or installation.
 
@@ -21,7 +21,7 @@ Independent clean-context review passed after finding and correcting an obsolete
 
 ### Verification
 
-- Local deterministic and structural checks are tracked in the [RC.8 progress record](docs/workstreams/dev-flow-2.0-rc.8/progress.md). Exact-commit hosted, model-semantic, artifact, publication, and target-installation results remain separate.
+- Local deterministic and structural checks are tracked in the [RC.8 progress record](docs/workstreams/dev-flow-2.0-rc.8/progress.md). A GPT-6 Sol ordinary-conversation negative control completed and matched. The deep-implementation positive smoke exhausted the bounded Bench budget on turn two, and the unchanged-follow-up negative case has no complete App-CLI result. Those two cases are `WAIVED` for this RC prerelease, not passed; live Luna/Astra comparison and stable semantic qualification remain `NOT RUN`.
 
 ## [2.0.0-rc.7] - 2026-09-03
 

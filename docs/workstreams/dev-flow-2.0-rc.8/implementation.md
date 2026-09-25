@@ -1,6 +1,6 @@
 # Dev Flow 2.0 RC.8 implementation plan
 
-> Status: implemented in the source-candidate worktree for `2.0.0-rc.8`; committed locally, not published. `governance/product-state.json` remains the authority for current product and delivery state. [Progress and audit disposition](progress.md) records what has actually run.
+> Status: released as `v2.0.0-rc.8`; `governance/product-state.json` remains the authority for current product and delivery state. [Progress and audit disposition](progress.md) records what has actually run.
 
 RC.8 deepens the existing technology-neutral Dev Flow lifecycle so an agent reaches the user's observable outcome, retains the target through steering and context changes, and reports the right environment evidence. It also migrates the active GPT-5.6 child-agent routing to GPT-6 without treating model size as a proxy for risk. This is a bounded evolution of the existing owners, not a new workflow, skill catalog, Bench project, or universal project runner.
 

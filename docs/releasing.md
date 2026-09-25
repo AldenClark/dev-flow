@@ -2,11 +2,11 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
-## 2.0.0-rc.8 personal-assistant hardening candidate
+## 2.0.0-rc.8 personal-assistant hardening release
 
-`v2.0.0-rc.7` is the latest public immutable RC tag. `v2.0.0-rc.7` is the rollback target for `2.0.0-rc.8`. RC.8 has a local committed source candidate, not an attested artifact or published release. It changes model-facing guidance and the public CLI/runtime path, so the applicable publication tier is R2: affected semantic smoke, exact-SHA semantic CI, the focused Linux/macOS/Windows compatibility matrix, and isolated install/discovery/uninstall must be qualified on the final candidate. Model execution, push, tag, publication, and installation retain separate authority.
+`v2.0.0-rc.8` is the latest public immutable RC tag, from candidate `503f5e487580afed9fb905130c4206e1e018ed1d`. `v2.0.0-rc.7` is the rollback target for `2.0.0-rc.8`. The R2 exact-SHA semantic CI and focused Linux/macOS/Windows compatibility matrix passed in [run 36098484599](https://github.com/AldenClark/dev-flow/actions/runs/36098484599). [Run 36098724832](https://github.com/AldenClark/dev-flow/actions/runs/36098724832) built the archive, non-empty SPDX 2.3 SBOM, checksums, and provenance/SBOM attestations; downloaded bytes verified against the commit and public release assets. The annotated tag, [public prerelease](https://github.com/AldenClark/dev-flow/releases/tag/v2.0.0-rc.8), and isolated public-tag install/discovery/uninstall with 15 Skills passed. The maintainer's primary Codex plugin is separately observed at RC.8. A bounded GPT-6 Sol ordinary-conversation negative control matched; the deep-implementation positive case exhausted the Bench token budget on turn two, and the unchanged-follow-up negative case lacks a complete App-CLI result. Both are `WAIVED` for this RC prerelease, not passed. Luna/Astra comparison, stable qualification, and production effect remain `NOT RUN`.
 
-Delivery state: commit=passed; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+Delivery state: commit=passed; hosted_ci=passed; cross_platform=passed; independent_review=passed; tag=passed; artifact=passed; publication=passed; isolated_install=passed.
 
 ## 2.0.0-rc.7 personal-assistant hardening release
 
