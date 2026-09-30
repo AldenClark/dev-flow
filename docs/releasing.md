@@ -2,13 +2,13 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
-## 2.0.0-rc.9 personal-assistant hardening candidate
+## 2.0.0-rc.9 personal-assistant hardening release
 
-`2.0.0-rc.9` updates active P4/P5 routing and root guidance to GPT-6.1 Sol while retaining Luna/Astra tiers, efforts, compound escalation, and exact-host/no-silent-fallback boundaries. `v2.0.0-rc.8` is the latest public immutable RC tag. `v2.0.0-rc.8` is the rollback target for `2.0.0-rc.9`.
+`2.0.0-rc.9` updates active P4/P5 routing and root guidance to GPT-6.1 Sol while retaining Luna/Astra tiers, efforts, compound escalation, and exact-host/no-silent-fallback boundaries. `v2.0.0-rc.9` is the latest public immutable RC tag, from `5d4a569dcbbb67fb21cbc7945945597e342151b5`, with a [public prerelease](https://github.com/AldenClark/dev-flow/releases/tag/v2.0.0-rc.9). `v2.0.0-rc.8` is the rollback target for `2.0.0-rc.9`.
 
 The user explicitly authorized direct RC.9 publication and the primary-profile installation update without rerunning tests or verification. Tests, hosted CI, cross-platform checks, independent review, affected semantic smoke, and isolated-install checks are waived, never passed. The local builder creates the source archive, release manifest, and checksums only; archive verification, SBOM, attestations, and live-model qualification are not run. Earlier development checks do not qualify the final version/release-state edits. Publication and primary installation remain separately observable actions.
 
-Delivery state: commit=not-run; hosted_ci=waived; cross_platform=waived; independent_review=waived; tag=not-run; artifact=not-run; publication=not-run; isolated_install=waived.
+Delivery state: commit=passed; hosted_ci=waived; cross_platform=waived; independent_review=waived; tag=passed; artifact=passed; publication=passed; isolated_install=waived.
 
 For an explicitly waived RC, the canonical state accepts `waived` for hosted CI, cross-platform, and isolated-install checks. Actual commit, tag, artifact construction, and publication must still complete; stable releases retain their required checks. This is a recorded owner exception, not an inferred waiver from a small diff. Skip automatic CI with the release commit's `[skip ci]` message; do not dispatch the candidate-evidence workflow when verification is waived.
 

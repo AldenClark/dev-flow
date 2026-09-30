@@ -1,6 +1,6 @@
 # Dev Flow 2.0 RC.9 implementation
 
-> Status: implemented in the source-candidate worktree for `2.0.0-rc.9`
+> Status: released as immutable `v2.0.0-rc.9` from `5d4a569dcbbb67fb21cbc7945945597e342151b5`; publication-state follow-up is separate.
 
 Scope: ship the GPT-6.1 Sol P4/P5 routing update and root-model recommendation, preserving P0–P6/PX IDs, efforts, Luna closed-work routes, Astra compound escalation, exact-host capability checks, and historical evaluator identities.
 

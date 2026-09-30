@@ -2,19 +2,19 @@
   "schema_version": "dev-flow.product-state.v1",
   "source": {
     "version": "2.0.0-rc.9",
-    "phase": "source-candidate",
+    "phase": "released",
     "manifest": ".codex-plugin/plugin.json",
     "workstream": "docs/workstreams/dev-flow-2.0-rc.9"
   },
   "workspace": {
     "phase": "development",
-    "base_published": "v2.0.0-rc.8",
+    "base_published": "v2.0.0-rc.9",
     "workstream": "docs/workstreams/dev-flow-2.0-rc.9"
   },
   "published": {
     "latest_rc": {
-      "version": "2.0.0-rc.8",
-      "tag": "v2.0.0-rc.8"
+      "version": "2.0.0-rc.9",
+      "tag": "v2.0.0-rc.9"
     },
     "stable": {
       "version": "1.1.2",
@@ -27,13 +27,13 @@
     "rollback_target": "v2.0.0-rc.8"
   },
   "delivery": {
-    "commit": "not-run",
+    "commit": "passed",
     "hosted_ci": "waived",
     "cross_platform": "waived",
     "independent_review": "waived",
-    "tag": "not-run",
-    "artifact": "not-run",
-    "publication": "not-run",
+    "tag": "passed",
+    "artifact": "passed",
+    "publication": "passed",
     "isolated_install": "waived"
   }
 }

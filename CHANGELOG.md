@@ -4,11 +4,15 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Current candidate source identity: `2.0.0-rc.9`. Current workspace state: `development` from `v2.0.0-rc.8`. Stable `2.0.0` remains intentionally deferred.
+Latest published source identity: `2.0.0-rc.9`. Current workspace state: `development` from `v2.0.0-rc.9`. Stable `2.0.0` remains intentionally deferred.
 
 ## [2.0.0-rc.9] - 2026-09-30
 
 Direct prerelease and primary-profile update are explicitly authorized by the user. Final-release tests, hosted CI, cross-platform checks, independent review, semantic smoke, isolated-install checks, SBOM, and attestations are waived or not run; prior development checks do not qualify the final release bytes. RC.8 remains the fixed rollback tag. The source archive, manifest, and checksums are built locally without an artifact-verification or attestation run.
+
+Published the immutable `v2.0.0-rc.9` tag and [public prerelease](https://github.com/AldenClark/dev-flow/releases/tag/v2.0.0-rc.9) from `5d4a569dcbbb67fb21cbc7945945597e342151b5`, with the local source archive, manifest, and checksums. Publication-state updates are a separate commit and do not alter tagged bytes.
+
+The primary local Codex profile reports RC.9 installed and enabled from the pinned RC.9 marketplace. The resumed conversation uses RC.9 Skill paths and tool calls work again after the previous conversation's stale RC.8 Hook path blocked closeout; other running conversations are not claimed reloaded.
 
 ### Changed
 
