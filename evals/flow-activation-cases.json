@@ -91,7 +91,7 @@
     {
       "id": "FLOW-P5-SOL-ORACLE-CHALLENGE",
       "command": ["route-agent", "--role", "dev-flow-explorer", "--workload", "broad-mapping", "--signal", "oracle-challenge"],
-      "expect": {"selected_profile": "P5", "requested_model": "gpt-6-sol", "requested_reasoning_effort": "xhigh"}
+      "expect": {"selected_profile": "P5", "requested_model": "gpt-6.1-sol", "requested_reasoning_effort": "xhigh"}
     },
     {
       "id": "FLOW-P2-LUNA-CLOSED-RISK",
@@ -101,12 +101,12 @@
     {
       "id": "FLOW-P4-SOL-ORDINARY-DIAGNOSIS",
       "command": ["route-agent", "--role", "dev-flow-explorer", "--workload", "causal-debugging"],
-      "expect": {"selected_profile": "P4", "requested_model": "gpt-6-sol", "requested_reasoning_effort": "medium"}
+      "expect": {"selected_profile": "P4", "requested_model": "gpt-6.1-sol", "requested_reasoning_effort": "medium"}
     },
     {
       "id": "FLOW-P5-SOL-CRITICAL-ACCEPTANCE",
       "command": ["route-agent", "--role", "dev-flow-red-reviewer", "--workload", "high-risk-review", "--signal", "irreversible"],
-      "expect": {"selected_profile": "P5", "requested_model": "gpt-6-sol", "requested_reasoning_effort": "xhigh"}
+      "expect": {"selected_profile": "P5", "requested_model": "gpt-6.1-sol", "requested_reasoning_effort": "xhigh"}
     },
     {
       "id": "FLOW-P6-ASTRA-COMPOUND-UNKNOWN",

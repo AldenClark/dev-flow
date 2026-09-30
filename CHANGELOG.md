@@ -4,7 +4,17 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Latest published source identity: `2.0.0-rc.8`. Current workspace state: `development` from `v2.0.0-rc.8`. Stable `2.0.0` remains intentionally deferred.
+Current candidate source identity: `2.0.0-rc.9`. Current workspace state: `development` from `v2.0.0-rc.8`. Stable `2.0.0` remains intentionally deferred.
+
+## [2.0.0-rc.9] - 2026-09-30
+
+Direct prerelease and primary-profile update are explicitly authorized by the user. Final-release tests, hosted CI, cross-platform checks, independent review, semantic smoke, isolated-install checks, SBOM, and attestations are waived or not run; prior development checks do not qualify the final release bytes. RC.8 remains the fixed rollback tag. The source archive, manifest, and checksums are built locally without an artifact-verification or attestation run.
+
+### Changed
+
+- Updated active P4/P5 child routing and interactive-root guidance to exact `gpt-6.1-sol` at medium/xhigh, following OpenAI's current complex-work positioning. Kept Luna's closed-work routes, Astra's compound escalation, profile IDs, effort levels, and no-silent-fallback contract. Added current-model host-availability and previous-Sol negative controls; historical RC.8 evidence and paired-evaluator identities remain unchanged.
+- Documented standard API pricing separately from per-task or Codex-plan cost. Routing does not switch the active root model or establish live-model qualification.
+- Allowed explicit `waived` dispositions for RC hosted-CI, cross-platform, and isolated-install checks without relabeling them as passed; actual commit/tag/artifact/publication still require completion and stable-release checks remain mandatory.
 
 ## [2.0.0-rc.8] - 2026-09-25
 

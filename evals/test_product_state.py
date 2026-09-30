@@ -610,6 +610,36 @@ class ProductStateTests(unittest.TestCase):
             result = VALIDATOR.validate(target, check_git=False)
         self.assertEqual(result["status"], "valid", result["errors"])
 
+    def test_rc_check_waivers_do_not_waive_delivery_or_stable_checks(self) -> None:
+        cases = (
+            ("released", "hosted_ci", "waived", False),
+            ("released", "cross_platform", "waived", False),
+            ("released", "isolated_install", "waived", False),
+            ("released", "hosted_ci", "failed", True),
+            ("released", "tag", "waived", True),
+            ("released", "publication", "waived", True),
+            ("stable", "hosted_ci", "waived", True),
+            ("stable", "isolated_install", "waived", True),
+        )
+        for phase, key, disposition, incomplete in cases:
+            with self.subTest(phase=phase, key=key, disposition=disposition), tempfile.TemporaryDirectory() as directory:
+                target = Path(directory)
+                state = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
+                state["source"]["phase"] = phase
+                state["source"]["version"] = "2.0.0-rc.9" if phase == "released" else "2.0.0"
+                state["published"]["latest_rc"] = {"version": "2.0.0-rc.9", "tag": "v2.0.0-rc.9"}
+                state["workspace"]["base_published"] = "v2.0.0-rc.9"
+                state["published"]["stable"] = {"version": "2.0.0", "tag": "v2.0.0"}
+                state["compatibility"]["rollback_target"] = "v2.0.0-rc.8"
+                for action in state["delivery"]:
+                    state["delivery"][action] = "passed"
+                state["delivery"]["independent_review"] = "waived"
+                state["delivery"][key] = disposition
+                write_fixture(target, state)
+                result = VALIDATOR.validate(target, check_git=False)
+                delivery_errors = [error for error in result["errors"] if "released source is missing passed delivery actions" in error]
+                self.assertEqual(bool(delivery_errors), incomplete, result["errors"])
+
     def test_released_rc_requires_an_explicit_independent_review_disposition(self) -> None:
         for review_state in ("failed", "blocked", "not-run"):
             with self.subTest(review_state=review_state), tempfile.TemporaryDirectory() as directory:

@@ -90,6 +90,30 @@ class AgentDispatchBlackBoxTests(unittest.TestCase):
         second = run_route(*args)
         self.assertEqual((first.returncode, first.stdout), (second.returncode, second.stdout))
 
+    def test_current_sol_host_is_required_without_previous_sol_fallback(self) -> None:
+        for workload, profile, effort in (
+            ("routine-review", "P4", "medium"),
+            ("high-risk-review", "P5", "xhigh"),
+        ):
+            with self.subTest(profile=profile):
+                base = ("--role", "dev-flow-blue-reviewer", "--workload", workload)
+                current = run_route(*base, "--host-capability", f"gpt-6.1-sol:{effort}")
+                self.assertEqual(current.returncode, 0, current.stderr or current.stdout)
+                result = json.loads(current.stdout)
+                self.assertEqual(result["selected_profile"], profile)
+                self.assertEqual(result["requested_model"], "gpt-6.1-sol")
+                self.assertTrue(result["delegate"])
+                self.assertTrue(result["dispatch_ready"])
+
+                previous = run_route(*base, "--host-capability", f"gpt-6-sol:{effort}")
+                self.assertEqual(previous.returncode, 2, previous.stderr or previous.stdout)
+                limited = json.loads(previous.stdout)
+                self.assertEqual(limited["status"], "capability_limit")
+                self.assertEqual(limited["requested_model"], "gpt-6.1-sol")
+                self.assertFalse(limited["delegate"])
+                self.assertFalse(limited["dispatch_ready"])
+                self.assertIsNone(limited["host_capability"]["suggested_profile"])
+
     def test_acknowledged_exception_and_downgrade_are_explicit(self) -> None:
         exceptional = run_route(
             "--role",
@@ -161,7 +185,7 @@ class AgentDispatchWhiteBoxTests(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         summary = next(line for line in readme.splitlines() if line.startswith("子任务模型以"))
         models = {
-            name: details["model"].removeprefix("gpt-6-").capitalize()
+            name: f"{details['model'].rsplit('-', 1)[0].upper()} {details['model'].rsplit('-', 1)[1].capitalize()}"
             for name, details in registry["runtime"]["capabilities"].items()
         }
         for profile in registry["profiles"]:
@@ -180,7 +204,7 @@ class AgentDispatchWhiteBoxTests(unittest.TestCase):
         self.assertEqual((profiles["P6"]["capability"], profiles["P6"]["reasoning_effort"]), ("F", "xhigh"))
         self.assertEqual(
             {capability["model"] for capability in registry["runtime"]["capabilities"].values()},
-            {"gpt-6-luna", "gpt-6-sol", "gpt-6-astra"},
+            {"gpt-6-luna", "gpt-6.1-sol", "gpt-6-astra"},
         )
         self.assertTrue(profiles["PX"]["exception"])
         self.assertFalse(any(profiles[name]["exception"] for name in profiles if name != "PX"))
@@ -228,6 +252,10 @@ class AgentDispatchWhiteBoxTests(unittest.TestCase):
         legacy_model = json.loads(json.dumps(baseline))
         legacy_model["runtime"]["capabilities"]["E"]["model"] = "gpt-5.6-luna"
         mutations.append(legacy_model)
+
+        previous_sol = json.loads(json.dumps(baseline))
+        previous_sol["runtime"]["capabilities"]["B"]["model"] = "gpt-6-sol"
+        mutations.append(previous_sol)
 
         swapped_profiles = json.loads(json.dumps(baseline))
         swapped_profiles["profiles"][0]["capability"] = "F"

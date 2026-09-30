@@ -317,7 +317,12 @@ def validate(root: Path, *, check_git: bool = True) -> dict[str, Any]:
                 "publication",
                 "isolated_install",
             )
-            incomplete = [key for key in required_delivery if delivery.get(key) != "passed"]
+            rc_waivable_checks = {"hosted_ci", "cross_platform", "isolated_install"} if source_phase == "released" else set()
+            incomplete = [
+                key for key in required_delivery
+                if delivery.get(key) != "passed"
+                and not (key in rc_waivable_checks and delivery.get(key) == "waived")
+            ]
             if incomplete:
                 errors.append(f"released source is missing passed delivery actions: {incomplete}")
             if delivery.get("independent_review") not in {

@@ -2,7 +2,7 @@
 
 Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是建立第二套工作流引擎，而是用最少的流程成本保持三件事：长期业务工作不漂移、技术结论有原生工程证据、高后果动作保留明确安全边界。
 
-已发布源码身份为 `2.0.0-rc.8`。当前工作区处于 `development` 状态，基于 `v2.0.0-rc.8`。`v2.0.0-rc.8` 是最近已发布且可固定安装的标签，回滚目标为 `v2.0.0-rc.7`。RC.8 在 RC.7 上调整 GPT-6 模型分配、目标连续性、项目原生反馈和交付证据，并清理不受支持的 packet 内部；它是预发布版本，稳定版 2.0 仍未发布。`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
+候选源码身份为 `2.0.0-rc.9`。当前工作区处于 `development` 状态，基于 `v2.0.0-rc.8`。`v2.0.0-rc.8` 是最近已发布且可固定安装的标签，回滚目标为 `v2.0.0-rc.8`。RC.9 将 P4/P5 主力路由更新为 GPT-6.1 Sol，保留 Luna/Astra 分层和无静默替代边界。用户明确要求直接发布并更新本机安装，本次发布不重跑测试、CI、评审或隔离安装验证；豁免不是通过。它是预发布版本，稳定版 2.0 仍未发布。`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
 
 ## 2.0 核心模型
 
@@ -158,7 +158,7 @@ python3 skills/dev-flow/scripts/dev-flow.py route-task \
 
 方法论不会以“选中了几个方法”作为质量指标。高价值验证、测试、评审和审计场景需要形成一次明确处置：执行已就绪方法、对受阻方法执行 fallback 并保留限制，或因 owner Skill 的原生程序已足够而合理弃用。真正的落地必须改变测试/oracle、反例、状态或兼容模型、评审攻击面、证据矩阵或最终 claim 限制。
 
-子任务模型以语义不确定性和上下文广度决定，风险仍交给验证与交付证据处理：P0=Luna low、P1=Luna medium、P2=Luna high、P3=Luna xhigh 适用于从精确查找到语义已闭合的多步工作；P4=Sol medium 是日常编码、普通诊断和评审默认档，P5=Sol xhigh 处理证据冲突或跨组件契约；P6=Astra xhigh 只处理交织未知量的深层未决推理，PX=Astra max 仅用于显式评估并确认的例外。根上下文不会仅为使用廉价模型而创建子代理。
+子任务模型以语义不确定性和上下文广度决定，风险仍交给验证与交付证据处理：P0=GPT-6 Luna low、P1=GPT-6 Luna medium、P2=GPT-6 Luna high、P3=GPT-6 Luna xhigh 适用于从精确查找到语义已闭合的多步工作；P4=GPT-6.1 Sol medium 是日常编码、普通诊断和评审默认档，P5=GPT-6.1 Sol xhigh 是复杂编码、证据冲突或跨组件契约的主力；P6=GPT-6 Astra xhigh 只处理交织未知量的深层未决推理，PX=GPT-6 Astra max 仅用于显式评估并确认的例外。根上下文建议 GPT-6.1 Sol medium，但路由器不会切换当前根模型，也不会仅为使用廉价模型而创建子代理。具体依据与证据边界见 [模型更新说明](skills/dev-flow/references/quality-calibration.md#agent-and-reasoning-route)。
 
 ## 专业 Skills
 
@@ -251,6 +251,7 @@ CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job �
 
 ## 版本和发布状态
 
+- `2.0.0-rc.9` 是当前候选源码身份；本次发布检查按用户明确要求豁免，既有开发回归不等同于最终发布字节的验证。
 - `v2.0.0-rc.8` 是最近已发布且可固定安装的 personal-assistant-hardening RC；其 CI、兼容、制品、证明、隔离安装和公开预发布证据只属于候选提交 `503f5e487580afed9fb905130c4206e1e018ed1d` 对应的不可变标签。
 - `v2.0.0-rc.7` 是 RC.8 的固定回滚标签；RC.7 的交付证据仍只属于它自身。
 - `v2.0.0-rc.2` 是上一 activation-hardening RC，也是 RC.3 的可固定安装回滚标签。
@@ -258,4 +259,4 @@ CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job �
 - `v1.1.2` 是最后一个 1.x 稳定标签；1.1.3 只存在于未发布源码历史，2.0 不提供 1.x 兼容或迁移保证。
 - 源码、commit、push、tag、GitHub Release、Marketplace 安装和生产使用是不同状态；只有逐项执行和复核后才能声称完成。
 
-RC.8 的实施与当前证据边界位于 [docs/workstreams/dev-flow-2.0-rc.8](docs/workstreams/dev-flow-2.0-rc.8/)；RC.7 的已发布历史位于 [docs/workstreams/dev-flow-2.0-rc.7](docs/workstreams/dev-flow-2.0-rc.7/)。发布验证与独立 Bench 的拆分位于 [docs/workstreams/dev-flow-2.0-benchmark-separation](docs/workstreams/dev-flow-2.0-benchmark-separation/)，2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)，历史版本见 [CHANGELOG.md](CHANGELOG.md)。
+RC.9 的发布与豁免边界位于 [docs/workstreams/dev-flow-2.0-rc.9](docs/workstreams/dev-flow-2.0-rc.9/)；RC.8 的已发布历史位于 [docs/workstreams/dev-flow-2.0-rc.8](docs/workstreams/dev-flow-2.0-rc.8/)。发布验证与独立 Bench 的拆分位于 [docs/workstreams/dev-flow-2.0-benchmark-separation](docs/workstreams/dev-flow-2.0-benchmark-separation/)，2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)，历史版本见 [CHANGELOG.md](CHANGELOG.md)。

@@ -2,6 +2,16 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
+## 2.0.0-rc.9 personal-assistant hardening candidate
+
+`2.0.0-rc.9` updates active P4/P5 routing and root guidance to GPT-6.1 Sol while retaining Luna/Astra tiers, efforts, compound escalation, and exact-host/no-silent-fallback boundaries. `v2.0.0-rc.8` is the latest public immutable RC tag. `v2.0.0-rc.8` is the rollback target for `2.0.0-rc.9`.
+
+The user explicitly authorized direct RC.9 publication and the primary-profile installation update without rerunning tests or verification. Tests, hosted CI, cross-platform checks, independent review, affected semantic smoke, and isolated-install checks are waived, never passed. The local builder creates the source archive, release manifest, and checksums only; archive verification, SBOM, attestations, and live-model qualification are not run. Earlier development checks do not qualify the final version/release-state edits. Publication and primary installation remain separately observable actions.
+
+Delivery state: commit=not-run; hosted_ci=waived; cross_platform=waived; independent_review=waived; tag=not-run; artifact=not-run; publication=not-run; isolated_install=waived.
+
+For an explicitly waived RC, the canonical state accepts `waived` for hosted CI, cross-platform, and isolated-install checks. Actual commit, tag, artifact construction, and publication must still complete; stable releases retain their required checks. This is a recorded owner exception, not an inferred waiver from a small diff. Skip automatic CI with the release commit's `[skip ci]` message; do not dispatch the candidate-evidence workflow when verification is waived.
+
 ## 2.0.0-rc.8 personal-assistant hardening release
 
 `v2.0.0-rc.8` is the latest public immutable RC tag, from candidate `503f5e487580afed9fb905130c4206e1e018ed1d`. `v2.0.0-rc.7` is the rollback target for `2.0.0-rc.8`. The R2 exact-SHA semantic CI and focused Linux/macOS/Windows compatibility matrix passed in [run 36098484599](https://github.com/AldenClark/dev-flow/actions/runs/36098484599). [Run 36098724832](https://github.com/AldenClark/dev-flow/actions/runs/36098724832) built the archive, non-empty SPDX 2.3 SBOM, checksums, and provenance/SBOM attestations; downloaded bytes verified against the commit and public release assets. The annotated tag, [public prerelease](https://github.com/AldenClark/dev-flow/releases/tag/v2.0.0-rc.8), and isolated public-tag install/discovery/uninstall with 15 Skills passed. The maintainer's primary Codex plugin is separately observed at RC.8. A bounded GPT-6 Sol ordinary-conversation negative control matched; the deep-implementation positive case exhausted the Bench token budget on turn two, and the unchanged-follow-up negative case lacks a complete App-CLI result. Both are `WAIVED` for this RC prerelease, not passed. Luna/Astra comparison, stable qualification, and production effect remain `NOT RUN`.
@@ -103,14 +113,14 @@ For an R3 change, two local builds can establish deterministic behavior before h
 ```bash
 git rev-parse HEAD
 python3 tools/build_release.py build \
-  --root . --output dist-a --version 2.0.0-rc.8 --commit FULL_COMMIT_SHA
+  --root . --output dist-a --version 2.0.0-rc.9 --commit FULL_COMMIT_SHA
 python3 tools/build_release.py build \
-  --root . --output dist-b --version 2.0.0-rc.8 --commit FULL_COMMIT_SHA
-cmp dist-a/dev-flow-2.0.0-rc.8.tar.gz dist-b/dev-flow-2.0.0-rc.8.tar.gz
+  --root . --output dist-b --version 2.0.0-rc.9 --commit FULL_COMMIT_SHA
+cmp dist-a/dev-flow-2.0.0-rc.9.tar.gz dist-b/dev-flow-2.0.0-rc.9.tar.gz
 cmp dist-a/release-manifest.json dist-b/release-manifest.json
 cmp dist-a/SHA256SUMS dist-b/SHA256SUMS
 python3 tools/build_release.py verify \
-  --artifact-dir dist-a --expected-version 2.0.0-rc.8 --expected-commit FULL_COMMIT_SHA
+  --artifact-dir dist-a --expected-version 2.0.0-rc.9 --expected-commit FULL_COMMIT_SHA
 ```
 
 Determinism is asserted within the pinned environment. Promotion reuses attested bytes instead of rebuilding on another zlib/toolchain version.
@@ -121,17 +131,17 @@ After applicable exact-SHA CI is green:
 
 ```bash
 gh workflow run release-candidate.yml \
-  --ref main -f version=2.0.0-rc.8 -f expected_sha=FULL_COMMIT_SHA
+  --ref main -f version=2.0.0-rc.9 -f expected_sha=FULL_COMMIT_SHA
 ```
 
 The workflow has `contents: read`, `id-token: write`, and `attestations: write`. It has no release-publication permission. After download:
 
 ```bash
 python3 tools/build_release.py verify \
-  --artifact-dir dist --expected-version 2.0.0-rc.8 --expected-commit FULL_COMMIT_SHA
-gh attestation verify dist/dev-flow-2.0.0-rc.8.tar.gz \
+  --artifact-dir dist --expected-version 2.0.0-rc.9 --expected-commit FULL_COMMIT_SHA
+gh attestation verify dist/dev-flow-2.0.0-rc.9.tar.gz \
   --repo AldenClark/dev-flow
-gh attestation verify dist/dev-flow-2.0.0-rc.8.tar.gz \
+gh attestation verify dist/dev-flow-2.0.0-rc.9.tar.gz \
   --repo AldenClark/dev-flow \
   --predicate-type https://spdx.dev/Document/v2.3
 ```

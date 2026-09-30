@@ -5,7 +5,7 @@
 - Knowledge ID: `KT-DEV-FLOW-GOVERNANCE`
 - Owner: Dev Flow maintainers.
 - Review triggers: a change to routing, continuity, risk overlays, Hooks, knowledge ownership, verification, compatibility, or release policy.
-- Source anchors: [product state](../../governance/product-state.json), [plugin manifest](../../.codex-plugin/plugin.json), [main Skill](../../skills/dev-flow/SKILL.md), [public CLI](../../skills/dev-flow/scripts/dev-flow.py), [Hook manifest](../../hooks/hooks.json), [release model](../releasing.md), and the [RC.8 development workstream](../workstreams/dev-flow-2.0-rc.8/). The immutable [RC.7 workstream](../workstreams/dev-flow-2.0-rc.7/) remains published history.
+- Source anchors: [product state](../../governance/product-state.json), [plugin manifest](../../.codex-plugin/plugin.json), [main Skill](../../skills/dev-flow/SKILL.md), [public CLI](../../skills/dev-flow/scripts/dev-flow.py), [Hook manifest](../../hooks/hooks.json), [release model](../releasing.md), and the [RC.9 release workstream](../workstreams/dev-flow-2.0-rc.9/). The immutable [RC.8 workstream](../workstreams/dev-flow-2.0-rc.8/) remains published history.
 
 ## Current truth
 

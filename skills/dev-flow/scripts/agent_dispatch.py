@@ -14,7 +14,7 @@ SCHEMA_VERSION = "1.1"
 RESULT_SCHEMA_VERSION = "agent.dispatch.result.v1"
 EXPECTED_PROFILES = {"P0", "P1", "P2", "P3", "P4", "P5", "P6", "PX"}
 EXPECTED_CAPABILITIES = {"E", "B", "F"}
-EXPECTED_MODELS = {"E": "gpt-6-luna", "B": "gpt-6-sol", "F": "gpt-6-astra"}
+EXPECTED_MODELS = {"E": "gpt-6-luna", "B": "gpt-6.1-sol", "F": "gpt-6-astra"}
 ORDERED_PROFILES = ("P0", "P1", "P2", "P3", "P4", "P5", "P6", "PX")
 EXPECTED_PROFILE_VECTORS = {
     "P0": ("E", "low"),

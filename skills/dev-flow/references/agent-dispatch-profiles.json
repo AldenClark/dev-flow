@@ -6,7 +6,7 @@
     "default_fork_turns": "none",
     "capabilities": {
       "E": {"rank": 0, "model": "gpt-6-luna", "purpose": "efficient directed work with closed semantics"},
-      "B": {"rank": 1, "model": "gpt-6-sol", "purpose": "everyday coding and judgment"},
+      "B": {"rank": 1, "model": "gpt-6.1-sol", "purpose": "balanced complex coding, computer use, and professional judgment"},
       "F": {"rank": 2, "model": "gpt-6-astra", "purpose": "deep unresolved compound reasoning"}
     },
     "efforts": {
@@ -83,13 +83,13 @@
       "id": "ordinary-judgment",
       "any_signal": ["ambiguity", "causal-uncertainty", "consequential-judgment", "cross-boundary-impact", "independent-review", "interacting-unknowns"],
       "minimum_profile": "P4",
-      "reason": "semantic or causal judgment needs Sol medium"
+      "reason": "semantic or causal judgment needs GPT-6.1 Sol medium"
     },
     {
       "id": "disputed-reasoning",
       "any_signal": ["conflicting-evidence", "deep-unresolved", "failed-sol-discrimination", "nondeterminism", "oracle-challenge"],
       "minimum_profile": "P5",
-      "reason": "competing causes or an uncertain oracle needs Sol xhigh"
+      "reason": "complex work, competing causes, or an uncertain oracle needs GPT-6.1 Sol xhigh"
     },
     {
       "id": "compound-frontier-reasoning",
@@ -101,7 +101,7 @@
       "id": "failed-sol-compound",
       "all_signals": ["failed-sol-discrimination", "deep-unresolved"],
       "minimum_profile": "P6",
-      "reason": "a documented Sol discrimination failure on unresolved reasoning justifies Astra xhigh"
+      "reason": "a documented GPT-6.1 Sol discrimination failure on unresolved reasoning justifies Astra xhigh"
     }
   ]
 }
