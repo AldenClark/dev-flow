@@ -1,5 +1,11 @@
 # Dev Flow maintenance contract
 
+## Evidence by claim
+
+Correctness, compatibility, and guidance-conflict repairs can be justified by a failure mechanism, source counterexample, and failure-sensitive deterministic checks. An observed unguided failure or paid model comparison is not a prerequisite for correcting a demonstrated contradiction or reachable defect. Report the repaired invariant and its observed evidence layer.
+
+New behavior guidance begins as a bounded trial with positive/negative triggers, an expected outcome, an owner, and a stopping rule. First-class promotion and behavior/productivity claims require the relevant real comparison and stable marginal value below; neither static green nor an external study supplies that local benefit evidence. An unavailable comparison stays `NOT RUN` or a trial.
+
 ## Promotion test
 
 A first-class Skill requires all of:
@@ -18,7 +24,7 @@ Otherwise keep the topic as a profile, playbook/reference, protocol, snapshot, d
 
 ## Public surfaces
 
-Inventory and version Skill names/descriptions, `agents/openai.yaml`, schemas, packet/CLI commands, hooks, role assets, templates, profile/resolver contracts, capability IDs/admission states, governance sources, deterministic contracts, and docs. Public contract changes require compatibility or an approved breaking migration.
+Inventory and version Skill names/descriptions, `agents/openai.yaml`, supported CLI commands and schemas, hooks, role assets, templates, profile/resolver contracts, capability IDs/admission states, governance sources, deterministic contracts, and docs. Packet-era commands remain unsupported. Public contract changes require compatibility or an approved breaking migration.
 
 Keep task-facing `SKILL.md` files below 500 lines and focused on procedure. Put detailed variants into one-level references. Do not add README or process-history files inside Skills.
 
@@ -61,6 +67,8 @@ Map every prior content/source family to migrate, split, profile, snapshot, dete
 Internal waves are checkpoints, not supported partial releases. Validate the integrated suite, restore the old router/data registry on rollback, retain immutable decisions/research, and keep generated snapshots replaceable.
 
 ## Proportionate release evidence
+
+The release contract is owned by [docs/releasing.md](../../../docs/releasing.md); this section is its maintained projection, not a separate model-evaluation gate.
 
 Classify the changed surface before choosing gates:
 

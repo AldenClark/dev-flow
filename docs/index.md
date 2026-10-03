@@ -19,13 +19,16 @@ This index routes contributors and agents to the smallest maintained knowledge o
 
 ## Active managed work
 
-- [Dev Flow 2.0](workstreams/dev-flow-2.0/): 2.0 product requirements, design, implementation history, and current truth.
+- [Dev Flow 2.0 stable implementation](workstreams/dev-flow-2.0-stable/): active implementation, qualification, release and local installation progress.
+- [Dev Flow 2.0 stable optimization plan](workstreams/dev-flow-2.0/stable-master-plan.md): approved audit findings, foundational decisions, implementation slices and adversarial review.
+- [Dev Flow 2.0 baseline history](workstreams/dev-flow-2.0/): original requirements, RC.2 design and implementation history. Current semantics belong to the maintained Skills/governance and the stable workstream above; historical routing and model rules are not current requirements.
 - [Dev Flow 2.0 RC.3](workstreams/dev-flow-2.0-rc.3/): RC.3 requirements, audited design, implementation plan, decisions, and progress.
 - [Dev Flow 2.0 RC.4](workstreams/dev-flow-2.0-rc.4/): RC.4 convergence and operations hardening requirements, design, implementation slices, decisions, audit, and current progress.
 - [Dev Flow 2.0 RC.5](workstreams/dev-flow-2.0-rc.5/): published personal-assistant-hardening release record.
 - [Dev Flow 2.0 RC.6](workstreams/dev-flow-2.0-rc.6/): published release record, delivery boundary, and evidence progress.
 - [Dev Flow 2.0 RC.7](workstreams/dev-flow-2.0-rc.7/): published main-Skill/professional-Skill release history and evidence limits.
-- [Dev Flow 2.0 RC.8 implementation](workstreams/dev-flow-2.0-rc.8/implementation.md): GPT-6 model routing, the five delivery-depth directions, implementation slices, and [candidate progress](workstreams/dev-flow-2.0-rc.8/progress.md). RC.8 is a local source candidate, not a release.
+- [Dev Flow 2.0 RC.8 implementation](workstreams/dev-flow-2.0-rc.8/implementation.md): historical GPT-6 model routing, implementation and [published progress](workstreams/dev-flow-2.0-rc.8/progress.md).
+- [Dev Flow 2.0 RC.9](workstreams/dev-flow-2.0-rc.9/): published prerelease and installation history, with explicit verification waivers.
 - [Release validation and benchmark separation](workstreams/dev-flow-2.0-benchmark-separation/): current stable-validation contract, independent Bench design, implementation, and evidence.
 - [Repository knowledge capability](workstreams/repository-knowledge/): repository-knowledge design, implementation, and evidence limits.
 

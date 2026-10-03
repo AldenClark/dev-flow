@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 import json
+import shlex
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
 FLOW = ROOT / "skills" / "dev-flow" / "scripts" / "dev-flow.py"
 sys.path.insert(0, str(FLOW.parent))
+import workstream_contract  # noqa: E402
 
 
 def run_flow(*args: object, cwd: Path = ROOT) -> subprocess.CompletedProcess[str]:
@@ -372,6 +375,114 @@ class IncrementalRouteTests(unittest.TestCase):
 
 
 class WorkstreamContractTests(unittest.TestCase):
+    def test_git_permission_failure_is_not_non_git_success(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            target = managed_fixture(root)
+            completed = subprocess.CompletedProcess(
+                ["git"], 128, stdout=b"", stderr=b"fatal: permission denied\n"
+            )
+            with mock.patch.object(workstream_contract.git_observation.subprocess, "run", return_value=completed):
+                payload, code = workstream_contract.check(root, target, check_worktree=True)
+        self.assertEqual(code, 2, payload)
+        self.assertEqual(payload["worktree"]["status"], "failed")
+        self.assertIn("git-observation-failed", {item["code"] for item in payload["findings"]})
+
+    def test_git_timeout_and_missing_executable_are_observation_failures(self) -> None:
+        failures = (
+            (subprocess.TimeoutExpired(["git"], 15), "timeout"),
+            (FileNotFoundError("git is unavailable"), "unavailable"),
+        )
+        for exception, status in failures:
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                target = managed_fixture(root)
+                with mock.patch.object(workstream_contract.git_observation.subprocess, "run", side_effect=exception):
+                    payload, code = workstream_contract.check(root, target, check_worktree=True)
+                self.assertEqual(code, 2, payload)
+                self.assertEqual(payload["worktree"]["status"], status)
+                self.assertFalse(payload["worktree"]["authorship_inferred"])
+
+    def test_status_failure_after_successful_discovery_cannot_become_non_git(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            target = managed_fixture(root)
+            probe = subprocess.CompletedProcess(["git"], 0, stdout="true\n", stderr="")
+            top_level = subprocess.CompletedProcess(["git"], 0, stdout=str(root.resolve()) + "\n", stderr="")
+            status = subprocess.CompletedProcess(
+                ["git"], 128, stdout=b"", stderr=b"fatal: not a git repository\n"
+            )
+            with mock.patch.object(workstream_contract.git_observation.subprocess, "run", side_effect=[probe, top_level, status]):
+                payload, code = workstream_contract.check(root, target, check_worktree=True)
+        self.assertEqual(code, 2, payload)
+        self.assertEqual(payload["worktree"]["status"], "failed")
+        self.assertEqual(payload["worktree"]["operation"], "worktree-status")
+
+    def test_invalid_git_metadata_cannot_become_non_git(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            target = managed_fixture(root)
+            (root / ".git").mkdir()
+            payload, code = workstream_contract.check(root, target, check_worktree=True)
+        self.assertEqual(code, 2, payload)
+        self.assertEqual(payload["worktree"]["status"], "failed")
+
+    def test_worktree_query_preserves_protected_paths_and_rename_endpoints(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            target = managed_fixture(root)
+            probe = subprocess.CompletedProcess(["git"], 0, stdout="true\n", stderr="")
+            top_level = subprocess.CompletedProcess(["git"], 0, stdout=str(root.resolve()) + "\n", stderr="")
+            status = subprocess.CompletedProcess(
+                ["git"], 0, stdout=b" M README.md\0R  evals/new.py\0user-owned.py\0?? evals/ours.py\0", stderr=b""
+            )
+            with mock.patch.object(workstream_contract.git_observation.subprocess, "run", side_effect=[probe, top_level, status]):
+                payload, code = workstream_contract.check(root, target, check_worktree=True)
+        self.assertEqual(code, 2, payload)
+        self.assertEqual(payload["worktree"]["protected_changed_paths"], ["README.md"])
+        self.assertIn("user-owned.py", payload["worktree"]["ambiguous_paths"])
+        self.assertNotIn("evals/ours.py", payload["worktree"]["ambiguous_paths"])
+        self.assertFalse(payload["worktree"]["authorship_inferred"])
+
+    def test_real_git_query_does_not_execute_configured_fsmonitor(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            subprocess.run(["git", "init", "--quiet"], cwd=root, check=True)
+            target = managed_fixture(root)
+            monitor = root / "monitor"
+            marker = root / "monitor-executed"
+            monitor.write_text(
+                "#!/bin/sh\n"
+                f"printf 'executed\\n' >> {shlex.quote(str(marker))}\n"
+                "printf 'token\\0'\n",
+                encoding="utf-8",
+            )
+            monitor.chmod(0o700)
+            subprocess.run(["git", "config", "core.fsmonitor", str(monitor)], cwd=root, check=True)
+            # The control shows this local fixture would actually execute the monitor.
+            control = subprocess.run(["git", "status", "--porcelain"], cwd=root, capture_output=True, check=False)
+            self.assertEqual(control.returncode, 0, control.stderr)
+            before = marker.read_bytes()
+            payload, code = workstream_contract.check(root, target, check_worktree=True)
+            self.assertEqual(marker.read_bytes(), before)
+        self.assertEqual(code, 2, payload)  # fixture files remain honestly ambiguous
+        self.assertFalse(payload["worktree"]["authorship_inferred"])
+
+    def test_malformed_status_output_is_an_observation_failure(self) -> None:
+        for raw in (b"broken\0", b"R  evals/new.py\0", b"M  evals/not-terminated.py"):
+            with self.subTest(raw=raw), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                target = managed_fixture(root)
+                responses = [
+                    subprocess.CompletedProcess(["git"], 0, "true\n", ""),
+                    subprocess.CompletedProcess(["git"], 0, str(root.resolve()) + "\n", ""),
+                    subprocess.CompletedProcess(["git"], 0, raw, b""),
+                ]
+                with mock.patch.object(workstream_contract.git_observation.subprocess, "run", side_effect=responses):
+                    payload, code = workstream_contract.check(root, target, check_worktree=True)
+                self.assertEqual(code, 2, payload)
+                self.assertEqual(payload["worktree"]["reason"], "git-status-output-invalid")
+
     def test_valid_active_workstream_and_claim_limit(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

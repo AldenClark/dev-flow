@@ -52,7 +52,7 @@
       "primary_outputs": ["detailed requirement-understanding result", "confirmed requirements and scope", "design rationale and trade-offs", "material ambiguity disposition", "representative examples, counterexamples, states, and recovery semantics", "canonical requirement owner and technical-design handoff"],
       "owner": "understanding-depth classification, user-owned semantics, Default-mode confirmation boundary, acceptance, scope, compatibility intent, and durable design decisions",
       "consumes": ["repository fact set", "product and UX intent when applicable", "user objective"],
-      "stops": ["open material ambiguity", "unconfirmed semantic creation or change", "missing user disposition", "design premise contradicted by current facts"],
+      "stops": ["dependent commitment or implementation awaits a surviving material user-owned choice", "explicit review-first request awaits user disposition", "dependent design premise contradicted by current facts; independent authorized learning may continue"],
       "handoff_to": ["architecture-decisions", "dependency-decisions", "dev-flow"],
       "orchestrated_conditions": ["semantic-creation-or-change", "design-intent", "managed-semantics", "material-ambiguity", "ambiguous-defect", "material-ui", "public-contract-risk"]
     },

@@ -359,6 +359,11 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("remain in Default mode", understanding["rules"])
         self.assertTrue(any("stop only for an unresolved user-owned choice" in rule for rule in understanding["rules"]))
         self.assertIn("requirements-design", [item["skill"] for item in pending["routes"]])
+        self.assertNotIn("a correction requires a complete revised understanding", understanding["rules"])
+        self.assertTrue(
+            any("independent authorized learning" in rule for rule in understanding["rules"]),
+            "pending semantic choice must leave independent authorized learning available",
+        )
 
         confirmed = route(
             "--intent",
@@ -1045,12 +1050,32 @@ class RoutingTests(unittest.TestCase):
             "model-evaluation",
             "--repo-fact",
             "context=synthetic-evaluation",
+            "--user-choice-open",
         )
         pending_selection = pending["capability_activation"]["method"]["selection"]
         self.assertEqual(pending_selection["inferred_prerequisites"], ["repository-facts"])
         self.assertNotIn(
             "requirement-baseline", pending_selection["available_prerequisites"]
         )
+
+    def test_settled_u1_method_baseline_tracks_design_permission(self) -> None:
+        arguments = (
+            "--intent", "change", "--requirement-class", "U1",
+            "--method-signal", "complex-rules", "--repo-fact", "language=python",
+        )
+        settled = route(*arguments)
+        understanding = settled["requirement_understanding"]
+        self.assertTrue(understanding["design_allowed"])
+        selection = settled["capability_activation"]["method"]["selection"]
+        self.assertIn("requirement-baseline", selection["inferred_prerequisites"])
+        self.assertIn("decision-table", selection["selected"])
+        for stop in ("--user-choice-open",):
+            with self.subTest(stop=stop):
+                blocked = route(*arguments, stop)
+                self.assertFalse(blocked["requirement_understanding"]["design_allowed"])
+                selection = blocked["capability_activation"]["method"]["selection"]
+                self.assertNotIn("requirement-baseline", selection["inferred_prerequisites"])
+                self.assertNotIn("decision-table", selection["selected"])
 
     def test_broad_security_does_not_surface_unrelated_domain_methods(self) -> None:
         payload = route("--intent", "change", "--risk", "security")
@@ -1479,17 +1504,56 @@ class ActiveGuidanceTests(unittest.TestCase):
                 self.assertIn(phrase, calibration)
         self.assertNotIn("or admitted owner", calibration)
 
-    def test_unavailable_optional_capability_stays_repository_local(self) -> None:
+    def test_unavailable_capability_allows_only_authorized_scoped_alternatives(self) -> None:
         skill = DEV_FLOW_SKILL.read_text(encoding="utf-8")
         calibration = QUALITY_CALIBRATION.read_text(encoding="utf-8")
         self.assertIn("If unavailable, report the capability limit", skill)
         for phrase in (
-            "is not authority to search for, install, or invoke a substitute",
-            "continue safe native checks",
+            "already-authorized outcome, data, actions, and tool restrictions",
+            "already exposed and eligible",
+            "exact-tool and local-only limits",
+            "Never send private repository content or secrets to external retrieval",
             "Never synthesize a tool identity or use an unrelated local MCP",
         ):
             with self.subTest(phrase=phrase):
-                self.assertIn(phrase, skill + "\n" + calibration)
+                self.assertTrue(phrase in skill + "\n" + calibration, f"missing capability boundary: {phrase}")
+        self.assertNotIn("If the named capability is absent, do not call Web", calibration)
+
+    def test_unresolved_semantics_permit_learning_but_not_dependent_commitments(self) -> None:
+        requirements = (ROOT / "skills" / "requirements-design" / "SKILL.md").read_text()
+        semantic = (ROOT / "skills" / "requirements-design" / "references" / "semantic-and-scope.md").read_text()
+        for phrase in (
+            "next coherent slice",
+            "read-only investigation",
+            "reversible isolated probes",
+            "dependent commitments or implementation",
+            "does not select a product branch",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertTrue(phrase in requirements + "\n" + semantic, f"missing learning boundary: {phrase}")
+        self.assertNotIn("publish the complete requirement understanding", requirements)
+        self.assertNotIn("Do not start technical design or product-code mutation while", requirements)
+
+    def test_correction_reaches_implementation_oracles_and_late_child_results(self) -> None:
+        core = (ROOT / "skills" / "dev-flow" / "references" / "core-lifecycle.md").read_text()
+        for phrase in (
+            "design, code/data, tests/oracles, children, and external actions",
+            "Changing only a summary",
+            "late child output",
+            "already-executed effects are not automatically undone",
+            "user example and a counterexample",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertTrue(phrase in core, f"missing correction boundary: {phrase}")
+        for name in ("requirements-design", "architecture-decisions", "verification", "change-review"):
+            with self.subTest(owner=name):
+                self.assertIn("correction", (ROOT / "skills" / name / "SKILL.md").read_text())
+
+    def test_model_profile_order_is_policy_not_observed_quality(self) -> None:
+        calibration = QUALITY_CALIBRATION.read_text()
+        self.assertIn("routing policy order", calibration)
+        self.assertIn("not an empirical total order of model quality", calibration)
+        self.assertIn("policy requirement, host availability, and observed outcome", calibration)
 
     def test_diagnosis_only_stops_before_repair(self) -> None:
         guidance = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(
@@ -1581,14 +1645,16 @@ class ActiveGuidanceTests(unittest.TestCase):
         self.assertIn("repository `progress.md` or its native equivalent", delivery)
         self.assertIn("owned paths or read-only responsibility", agent_control)
 
-    def test_requirements_agent_prompt_stops_u1_before_technical_design(self) -> None:
+    def test_requirements_agent_prompt_makes_u1_stop_conditional(self) -> None:
         prompt = (ROOT / "skills" / "requirements-design" / "agents" / "openai.yaml").read_text(
             encoding="utf-8"
         )
         self.assertIn("for U1", prompt)
         self.assertIn("technology-neutral understanding", prompt)
-        self.assertIn("stop in Default mode", prompt)
-        self.assertIn("before technical design", prompt)
+        self.assertIn("stop in Default mode only", prompt)
+        self.assertIn("material user-owned choice", prompt)
+        self.assertIn("explicit review-first request", prompt)
+        self.assertIn("settled or confirmed semantics proceed", prompt)
         self.assertNotIn("approved requirement, design, and change-scope baseline", prompt)
 
     def test_readme_describes_every_change_review_trigger(self) -> None:

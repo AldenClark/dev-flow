@@ -12,7 +12,7 @@ Use this reference when several plausible product meanings, compatibility direct
 
 Classify from the semantic decision Codex must make, not the user's noun:
 
-- `U1 semantic creation/change`: new or changed product behavior, public contract, authorization, data lifecycle, user flow, external integration, migration semantics, or an unresolved defect expectation. Publish a detailed understanding before technical design; stop only for a surviving material user-owned choice or an explicit review request.
+- `U1 semantic creation/change`: new or changed product behavior, public contract, authorization, data lifecycle, user flow, external integration, migration semantics, or an unresolved defect expectation. Publish understanding sufficient for the next coherent slice; stop dependent work only for a surviving material user-owned choice or an explicit review-first request.
 - `U2 structural adjustment`: behavior-preserving refactor, dependency/configuration/performance work, internal interface change, or another engineering adjustment. Stop only when a user-owned behavior, compatibility, or operational meaning can change.
 - `U3 defect correction`: current behavior is wrong and expected/protected behavior is established by repository evidence or a clear request. Diagnose and repair without a confirmation stop; upgrade to U1 when plausible product meanings survive.
 - `U4 mechanical`: exact spelling, formatting, replacement, generated synchronization, or another deterministic edit. Proceed directly.
@@ -26,7 +26,7 @@ Describe the actor, trigger, preconditions, inputs and trust boundary, observabl
 
 Use repository-native issue or requirement IDs when the project already relies on them. Dev Flow does not create AC/SC/VO/AMB identifiers, revisions, or digests for 2.0 work.
 
-For a U1 understanding result, present the relevant subset under clear human-readable headings: goal/problem; current behavior and evidence; users/triggers/scenarios; intended observable behavior and important state/failure/recovery; in/out scope; protected behavior and constraints; acceptance behavior/examples; confirmed facts, user decisions, bounded assumptions, and remaining unknowns; durable knowledge impact. State clearly when technical design has not started and a material choice is pending.
+For a U1 understanding result, present the relevant subset: goal/problem; current behavior and evidence; users/triggers/scenarios; intended observable behavior and important state/failure/recovery; in/out scope; protected behavior and constraints; acceptance behavior/examples; confirmed facts, user decisions, bounded assumptions, and remaining unknowns; durable knowledge impact. Use headings only when they aid understanding. State which dependent work is paused for a material choice; do not imply all technical learning has stopped.
 
 Use example mapping or a decision table for interacting business rules, state-transition scenarios for lifecycle behavior, a user journey/service blueprint for cross-participant flows, a trust-boundary/threat view for permissions and untrusted input, and a compatibility matrix for multi-version/public-contract work when the method changes the requirement meaning. Keep the method bounded and omit its process trace from the result.
 
@@ -34,7 +34,9 @@ Use example mapping or a decision table for interacting business rules, state-tr
 
 An ambiguity is material only when at least two plausible interpretations survive evidence gathering and lead to meaningfully different outcomes. Resolve repository facts yourself. Make low-risk reversible assumptions visible and continue. Ask the user for final product or authority semantics.
 
-When a durable decision changes, update the managed design or repository-native record before dependent implementation continues. Conversation is enough for decisions that will not matter after the current task.
+While a choice remains open, use already-authorized read-only investigation, technical feasibility comparison, or reversible isolated probes when they can eliminate an interpretation. Such learning does not select a product branch, add a dependency, change production data, or authorize external actions. An explicit review-first request still pauses the work it names.
+
+When a durable decision changes, update the managed design or repository-native record before dependent implementation continues. A correction also requires reconciling affected code/data, tests, children, and evidence; an updated record does not make old results current. Conversation is enough for decisions that will not matter after the current task.
 
 ## Design and scope
 
@@ -48,4 +50,4 @@ Classify late discovery as covered impact, implementation defect, design defect,
 
 An explicit user answer or implementation request is sufficient authority for the product decision it names. It does not authorize a different dependency, destructive action, or external delivery. Record rationale in the repository only when future maintainers need it; do not create approval receipts or hash-bind prose.
 
-For U1, a clear implementation request or confirmed plan authorizes technical design after a complete understanding is stated when no material user-owned choice remains. A generic request does not choose between materially different product meanings. Ask for that choice, then continue through already-authorized local implementation without a second approval; stop again only for a new material decision or another authority boundary.
+For U1, a clear implementation request or confirmed plan authorizes technical design once the next decision has enough semantic grounding and no material user-owned choice remains. A generic request does not choose between materially different product meanings. Ask for that choice, then continue through already-authorized local implementation without a second approval; stop again only for a new material decision or another authority boundary.

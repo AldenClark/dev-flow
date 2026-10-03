@@ -18,6 +18,8 @@ This Skill may operate alone for an independent read-only review. If the request
 5. Verify each candidate in current source with a reachable causal path and, when practical, a focused reproducer, counterexample, or native test. Report severity, location, proof, consequence, and bounded repair; omit speculation, style preference, and names-only heuristics.
 6. After repair, recheck the affected path and regressions. Return requirement ambiguity, architectural defects, causal uncertainty, and evidence gaps to their owning problem rather than manufacturing another review round.
 
+After a user correction, review the actual affected implementation/data and test expectations against the current meaning, including late child writes and results. A revised summary with unchanged old behavior or an obsolete oracle remains a consequential gap; use `dev-flow/references/core-lifecycle.md` for bounded invalidation and recovery.
+
 Read `references/review-protocol.md` for large or independent reviews and `references/authorization-privacy.md` only when the change contains that boundary.
 
 ## Saturation

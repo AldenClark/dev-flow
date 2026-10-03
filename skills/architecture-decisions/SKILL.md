@@ -22,6 +22,8 @@ Public-contract or data-lifecycle design spanning compatibility, rollout, recove
 
 Read [neutral engineering policy](references/neutral-engineering-policy.md) for implementation-quality defaults, and the relevant section of [language-native guidance](references/language-native-guidance.md) for language or platform constraints. Revisit a decision when its stated assumption, consumer set, workload, failure mode, or rollback cost changes; do not retain an abstraction merely because it already exists.
 
+After a semantic correction, replace the affected design premise and identify dependent code/data, tests, and delegated work under `dev-flow/references/core-lifecycle.md`. Independent authorized feasibility learning may continue while a user choice is pending; it cannot commit the product to that branch.
+
 ## Boundaries
 
 - Return user-visible semantic choices to requirements/design.

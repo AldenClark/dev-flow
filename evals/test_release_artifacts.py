@@ -20,6 +20,8 @@ VERSION = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding
 PRODUCT_STATE = json.loads((ROOT / "governance" / "product-state.json").read_text(encoding="utf-8"))
 PUBLISHED_VERSION = PRODUCT_STATE["published"]["latest_rc"]["version"]
 PUBLISHED_TAG = PRODUCT_STATE["published"]["latest_rc"]["tag"]
+STABLE_TAG = PRODUCT_STATE["published"]["stable"]["tag"]
+INSTALL_TAG = STABLE_TAG if int(PRODUCT_STATE["published"]["stable"]["version"].split(".")[0]) >= 2 else PUBLISHED_TAG
 SOURCE_PHASE = PRODUCT_STATE["source"]["phase"]
 ROLLBACK_TAG = PRODUCT_STATE["compatibility"]["rollback_target"]
 
@@ -181,20 +183,22 @@ class RuntimeLifecycleSmokeTests(unittest.TestCase):
 class ReleaseWorkflowContractTests(unittest.TestCase):
     def test_readme_distinguishes_source_identity_from_published_and_rollback(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("`v1.1.2` 是最后一个 1.x 稳定标签", readme)
-        self.assertRegex(VERSION, r"^2\.0\.0-rc\.\d+$")
+        if STABLE_TAG == "v1.1.2":
+            self.assertIn("`v1.1.2` 是最后一个 1.x 稳定标签", readme)
+        else:
+            self.assertIn(f"`{STABLE_TAG}` 是最近已发布的稳定标签", readme)
+        self.assertRegex(VERSION, r"^\d+\.\d+\.\d+(?:-rc\.\d+)?$")
         source_label = "候选源码" if SOURCE_PHASE == "source-candidate" else "已发布源码"
         self.assertIn(f"{source_label}身份为 `{VERSION}`", readme)
         self.assertIn(f"`{PUBLISHED_TAG}` 是最近已发布", readme)
         self.assertIn(
-            f"codex plugin marketplace add AldenClark/dev-flow --ref {PUBLISHED_TAG}",
+            f"codex plugin marketplace add AldenClark/dev-flow --ref {INSTALL_TAG}",
             readme,
         )
         self.assertIn(f"回滚目标为 `{ROLLBACK_TAG}`", readme)
         if SOURCE_PHASE == "source-candidate":
-            self.assertEqual(PUBLISHED_TAG, ROLLBACK_TAG)
-        else:
-            self.assertNotEqual(PUBLISHED_TAG, ROLLBACK_TAG)
+            self.assertEqual(PRODUCT_STATE["workspace"]["base_published"], ROLLBACK_TAG)
+        self.assertNotEqual(f"v{VERSION}", ROLLBACK_TAG)
 
     def test_release_identity_and_lifecycle_claims_match_exercised_evidence(self) -> None:
         attestation = json.loads(
@@ -202,7 +206,15 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(attestation["codex"]["plugin_version"], VERSION)
+        # This is an intentionally unqualified schema example, not current
+        # installation evidence. Actual artifact identity is tested above.
+        self.assertEqual(attestation["schema_version"], "1.0")
+        self.assertEqual(attestation["checked_at"], "YYYY-MM-DDTHH:MM:SSZ")
+        self.assertRegex(attestation["codex"]["plugin_version"], r"^\d+\.\d+\.\d+(?:-rc\.\d+)?$")
+        self.assertFalse(attestation["codex"]["hook_trust_reviewed"])
+        for surface in ("chatgpt_work", "ordinary_chat"):
+            self.assertFalse(attestation[surface]["instructions_reviewed"])
+            self.assertFalse(attestation[surface]["synthetic_self_test_passed"])
 
         implementation = (ROOT / "docs" / "workstreams" / "dev-flow-2.0" / "implementation.md").read_text(
             encoding="utf-8"

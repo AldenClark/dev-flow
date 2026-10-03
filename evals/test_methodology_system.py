@@ -175,6 +175,73 @@ class MethodologySystemContractTests(unittest.TestCase):
         self.assertEqual(result["reasoning_model"]["matched_risk_models"], [])  # type: ignore[index]
         self.assertFalse(result["context_budget"]["full_pool_loaded_into_working_set"])  # type: ignore[index]
 
+    def test_requirement_foundation_keeps_behavior_evidence_without_process_artifacts(self) -> None:
+        result = self.select(
+            phase="requirements",
+            task_type="bugfix",
+            available=["repository-facts"],
+            depth="starter",
+        )
+        baseline = next(
+            method for method in result["selected_methods"]
+            if method["id"] == "semantic-baseline"
+        )
+        obligations = json.dumps(
+            {field: baseline[field] for field in ("outputs", "steps", "evidence")}
+        ).lower()
+        self.assertNotRegex(obligations, r"ledger|digest|stable acceptance ids|approved requirement bytes")
+        self.assertIn("existing owner", obligations)
+        self.assertIn("observable", obligations)
+        self.assertIn("unresolved", obligations)
+
+    def test_public_diagnostic_checkpoint_does_not_reintroduce_ledger_or_digest_gates(self) -> None:
+        completed = run_flow(
+            "route-task", "--intent", "diagnose", "--risk", "weak-tests",
+            "--method-signal", "model-evaluation",
+            "--method-prerequisite", "repository-facts",
+            "--method-prerequisite", "requirement-baseline",
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr or completed.stdout)
+        payload = json.loads(completed.stdout)
+        method = payload["capability_activation"]["method"]
+        checkpoint = next(
+            item for item in method["selection"]["guidance"]
+            if item["method"] == "long-running-semantic-checkpoint"
+        )
+        obligations = json.dumps(
+            {field: checkpoint[field] for field in ("expected_outputs", "steps", "evidence")}
+        ).lower()
+        self.assertNotRegex(obligations, r"ledger|digest|stable acceptance ids|approved requirement bytes")
+        self.assertIn("existing owner", obligations)
+        self.assertIn("current source", obligations)
+        self.assertFalse(method["persisted"])
+        self.assertLessEqual(len(method["selection"]["guidance"]), 3)
+        self.assertLessEqual(len(method["selection"]["blocked"]), 2)
+
+    def test_real_external_transaction_recovery_keeps_its_durable_progress(self) -> None:
+        result = self.select(
+            phase="design",
+            risks=["recovery"],
+            signals=["external-side-effects", "multi-step-external-action"],
+            depth="deep",
+            max_methods=30,
+        )
+        saga = next(
+            method for method in result["selected_methods"]
+            if method["id"] == "saga-compensating-actions"
+        )
+        self.assertIn("durable progress", " ".join(saga["steps"]))
+        self.assertIn("compensation", saga["evidence"] + " ".join(saga["outputs"]))
+        self.assertIn("Compensation is not rollback", saga["limitations"])
+        without_authority = self.select(
+            phase="delivery",
+            risks=["deployment"],
+            signals=["rollout-risk", "no-live-authority"],
+            depth="deep",
+            max_methods=30,
+        )
+        self.assertNotIn("canary-progressive-delivery", self.selected_ids(without_authority))
+
     def test_identity_migration_escalates_from_ledger_to_alloy_only_at_formal_depth(self) -> None:
         common = {
             "phase": "requirements",

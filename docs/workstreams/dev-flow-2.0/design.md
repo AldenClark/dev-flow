@@ -1,5 +1,7 @@
 # Dev Flow 2.0 design
 
+> Historical RC.2 design, not current routing, model, or U1 confirmation policy. See the approved [stable plan](stable-master-plan.md), [stable implementation](../dev-flow-2.0-stable/implementation.md), and maintained Skills/governance for current behavior. Historical design and evidence below remain unchanged.
+
 ## Status
 
 - State: `2.0.0-rc.2` activation hardening is implemented and deterministically verified in the local working tree; model-semantic and delivery gates remain separate

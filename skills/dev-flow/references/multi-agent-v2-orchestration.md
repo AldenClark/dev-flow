@@ -10,6 +10,8 @@ Delegation exists only after a successful dispatch returns a non-empty child ide
 
 If routing shows that a child needs broad/high-cost context but the work is not independently useful, keep it in the root context instead of delegating.
 
+`parallel_units` is the total independent work to process, not simultaneous admission. Active width intersects observed host limits/remaining slots, user budget, independent ready ownership and integration capacity. Unknown capacity calls for bounded dispatch and observation, not an unlimited pool. Preflight caller inputs and legacy advisory fields are neither verified host inventory nor slot reservations; batch work when its total exceeds available simultaneous capacity.
+
 ## Brief
 
 Every delegated task states:

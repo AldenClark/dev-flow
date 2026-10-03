@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import outcome_observation
+import git_observation
 
 
 MAX_JSON_BYTES = 262_144
@@ -22,13 +23,6 @@ DEFAULT_MAX_CACHE_FILES = 20_000
 MAX_CACHE_DIRECTORIES = 20_000
 MAX_CACHE_DEPTH = 12
 EXECUTING_PLUGIN_ROOT = Path(__file__).resolve().parents[3]
-SAFE_GIT_PREFIX = [
-    "git",
-    "-c",
-    "core.fsmonitor=false",
-    "-c",
-    f"core.hooksPath={os.devnull}",
-]
 
 
 def _sha256_bytes(data: bytes) -> str:
@@ -63,54 +57,34 @@ def _read_json(root: Path, relative: Path | str) -> Any:
 
 
 def _git_observation(root: Path) -> dict[str, Any]:
-    if not (root / ".git").exists():
-        return {"status": "not_observed", "reason": "plugin root is not a Git checkout"}
+    repository = git_observation.probe_worktree(root)
+    if repository["status"] != "observed":
+        return repository
     result: dict[str, Any] = {"status": "observed"}
     commands = {
-        "head": [*SAFE_GIT_PREFIX, "rev-parse", "HEAD"],
-        "branch": [*SAFE_GIT_PREFIX, "branch", "--show-current"],
-        "exact_tags": [*SAFE_GIT_PREFIX, "tag", "--points-at", "HEAD"],
+        "head": ["rev-parse", "HEAD"],
+        "branch": ["branch", "--show-current"],
+        "exact_tags": ["tag", "--points-at", "HEAD"],
     }
-    git_environment = {
-        key: value for key, value in os.environ.items() if not key.startswith("GIT_")
-    }
-    git_environment.update(
-        {
-            "GIT_OPTIONAL_LOCKS": "0",
-            "GIT_PAGER": "cat",
-            "GIT_TERMINAL_PROMPT": "0",
-        }
-    )
     for field, command in commands.items():
-        completed = subprocess.run(
-            command,
-            cwd=root,
-            capture_output=True,
-            text=True,
-            check=False,
-            env=git_environment,
-        )
+        try:
+            completed = git_observation.run_git(root, command)
+        except git_observation.GitObservationError as exc:
+            return {**exc.observation, "operation": field}
         if completed.returncode != 0:
-            return {"status": "unavailable", "reason": "Git observation failed"}
+            return git_observation.command_failure(completed, field)
         value = completed.stdout.strip()
         result[field] = value.splitlines() if field == "exact_tags" and value else [] if field == "exact_tags" else value
-    changed = subprocess.run(
-        [
-            *SAFE_GIT_PREFIX,
-            "status",
-            "--porcelain=v1",
-            "-z",
-            "--ignore-submodules=all",
-            "--untracked-files=normal",
-        ],
-        cwd=root,
-        capture_output=True,
-        check=False,
-        env=git_environment,
-    )
-    result["worktree_changed_paths"] = (
-        sum(1 for item in changed.stdout.split(b"\0") if item) if changed.returncode == 0 else None
-    )
+    try:
+        changed = git_observation.run_git(
+            root, ["status", "--porcelain=v1", "-z", "--ignore-submodules=all", "--untracked-files=normal"],
+            text=False,
+        )
+    except git_observation.GitObservationError as exc:
+        return {**exc.observation, "operation": "worktree-status"}
+    if changed.returncode != 0:
+        return git_observation.command_failure(changed, "worktree-status")
+    result["worktree_changed_paths"] = sum(1 for item in changed.stdout.split(b"\0") if item)
     return result
 
 
@@ -154,6 +128,9 @@ def _cli_registration(codex_cli: Path | None) -> dict[str, Any]:
             "status": "not_observed",
             "reason": "pass --codex-cli to inspect the CLI plugin registry",
         }
+    provenance = {
+        "source": "operator-supplied-cli-registry", "executable_trust": "not-verified",
+    }
     try:
         completed = subprocess.run(
             [str(codex_cli), "plugin", "list", "--marketplace", "dev-flow", "--json"],
@@ -163,17 +140,18 @@ def _cli_registration(codex_cli: Path | None) -> dict[str, Any]:
             timeout=15,
         )
     except (OSError, subprocess.SubprocessError):
-        return {"status": "unavailable", "reason": "CLI plugin registry could not be inspected"}
+        return {**provenance, "status": "unavailable", "reason": "CLI plugin registry could not be inspected"}
     if completed.returncode != 0:
-        return {"status": "unavailable", "reason": "CLI plugin registry command failed"}
+        return {**provenance, "status": "unavailable", "reason": "CLI plugin registry command failed"}
     try:
         payload = json.loads(completed.stdout)
     except json.JSONDecodeError:
-        return {"status": "unavailable", "reason": "CLI plugin registry output was invalid"}
+        return {**provenance, "status": "unavailable", "reason": "CLI plugin registry output was invalid"}
     installed = payload.get("installed") if isinstance(payload, dict) else None
     if not isinstance(installed, list):
-        return {"status": "unavailable", "reason": "CLI plugin registry schema was unexpected"}
+        return {**provenance, "status": "unavailable", "reason": "CLI plugin registry schema was unexpected"}
     return {
+        **provenance,
         "status": "observed",
         "registered": bool(installed),
         "entries": len(installed),
@@ -181,16 +159,16 @@ def _cli_registration(codex_cli: Path | None) -> dict[str, Any]:
     }
 
 
-def _loaded_identity(root: Path, supplied: Path | None) -> dict[str, Any]:
+def _supplied_identity(root: Path, supplied: Path | None) -> dict[str, Any]:
     candidate = supplied
-    source = "argument"
+    source = "explicit-supplied-path"
     if candidate is None:
         environment = os.environ.get("DEV_FLOW_LOADED_PLUGIN_ROOT")
         if environment:
             candidate = Path(environment)
-            source = "environment"
+            source = "environment-path"
     if candidate is None:
-        return {"status": "not_observed", "reason": "loaded plugin root was not supplied"}
+        return {"status": "not_observed", "reason": "plugin root identity was not supplied"}
     try:
         loaded = candidate.expanduser().resolve(strict=True)
         manifest = _read_json(loaded, ".codex-plugin/plugin.json")
@@ -203,9 +181,10 @@ def _loaded_identity(root: Path, supplied: Path | None) -> dict[str, Any]:
             "version": manifest.get("version"),
             "matches_source_root": loaded == root,
             "matches_source_version": manifest.get("version") == source_manifest.get("version"),
+            "claim_limit": "supplied-root-manifest-only; no effective or current-session loading is inferred",
         }
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError):
-        return {"status": "unavailable", "source": source, "reason": "loaded root identity is invalid"}
+        return {"status": "unavailable", "source": source, "reason": "supplied root identity is invalid"}
 
 
 def _cache_inventory(
@@ -385,6 +364,19 @@ def diagnose(args: argparse.Namespace) -> dict[str, Any]:
     outcome_path = Path(
         os.path.abspath(os.fspath((args.outcome_store or outcome_observation.default_path()).expanduser()))
     )
+    registration = _cli_registration(getattr(args, "codex_cli", None))
+    installed: dict[str, Any] = {
+        "status": registration["status"], "source": "operator-supplied-cli-registry",
+        "claim_limit": "registry-reported-installation-only; cached or loaded bytes are not verified",
+    }
+    if registration["status"] == "observed":
+        installed.update({"installed": registration["registered"], "entries": registration["entries"]})
+    else:
+        installed["reason"] = registration["reason"]
+    current_session = {
+        "status": "not_observed", "source": "current-session-host-observation",
+        "reason": "this diagnostic has no current-session plugin identity interface",
+    }
     return {
         "schema": "dev-flow.doctor.v1",
         "status": "observed",
@@ -394,9 +386,25 @@ def diagnose(args: argparse.Namespace) -> dict[str, Any]:
         },
         "runtime": {
             "cache": _cache_versions(args.codex_home),
-            "registration": _cli_registration(getattr(args, "codex_cli", None)),
-            "loaded": _loaded_identity(root, args.loaded_plugin_root),
+            "installed": installed,
+            "registration": registration,
+            "supplied_root": _supplied_identity(root, args.loaded_plugin_root),
+            "effective": {
+                "status": "not_observed", "source": "effective-host-observation",
+                "reason": "this diagnostic has no effective-host plugin identity interface",
+            },
+            "current_session": current_session,
+            "loaded": {**current_session, "compatibility": "legacy-current-session-field"},
             "hook": _hook_observation(root, run_self_test=not args.skip_control_self_test),
+        },
+        "recovery": {
+            "status": "manual-new-session-verification",
+            "steps": [
+                "After a plugin installation or registry change, open a new Codex chat.",
+                "Check the plugin paths and version exposed by that chat's host before claiming effective loading.",
+                "Verify Hook activation separately using current-session host observations.",
+            ],
+            "automatic_actions_performed": False,
         },
         "local_state": {
             "cache": _cache_inventory(
@@ -411,7 +419,8 @@ def diagnose(args: argparse.Namespace) -> dict[str, Any]:
         },
         "actions": {"cleanup_performed": False, "mutation_performed": False},
         "claim_limit": (
-            "read-only bounded observations at check time; cache bytes, CLI registration, loaded root, and Hook "
+            "read-only bounded observations at check time; cache inventory, registry-reported installation, "
+            "registration, supplied root, effective host identity, current-session identity, and Hook "
             "activation remain distinct; no live Hook/account activation, hosted state, "
             "cache safety-to-delete, delivery, or outcome effectiveness is inferred"
         ),
@@ -422,8 +431,8 @@ def add_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser], 
     parser = subparsers.add_parser("doctor", help="Inspect source/runtime/cache/outcome truth without cleanup")
     parser.add_argument("--plugin-root", type=Path, default=default_root)
     parser.add_argument("--codex-home", type=Path)
-    parser.add_argument("--codex-cli", type=Path)
-    parser.add_argument("--loaded-plugin-root", type=Path)
+    parser.add_argument("--codex-cli", type=Path, help="Use this operator-provided CLI for a read-only registry query; caller owns executable trust")
+    parser.add_argument("--loaded-plugin-root", type=Path, help="Inspect a supplied root manifest; does not prove current-session loading")
     parser.add_argument("--outcome-store", type=Path)
     parser.add_argument("--max-cache-files", type=int, default=DEFAULT_MAX_CACHE_FILES)
     parser.add_argument("--skip-control-self-test", action="store_true")
@@ -436,8 +445,9 @@ def command(args: argparse.Namespace) -> int:
         payload = diagnose(args)
         print(json.dumps(payload, indent=2, sort_keys=True))
         product_status = payload["source"]["product_state"].get("status")
+        git_status = payload["source"]["git"].get("status")
         hook_status = payload["runtime"]["hook"].get("packaging")
-        return 0 if product_status == "valid" and hook_status == "packaged" else 2
+        return 0 if product_status == "valid" and hook_status == "packaged" and git_status in {"observed", "not-applicable"} else 2
     except (OSError, ValueError, subprocess.SubprocessError) as exc:
         print(json.dumps({"status": "unavailable", "error": str(exc)}, sort_keys=True))
         return 2

@@ -2,6 +2,14 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
+## 2.0.0 personal-assistant hardening candidate
+
+`2.0.0` is the current stable source candidate. Implementation and qualification follow the approved [master plan](workstreams/dev-flow-2.0/stable-master-plan.md) and [stable progress](workstreams/dev-flow-2.0-stable/progress.md). `v2.0.0-rc.9` is the latest public immutable RC tag. `v2.0.0-rc.9` is the rollback target for `2.0.0`; it is a plugin-version recovery target, not a promise of state migration or a new qualification of historical RC bytes.
+
+The user authorized implementation through stable publication and the primary local installation update. This candidate retains stable evidence requirements: final native regression, cumulative semantic/static review, five bounded real functional journeys, exact-SHA hosted compatibility, verified hosted artifacts and public-tag installation. RC.9 waivers do not carry forward.
+
+Delivery state: commit=not-run; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+
 ## 2.0.0-rc.9 personal-assistant hardening release
 
 `2.0.0-rc.9` updates active P4/P5 routing and root guidance to GPT-6.1 Sol while retaining Luna/Astra tiers, efforts, compound escalation, and exact-host/no-silent-fallback boundaries. `v2.0.0-rc.9` is the latest public immutable RC tag, from `5d4a569dcbbb67fb21cbc7945945597e342151b5`, with a [public prerelease](https://github.com/AldenClark/dev-flow/releases/tag/v2.0.0-rc.9). `v2.0.0-rc.8` is the rollback target for `2.0.0-rc.9`.
@@ -104,7 +112,11 @@ The manual release-candidate workflow is a third lane. It fetches and binds the 
 
 Never rewrite or reuse an RC tag. Any changed byte requires a new commit and candidate identity.
 
-After publication and isolated install verification, record external truth in a separate current-truth commit on the default branch: set the published-source phase to `released`, advance `published.latest_rc` to the immutable RC tag, retain the previous known-good tag as `compatibility.rollback_target`, and record each delivery result without rewriting the release tag. If later implementation begins, set the separate workspace record to `development` from that published tag and bind it to its own workstream; those bytes have no publication claim. The tagged candidate remains the exact pre-publication byte snapshot; the follow-up commit is the canonical current state and does not retroactively alter its artifact identity.
+Record external facts as they occur, even if a later delivery step fails. A successful tag with failed publication leaves source `source-candidate`, tag `passed`, publication `failed` and the previous published record intact. Once publication is observed, immediately set source to `released` for an RC or `stable` for a non-prerelease version and update the corresponding published record; do not delay this truth until installation succeeds. A published stable with failed installation is structurally consistent but delivery is incomplete. A lost publication response leaves the step `blocked` and the external fact unresolved; read-only reconciliation against the exact tag/release/assets precedes any retry. Never delete/rewrite an immutable tag or undo publication merely to make a validator green.
+
+Use a separate current-truth commit on the default branch without rewriting tagged bytes. `published.latest_rc` keeps the most recently published RC; stable publication advances `published.stable`. The workspace base follows its actual published source, and stable 2.0 becomes the default installation channel while RC remains explicit opt-in. Preserve the explicitly selected older published rollback target and compatibility limits. The tagged candidate remains the pre-publication snapshot; the truth commit does not retroactively alter its artifacts.
+
+Product-state default validation proves structural consistency only. Recorded publish prerequisites are checked before publication; recorded completion gates additionally require observed publication and public-version isolated installation. Final native regression, cumulative requirements/static review, the five functional journeys and actual candidate loading must also be inspected in their own evidence owners. A structural valid result, recorded-prerequisites-met result, CI green or builder validity grants no action authority and does not prove an unobserved external fact.
 
 ## Local artifact check
 
@@ -113,14 +125,14 @@ For an R3 change, two local builds can establish deterministic behavior before h
 ```bash
 git rev-parse HEAD
 python3 tools/build_release.py build \
-  --root . --output dist-a --version 2.0.0-rc.9 --commit FULL_COMMIT_SHA
+  --root . --output dist-a --version 2.0.0 --commit FULL_COMMIT_SHA
 python3 tools/build_release.py build \
-  --root . --output dist-b --version 2.0.0-rc.9 --commit FULL_COMMIT_SHA
-cmp dist-a/dev-flow-2.0.0-rc.9.tar.gz dist-b/dev-flow-2.0.0-rc.9.tar.gz
+  --root . --output dist-b --version 2.0.0 --commit FULL_COMMIT_SHA
+cmp dist-a/dev-flow-2.0.0.tar.gz dist-b/dev-flow-2.0.0.tar.gz
 cmp dist-a/release-manifest.json dist-b/release-manifest.json
 cmp dist-a/SHA256SUMS dist-b/SHA256SUMS
 python3 tools/build_release.py verify \
-  --artifact-dir dist-a --expected-version 2.0.0-rc.9 --expected-commit FULL_COMMIT_SHA
+  --artifact-dir dist-a --expected-version 2.0.0 --expected-commit FULL_COMMIT_SHA
 ```
 
 Determinism is asserted within the pinned environment. Promotion reuses attested bytes instead of rebuilding on another zlib/toolchain version.
@@ -131,17 +143,17 @@ After applicable exact-SHA CI is green:
 
 ```bash
 gh workflow run release-candidate.yml \
-  --ref main -f version=2.0.0-rc.9 -f expected_sha=FULL_COMMIT_SHA
+  --ref main -f version=2.0.0 -f expected_sha=FULL_COMMIT_SHA
 ```
 
 The workflow has `contents: read`, `id-token: write`, and `attestations: write`. It has no release-publication permission. After download:
 
 ```bash
 python3 tools/build_release.py verify \
-  --artifact-dir dist --expected-version 2.0.0-rc.9 --expected-commit FULL_COMMIT_SHA
-gh attestation verify dist/dev-flow-2.0.0-rc.9.tar.gz \
+  --artifact-dir dist --expected-version 2.0.0 --expected-commit FULL_COMMIT_SHA
+gh attestation verify dist/dev-flow-2.0.0.tar.gz \
   --repo AldenClark/dev-flow
-gh attestation verify dist/dev-flow-2.0.0-rc.9.tar.gz \
+gh attestation verify dist/dev-flow-2.0.0.tar.gz \
   --repo AldenClark/dev-flow \
   --predicate-type https://spdx.dev/Document/v2.3
 ```

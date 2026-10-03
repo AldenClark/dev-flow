@@ -32,11 +32,7 @@ from path_contracts import PathContractError, atomic_write_text, contained_path
 
 
 MIN_CODEX = (0, 147, 0)
-GOVERNED_MAX_ACTIVE_CHILDREN = 6
-DEFAULT_INITIAL_ACTIVE_CHILDREN = 2
-READ_ONLY_BREADTH_INITIAL_ACTIVE_CHILDREN = 3
-ORDINARY_ACTIVE_CHILD_SOFT_LIMIT = 3
-DEFAULT_CAPACITY_RAMP_STEP = 1
+UNKNOWN_CAPACITY_ADVISORY_CHILDREN = 1
 EXECUTION_MODES = {"direct", "managed"}
 TASK_INTENTS = {"research", "diagnose", "design", "change", "review", "delivery"}
 LEGACY_INTENT_ALIASES = {"research-audit": "review"}
@@ -962,6 +958,8 @@ def route_requirement_understanding(
         "confirmation_required": confirmation_required,
         "confirmation": confirmation,
         "design_allowed": design_allowed,
+        "design_scope": "commitments and implementation dependent on the unresolved user choice",
+        "independent_learning_allowed": True,
         "next_action": (
             "publish-detailed-understanding-and-stop"
             if confirmation_required and not design_allowed
@@ -975,7 +973,8 @@ def route_requirement_understanding(
             "remain in Default mode",
             "resolve repository facts before asking the user",
             "stop only for an unresolved user-owned choice that changes the outcome",
-            "a correction requires a complete revised understanding",
+            "a correction revises the affected understanding and invalidates dependent design, code, tests and child results",
+            "independent authorized learning may continue; design_allowed and stop_before govern choice-dependent commitments and implementation",
             "confirmation does not authorize dependencies, delivery, or destructive/external action",
         ],
     }
@@ -1081,7 +1080,7 @@ def route_capability_activation(
         inferred_prerequisites: set[str] = set()
         if repository_facts:
             inferred_prerequisites.add("repository-facts")
-        if understanding["class"] != "semantic-change" or understanding["confirmation"] in {"confirmed", "waived"}:
+        if understanding["design_allowed"]:
             inferred_prerequisites.add("requirement-baseline")
         available_prerequisites = supplied_prerequisites | inferred_prerequisites
         method_phase, method_phase_source = task_facing_method_phase(
@@ -1454,6 +1453,9 @@ def parse_version(text: str) -> tuple[int, int, int]:
 
 def codex_preflight(args: argparse.Namespace) -> int:
     capability_issues: list[str] = []
+    cli_issues: list[str] = []
+    capacity_issues: list[str] = []
+    input_issues: list[str] = []
     warnings: list[str] = []
     dispatch_registry_ready = False
     configured_ceiling: int | None = None
@@ -1461,9 +1463,14 @@ def codex_preflight(args: argparse.Namespace) -> int:
     version_text = args.version_output
     features_text: str | None = None
 
+    version_source = "--version-output" if version_text is not None else "Codex CLI --version"
+    features_source = "--features-output-file" if args.features_output_file else "Codex CLI features list"
     try:
         if args.features_output_file:
             features_text = args.features_output_file.read_text(encoding="utf-8")
+    except OSError as exc:
+        cli_issues.append(str(exc))
+    try:
         if version_text is None:
             if not binary:
                 raise RuntimeError("Codex CLI was not found on PATH")
@@ -1471,7 +1478,10 @@ def codex_preflight(args: argparse.Namespace) -> int:
             if result.returncode:
                 raise RuntimeError(result.stderr.strip() or result.stdout.strip())
             version_text = result.stdout
-        if features_text is None:
+    except (OSError, RuntimeError, subprocess.TimeoutExpired) as exc:
+        cli_issues.append(str(exc))
+    try:
+        if features_text is None and not args.features_output_file:
             if not binary:
                 raise RuntimeError("Codex CLI was not found on PATH")
             result = run([binary, "features", "list"])
@@ -1479,15 +1489,15 @@ def codex_preflight(args: argparse.Namespace) -> int:
                 raise RuntimeError(result.stderr.strip() or result.stdout.strip())
             features_text = result.stdout
     except (OSError, RuntimeError, subprocess.TimeoutExpired) as exc:
-        capability_issues.append(str(exc))
+        cli_issues.append(str(exc))
 
     actual: tuple[int, int, int] | None = None
     try:
         actual = parse_version(version_text or "")
         if actual < MIN_CODEX:
-            capability_issues.append(f"Codex {'.'.join(map(str, actual))} is below delegation-tested 0.147.0")
+            cli_issues.append(f"Codex {'.'.join(map(str, actual))} is below delegation-tested 0.147.0")
     except ValueError as exc:
-        capability_issues.append(str(exc))
+        cli_issues.append(str(exc))
 
     features = dict(FEATURE_RE.findall(features_text or ""))
     observed_capabilities = set(args.effective_capability)
@@ -1495,7 +1505,7 @@ def codex_preflight(args: argparse.Namespace) -> int:
         # Compatibility alias retained for callers that only confirm delegation.
         observed_capabilities.add("delegation")
     if features.get("multi_agent") != "true":
-        capability_issues.append("Codex effective feature multi_agent is not enabled")
+        cli_issues.append("Codex CLI feature multi_agent is not enabled or not observed")
     if features.get("hooks") != "true":
         warnings.append("Codex effective feature hooks is unavailable; Dev Flow continues without hook automation")
 
@@ -1514,7 +1524,7 @@ def codex_preflight(args: argparse.Namespace) -> int:
             if not isinstance(feature_config, dict):
                 raise ValueError("config [features] must be a table")
             if feature_config.get("multi_agent") is False:
-                warnings.append("config explicitly disables multi_agent even though the effective feature list is authoritative")
+                warnings.append("config explicitly disables multi_agent; CLI config is separate from caller-reported current-turn capability")
             if feature_config.get("hooks") is False:
                 warnings.append("config explicitly disables hooks; hook automation remains optional")
             agent_config = effective.get("agents", {})
@@ -1522,69 +1532,84 @@ def codex_preflight(args: argparse.Namespace) -> int:
                 raise ValueError("config [agents] must be a table")
             limit = agent_config.get("max_concurrent_threads_per_session")
             if limit is not None and (not isinstance(limit, int) or isinstance(limit, bool) or limit < 1):
-                capability_issues.append("configured [agents].max_concurrent_threads_per_session must be a positive integer")
+                capacity_issues.append("configured [agents].max_concurrent_threads_per_session must be a positive integer")
             elif limit is not None:
                 configured_ceiling = limit
-                if limit > GOVERNED_MAX_ACTIVE_CHILDREN:
-                    warnings.append(
-                        f"configured agent ceiling {limit} exceeds the governed active-child ceiling "
-                        f"{GOVERNED_MAX_ACTIVE_CHILDREN}; Dev Flow will schedule at most "
-                        f"{GOVERNED_MAX_ACTIVE_CHILDREN} active children"
-                    )
             if isinstance(feature_config.get("multi_agent_v2"), dict):
                 warnings.append("obsolete [features.multi_agent_v2] is ignored; the current runtime uses multi_agent")
         except (OSError, ValueError, tomllib.TOMLDecodeError) as exc:
-            capability_issues.append(f"cannot read Codex config {config_path}: {exc}")
+            capacity_issues.append(f"cannot read Codex config {config_path}: {exc}")
+
+    capacity_inputs = {
+        name: getattr(args, name, None)
+        for name in (
+            "host_active_child_limit", "remaining_child_slots", "active_children",
+            "user_active_child_budget", "ready_independent_units", "integration_child_allowance",
+            "initial_active_child_target",
+        )
+    }
+    for name, value in capacity_inputs.items():
+        minimum = 1 if name == "initial_active_child_target" else 0
+        if value is not None and (isinstance(value, bool) or not isinstance(value, int) or value < minimum):
+            issue = f"{name.replace('_', '-')} must be an integer >= {minimum}"
+            capacity_issues.append(issue)
+            input_issues.append(issue)
+    if capacity_issues:
+        # Invalid reports cannot contribute to an admission recommendation.
+        capacity_inputs = dict.fromkeys(capacity_inputs)
 
     if "delegation" not in observed_capabilities:
         capability_issues.append("The active root must confirm the collaboration tools before delegation")
 
-    errors = capability_issues if args.require_delegation else []
+    errors = capability_issues + capacity_issues if args.require_delegation else input_issues
+    warnings.extend(cli_issues)
     if not args.require_delegation:
-        warnings.extend(capability_issues)
+        warnings.extend(capability_issues + capacity_issues)
     delegation_available = not capability_issues
-    status = "blocked" if errors else "ready" if delegation_available else "degraded"
-    governed_ceiling = (
-        min(configured_ceiling, GOVERNED_MAX_ACTIVE_CHILDREN)
-        if configured_ceiling is not None
-        else None
-    )
-    if delegation_available and governed_ceiling is not None:
-        ordinary_soft_limit: int | None = min(
-            governed_ceiling,
-            ORDINARY_ACTIVE_CHILD_SOFT_LIMIT,
-        )
-        recommended_initial: int | None = min(governed_ceiling, 1)
-        initial_profiles: dict[str, int | None] = {
-            "uncertain_or_tightly_coupled": min(governed_ceiling, 1),
-            "isolated_implementation": min(
-                governed_ceiling,
-                DEFAULT_INITIAL_ACTIVE_CHILDREN,
-            ),
-            "read_only_breadth": min(
-                governed_ceiling,
-                READ_ONLY_BREADTH_INITIAL_ACTIVE_CHILDREN,
-            ),
-        }
-        ramp_step: int | None = DEFAULT_CAPACITY_RAMP_STEP
-    elif delegation_available:
-        ordinary_soft_limit = None
-        recommended_initial = None
-        initial_profiles = {
-            "uncertain_or_tightly_coupled": None,
-            "isolated_implementation": None,
-            "read_only_breadth": None,
-        }
-        ramp_step = None
+    status = "blocked" if errors else "ready" if delegation_available and not capacity_issues else "degraded"
+    active = capacity_inputs["active_children"]
+    total_limits = {
+        "configured_ceiling": configured_ceiling,
+        "host_active_child_limit": capacity_inputs["host_active_child_limit"],
+        "user_active_child_budget": capacity_inputs["user_active_child_budget"],
+    }
+    reported_limits = [value for value in total_limits.values() if value is not None]
+    total_bound = min(reported_limits) if reported_limits else None
+    admission_limits = [
+        capacity_inputs[name] for name in
+        ("remaining_child_slots", "ready_independent_units", "integration_child_allowance")
+        if capacity_inputs[name] is not None
+    ]
+    if total_bound is not None and (active is not None or total_bound == 0):
+        admission_limits.append(max(0, total_bound - (active or 0)))
+    soft_target = capacity_inputs["initial_active_child_target"]
+    if soft_target is not None:
+        admission_limits.append(max(0, soft_target - (active or 0)))
+    missing_capacity = [
+        name for name in (
+            "host_active_child_limit", "remaining_child_slots", "active_children",
+            "user_active_child_budget", "ready_independent_units", "integration_child_allowance",
+        ) if capacity_inputs[name] is None
+    ]
+    if not delegation_available or capacity_issues:
+        additional_children = 0
     else:
-        ordinary_soft_limit = 0
-        recommended_initial = 0
-        initial_profiles = {
-            "uncertain_or_tightly_coupled": 0,
-            "isolated_implementation": 0,
-            "read_only_breadth": 0,
-        }
-        ramp_step = 0
+        if missing_capacity:
+            admission_limits.append(UNKNOWN_CAPACITY_ADVISORY_CHILDREN)
+        additional_children = min(admission_limits)
+    recommended_initial = (active or 0) + additional_children
+    ordinary_soft_limit = recommended_initial
+    initial_profiles = {
+        "uncertain_or_tightly_coupled": min(recommended_initial, 1),
+        "isolated_implementation": recommended_initial,
+        "read_only_breadth": recommended_initial,
+    }
+    if (actual is not None and actual < MIN_CODEX) or features.get("multi_agent") == "false":
+        cli_status = "incompatible"
+    elif actual is None or features.get("multi_agent") != "true":
+        cli_status = "not_observed"
+    else:
+        cli_status = "compatible"
 
     return emit(
         {
@@ -1615,10 +1640,23 @@ def codex_preflight(args: argparse.Namespace) -> int:
                 "external_context": True if "external-context" in observed_capabilities else None,
             },
             "capability_observation": {
-                "authority": "effective current-turn callable surface",
+                "authority": "caller-reported current-turn callable surface",
                 "observed": sorted(observed_capabilities),
+                "provenance": {
+                    "effective_capability": "--effective-capability",
+                    "delegation_compatibility_alias": bool(args.tool_surface_confirmed),
+                },
+                "callability_verified_by_preflight": False,
                 "feature_flags_are_capability_evidence": False,
                 "unobserved_optional_capability": None,
+            },
+            "cli_compatibility": {
+                "status": cli_status,
+                "version_source": version_source,
+                "features_source": features_source,
+                "minimum_delegation_tested_version": ".".join(map(str, MIN_CODEX)),
+                "issues": cli_issues,
+                "determines_current_turn_capability": False,
             },
             "interaction_contract": {
                 "required_mode": "Default",
@@ -1628,25 +1666,38 @@ def codex_preflight(args: argparse.Namespace) -> int:
             "delegation_capacity": {
                 "configured_ceiling": configured_ceiling,
                 "configured_ceiling_is_effective_capacity": False,
-                "governed_active_child_ceiling": governed_ceiling,
+                "governed_active_child_ceiling": total_bound,
                 "ordinary_active_child_soft_limit": ordinary_soft_limit,
                 "recommended_initial_active_children": recommended_initial,
                 "recommended_initial_active_children_is_task_shaped": False,
                 "initial_active_child_profiles": initial_profiles,
-                "recommended_ramp_step": ramp_step,
-                "effective_active_children": None,
-                "effective_capacity_status": "not-observed",
+                "recommended_ramp_step": None,
+                "effective_active_children": active,
+                "effective_capacity_status": "caller-reported" if not missing_capacity else "partially-reported" if any(value is not None for value in capacity_inputs.values()) else "not-observed",
+                "capacity_inputs": capacity_inputs,
+                "capacity_input_provenance": "caller-reported; not measured by preflight",
+                "missing_capacity_inputs": missing_capacity,
+                "capacity_errors": capacity_issues,
+                "recommended_additional_children": additional_children,
+                "recommendation_status": "blocked" if not delegation_available or capacity_issues else "advisory-bounded" if missing_capacity else "advisory-reported-bounds",
+                "recommendation_is_admission_authority": False,
+                "legacy_capacity_fields": {
+                    "governed_active_child_ceiling": "minimum reported total constraint; no universal Dev Flow ceiling",
+                    "ordinary_active_child_soft_limit": "advisory target; no universal soft ceiling",
+                    "initial_active_child_profiles": "advisory projections; no task-specific capacity measurement",
+                    "recommended_ramp_step": "retained as unknown; no fixed increment policy",
+                },
                 "productive_active_children": None,
                 "productive_capacity_status": "not-observed",
                 "admission_policy": (
-                    "Bound active children by configured/governed ceilings, ready-task width, isolated "
-                    "ownership and resource slots, and root reconciliation capacity; expand one slot "
-                    "only after accepted critical-path progress without growing integration backlog, "
-                    "conflicts, rework, or disproportionate cost."
+                    "Recheck actual host limits and remaining slots, user budget, ready independent units, "
+                    "isolated ownership and resource slots, and root reconciliation capacity before dispatch. "
+                    "Unknown capacity calls for bounded admission and fresh feedback; total work units may "
+                    "be processed in batches. Expand only while progress, cost and integration backlog permit."
                 ),
                 "saturation_backoff": (
                     "On HTTP 429 or scheduler saturation, stop new dispatches, reconcile active work, "
-                    "and reduce the session's observed active-child allowance by at least one before "
+                    "and reduce the session's observed active-child allowance using host feedback before "
                     "retrying unstarted work. Pause admission while terminal results await reconciliation."
                 ),
             },
@@ -2695,7 +2746,23 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         choices=("delegation", "goal-bridge", "browser-or-device", "external-context"),
         default=[],
-        help="Repeat for a capability actually callable on the current turn; feature flags alone are not evidence",
+        help="Caller report of a capability callable on the current turn; preflight does not verify callability",
+    )
+    for option, meaning in {
+        "host-active-child-limit": "Current host limit on simultaneous children",
+        "remaining-child-slots": "Current host slots available for additional children",
+        "active-children": "Children already active and consuming the reported total budget",
+        "user-active-child-budget": "User's budget for simultaneous active children",
+        "ready-independent-units": "Independent units ready for new dispatch, not the total work backlog",
+        "integration-child-allowance": "Additional results the parent can reconcile without growing integration backlog",
+    }.items():
+        preflight.add_argument(
+            f"--{option}", type=int,
+            help=f"{meaning}; optional non-negative caller report, not measured by preflight",
+        )
+    preflight.add_argument(
+        "--initial-active-child-target", type=int,
+        help="Optional positive advisory target; host, budget, independence and integration bounds still apply",
     )
     preflight.add_argument("--require-delegation", action="store_true")
     preflight.set_defaults(func=codex_preflight)
@@ -2961,7 +3028,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--parallel-units",
         type=int,
         default=1,
-        help="Observed independent units, not an agent-count request",
+        help="Positive total of independent work units, including batched work; not a simultaneous-agent quota",
     )
     agent_route.add_argument(
         "--tool-density",

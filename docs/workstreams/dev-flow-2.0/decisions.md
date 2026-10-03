@@ -114,7 +114,8 @@
 
 ## D15: Confirm material requirement understanding before design
 
-- Status: accepted
+- Status: superseded for current behavior by the approved [stable plan](stable-master-plan.md), conditional U1 understanding and correction propagation
+- Current refinement: publish enough understanding for the next coherent slice; settled semantics proceed. Pause dependent commitments/implementation only for a surviving material user-owned choice or explicit review-first request. Independent authorized learning may continue. User corrections invalidate affected code, tests, design and child results rather than automatically requiring another full confirmation cycle. The original rationale and decision below are historical.
 - Context: repository investigation and ambiguity questions can still leave Codex with a complete but incorrect interpretation. New or materially changed behavior has a higher semantic error cost than an established bug or mechanical edit.
 - Decision: classify requirement-understanding depth by task semantics. For material new or changed product behavior, publish a detailed technology-neutral understanding result in Default mode and stop for explicit user confirmation before technical design. Established bugs, internal behavior-preserving changes, and mechanical edits skip the stop unless evidence leaves material expected behavior unresolved.
 - Alternatives: proceed whenever no ambiguity is detected; require confirmation for every mutation; require a persisted approval record.

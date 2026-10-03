@@ -101,7 +101,7 @@
       "tests": [
         "evals/test_candidate_identity_rc4.py::CandidateIdentityTests.test_qualification_identity_includes_transitive_bench_contracts",
         "evals/test_dev_flow_v2.py::ActiveGuidanceTests.test_child_proposal_cannot_expand_root_mutation_scope",
-        "evals/test_dev_flow_v2.py::ActiveGuidanceTests.test_unavailable_optional_capability_stays_repository_local",
+        "evals/test_dev_flow_v2.py::ActiveGuidanceTests.test_unavailable_capability_allows_only_authorized_scoped_alternatives",
         "evals/test_dev_flow_bench_contracts.py::DevFlowBenchContractTests.test_declared_read_only_turn_rejects_changed_repository_bytes",
         "evals/test_rc3_extensions.py::ScopeAndContinuationContracts.test_delegation_is_monotonically_narrowed_and_root_verified",
         "evals/test_dev_flow_bench_executor.py::DevFlowBenchExecutorTests.test_unknown_public_tool_failure_exposes_only_bounded_event_identity",

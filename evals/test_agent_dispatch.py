@@ -75,6 +75,69 @@ class AgentDispatchBlackBoxTests(unittest.TestCase):
         self.assertFalse(limited["dispatch_ready"])
         self.assertFalse(limited["delegate"])
 
+    def test_future_inventory_entries_do_not_block_supported_selection(self) -> None:
+        result = run_route(
+            "--role", "dev-flow-blue-reviewer", "--workload", "routine-review",
+            "--host-capability", "gpt-6.1-sol:medium",
+            "--host-capability", "gpt-6.1-sol:ultra",
+            "--host-capability", "future-model:future-effort",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload["dispatch_ready"])
+        self.assertEqual(payload["requested_reasoning_effort"], "medium")
+        inventory = payload["host_capability"]["unsupported_inventory"]
+        self.assertEqual(
+            {(item["model"], item["reasoning_effort"]) for item in inventory},
+            {("gpt-6.1-sol", "ultra"), ("future-model", "future-effort")},
+        )
+        self.assertEqual(payload["host_capability"]["provenance"], "caller-reported host inventory")
+
+    def test_future_inventory_only_is_not_selection_support(self) -> None:
+        result = run_route(
+            "--role", "dev-flow-blue-reviewer", "--workload", "routine-review",
+            "--host-capability", "gpt-6.1-sol:ultra",
+            "--host-capability", "future-model:medium",
+        )
+        self.assertEqual(result.returncode, 2, result.stderr or result.stdout)
+        payload = json.loads(result.stdout)
+        self.assertFalse(payload["dispatch_ready"])
+        self.assertIsNone(payload["host_capability"]["suggested_profile"])
+        unsupported_selection = run_route(
+            "--role", "dev-flow-blue-reviewer", "--workload", "routine-review",
+            "--profile", "ultra", "--host-capability", "gpt-6.1-sol:ultra",
+        )
+        self.assertEqual(unsupported_selection.returncode, 2)
+        self.assertIn("unknown profile", unsupported_selection.stdout)
+
+    def test_malformed_inventory_tokens_are_rejected(self) -> None:
+        for value in ("gpt-6.1-sol", "gpt-6.1-sol:", ":medium", " :medium", "gpt-6.1-sol: medium", "a:b:c"):
+            with self.subTest(value=value):
+                result = run_route(
+                    "--role", "dev-flow-blue-reviewer", "--workload", "routine-review",
+                    "--host-capability", "gpt-6.1-sol:medium", "--host-capability", value,
+                )
+                self.assertEqual(result.returncode, 2, result.stderr or result.stdout)
+                self.assertEqual(json.loads(result.stdout)["status"], "invalid")
+
+    def test_total_independent_units_can_exceed_simultaneous_slots(self) -> None:
+        result = run_route(
+            "--role", "dev-flow-worker", "--workload", "bounded-change",
+            "--parallel-units", "29", "--host-capability", "gpt-6-luna:high",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["dispatch_precondition"]["parallel_units"], 29)
+        self.assertTrue(payload["dispatch_ready"])
+        self.assertNotIn("active_children", payload["dispatch_precondition"])
+        for value in ("0", "-1"):
+            with self.subTest(value=value):
+                invalid = run_route(
+                    "--role", "dev-flow-worker", "--workload", "bounded-change",
+                    "--parallel-units", value,
+                )
+                self.assertEqual(invalid.returncode, 2)
+
     def test_same_request_is_byte_stable(self) -> None:
         args = (
             "--role",
@@ -180,6 +243,17 @@ class AgentDispatchBlackBoxTests(unittest.TestCase):
 
 
 class AgentDispatchWhiteBoxTests(unittest.TestCase):
+    def test_inventory_types_and_total_types_remain_strict(self) -> None:
+        base = {"role": "dev-flow-worker", "workload": "bounded-change"}
+        for inventory in ([("gpt-6-luna", None)], [(None, "high")], [("gpt-6-luna", [])], [["gpt-6-luna", "high"]], "gpt-6-luna:high", 4):
+            with self.subTest(inventory=inventory), self.assertRaises(agent_dispatch.DispatchContractError):
+                agent_dispatch.route_agent(**base, host_capabilities=inventory)
+        for value in (True, 1.5, "9", None, 0, -1):
+            with self.subTest(value=value), self.assertRaises(agent_dispatch.DispatchContractError):
+                agent_dispatch.route_agent(**base, parallel_units=value)
+        with self.assertRaises(agent_dispatch.DispatchContractError):
+            agent_dispatch.route_agent(**base, task_structure="sequential", host_capabilities=[("gpt-6-luna", "")])
+
     def test_readme_dispatch_summary_matches_registry(self) -> None:
         registry = agent_dispatch.load_registry(REGISTRY)
         readme = (ROOT / "README.md").read_text(encoding="utf-8")

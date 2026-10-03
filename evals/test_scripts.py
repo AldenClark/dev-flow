@@ -396,7 +396,7 @@ class PreflightTests(unittest.TestCase):
             self.assertTrue(payload["capabilities"]["external_context"])
             self.assertEqual(
                 payload["capability_observation"]["authority"],
-                "effective current-turn callable surface",
+                "caller-reported current-turn callable surface",
             )
             self.assertFalse(payload["capability_observation"]["feature_flags_are_capability_evidence"])
             self.assertEqual(payload["interaction_contract"]["required_mode"], "Default")
@@ -425,18 +425,18 @@ class PreflightTests(unittest.TestCase):
             capacity = json.loads(result.stdout)["delegation_capacity"]
             self.assertEqual(capacity["configured_ceiling"], 6)
             self.assertEqual(capacity["governed_active_child_ceiling"], 6)
-            self.assertEqual(capacity["ordinary_active_child_soft_limit"], 3)
+            self.assertEqual(capacity["ordinary_active_child_soft_limit"], 1)
             self.assertEqual(capacity["recommended_initial_active_children"], 1)
             self.assertFalse(capacity["recommended_initial_active_children_is_task_shaped"])
             self.assertEqual(
                 capacity["initial_active_child_profiles"],
                 {
                     "uncertain_or_tightly_coupled": 1,
-                    "isolated_implementation": 2,
-                    "read_only_breadth": 3,
+                    "isolated_implementation": 1,
+                    "read_only_breadth": 1,
                 },
             )
-            self.assertEqual(capacity["recommended_ramp_step"], 1)
+            self.assertIsNone(capacity["recommended_ramp_step"])
             self.assertEqual(capacity["effective_active_children"], None)
             self.assertEqual(capacity["effective_capacity_status"], "not-observed")
             self.assertEqual(capacity["productive_active_children"], None)
@@ -445,7 +445,7 @@ class PreflightTests(unittest.TestCase):
             self.assertIn("root reconciliation capacity", capacity["admission_policy"])
             self.assertIn("429", capacity["saturation_backoff"])
 
-    def test_caps_governed_concurrency_without_rewriting_client_config(self) -> None:
+    def test_reports_configured_concurrency_without_a_universal_governed_ceiling(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             features = root / "features.txt"
@@ -475,12 +475,13 @@ class PreflightTests(unittest.TestCase):
             payload = json.loads(result.stdout)
             capacity = payload["delegation_capacity"]
             self.assertEqual(capacity["configured_ceiling"], 9)
-            self.assertEqual(capacity["governed_active_child_ceiling"], 6)
-            self.assertEqual(capacity["ordinary_active_child_soft_limit"], 3)
+            self.assertEqual(capacity["governed_active_child_ceiling"], 9)
+            self.assertEqual(capacity["ordinary_active_child_soft_limit"], 1)
             self.assertEqual(capacity["recommended_initial_active_children"], 1)
-            self.assertTrue(any("governed active-child ceiling 6" in item for item in payload["warnings"]))
+            self.assertFalse(any("governed active-child ceiling 6" in item for item in payload["warnings"]))
+            self.assertIn("no universal Dev Flow ceiling", capacity["legacy_capacity_fields"]["governed_active_child_ceiling"])
 
-    def test_skip_config_does_not_invent_governed_or_starting_capacity(self) -> None:
+    def test_skip_config_bounds_advice_without_inventing_effective_capacity(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             features = Path(temp) / "features.txt"
             write_features(features)
@@ -499,18 +500,20 @@ class PreflightTests(unittest.TestCase):
             capacity = json.loads(result.stdout)["delegation_capacity"]
             self.assertEqual(capacity["configured_ceiling"], None)
             self.assertEqual(capacity["governed_active_child_ceiling"], None)
-            self.assertEqual(capacity["ordinary_active_child_soft_limit"], None)
-            self.assertEqual(capacity["recommended_initial_active_children"], None)
+            self.assertEqual(capacity["ordinary_active_child_soft_limit"], 1)
+            self.assertEqual(capacity["recommended_initial_active_children"], 1)
             self.assertFalse(capacity["recommended_initial_active_children_is_task_shaped"])
             self.assertEqual(
                 capacity["initial_active_child_profiles"],
                 {
-                    "uncertain_or_tightly_coupled": None,
-                    "isolated_implementation": None,
-                    "read_only_breadth": None,
+                    "uncertain_or_tightly_coupled": 1,
+                    "isolated_implementation": 1,
+                    "read_only_breadth": 1,
                 },
             )
             self.assertEqual(capacity["recommended_ramp_step"], None)
+            self.assertEqual(capacity["effective_capacity_status"], "not-observed")
+            self.assertFalse(capacity["recommendation_is_admission_authority"])
 
     def test_task_shaped_profiles_never_exceed_a_smaller_client_ceiling(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

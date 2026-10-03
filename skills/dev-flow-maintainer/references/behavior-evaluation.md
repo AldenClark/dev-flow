@@ -2,6 +2,12 @@
 
 Use this reference when promoting a capability, changing task-facing guidance, or interpreting local dogfood. It keeps deterministic contracts useful without treating them as a proxy for user results.
 
+## Match evidence to the claim
+
+Correctness, compatibility, and guidance-conflict repairs may rely on a failure mechanism, source counterexample, and failure-sensitive deterministic checks. Do not require an unguided model failure or a paid comparison before repairing a demonstrated contradiction or reachable defect. These checks establish the specific repaired contract, not a general behavior or productivity benefit.
+
+New behavior guidance starts as a bounded trial with direct/negative triggers, an expected outcome, an owner, and a stopping rule. First-class promotion or claims of improved behavior/productivity need a real comparison with stable marginal value. Keep an unavailable comparison `NOT RUN` or a trial; release qualification still follows the affected journeys in `docs/releasing.md`.
+
 ## Promotion comparison
 
 Start from an observed failure or decision defect while the needed guidance is absent or insufficient. For the smallest representative fixture, predeclare:

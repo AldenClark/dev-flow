@@ -1,5 +1,7 @@
 # Dev Flow 2.0 requirements
 
+> Historical baseline through RC.2, not the current semantic owner. The approved [stable plan](stable-master-plan.md) and [stable implementation](../dev-flow-2.0-stable/implementation.md) refine this baseline; maintained Skills and governance own current contracts. In particular, settled U1 continues, and only dependent work pauses for a surviving material choice or explicit review-first request. Historical acceptance and evidence below are preserved, not reactivated.
+
 ## Outcome
 
 Dev Flow must help Codex complete real repository work with broad engineering intelligence and proportionate process cost. It must keep long-running work understandable to both humans and agents without turning ordinary development into a parallel workflow system.

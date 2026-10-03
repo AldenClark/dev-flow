@@ -205,30 +205,65 @@ def _profile_rank(profile_id: str) -> int:
     return ORDERED_PROFILES.index(profile_id)
 
 
-def _host_capability_result(
-    registry: dict[str, Any], selected: dict[str, Any], host_capabilities: Iterable[tuple[str, str]] | None
-) -> dict[str, Any]:
+def _parse_host_inventory(
+    registry: dict[str, Any], host_capabilities: Iterable[tuple[str, str]] | None
+) -> tuple[set[tuple[str, str]], list[dict[str, str]]] | None:
+    """Validate inventory syntax without treating future entries as product support."""
     if host_capabilities is None:
+        return None
+    try:
+        inventory = list(host_capabilities)
+    except TypeError as exc:
+        raise DispatchContractError("host capabilities require MODEL:EFFORT pairs") from exc
+    efforts = registry["runtime"]["efforts"]
+    models = {item["model"] for item in registry["runtime"]["capabilities"].values()}
+    available: set[tuple[str, str]] = set()
+    unsupported: dict[tuple[str, str], dict[str, str]] = {}
+    for pair in inventory:
+        if not isinstance(pair, tuple) or len(pair) != 2:
+            raise DispatchContractError("host capabilities require MODEL:EFFORT pairs")
+        model, effort = pair
+        if any(
+            not _nonempty(value) or any(
+                not character.isprintable() or character.isspace() or character == ":" for character in value
+            )
+            for value in pair
+        ):
+            raise DispatchContractError("host capabilities require non-empty MODEL:EFFORT tokens")
+        if model in models and effort in efforts:
+            available.add(pair)
+        else:
+            unsupported[pair] = {
+                "model": model,
+                "reasoning_effort": effort,
+                "reason": "unsupported model or effort; retained as inventory only",
+            }
+    return available, [unsupported[pair] for pair in sorted(unsupported)]
+
+
+def _host_capability_result(
+    registry: dict[str, Any], selected: dict[str, Any],
+    inventory: tuple[set[tuple[str, str]], list[dict[str, str]]] | None,
+) -> dict[str, Any]:
+    if inventory is None:
         return {
             "status": "not_checked",
             "reason": "check the actual host model and effort before dispatch",
             "suggested_profile": None,
+            "provenance": "not_observed",
+            "unsupported_inventory": [],
         }
-    try:
-        available = set(host_capabilities)
-    except TypeError as exc:
-        raise DispatchContractError("host capabilities require MODEL:EFFORT pairs") from exc
-    efforts = registry["runtime"]["efforts"]
-    for pair in available:
-        if not isinstance(pair, tuple) or len(pair) != 2:
-            raise DispatchContractError("host capabilities require MODEL:EFFORT pairs")
-        model, effort = pair
-        if not _nonempty(model) or effort not in efforts:
-            raise DispatchContractError("host capabilities require MODEL:EFFORT with a supported effort")
+    available, unsupported = inventory
+    diagnostics = {"provenance": "caller-reported host inventory", "unsupported_inventory": unsupported}
     capabilities = registry["runtime"]["capabilities"]
     requested = (capabilities[selected["capability"]]["model"], selected["reasoning_effort"])
     if requested in available:
-        return {"status": "available", "reason": "requested model and effort observed on host", "suggested_profile": None}
+        return {
+            "status": "available",
+            "reason": "product-supported model and effort present in caller-reported host inventory",
+            "suggested_profile": None,
+            **diagnostics,
+        }
     alternatives = [
         profile for profile in registry["profiles"]
         if not profile["exception"]
@@ -242,6 +277,7 @@ def _host_capability_result(
         "suggested_profile": suggested["id"] if suggested else None,
         "suggested_model": capabilities[suggested["capability"]]["model"] if suggested else None,
         "suggested_reasoning_effort": suggested["reasoning_effort"] if suggested else None,
+        **diagnostics,
     }
 
 
@@ -271,8 +307,9 @@ def route_agent(
         raise DispatchContractError(f"unknown task structure {task_structure!r}")
     if tool_density not in TOOL_DENSITIES:
         raise DispatchContractError(f"unknown tool density {tool_density!r}")
-    if isinstance(parallel_units, bool) or not isinstance(parallel_units, int) or not 1 <= parallel_units <= 8:
-        raise DispatchContractError("parallel units must be an integer from 1 to 8")
+    if isinstance(parallel_units, bool) or not isinstance(parallel_units, int) or parallel_units < 1:
+        raise DispatchContractError("parallel units must be a positive integer total, not a concurrency limit")
+    host_inventory = _parse_host_inventory(registry, host_capabilities)
     workload_record = workloads[workload]
     if role not in workload_record["roles"]:
         raise DispatchContractError(f"role {role!r} is incompatible with workload {workload!r}")
@@ -394,7 +431,7 @@ def route_agent(
             }
         )
     capability = registry["runtime"]["capabilities"][selected["capability"]]
-    host_capability = _host_capability_result(registry, selected, host_capabilities)
+    host_capability = _host_capability_result(registry, selected, host_inventory)
     return {
         "status": "capability_limit" if host_capability["status"] == "capability_limit" else "routed",
         "schema_version": RESULT_SCHEMA_VERSION,

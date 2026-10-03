@@ -5,12 +5,17 @@
     "switch_to_plan_for_interaction": "forbidden"
   },
   "host_adapter": {
-    "tool": "request_user_input",
+    "tool": "eligible current-turn synchronous or asynchronous question surface",
+    "tool_identity": "logical adapter label, not an invocable function",
+    "synchronous_example": "request_user_input only when exposed and eligible",
     "app_server_request": "item/tool/requestUserInput",
     "tool_invocation_owner": "Codex agent host",
     "protocol_lifecycle_owner": "Codex App Server and client",
     "raw_protocol_frames": "forbidden",
-    "feature_detection": "effective current-turn tool surface",
+    "feature_detection": "effective current-turn tool surface plus mode, purpose, schema, and response lifecycle",
+    "eligibility_checks": ["mode", "purpose", "schema", "response lifecycle"],
+    "exposure_implies_eligibility": false,
+    "app_server_request_scope": "observed request_user_input transport example, not a universal asynchronous API",
     "global_config_mutation": "forbidden",
     "protocol_maturity": "experimental"
   },
@@ -19,20 +24,22 @@
     "maximum_batch_size": 3,
     "recommendation": "first option with impact and tradeoff",
     "free_form": "offer only when it can materially improve the decision",
-    "repository_resolvable_facts": "investigate without asking"
+    "repository_resolvable_facts": "investigate without asking",
+    "optional_only_surface": "optional non-blocking clarification only; never required decisions or approvals",
+    "required_choice": "pause dependent commitments and implementation until a valid answer"
   },
   "routes": [
     {
       "id": "bounded-choice-native",
       "need": "material bounded non-secret choice",
-      "tool_availability": "available",
-      "route": "request_user_input",
-      "transport": "item/tool/requestUserInput"
+      "tool_availability": "eligible",
+      "route": "eligible current-turn synchronous or asynchronous question surface",
+      "transport": "host owned"
     },
     {
       "id": "bounded-choice-fallback",
       "need": "material bounded non-secret choice",
-      "tool_availability": "unavailable-or-failed",
+      "tool_availability": "ineligible-unavailable-or-failed",
       "route": "one focused non-enumerated Default-mode question or explicit blocker",
       "transport": "normal conversation"
     },
@@ -54,7 +61,7 @@
       "id": "secret",
       "need": "secret or credential",
       "tool_availability": "secure-surface-dependent",
-      "route": "host-approved secure input including request_user_input secret mode, or stop",
+      "route": "host-approved secure input with observed protected schema, or stop",
       "transport": "host owned"
     }
   ],
@@ -68,12 +75,15 @@
     "multiple_or_conflicting_answers": "leave unresolved as invalid",
     "cancel_or_interrupt": "leave unresolved without immediate re-prompt",
     "empty_omitted_or_malformed": "leave unresolved",
+    "asynchronous_dispatch_or_pending": "leave unresolved; continue only independent authorized reversible work",
+    "asynchronous_answer": "validate eventual answer and correlation to current question and meaning",
+    "tool_exposed_but_ineligible": "use normal conversation for a required choice or report the blocker; never switch mode",
     "tool_unavailable_or_invocation_failed": "allow at most one focused non-enumerated Default-mode fallback when the host permits, otherwise block",
     "fallback_attempt_limit": 1,
     "silent_recommendation_default": "forbidden"
   },
   "recheck_triggers": [
-    "request_user_input tool schema changes",
+    "effective input-tool mode, purpose, schema, or response lifecycle changes",
     "item/tool/requestUserInput lifecycle changes",
     "Default-mode feature maturity changes"
   ]

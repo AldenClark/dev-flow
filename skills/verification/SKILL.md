@@ -23,6 +23,8 @@ Route suspected runner/fixture/cache/retry/skip/isolation false evidence to `tes
 5. For an installed, deployed, external, or production promise, connect the applicable observed links: test on final relevant bytes; artifact identity; actual target and install; effective configuration and data; intended user flow or external effect; observation; and safe recovery or rollback where consequential. A build, upload, install command, or health response alone proves only its own link. If an earlier link changes, rerun the smallest affected downstream evidence.
 6. Re-read the final diff, invalidate stale runs, and report `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, or `WAIVED` with command, actor/source, artifact and target identity where applicable, effective environment, result, and limit. A retry does not turn a flake into `PASSED`.
 
+After a semantic correction, reconcile code/data, test expectations, and late child evidence; recheck the example and counterexample. `dev-flow/references/core-lifecycle.md` owns affected freshness.
+
 Read `references/test-strategy.md` for strategy, `references/coverage-techniques.md` for a concrete gap, `references/test-environments.md` before controlled resources, and `references/evidence-contract.md` before retaining artifacts.
 
 ## Budget and stopping

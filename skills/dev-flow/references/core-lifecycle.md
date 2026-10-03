@@ -14,14 +14,14 @@ Establish the observable outcome, current repository facts, assumptions, affecte
 
 For substantial managed work, material risk, delegation, or repeated failure, use `quality-calibration.md` to decide whether a specialist Skill, P0-P6 child route, bounded assurance method, or independent review has positive decision value.
 
-Classify requirement understanding before technical design. Material new or changed product semantics publish a detailed technology-neutral understanding; stop in Default mode only for a surviving material user-owned choice or an explicit review request. A confirmed plan with settled semantics proceeds. Established defects use proven expected/protected behavior; ambiguous defects upgrade to semantic understanding, not an automatic pause. Mechanical and read-only work never acquire a confirmation stop solely because Dev Flow is active.
+Classify requirement understanding for the next decision. Material new or changed product semantics publish enough technology-neutral understanding for the next coherent slice; stop dependent commitments or implementation in Default mode only for a surviving material user-owned choice or explicit review-first request. Independent authorized read-only investigation, feasibility comparison, and reversible isolated probes may continue. A confirmed plan with settled semantics proceeds. Established defects use proven expected/protected behavior; ambiguous defects upgrade to semantic understanding, not an automatic pause. Mechanical and read-only work never acquire a confirmation stop solely because Dev Flow is active.
 
 Load a specialist, method, independent reviewer, or child model only when it can change a real decision or evidence surface. Reconsider only the affected owner when evidence changes; ordinary continuation does not repeat routing.
 
 ## Direct path
 
 1. Resolve objective, authority, roots, instructions, current behavior, scope, and user changes.
-2. Clarify only a material decision. For semantic creation/change, publish the full understanding and stop before design only if a material user-owned choice remains; otherwise proceed with the settled semantics and bounded repository-grounded assumptions.
+2. Clarify only a material decision. For semantic creation/change, publish understanding sufficient for the next slice and pause only work dependent on an unresolved choice or named by an explicit review-first request; otherwise proceed with settled semantics and bounded repository-grounded assumptions.
 3. Reproduce a defect before repair when practical.
 4. Implement one coherent slice.
 5. Run the narrowest sensitive oracle, then affected broader checks.
@@ -47,7 +47,9 @@ Re-evaluate mode, design, or overlays when:
 
 The first surprising failure triggers a focused assumption/risk recheck. Two failed repairs or hypotheses for the same symptom trigger explicit recalibration before another repair.
 
-On a user correction, keep unaffected work but mark dependent plans, descendant results, and checks stale. A restatement or compaction alone does not invalidate evidence. At closure, compare the current user goal with authoritative source/contract, final changed bytes, last applicable oracle, and the environments actually observed; report the narrowest supported claim.
+On a user correction or a fact that changes meaning, identify the invalid assumption and trace its consumers in design, code/data, tests/oracles, children, and external actions. Pause or update affected work, invalidate dependent evidence, and preserve unaffected results. Changing only a summary does not repair old implementation or test expectations. Update or cancel affected children through an actually available host control; inspect late child output and actual writes against current semantics before integration. Steering does not automatically cancel tools, and already-executed effects are not automatically undone: report them and use only authorized recovery. Reverify the revised user example and a counterexample on current bytes.
+
+At resume or handoff, retain user constraints, repository facts, bounded assumptions, and rejected alternatives distinctly; reread their existing owners and relevant original constraints. A restatement or compaction alone does not invalidate evidence. At closure, compare the current user goal with authoritative source/contract, final changed bytes, last applicable oracle, and the environments actually observed; report the narrowest supported claim. Do not replace the intended product outcome with an easier substitute when a technical gate is blocked.
 
 Escalation adds the specific missing control. It does not recreate a full governance lifecycle or automatically change direct work into managed work.
 

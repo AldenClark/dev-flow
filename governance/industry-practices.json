@@ -29,10 +29,10 @@
       "source": "https://learn.chatgpt.com/docs/agent-configuration/subagents",
       "checked_at": "2026-08-08",
       "local_problem": "Bound concurrency, isolate review roles, and prevent delegation drift.",
-      "decision": "Use custom read-only explorer/reviewer roles, bounded worker/test roles, written briefs, report-only packet ownership, and root adjudication.",
-      "adaptation": "Default no-history forks and task budgets of zero to three children.",
-      "complexity_limit": "One child level by default; no automatic delegation.",
-      "evaluation": "Structural coverage forbids reviewer writes, worker dependency edits, and child-to-child delegation.",
+      "decision": "Use one agent for coupled work and dispatch independently useful exploration, implementation, or clean-context review with owned paths, resource limits, and root adjudication.",
+      "adaptation": "Choose fork context, active concurrency, and bounded nested work by task independence, observed host capacity, user budget, and integration backlog; internal allocation needs no separate spawn authorization.",
+      "complexity_limit": "Every descendant inherits the intersection of ancestor scope, authority, path, tool, resource, and re-delegation boundaries. Actual host limits and user budgets bind every dispatch; stop or narrow when coordination exceeds value.",
+      "evaluation": "Reject reviewer writes, dependency or external-action expansion, conflicting resource ownership, stale child results, and nested work outside any ancestor boundary; allow useful lawful nesting and batched work within real capacity.",
       "review_after": "on Codex multi-agent schema change"
     },
     {
@@ -106,10 +106,10 @@
       "source": "https://github.github.com/spec-kit/concepts/spec-persistence.html",
       "checked_at": "2026-08-13",
       "local_problem": "Requirements, design, tasks, and evidence can drift apart.",
-      "decision": "Use stable AC/SC/VO IDs, clarify material ambiguity before planning, and make current truth versus historical change artifacts explicit.",
-      "adaptation": "Governed work persists requirements, design, execution, and verification; tracked current truth is reconciled separately from accepted change history.",
-      "complexity_limit": "Traced work remains one compact document and no mandatory constitution is generated per project.",
-      "evaluation": "Reject missing ID mappings, stale baselines, undeclared dossier files, and accepted material changes without a terminal knowledge disposition.",
+      "decision": "Keep current meaning, protected constraints, observable acceptance, and unresolved material choices in the existing owner; distinguish current truth from historical change records.",
+      "adaptation": "Use direct work while current context suffices and managed continuity when sessions, owners, or useful slices need it; reconcile changed requirements with affected design, implementation, tests, and child results.",
+      "complexity_limit": "No universal dossier, acceptance IDs, digest, or ledger; structured traceability remains scoped to a genuine native consumer or regulated contract.",
+      "evaluation": "Reject stale assumptions, missing behavior evidence, and obsolete dependent tests or child results; accept bounded work without extra process artifacts.",
       "review_after": "2027-02-13"
     },
     {
@@ -128,10 +128,10 @@
       "source": "https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents",
       "checked_at": "2026-08-13",
       "local_problem": "Fresh context windows can lose prior progress, misread the implementation state, or claim completion without end-to-end evidence.",
-      "decision": "Leave a concise recovery artifact, advance one coherent slice at a time, preserve exact repository state, and verify observable behavior before completion.",
-      "adaptation": "Digest-bound continuity checkpoints capture objective, baselines, last evidence, next action, stop condition, and repository state at semantic event boundaries.",
-      "complexity_limit": "No timer or per-tool progress ceremony; OPEN slices allow normal edits and SEALED boundaries freeze evidence.",
-      "evaluation": "Compaction/resume, open-slice reconciliation, sealed drift, HEAD adoption, hook fast-path, and end-to-end oracle cases.",
+      "decision": "Leave a concise checkpoint in the existing owner when continuation needs it, advance one coherent slice at a time, and verify current source and observable behavior before completion.",
+      "adaptation": "Retain objective, protected constraints, decisions, completed/current/next work, blockers, evidence limits, and stop condition at semantic boundaries; reconcile changed premises, stale results, and incomplete effects on resume.",
+      "complexity_limit": "No timer, per-tool ceremony, or mandatory continuity ledger; domain-native durable operation records remain scoped to real external recovery or a genuine native consumer.",
+      "evaluation": "Continuation preserves a one-time constraint, replaces a corrected assumption, rejects stale child results, and honestly reconciles completed side effects; unobserved compaction stays not_observed.",
       "review_after": "2027-02-13"
     },
     {
@@ -140,9 +140,9 @@
       "checked_at": "2026-08-13",
       "local_problem": "A code-first agent can lose product and technical intent between planning, implementation, interruption, and resume.",
       "decision": "Persist product/technical context, a reviewed specification, and an actionable plan whose progress can be resumed and revised deliberately.",
-      "adaptation": "Dev Flow keeps a proportionate traced or governed requirement-design-execution chain and a short recovery projection rather than copying one fixed document layout.",
+      "adaptation": "Dev Flow uses existing owners for the current requirement-design-execution meaning and a concise recovery checkpoint when managed continuity is useful, rather than copying one fixed document layout.",
       "complexity_limit": "Existing repository conventions take precedence and small work does not receive a governed dossier merely for symmetry.",
-      "evaluation": "Work-mode, requirement/design binding, progress, checkpoint, and repository-convention cases.",
+      "evaluation": "Direct/managed work, corrected requirements, protected-constraint continuity, fresh evidence, and repository-convention cases.",
       "review_after": "2027-02-13"
     },
     {
@@ -172,10 +172,10 @@
       "source": "https://www.nasa.gov/reference/system-engineering-handbook-appendix/",
       "checked_at": "2026-08-09",
       "local_problem": "Unrecorded assumptions and changing requirement baselines let semantic defects surface only after implementation.",
-      "decision": "Record ambiguity and assumptions explicitly, baseline approved requirement content, and reopen controlled approval when the baseline changes.",
-      "adaptation": "Schema 1.2 AMB records plus revision and SHA-256 binding on Requirement Ready and design approval.",
-      "complexity_limit": "Strengthen the existing readiness gate instead of adding a second universal approval ceremony.",
-      "evaluation": "Stale-digest, unresolved-ambiguity, and late-reopening mutation tests.",
+      "decision": "Keep known intent, protected constraints, assumptions, unresolved material choices, and observable acceptance in the existing owner; ask only when a surviving user-owned choice changes the outcome.",
+      "adaptation": "A correction replaces affected meaning and invalidates dependent plans, code expectations, tests, and stale child results while unrelated evidence remains usable.",
+      "complexity_limit": "No mandatory requirement ledger, content hash, or approved-byte snapshot for ordinary work; native traceability consumers keep their own scoped structure.",
+      "evaluation": "Already-confirmed work continues, material choices stop dependent actions, and corrected semantics reject obsolete implementation/test expectations.",
       "review_after": "2027-08-09"
     },
     {
@@ -271,10 +271,10 @@
       "source": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
       "checked_at": "2026-08-12",
       "local_problem": "A small repeatedly viewed benchmark encourages overfitting, hides local regressions in global averages, and confuses model judgment with executable product evidence.",
-      "decision": "Separate development and held-out acceptance sets, use multiple trials and category slices, inspect failure transcripts, and keep deterministic outcome evidence as an independent layer.",
-      "adaptation": "Use affected-category development pilots with three independent first attempts after deterministic gates; reserve the full frozen set for an explicitly budgeted release comparison, preserve zero content retries, and separate report evidence layers.",
-      "complexity_limit": "A single pair is diagnostic only; fixed curated cases and Wilson intervals are descriptive and cannot establish population or production truth.",
-      "evaluation": "Category-bound first-attempt patterns, transcript audits, case-health classification, release binding, and model_gate_ready versus release_ready separation.",
+      "decision": "Separate deterministic contract evidence, bounded release journeys, and comparative research; inspect first failures and case health before interpreting model outcomes.",
+      "adaptation": "Follow docs/releasing.md: model-facing RC changes use one bounded first attempt per directly affected semantic case; stable adds five bounded real functional journeys and the complete deterministic regression. Repetition and frozen comparisons belong to a separately authorized and budgeted Dev Flow Bench study with predeclared cases, attempts, and stopping rules.",
+      "complexity_limit": "A focused diagnostic cannot establish marginal benefit; correctness or compatibility repairs use mechanism/source counterexamples and deterministic checks, new behavior guidance stays a trial, and first-class promotion or benefit claims need a relevant real comparison.",
+      "evaluation": "Preserve first failures, classify candidate/grader/case/infrastructure defects, keep NOT RUN explicit, and separate release qualification from Bench comparison or population/productivity claims.",
       "review_after": "2027-02-11"
     },
     {

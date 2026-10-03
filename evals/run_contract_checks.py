@@ -413,6 +413,39 @@ def validate_contract(
 
 def evaluate_user_interaction_case(case: dict[str, object]) -> str:
     kind = case.get("kind")
+    if kind == "eligibility":
+        purpose = case.get("purpose")
+        modes, purposes = case.get("allowed_modes"), case.get("allowed_purposes")
+        eligible = (
+            case.get("tool_exposed") is True
+            and isinstance(modes, list)
+            and case.get("current_mode") in modes
+            and isinstance(purposes, list)
+            and purpose in purposes
+            and case.get("schema_fits") is True
+            and case.get("lifecycle_supported") is True
+            and case.get("transport") in {"sync", "async"}
+        )
+        surface = case.get("input_surface")
+        if purpose == "approval":
+            return "native-approval" if eligible and surface == "native-approval" else "approval-unavailable"
+        if purpose == "secret":
+            return (
+                "secure-input"
+                if eligible and surface == "secure-input" and case.get("protected_input") is True
+                else "blocked-secret"
+            )
+        if purpose not in {"required-decision", "optional-clarification"}:
+            return "invalid-case"
+        if eligible and surface == "ordinary-question":
+            return f"native-{case['transport']}"
+        return "conversation-required" if purpose == "required-decision" else "conversation-optional"
+    if kind == "async-lifecycle":
+        if case.get("event") in {"dispatch-returned", "pending"}:
+            return "unresolved-pending"
+        if case.get("event") == "answer-received":
+            return evaluate_user_interaction_case(case | {"kind": "response"})
+        return evaluate_user_interaction_case(case | {"kind": "lifecycle"})
     if kind == "response":
         if case.get("question_id") != case.get("expected_question_id"):
             return "ignored-stale-or-unknown"
@@ -565,8 +598,10 @@ def main() -> int:
     expected_roles = {"root", "dev-flow-explorer", "dev-flow-worker", "dev-flow-test-runner", "dev-flow-blue-reviewer", "dev-flow-red-reviewer"}
     if set(coverage.get("roles", {})) != expected_roles:
         errors.append("structural coverage role set is incomplete")
-    if ["child", "child"] not in coverage.get("forbidden_edges", []):
-        errors.append("child-to-child delegation must be forbidden by default")
+    if ["child", "child"] in coverage.get("forbidden_edges", []):
+        errors.append("structural coverage must not prohibit all bounded nested delegation")
+    if coverage.get("nested_delegation") != "inherited-scope-and-resource-boundaries":
+        errors.append("nested delegation must retain inherited scope and resource boundaries")
     child_result_invariant = (
         "every child has one written brief and one native result; "
         "a durable report is optional and brief-bound"
@@ -588,9 +623,9 @@ def main() -> int:
     eval_practice = practice_by_id.get("IND-ANTHROPIC-AGENT-EVALS", {})
     evaluation_adaptation = str(eval_practice.get("adaptation", ""))
     for principle in (
-        "affected-category",
-        "three independent first attempts",
-        "explicitly budgeted release comparison",
+        "first attempt",
+        "five",
+        "Bench",
     ):
         if principle not in evaluation_adaptation:
             errors.append(
@@ -660,10 +695,11 @@ def main() -> int:
         errors.append("Plan-mode switching for interaction must be forbidden")
     host_adapter = interaction.get("host_adapter", {})
     expected_adapter = {
-        "tool": "request_user_input",
+        "tool": "eligible current-turn synchronous or asynchronous question surface",
+        "tool_identity": "logical adapter label, not an invocable function",
         "app_server_request": "item/tool/requestUserInput",
         "raw_protocol_frames": "forbidden",
-        "feature_detection": "effective current-turn tool surface",
+        "feature_detection": "effective current-turn tool surface plus mode, purpose, schema, and response lifecycle",
         "global_config_mutation": "forbidden",
     }
     for field, expected in expected_adapter.items():
@@ -673,14 +709,18 @@ def main() -> int:
         errors.append("Codex App Server and client must own request lifecycle")
     if host_adapter.get("protocol_maturity") != "experimental":
         errors.append("request_user_input protocol maturity must remain explicit")
+    if host_adapter.get("exposure_implies_eligibility") is not False:
+        errors.append("tool exposure must not imply interaction eligibility")
+    if host_adapter.get("eligibility_checks") != ["mode", "purpose", "schema", "response lifecycle"]:
+        errors.append("interaction eligibility must cover mode, purpose, schema and lifecycle")
     if interaction.get("question_policy", {}).get("maximum_batch_size") != 3:
         errors.append("structured user input must limit a batch to three questions")
     expected_routes = {
-        "bounded-choice-native": ("available", "request_user_input", "item/tool/requestUserInput"),
-        "bounded-choice-fallback": ("unavailable-or-failed", "one focused non-enumerated Default-mode question or explicit blocker", "normal conversation"),
+        "bounded-choice-native": ("eligible", "eligible current-turn synchronous or asynchronous question surface", "host owned"),
+        "bounded-choice-fallback": ("ineligible-unavailable-or-failed", "one focused non-enumerated Default-mode question or explicit blocker", "normal conversation"),
         "open-ended": ("irrelevant", "normal conversation", "normal conversation"),
         "command-or-file-approval": ("irrelevant", "host native approval surface", "host owned"),
-        "secret": ("secure-surface-dependent", "host-approved secure input including request_user_input secret mode, or stop", "host owned"),
+        "secret": ("secure-surface-dependent", "host-approved secure input with observed protected schema, or stop", "host owned"),
     }
     observed_routes: dict[str, tuple[object, object, object]] = {}
     for route in interaction.get("routes", []):
@@ -705,6 +745,8 @@ def main() -> int:
         "multiple_or_conflicting_answers": "leave unresolved as invalid",
         "cancel_or_interrupt": "leave unresolved without immediate re-prompt",
         "empty_omitted_or_malformed": "leave unresolved",
+        "asynchronous_dispatch_or_pending": "leave unresolved; continue only independent authorized reversible work",
+        "asynchronous_answer": "validate eventual answer and correlation to current question and meaning",
         "tool_unavailable_or_invocation_failed": "allow at most one focused non-enumerated Default-mode fallback when the host permits, otherwise block",
     }
     for field, expected in expected_response_policy.items():

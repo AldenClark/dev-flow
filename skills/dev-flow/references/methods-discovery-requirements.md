@@ -2,6 +2,12 @@
 
 Use these methods to prevent “correct implementation of the wrong thing.” Requirements-design retains semantic ownership; product-ux-discovery owns material product/interaction truth.
 
+## Semantic baseline
+
+Keep the current understood outcome, protected constraints, reversible assumptions, unresolved material choices, and observable acceptance in the existing owner. A short task may keep this in its current conversation; durable continuation uses the repository's existing contract, design, or progress surface. Resolve repository facts directly and ask only for a surviving user-owned choice. On correction, replace the affected understanding and invalidate dependent plans, tests, and late child results before continuing.
+
+Ordinary work needs no ambiguity ledger, stable acceptance IDs, approved-byte snapshot, or digest. Use such structure only when a genuine native consumer or regulated traceability contract requires it. The evidence is current user intent plus observable examples and failure-sensitive checks; a recorded baseline alone proves neither agreement nor correctness.
+
 ## Failure families and method choices
 
 | Observed failure mechanism | Start with | Escalate when | Avoid when |
@@ -43,7 +49,7 @@ For each rule:
 2. Write a near-boundary and a counterexample.
 3. Write an example for failure/retry/cancel/recovery if the rule has lifecycle.
 4. Record questions that could change an observable result; do not hide them inside test data.
-5. Map approved examples to AC and a failure-sensitive oracle.
+5. Map agreed examples to observable acceptance and a failure-sensitive oracle; use IDs only when the native consumer requires them.
 
 Examples are not complete coverage. Add properties, decision tables, state models, or combinatorial methods for the unbounded parts of the domain.
 

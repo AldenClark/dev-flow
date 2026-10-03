@@ -20,7 +20,7 @@ Use `repo-context` alone for a narrow read-only repository fact. Handle a self-c
 
 Move through only the positions the work needs. Revisit one when evidence changes its premise.
 
-1. **Understand.** Inspect current truth. For changed semantics, use `requirements-design` to clarify behavior, counterexamples, recovery, and genuine user choices. Pause in Default mode only for a surviving material choice under `user-interaction.md`; an already confirmed plan proceeds.
+1. **Understand.** Inspect truth. Use `requirements-design` for the next slice's behavior, counterexamples, recovery, and choices. In Default mode, pause dependent work only for a material choice or explicit review-first request under `user-interaction.md`; confirmed semantics proceed. Independent authorized learning may continue.
 2. **Shape.** Trace affected boundaries and consumers. Load a professional owner when it can change a decision. For uncertain meaning or cause, compare decision-changing alternatives and one disconfirming case; closed work needs no broad ideation.
 3. **Implement a coherent slice.** Prefer an end-to-end result over disconnected layers. Separate behavior from broad refactoring where practical. Parse at untrusted boundaries, make invalid states harder to represent, follow repository conventions, and update generated and consumer surfaces together.
 4. **Build sensitive evidence.** Derive black-box checks from outcomes/contracts and white-box checks from changed branches, states, boundaries, errors, concurrency, resources, and recovery. Choose native layers that can disprove the claim. Challenge weak oracles with a pre-fix failure, negative control, mutation, seeded fault, independent relation, or equivalent evidence.
@@ -34,7 +34,7 @@ Load the smallest set that can change a decision or evidence surface. Discovery 
 
 Their descriptions own detailed triggers. Keep `repository-knowledge` quiet for ordinary updates to a clear owner; consume only confirmed profiles; use `dev-flow-maintainer` only for explicit suite maintenance. Advice never grants repair or delivery authority.
 
-Reconsider routing only when intent, semantics, scope, platform, authority, principal risk, or evidence needs materially change—not for continuation, tool interruption, compaction, or a restated goal. Invalidate only affected plans, checks, and child results after a real change. `route-task` is an inspectable diagnostic, not a precondition.
+Reconsider routing only when intent, semantics, scope, platform, authority, principal risk, or evidence needs materially change—not for continuation, tool interruption, compaction, or a restated goal. Follow `core-lifecycle.md` after corrections. `route-task` is an inspectable diagnostic, not a precondition.
 
 ## Knowledge for the next step
 

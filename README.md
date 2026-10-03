@@ -2,7 +2,7 @@
 
 Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是建立第二套工作流引擎，而是用最少的流程成本保持三件事：长期业务工作不漂移、技术结论有原生工程证据、高后果动作保留明确安全边界。
 
-已发布源码身份为 `2.0.0-rc.9`。当前工作区处于 `development` 状态，基于 `v2.0.0-rc.9`。`v2.0.0-rc.9` 是最近已发布且可固定安装的标签，回滚目标为 `v2.0.0-rc.8`。RC.9 将 P4/P5 主力路由更新为 GPT-6.1 Sol，保留 Luna/Astra 分层和无静默替代边界。用户明确要求直接发布并更新本机安装，本次发布不重跑测试、CI、评审或隔离安装验证；豁免不是通过。它是预发布版本，稳定版 2.0 仍未发布。`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。
+候选源码身份为 `2.0.0`。当前工作区处于 `development` 状态，基于 `v2.0.0-rc.9`。`v2.0.0-rc.9` 是最近已发布且可固定安装的 RC，回滚目标为 `v2.0.0-rc.9`。正式版优化正在实施与验证，尚未发布；RC.9 的历史豁免不属于本候选的资格证据。`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。正式版方案与当前进展见 [stable workstream](docs/workstreams/dev-flow-2.0-stable/)。
 
 ## 2.0 核心模型
 
@@ -195,7 +195,7 @@ Dev Flow 主 Skill 负责自然开发循环、知识接力和最小专业发现�
 
 ## 只读诊断与可选成效观测
 
-统一 doctor 分别盘点源码/发布身份、Git、显式提供的缓存字节、CLI 插件注册、加载根、Hook 打包与活跃状态、本地缓存规模和可选 outcome 文件；它不清理缓存、不读取凭据，也不会把“缓存存在”或“已打包”写成“当前账户已激活”。CLI 注册检查只在显式传入 CLI 后执行：
+统一 doctor 分别盘点源码/发布身份、Git、缓存字节、CLI 报告的安装与注册、显式提供的根目录 manifest、宿主有效身份、当前会话加载和 Hook 状态。它不清理缓存、不读取凭据；没有实际宿主接口时有效身份/当前会话保持 `not_observed`。CLI 注册检查只执行调用方提供且自行信任的 CLI；仓库 manifest 中的路径不成为执行授权：
 
 ```bash
 python3 skills/dev-flow/scripts/dev-flow.py doctor --plugin-root . \
@@ -251,6 +251,7 @@ CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job �
 
 ## 版本和发布状态
 
+- `2.0.0` 是当前候选源码身份；实施、正式版资格、公开发布和安装逐项验证。
 - `v2.0.0-rc.9` 是最近已发布且可固定安装的 personal-assistant-hardening RC，对应不可变提交 `5d4a569dcbbb67fb21cbc7945945597e342151b5`；本次发布检查按用户明确要求豁免，既有开发回归不等同于最终发布字节的验证。
 - `v2.0.0-rc.8` 是 RC.9 的固定回滚标签；RC.8 的 CI、兼容、制品、证明、隔离安装和公开预发布证据只属于候选提交 `503f5e487580afed9fb905130c4206e1e018ed1d` 对应的不可变标签。
 - `v2.0.0-rc.7` 是 RC.8 的固定回滚标签；RC.7 的交付证据仍只属于它自身。
@@ -259,4 +260,4 @@ CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job �
 - `v1.1.2` 是最后一个 1.x 稳定标签；1.1.3 只存在于未发布源码历史，2.0 不提供 1.x 兼容或迁移保证。
 - 源码、commit、push、tag、GitHub Release、Marketplace 安装和生产使用是不同状态；只有逐项执行和复核后才能声称完成。
 
-RC.9 的发布与豁免边界位于 [docs/workstreams/dev-flow-2.0-rc.9](docs/workstreams/dev-flow-2.0-rc.9/)；RC.8 的已发布历史位于 [docs/workstreams/dev-flow-2.0-rc.8](docs/workstreams/dev-flow-2.0-rc.8/)。发布验证与独立 Bench 的拆分位于 [docs/workstreams/dev-flow-2.0-benchmark-separation](docs/workstreams/dev-flow-2.0-benchmark-separation/)，2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)，历史版本见 [CHANGELOG.md](CHANGELOG.md)。
+当前正式版实施位于 [stable workstream](docs/workstreams/dev-flow-2.0-stable/)。RC.9 的发布与豁免边界位于 [docs/workstreams/dev-flow-2.0-rc.9](docs/workstreams/dev-flow-2.0-rc.9/)；RC.8 的已发布历史位于 [docs/workstreams/dev-flow-2.0-rc.8](docs/workstreams/dev-flow-2.0-rc.8/)。发布验证与独立 Bench 的拆分位于 [docs/workstreams/dev-flow-2.0-benchmark-separation](docs/workstreams/dev-flow-2.0-benchmark-separation/)，2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)，历史版本见 [CHANGELOG.md](CHANGELOG.md)。

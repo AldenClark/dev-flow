@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import re
-import subprocess
 from pathlib import Path, PurePosixPath
 from typing import Any
+
+import git_observation
 
 
 MARKER = "<!-- dev-flow-workstream-contract: v1 -->"
@@ -114,15 +115,21 @@ def _matches(path: str, prefix: str) -> bool:
     return path == base or path.startswith(base + "/")
 
 
-def _git_paths(root: Path) -> list[str] | None:
-    completed = subprocess.run(
-        ["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"],
-        cwd=root,
-        capture_output=True,
-        check=False,
-    )
+def _git_paths(root: Path) -> dict[str, Any]:
+    repository = git_observation.probe_worktree(root)
+    if repository["status"] != "observed":
+        return repository
+    try:
+        completed = git_observation.run_git(
+            root, ["status", "--porcelain=v1", "-z", "--untracked-files=all", "--ignore-submodules=none"],
+            text=False,
+        )
+    except git_observation.GitObservationError as exc:
+        return {**exc.observation, "operation": "worktree-status"}
     if completed.returncode != 0:
-        return None
+        return git_observation.command_failure(completed, "worktree-status")
+    if completed.stdout and not completed.stdout.endswith(b"\0"):
+        return {"status": "failed", "reason": "git-status-output-invalid", "operation": "worktree-status"}
     records = completed.stdout.split(b"\0")
     paths: list[str] = []
     index = 0
@@ -132,15 +139,16 @@ def _git_paths(root: Path) -> list[str] | None:
         if not record:
             continue
         text = record.decode("utf-8", "surrogateescape")
-        if len(text) < 4:
-            continue
+        if len(text) < 4 or text[2] != " ":
+            return {"status": "failed", "reason": "git-status-output-invalid", "operation": "worktree-status"}
         status, path = text[:2], text[3:]
         if status[0] in {"R", "C"} or status[1] in {"R", "C"}:
-            if index < len(records) and records[index]:
-                paths.append(records[index].decode("utf-8", "surrogateescape"))
-                index += 1
+            if index >= len(records) or not records[index]:
+                return {"status": "failed", "reason": "git-status-output-invalid", "operation": "worktree-status"}
+            paths.append(records[index].decode("utf-8", "surrogateescape"))
+            index += 1
         paths.append(path)
-    return sorted(set(paths))
+    return {"status": "observed", "changed_paths": sorted(set(paths))}
 
 
 def check(root: Path, target: Path, *, check_worktree: bool = False, strict: bool = False) -> tuple[dict[str, Any], int]:
@@ -232,21 +240,21 @@ def check(root: Path, target: Path, *, check_worktree: bool = False, strict: boo
 
     worktree: dict[str, Any] | None = None
     if check_worktree:
-        changed = _git_paths(root)
-        if changed is None:
+        observation = _git_paths(root)
+        if observation["status"] != "observed":
+            non_git = observation["status"] == "not-applicable"
+            if not non_git:
+                findings.append({"code": "git-observation-failed", "line": 1, "message": observation["reason"]})
             payload = {
-                "status": "not-applicable",
+                "status": "not-applicable" if non_git else "invalid",
                 "claim_limit": "structural-consistency-only",
                 "workstream_state": state,
                 "current_slice": current,
                 "findings": findings,
-                "worktree": {
-                    "status": "not-applicable",
-                    "reason": "root-is-not-a-git-worktree",
-                    "authorship_inferred": False,
-                },
+                "worktree": {**observation, "authorship_inferred": False},
             }
             return payload, 0 if not findings else 2
+        changed = observation["changed_paths"]
         accumulated: list[str] = []
         protected: list[str] = []
         for row in slices:

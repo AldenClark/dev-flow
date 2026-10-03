@@ -4,7 +4,21 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Latest published source identity: `2.0.0-rc.9`. Current workspace state: `development` from `v2.0.0-rc.9`. Stable `2.0.0` remains intentionally deferred.
+Current candidate source identity: `2.0.0`. Current workspace state: `development` from `v2.0.0-rc.9`.
+
+## [2.0.0] - Unreleased
+
+The approved stable optimization plan is being implemented. Qualification and delivery are recorded in [the stable workstream](docs/workstreams/dev-flow-2.0-stable/progress.md); previous RC waivers are historical.
+
+### Changed
+
+- Align requirement confirmation and correction, eligible host interaction, scoped capability fallbacks and evidence-qualified maintenance.
+- Remove obsolete method/state and concurrency quotas while preserving actual host limits, authority and native evidence.
+- Support stable version transitions, safe Git/runtime observations and honest partial delivery states with separate recorded action gates.
+
+### Verification
+
+Independent clean-context review passed, including cumulative stable-to-candidate semantic/static review and affected repair rechecks. Focused implementation checks pass. The final frozen candidate regression, five real journeys, hosted compatibility, immutable artifact evidence and installation remain unverified.
 
 ## [2.0.0-rc.9] - 2026-09-30
 
