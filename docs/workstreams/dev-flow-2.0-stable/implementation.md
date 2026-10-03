@@ -1,6 +1,6 @@
 # Dev Flow 2.0 stable implementation
 
-> Status: source-candidate for `2.0.0`; integrated implementation and independent static review are complete, qualification is in progress.
+> Status: stable `2.0.0` is publicly released; qualification, publication, isolated installation lifecycle and verified primary installation are complete.
 
 <!-- dev-flow-workstream-contract: v1 -->
 
@@ -11,9 +11,9 @@ Preserve explicit permission, secret/untrusted-content boundaries, user-owned ed
 | Slice | Outcome | Write prefixes | Protected paths | Evidence | Status | Decision |
 |---|---|---|---|---|---|---|
 | S1 | A1–A5 and B0–B3 implemented and integrated | `skills/`, `governance/`, `evals/`, `tools/`, `docs/`, `.github/`, `.codex-plugin/`, `README.md`, `CHANGELOG.md`, `.agents/` | - | Focused sensitive regression tests and actual diff inspection | complete | Approved master plan |
-| S2 | Final cumulative semantic/static review and five actual functional journeys | `skills/`, `governance/`, `evals/`, `tools/`, `docs/`, `.github/`, `.codex-plugin/`, `README.md`, `CHANGELOG.md`, `.agents/`, `benchmarks/dev_flow_bench_executor.py` | - | Exact candidate loading, observable native outcomes, negative controls, full deterministic suite | in-progress | Thin stable qualification; preserve first failures; narrow executor repair for the verified event-observability gap |
-| S3 | Immutable source candidate has hosted compatibility and verified artifact evidence | `docs/`, `governance/`, `README.md`, `CHANGELOG.md` | - | Exact-SHA CI; archive, manifest, SBOM, checksums and attestations | pending | Hosted artifacts reused for publication |
-| S4 | Stable is publicly released and primary local installation is updated | `docs/`, `governance/`, `README.md`, `CHANGELOG.md` | - | Public stable tag/release/assets; isolated public-tag install lifecycle; primary plugin version/path/content identity | pending | Record external facts immediately and qualify each action separately |
+| S2 | Final cumulative semantic/static review and five actual functional journeys | `skills/`, `governance/`, `evals/`, `tools/`, `docs/`, `.github/`, `.codex-plugin/`, `README.md`, `CHANGELOG.md`, `.agents/`, `benchmarks/dev_flow_bench_executor.py` | - | Exact candidate loading, observable native outcomes, negative controls, full deterministic suite | complete | Five final-candidate journeys supported by sensitive native oracles and independent assessment; first failures preserved |
+| S3 | Immutable source candidate has hosted compatibility and verified artifact evidence | `docs/`, `governance/`, `README.md`, `CHANGELOG.md` | - | Exact-SHA CI; archive, manifest, SBOM, checksums and attestations | complete | Exact final source; hosted artifacts verified and retained for reuse |
+| S4 | Stable is publicly released and primary local installation is updated | `docs/`, `governance/`, `README.md`, `CHANGELOG.md` | - | Public stable tag/release/assets; isolated public-tag install lifecycle; primary plugin version/path/content identity | complete | Public stable/assets and isolated lifecycle verified; primary enabled 2.0.0, exact tag pin and shipped bytes observed |
 
 Implementation dependencies and detailed behavioral oracles are in the master plan. S1 contains disjoint local owners; shared contract/projection files are integrated by the root. Each child may edit/test its named files only and may not commit, push, publish, install, spend through an external model service, or delegate further. The root handles final integration and delivery.
 

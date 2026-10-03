@@ -2,13 +2,17 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
-## 2.0.0 personal-assistant hardening candidate
+## 2.0.0 personal-assistant hardening release
 
-`2.0.0` is the current stable source candidate. Implementation and qualification follow the approved [master plan](workstreams/dev-flow-2.0/stable-master-plan.md) and [stable progress](workstreams/dev-flow-2.0-stable/progress.md). `v2.0.0-rc.9` is the latest public immutable RC tag. `v2.0.0-rc.9` is the rollback target for `2.0.0`; it is a plugin-version recovery target, not a promise of state migration or a new qualification of historical RC bytes.
+`2.0.0` is the current public stable release, from immutable `056ff3dadea0fe096bc02054e4c7fc5f7c010b5e`, with four verified hosted assets. Implementation and qualification follow the approved [master plan](workstreams/dev-flow-2.0/stable-master-plan.md) and [stable progress](workstreams/dev-flow-2.0-stable/progress.md). `v2.0.0-rc.9` is the latest public immutable RC tag. `v2.0.0-rc.9` is the rollback target for `2.0.0`; it is a plugin-version recovery target, not a promise of state migration or a new qualification of historical RC bytes.
 
 The user authorized implementation through stable publication and the primary local installation update. This candidate retains stable evidence requirements: final native regression, cumulative semantic/static review, five bounded real functional journeys, exact-SHA hosted compatibility, verified hosted artifacts and public-tag installation. RC.9 waivers do not carry forward.
 
-Delivery state: commit=not-run; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+Delivery state: commit=passed; hosted_ci=passed; cross_platform=passed; independent_review=passed; tag=passed; artifact=passed; publication=passed; isolated_install=passed.
+
+Final candidate `056ff3dadea0fe096bc02054e4c7fc5f7c010b5e` passed 717 local tests and applicable validators. [Exact-SHA CI](https://github.com/AldenClark/dev-flow/actions/runs/37135809382) passed the semantic lane and all five platform cells; [hosted artifact evidence](https://github.com/AldenClark/dev-flow/actions/runs/37136059768) passed archive/manifest/SBOM/checksum and both source-bound attestation checks. Five final-candidate functional journeys compose 13 actual turns with direct native correlations and independent assessment. Earlier budget failures remain failed; the user-authorized semantic-only rerun closed the missing correction/terminal observations. Installed/live-session and production claims remain separate.
+
+Public downloads match all four hosted files. Isolated public-tag install/discovery/uninstall passed; the primary profile separately reports installed/enabled `2.0.0`, exact public-tag source and 155 matching shipped files. A stale old-session Hook path interrupted primary updating; resumed installed-2.0 Skill reads and tools now work. Other running chats and live account policy are not inferred reloaded or validated.
 
 ## 2.0.0-rc.9 personal-assistant hardening release
 

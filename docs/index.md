@@ -17,9 +17,9 @@ This index routes contributors and agents to the smallest maintained knowledge o
 - [Project catalog](project/catalog.json): machine-readable project documentation inventory.
 - [Changelog](../CHANGELOG.md): released and unreleased product changes.
 
-## Active managed work
+## Managed work and release history
 
-- [Dev Flow 2.0 stable implementation](workstreams/dev-flow-2.0-stable/): active implementation, qualification, release and local installation progress.
+- [Dev Flow 2.0 stable release](workstreams/dev-flow-2.0-stable/): completed implementation, qualification, public release and verified primary local installation, with first failures and evidence limits preserved.
 - [Dev Flow 2.0 stable optimization plan](workstreams/dev-flow-2.0/stable-master-plan.md): approved audit findings, foundational decisions, implementation slices and adversarial review.
 - [Dev Flow 2.0 baseline history](workstreams/dev-flow-2.0/): original requirements, RC.2 design and implementation history. Current semantics belong to the maintained Skills/governance and the stable workstream above; historical routing and model rules are not current requirements.
 - [Dev Flow 2.0 RC.3](workstreams/dev-flow-2.0-rc.3/): RC.3 requirements, audited design, implementation plan, decisions, and progress.

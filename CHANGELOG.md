@@ -4,11 +4,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Current candidate source identity: `2.0.0`. Current workspace state: `development` from `v2.0.0-rc.9`.
+Latest published source identity: `2.0.0`. Current workspace state: `development` from `v2.0.0`.
 
-## [2.0.0] - Unreleased
+## [2.0.0] - 2026-10-04
 
-The approved stable optimization plan is being implemented. Qualification and delivery are recorded in [the stable workstream](docs/workstreams/dev-flow-2.0-stable/progress.md); previous RC waivers are historical.
+The approved stable optimization plan is implemented. Final qualification and delivery are recorded in [the stable workstream](docs/workstreams/dev-flow-2.0-stable/progress.md); previous RC waivers are historical.
 
 ### Changed
 
@@ -18,7 +18,7 @@ The approved stable optimization plan is being implemented. Qualification and de
 
 ### Verification
 
-Independent clean-context review passed, including cumulative stable-to-candidate semantic/static review and affected repair rechecks. Focused implementation checks pass. The final frozen candidate regression, five real journeys, hosted compatibility, immutable artifact evidence and installation remain unverified.
+Independent clean-context review passed, including cumulative stable-to-candidate semantic/static review and affected repair rechecks. Final candidate `056ff3dadea0fe096bc02054e4c7fc5f7c010b5e` passed 717 local tests, applicable validators, five actual bounded functional journeys, exact-SHA hosted semantic/platform checks and verified hosted artifacts with provenance/SBOM attestations. Earlier budget failures remain failed; the separately user-authorized semantic rerun closed the missing observations. The annotated immutable tag and [public stable release](https://github.com/AldenClark/dev-flow/releases/tag/v2.0.0) are observed with four hosted assets matching public downloads. Public-tag isolated install/discovery/uninstall passed. The primary plugin reports installed/enabled 2.0.0 with exact tag pin, 15 Skills and 155 matching shipped files. A stale RC.9 Hook path briefly stopped tool execution during the update; resumed 2.0 Skill reads and tools now work, without claiming every older chat reloaded. Publication bookkeeping does not rewrite tagged bytes.
 
 ## [2.0.0-rc.9] - 2026-09-30
 
