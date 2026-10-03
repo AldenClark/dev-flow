@@ -1211,6 +1211,8 @@ def sanitized_trajectory(
                 "mcp",
                 "image",
                 "collab",
+                "file_change",
+                "apply_patch",
             )
         ):
             continue
@@ -1229,10 +1231,14 @@ def sanitized_trajectory(
             isinstance(part, str) for part in command_value
         ):
             command_value = " ".join(command_value)
-        if isinstance(command_value, str):
+        file_mutation_event = (
+            item_type in ("file_change", "apply_patch")
+            or item.get("name") == "apply_patch"
+        )
+        if isinstance(command_value, str) and not file_mutation_event:
             entry["command"] = command_value[:2048]
         scope_value = item.get("prompt", event.get("prompt"))
-        if isinstance(scope_value, str) and not collaboration_event:
+        if isinstance(scope_value, str) and not collaboration_event and not file_mutation_event:
             entry["scope"] = scope_value[:2048]
         child_id = item.get(
             "agent_thread_id", event.get("new_thread_id", event.get("thread_id"))
@@ -1574,6 +1580,7 @@ def enforce_mutation_contract(
     mutation: str,
     mutation_paths: list[str] | tuple[()],
     delta: list[dict[str, Any]],
+    trajectory: list[dict[str, Any]] | tuple[()] = (),
 ) -> None:
     changed_paths = {
         entry["path"] for entry in delta if isinstance(entry.get("path"), str)
@@ -1590,6 +1597,14 @@ def enforce_mutation_contract(
     if changed_paths:
         raise TrialError(
             f"{case_id} turn {turn_number}: candidate changed repository bytes"
+        )
+    if any(
+        entry.get("item_type") in ("file_change", "apply_patch")
+        or entry.get("tool_name") == "apply_patch"
+        for entry in trajectory
+    ):
+        raise TrialError(
+            f"{case_id} turn {turn_number}: candidate emitted a file mutation event in a read-only turn"
         )
 
 
@@ -2063,6 +2078,7 @@ def run_attempt(
                     mutation=turn["mutation"],
                     mutation_paths=turn.get("mutation_paths", ()),
                     delta=candidate_delta,
+                    trajectory=evidence["trajectory"],
                 )
                 enforce_trajectory_contract(
                     case_id=case["id"],

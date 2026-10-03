@@ -1647,6 +1647,38 @@ class DevFlowBenchExecutorTests(unittest.TestCase):
         ):
             CONTRACTS.validate_benchmark_catalog(catalog)
 
+    def test_file_mutation_events_are_retained_without_patch_payload(self) -> None:
+        runner = load_runner_module()
+        with tempfile.TemporaryDirectory() as temporary:
+            events = Path(temporary) / "events.jsonl"
+            for item in (
+                {"type": "file_change", "status": "completed"},
+                {"type": "function_call", "name": "apply_patch", "status": "completed"},
+            ):
+                with self.subTest(item=item):
+                    private_item = dict(item, changes=[{"path": "private.txt"}],
+                                        prompt="private patch", command="private command")
+                    events.write_text(json.dumps({"type": "item.completed", "item": private_item}) + "\n",
+                                      encoding="utf-8")
+                    trajectory = runner.sanitized_trajectory(events)
+                    self.assertEqual(len(trajectory), 1)
+                    self.assertEqual(trajectory[0]["item_type"], item["type"])
+                    self.assertNotIn("private", json.dumps(trajectory))
+
+    def test_read_only_contract_rejects_mutation_events_even_after_restoration(self) -> None:
+        runner = load_runner_module()
+        for entry in (
+            {"item_type": "file_change", "status": "completed"},
+            {"item_type": "function_call", "tool_name": "apply_patch"},
+        ):
+            with self.subTest(entry=entry), self.assertRaisesRegex(runner.TrialError, "file mutation event"):
+                runner.enforce_mutation_contract(case_id="CASE", turn_number=1,
+                                                mutation="none", mutation_paths=(),
+                                                delta=[], trajectory=[entry])
+        runner.enforce_mutation_contract(case_id="CASE", turn_number=1,
+                                        mutation="repository", mutation_paths=["target.py"],
+                                        delta=[{"path": "target.py"}], trajectory=[entry])
+
     def test_repository_mutation_requires_unique_existing_mutation_paths(self) -> None:
         runner = load_runner_module()
         catalog_path = CATALOG
