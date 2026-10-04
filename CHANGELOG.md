@@ -4,7 +4,17 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Latest published source identity: `2.0.0`. Current workspace state: `development` from `v2.0.0`.
+Current candidate source identity: `2.0.1`. Current workspace state: `development` from `v2.0.0`.
+
+## [2.0.1] - 2026-10-04
+
+### Fixed
+
+- Bound sensitive-file path detection to actual path tokens, complete bare filenames and single-line quoted filenames. Ordinary Swift dictionary member access no longer blocks code patches; real credential-store paths and quoted filenames with spaces remain protected.
+
+### Verification
+
+Focused DLP tests cover the reported Swift expressions, patch and tool-wrapper inputs, both policy modes and sensitive-file negative controls. The original Loshu patch is replayed through detection only. Complete regression and automatic hosted CI are skipped at the user's explicit request; publication, isolated installation and live-session loading remain separate observations. See [patch progress](docs/workstreams/dev-flow-2.0.1/progress.md).
 
 ## [2.0.0] - 2026-10-04
 

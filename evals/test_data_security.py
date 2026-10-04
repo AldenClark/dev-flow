@@ -165,6 +165,38 @@ class EngineBlueTests(unittest.TestCase):
         self.assertEqual(dlp.sensitive_path_categories({"command": "cat /tmp/.aws/credentials"}), ["credential_store_path"])
         self.assertEqual(dlp.sensitive_path_categories({"path": "/workspace/.env.example"}), [])
 
+    def test_sensitive_paths_do_not_consume_swift_member_access(self) -> None:
+        member = "." + "key"
+        expressions = [
+            f"left.value == right.value ? left{member} < right{member} : left.value > right.value",
+            f"guard let impostor = ranked.first(where: {{ $0{member} != clip.speaker }}) else {{ throw QualityError.invalidPlan }}",
+            f"uniqueCorrectTop1: isKnown ? (top{member} == clip.speaker && top.value > runnerUp.value) : nil))",
+            f"top{member} == clip.speaker",
+        ]
+        source_patch = (
+            "*** Begin Patch\n*** Add File: /workspace/QualityScoring.swift\n"
+            + "\n".join("+    " + expression for expression in expressions)
+            + "\n*** End Patch"
+        )
+        for text in [*expressions, source_patch]:
+            with self.subTest(text=text):
+                self.assertEqual(dlp.sensitive_path_categories({"input": text}), [])
+
+    def test_sensitive_file_paths_remain_detected(self) -> None:
+        for extension in ("pem", "key", "p12", "pfx"):
+            for text in (
+                f"identity.{extension}",
+                f"/tmp/identity.{extension}",
+                f"cat /tmp/identity.{extension}",
+                f'cat "/tmp/my identity.{extension}"',
+                f"cat '/tmp/my identity.{extension}'",
+                f'C:\\keys\\identity.{extension}',
+                f'type "C:\\keys\\my identity.{extension}"',
+                f'*** Begin Patch\n*** Add File: /workspace/Scoring.swift\n+let path = "/tmp/identity.{extension}"\n*** End Patch',
+            ):
+                with self.subTest(text=text):
+                    self.assertEqual(dlp.sensitive_path_categories({"input": text}), ["credential_store_path"])
+
     def test_dictionary_keys_are_scanned_and_redacted(self) -> None:
         token = synthetic_token("github")
         redacted, findings = dlp.redact_value({token: "state"}, salt=b"synthetic-test-salt-material")
@@ -172,6 +204,18 @@ class EngineBlueTests(unittest.TestCase):
         self.assertTrue(redacted_key.startswith("{{DLP:SECRET:"))
         self.assertTrue(dlp.contains_high_confidence(findings))
         self.assertFalse(token in json.dumps(redacted), "secret remained in a redacted object key")
+
+    def test_sensitive_relative_filenames_in_shell_arguments_remain_blocked(self) -> None:
+        for field in ("cmd", "command"):
+            for extension in ("pem", "key", "p12", "pfx"):
+                for command in (
+                    f"cat identity.{extension}",
+                    f"openssl inspect -in identity.{extension}",
+                    f'cat "my identity.{extension}"',
+                    f'type C:\\keys\\identity.{extension}',
+                ):
+                    with self.subTest(field=field, command=command):
+                        self.assertEqual(dlp.sensitive_path_categories({"payload": [{field: command}]}), ["credential_store_path"])
 
     def test_size_and_depth_limits_are_explicit(self) -> None:
         with self.assertRaises(dlp.InspectionLimit):
@@ -340,6 +384,34 @@ class PolicyTests(unittest.TestCase):
 
 
 class HookBlueTests(unittest.TestCase):
+    def test_pretool_allows_swift_patch_but_still_blocks_sensitive_file_path(self) -> None:
+        member = "." + "key"
+        source_patch = (
+            "*** Begin Patch\n*** Add File: /workspace/QualityScoring.swift\n"
+            f"+    uniqueCorrectTop1: isKnown ? (top{member} == clip.speaker && top.value > runnerUp.value) : nil))\n"
+            "*** End Patch"
+        )
+        for mode in ("personal", "strict"):
+            for tool_input in (
+                {"input": source_patch},
+                {"code": "await tools.apply_patch(" + json.dumps(source_patch) + ");"},
+            ):
+                with self.subTest(mode=mode, tool_input=tool_input):
+                    result = invoke_hook(hook_event("PreToolUse", tool_name="apply_patch", tool_input=tool_input), mode=mode)
+                    self.assertEqual(result, (0, "", ""))
+            sensitive_patch = source_patch.replace("*** End Patch", f'+let path = "/tmp/identity{member}"\n*** End Patch')
+            code, stdout, stderr = invoke_hook(
+                hook_event("PreToolUse", tool_name="apply_patch", tool_input={"input": sensitive_patch}), mode=mode,
+            )
+            self.assertEqual((code, stderr), (0, ""))
+            self.assertEqual(json.loads(stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
+
+            code, stdout, stderr = invoke_hook(
+                hook_event("PreToolUse", tool_name="exec_command", tool_input={"cmd": f"cat identity{member}"}), mode=mode,
+            )
+            self.assertEqual((code, stderr), (0, ""))
+            self.assertEqual(json.loads(stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
+
     def assert_no_leak(self, value: str, stdout: str, stderr: str) -> None:
         self.assertFalse(value in stdout or value in stderr, "Hook output leaked the synthetic value")
 

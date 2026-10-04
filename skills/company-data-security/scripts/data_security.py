@@ -14,6 +14,7 @@ import hmac
 import json
 import re
 import secrets
+import shlex
 import sys
 import unicodedata
 from collections import Counter
@@ -137,13 +138,19 @@ _PLACEHOLDER_RE = re.compile(
     re.IGNORECASE,
 )
 _SENSITIVE_PATH_RE = re.compile(
+    # Unquoted path components cannot absorb source code or later lines. A bare
+    # sensitive filename must occupy the whole value; quoted filenames may
+    # contain spaces, but cannot cross a quote or newline boundary.
     r"(?:^|[/\\])(?:"
     r"\.env(?:\.[A-Za-z0-9_-]+)?|\.npmrc|\.pypirc|\.netrc|"
     r"\.aws[/\\]credentials|\.kube[/\\]config|\.docker[/\\]config\.json|"
-    r"\.ssh[/\\](?:id_[^/\\]+|config)|"
-    r"(?:auth|credentials?|service[-_]?account)\.json|"
-    r"[^/\\]+\.(?:pem|key|p12|pfx)"
-    r")(?:$|[\s\"'])",
+    r"\.ssh[/\\](?:id_[^/\\\s\"']+|config)|"
+    r"(?:auth|credentials?|service[-_]?account)\.json"
+    r")(?:$|[\s\"'])|"
+    r"^[^/\\\s\"']+\.(?:pem|key|p12|pfx)$|"
+    r"[/\\][^/\\\s\"'`<>|;(){}\[\]=]+\.(?:pem|key|p12|pfx)(?:$|[\s\"'])|"
+    r"\"[^\"\r\n]+\.(?:pem|key|p12|pfx)\"|"
+    r"'[^'\r\n]+\.(?:pem|key|p12|pfx)'",
     re.IGNORECASE,
 )
 _SAFE_SENSITIVE_PATH_RE = re.compile(r"(?:\.env\.(?:example|sample|template)|dummy|fixture|synthetic)", re.IGNORECASE)
@@ -284,7 +291,7 @@ def _json_size(value: Any) -> int:
         raise InspectionLimit("value is not bounded JSON") from exc
 
 
-def _iter_strings(value: Any, *, path: str = "$", depth: int = 0) -> Iterator[tuple[str, str]]:
+def _iter_strings(value: Any, *, path: str = "$", depth: int = 0, command_tokens: bool = False) -> Iterator[tuple[str, str]]:
     if depth > MAX_DEPTH:
         raise InspectionLimit("value exceeds the inspection depth limit")
     if isinstance(value, str):
@@ -293,10 +300,17 @@ def _iter_strings(value: Any, *, path: str = "$", depth: int = 0) -> Iterator[tu
         for index, (key, nested) in enumerate(value.items()):
             if isinstance(key, str):
                 yield f"{path}/@key/{index}", key
-            yield from _iter_strings(nested, path=f"{path}/@item/{index}", depth=depth + 1)
+            yield from _iter_strings(nested, path=f"{path}/@item/{index}", depth=depth + 1, command_tokens=command_tokens)
+            if command_tokens and key in ("cmd", "command") and isinstance(nested, str):
+                try:
+                    tokens = shlex.split(nested, posix=False)
+                except ValueError:
+                    tokens = []  # The original text was already inspected.
+                for token_index, token in enumerate(tokens):
+                    yield f"{path}/@command/{index}/{token_index}", token
     elif isinstance(value, list):
         for index, nested in enumerate(value):
-            yield from _iter_strings(nested, path=f"{path}/{index}", depth=depth + 1)
+            yield from _iter_strings(nested, path=f"{path}/{index}", depth=depth + 1, command_tokens=command_tokens)
 
 
 def scan_value(value: Any, *, include_identifiers: bool = True) -> list[Finding]:
@@ -354,7 +368,7 @@ def contains_high_confidence(findings: Iterable[Finding]) -> bool:
 
 def sensitive_path_categories(value: Any) -> list[str]:
     categories: set[str] = set()
-    for _, text in _iter_strings(value):
+    for _, text in _iter_strings(value, command_tokens=True):
         for match in _SENSITIVE_PATH_RE.finditer(text):
             candidate = match.group(0)
             if _SAFE_SENSITIVE_PATH_RE.search(candidate):

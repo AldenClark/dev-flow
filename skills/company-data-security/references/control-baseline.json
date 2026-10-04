@@ -8,7 +8,7 @@
     "skills/company-data-security/assets/ordinary-chat-instructions.md": "sha256:88658af74574702bb634f19fe90225be3c1f60cd9ba83e6e3772895b4f57ffdd",
     "skills/company-data-security/references/data-handling-policy.md": "sha256:39a1be77eabf18782d4c244efef34e44579ebc9b6728ca81d4779a58699376ce",
     "skills/company-data-security/references/surface-playbooks.md": "sha256:117fd7797e4a1702a457585dfd43dcfebf1caee7b049880a0d522cc0463235b4",
-    "skills/company-data-security/scripts/data_security.py": "sha256:16713c267df638670999b90d6023b29f0ab968eeaf77f82f2ff7dd4531e3716d",
+    "skills/company-data-security/scripts/data_security.py": "sha256:c7124776b29573e5cfba1f55e5319bec19b80de3039d345fd77066e54a97fbc0",
     "skills/company-data-security/scripts/dlp_approval.py": "sha256:a252bcca5312d172bc169e93f5e91f70ce99d6e64db8d50789624675589aff49",
     "skills/company-data-security/scripts/dlp_policy.py": "sha256:195d9d6045a399cbd65f31c3d9082ac38b35572c59627eef83e918bba0b39dc3",
     "skills/company-data-security/scripts/doctor.py": "sha256:48df5c71cfeaa9cec890133d74736ccb342a23ccb8c9773adf8ec95502dac17d"

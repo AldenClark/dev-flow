@@ -2,6 +2,14 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
+## 2.0.1 personal-assistant hardening candidate
+
+`2.0.1` is a scoped DLP false-positive correction. The user authorized focused verification, commit, push and primary local installation on 2026-10-04, with complete regression skipped. The pushed source commit will identify the local install. `v2.0.0-rc.9` is the latest public immutable RC tag; `v2.0.0` remains the published stable and `v2.0.0` is the rollback target for `2.0.1`. Canonical publication facts do not inherit local installation or earlier stable evidence.
+
+Delivery state: commit=not-run; hosted_ci=waived; cross_platform=not-run; independent_review=not-run; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+
+The release commit uses `[skip ci]` to respect the requested verification scope. Focused DLP checks, product-state projection validation, compilation and diff checks are recorded in [patch progress](workstreams/dev-flow-2.0.1/progress.md). Primary installed bytes and old-chat Hook loading are observed separately.
+
 ## 2.0.0 personal-assistant hardening release
 
 `2.0.0` is the current public stable release, from immutable `056ff3dadea0fe096bc02054e4c7fc5f7c010b5e`, with four verified hosted assets. Implementation and qualification follow the approved [master plan](workstreams/dev-flow-2.0/stable-master-plan.md) and [stable progress](workstreams/dev-flow-2.0-stable/progress.md). `v2.0.0-rc.9` is the latest public immutable RC tag. `v2.0.0-rc.9` is the rollback target for `2.0.0`; it is a plugin-version recovery target, not a promise of state migration or a new qualification of historical RC bytes.
@@ -129,14 +137,14 @@ For an R3 change, two local builds can establish deterministic behavior before h
 ```bash
 git rev-parse HEAD
 python3 tools/build_release.py build \
-  --root . --output dist-a --version 2.0.0 --commit FULL_COMMIT_SHA
+  --root . --output dist-a --version 2.0.1 --commit FULL_COMMIT_SHA
 python3 tools/build_release.py build \
-  --root . --output dist-b --version 2.0.0 --commit FULL_COMMIT_SHA
-cmp dist-a/dev-flow-2.0.0.tar.gz dist-b/dev-flow-2.0.0.tar.gz
+  --root . --output dist-b --version 2.0.1 --commit FULL_COMMIT_SHA
+cmp dist-a/dev-flow-2.0.1.tar.gz dist-b/dev-flow-2.0.1.tar.gz
 cmp dist-a/release-manifest.json dist-b/release-manifest.json
 cmp dist-a/SHA256SUMS dist-b/SHA256SUMS
 python3 tools/build_release.py verify \
-  --artifact-dir dist-a --expected-version 2.0.0 --expected-commit FULL_COMMIT_SHA
+  --artifact-dir dist-a --expected-version 2.0.1 --expected-commit FULL_COMMIT_SHA
 ```
 
 Determinism is asserted within the pinned environment. Promotion reuses attested bytes instead of rebuilding on another zlib/toolchain version.
@@ -147,17 +155,17 @@ After applicable exact-SHA CI is green:
 
 ```bash
 gh workflow run release-candidate.yml \
-  --ref main -f version=2.0.0 -f expected_sha=FULL_COMMIT_SHA
+  --ref main -f version=2.0.1 -f expected_sha=FULL_COMMIT_SHA
 ```
 
 The workflow has `contents: read`, `id-token: write`, and `attestations: write`. It has no release-publication permission. After download:
 
 ```bash
 python3 tools/build_release.py verify \
-  --artifact-dir dist --expected-version 2.0.0 --expected-commit FULL_COMMIT_SHA
-gh attestation verify dist/dev-flow-2.0.0.tar.gz \
+  --artifact-dir dist --expected-version 2.0.1 --expected-commit FULL_COMMIT_SHA
+gh attestation verify dist/dev-flow-2.0.1.tar.gz \
   --repo AldenClark/dev-flow
-gh attestation verify dist/dev-flow-2.0.0.tar.gz \
+gh attestation verify dist/dev-flow-2.0.1.tar.gz \
   --repo AldenClark/dev-flow \
   --predicate-type https://spdx.dev/Document/v2.3
 ```
