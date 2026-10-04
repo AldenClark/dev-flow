@@ -27,7 +27,7 @@
     "rollback_target": "v2.0.0"
   },
   "delivery": {
-    "commit": "not-run",
+    "commit": "passed",
     "hosted_ci": "waived",
     "cross_platform": "not-run",
     "independent_review": "not-run",

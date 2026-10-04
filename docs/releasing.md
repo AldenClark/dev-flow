@@ -4,9 +4,9 @@ This runbook selects evidence from the changed surface. It separates implementat
 
 ## 2.0.1 personal-assistant hardening candidate
 
-`2.0.1` is a scoped DLP false-positive correction. The user authorized focused verification, commit, push and primary local installation on 2026-10-04, with complete regression skipped. The pushed source commit will identify the local install. `v2.0.0-rc.9` is the latest public immutable RC tag; `v2.0.0` remains the published stable and `v2.0.0` is the rollback target for `2.0.1`. Canonical publication facts do not inherit local installation or earlier stable evidence.
+`2.0.1` is a scoped DLP false-positive correction. The user authorized focused verification, commit, push and primary local installation on 2026-10-04, with complete regression skipped. Pushed source `d06d0d1d42ef2503ff14cbff50f8dfeb2af7a3d2` identifies the verified primary local install: installed/enabled 2.0.1, 155 matching shipped files and the original patch allowed by the installed Hook. Existing chats are not claimed reloaded. `v2.0.0-rc.9` is the latest public immutable RC tag; `v2.0.0` remains the published stable and `v2.0.0` is the rollback target for `2.0.1`. Canonical publication facts do not inherit local installation or earlier stable evidence.
 
-Delivery state: commit=not-run; hosted_ci=waived; cross_platform=not-run; independent_review=not-run; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+Delivery state: commit=passed; hosted_ci=waived; cross_platform=not-run; independent_review=not-run; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
 
 The release commit uses `[skip ci]` to respect the requested verification scope. Focused DLP checks, product-state projection validation, compilation and diff checks are recorded in [patch progress](workstreams/dev-flow-2.0.1/progress.md). Primary installed bytes and old-chat Hook loading are observed separately.
 
