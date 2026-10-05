@@ -2,13 +2,18 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
-## 2.0.2 personal-assistant hardening candidate
+## 2.0.2 personal-assistant hardening release
 
-`2.0.2` consolidates the DLP audit repairs for detection/redaction, Hook protocol, one-shot state and resource bounds. The user authorized pre-release checks, commit, push, stable publication and primary installation on 2026-10-05. The five live-model functional journeys are explicitly WAIVED for this scoped patch; no historical model outcome is promoted to a final-candidate pass. This change uses the applicable R2/R3 native, hosted-platform, security, artifact and isolated-install gates. `v2.0.0-rc.9` is the latest public immutable RC tag; `v2.0.0` remains published stable and `v2.0.0` is the rollback target for `2.0.2`.
+`2.0.2` consolidates the DLP audit repairs for detection/redaction, Hook protocol, one-shot state and resource bounds. The user authorized pre-release checks, commit, push, stable publication and primary installation on 2026-10-05. The five live-model functional journeys are explicitly WAIVED for this scoped patch; no historical model outcome is promoted to a final-candidate pass. This change uses the applicable R2/R3 native, hosted-platform, security, artifact and isolated-install gates. `v2.0.0-rc.9` is the latest public immutable RC tag; `v2.0.2` is the published stable and `v2.0.0` is the rollback target for `2.0.2`.
 
-Delivery state: commit=not-run; hosted_ci=not-run; cross_platform=not-run; independent_review=not-run; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+Delivery state: commit=passed; hosted_ci=passed; cross_platform=passed; independent_review=passed; tag=passed; artifact=passed; publication=passed; isolated_install=passed.
 
 The [release workstream](workstreams/dev-flow-2.0.2/progress.md) owns exact candidate and external observations; the [DLP audit](workstreams/dlp-comprehensive-audit/progress.md) retains first failures and local controls. Roll back a failing installed Hook by pinning the exact previous published stable `v2.0.0`, then verify installed bytes and restart affected sessions; do not reuse 2.0.2 confirmations. This restores plugin version, not an untested state migration. Tagged candidate bytes stay immutable; a separate current-truth commit records observed publication and installation.
+
+
+Final candidate `e5abd4bbb2dc6758400ea74a299e12d5e0770c39` passed 796 local tests (795 pass, one native-Windows-only skip), cumulative clean-context review and independent Windows repair review. [Exact-SHA semantic/platform CI](https://github.com/AldenClark/dev-flow/actions/runs/37256307278) and [hosted artifact workflow](https://github.com/AldenClark/dev-flow/actions/runs/37256753263) pass. Archive/manifest/checksums/SPDX identity and both exact-source, signer-workflow-bound attestations verify; all four public assets match those hosted bytes.
+
+The [public stable release](https://github.com/AldenClark/dev-flow/releases/tag/v2.0.2) is observed non-draft and non-prerelease. Public-tag isolated install/discovery, three synthetic Hook controls and uninstall pass. Primary installation separately reports installed/enabled 2.0.2, exact public-tag source, 156 matching source/cache files, 15 Skills and zero required doctor failures. The old 2.0.1 cache was backed up for existing chats. Subsequent host cleanup removed its Hook and blocked the final record commit; on resume the original Hook is present and tools work. Cache retention is not guaranteed; other old-chat loading is `not_observed`. Restart Codex and open a fresh chat to load the new version. The initial Windows candidate failure is preserved, and the final binary-read repair passes both native Windows CI cells.
 
 ## 2.0.1 personal-assistant hardening candidate
 
@@ -20,7 +25,7 @@ The release commit uses `[skip ci]` to respect the requested verification scope.
 
 ## 2.0.0 personal-assistant hardening release
 
-`2.0.0` is the current public stable release, from immutable `056ff3dadea0fe096bc02054e4c7fc5f7c010b5e`, with four verified hosted assets. Implementation and qualification follow the approved [master plan](workstreams/dev-flow-2.0/stable-master-plan.md) and [stable progress](workstreams/dev-flow-2.0-stable/progress.md). `v2.0.0-rc.9` is the latest public immutable RC tag. `v2.0.0-rc.9` is the rollback target for `2.0.0`; it is a plugin-version recovery target, not a promise of state migration or a new qualification of historical RC bytes.
+`2.0.0` was the public stable release at this historical release point, from immutable `056ff3dadea0fe096bc02054e4c7fc5f7c010b5e`, with four verified hosted assets. Implementation and qualification follow the approved [master plan](workstreams/dev-flow-2.0/stable-master-plan.md) and [stable progress](workstreams/dev-flow-2.0-stable/progress.md). `v2.0.0-rc.9` is the latest public immutable RC tag. `v2.0.0-rc.9` is the rollback target for `2.0.0`; it is a plugin-version recovery target, not a promise of state migration or a new qualification of historical RC bytes.
 
 The user authorized implementation through stable publication and the primary local installation update. This candidate retains stable evidence requirements: final native regression, cumulative semantic/static review, five bounded real functional journeys, exact-SHA hosted compatibility, verified hosted artifacts and public-tag installation. RC.9 waivers do not carry forward.
 

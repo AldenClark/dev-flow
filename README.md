@@ -2,7 +2,7 @@
 
 Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是建立第二套工作流引擎，而是用最少的流程成本保持三件事：长期业务工作不漂移、技术结论有原生工程证据、高后果动作保留明确安全边界。
 
-候选源码身份为 `2.0.2`。当前工作区处于 `development` 状态，基于 `v2.0.0`。`v2.0.0` 是最近已发布的稳定标签，也是默认固定安装通道。`v2.0.0-rc.9` 是最近已发布的 RC，回滚目标为 `v2.0.0`；其历史豁免不属于正式版资格证据。`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。2.0.2 汇集 DLP 检测、完整脱敏、Hook 协议、确认状态恢复和资源边界修复；审计证据见 [DLP audit](docs/workstreams/dlp-comprehensive-audit/)，本次发布见 [2.0.2 workstream](docs/workstreams/dev-flow-2.0.2/)。
+已发布源码身份为 `2.0.2`。当前工作区处于 `development` 状态，基于 `v2.0.2`。`v2.0.2` 是最近已发布的稳定标签，也是默认固定安装通道。`v2.0.0-rc.9` 是最近已发布的 RC；2.0.2 的回滚目标为 `v2.0.0`；其历史豁免不属于正式版资格证据。`v1.1.2` 是最后一个 1.x 稳定标签。2.0 采用破坏性切换，不承诺从 1.x 升级、迁移状态或回滚兼容。2.0.2 汇集 DLP 检测、完整脱敏、Hook 协议、确认状态恢复和资源边界修复；审计证据见 [DLP audit](docs/workstreams/dlp-comprehensive-audit/)，本次发布见 [2.0.2 workstream](docs/workstreams/dev-flow-2.0.2/)。
 
 ## 2.0 核心模型
 
@@ -220,7 +220,7 @@ python3 skills/dev-flow/scripts/dev-flow.py outcomes summary
 固定安装当前公开稳定版：
 
 ```bash
-codex plugin marketplace add AldenClark/dev-flow --ref v2.0.0
+codex plugin marketplace add AldenClark/dev-flow --ref v2.0.2
 codex plugin add dev-flow@dev-flow
 ```
 
@@ -251,8 +251,8 @@ CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job �
 
 ## 版本和发布状态
 
-- `2.0.2` 是当前候选源码身份；用户授权完整发布前检查、提交、push、正式发布与本机更新。五条模型旅程已明确豁免，其他发布证据按本次最终候选核实。
-- 已发布稳定版本：`v2.0.0` 是最近已发布的稳定标签，来自不可变提交 `056ff3dadea0fe096bc02054e4c7fc5f7c010b5e`；717 项本地回归、五条实际功能旅程、独立复核、托管平台检查和带证明的制品均已核对。公开发布与安装/会话重载分别记录。
+- `2.0.2` 是当前已发布源码身份；不可变 `v2.0.2` 来自候选 `e5abd4bbb2dc6758400ea74a299e12d5e0770c39`。五条模型旅程明确 WAIVED；完整本地回归、托管语义/五个平台单元、独立复核、带证明制品与安装证据见本次发布记录。
+- 已发布稳定版本：[v2.0.2](https://github.com/AldenClark/dev-flow/releases/tag/v2.0.2)。最终本地回归 796 项（795 通过、一项原生 Windows 专属跳过）；托管语义及五个平台检查通过。四份公开制品匹配已验证的托管文件；公开标签隔离安装/卸载和本机安装/缓存身份已核实。已有会话重载仍单独记录。上一公开稳定版 `v2.0.0` 保留为回滚目标，其历史资格见发布记录。
 - `v2.0.0-rc.9` 是最近已发布且可固定安装的 personal-assistant-hardening RC，对应不可变提交 `5d4a569dcbbb67fb21cbc7945945597e342151b5`；本次发布检查按用户明确要求豁免，既有开发回归不等同于最终发布字节的验证。
 - `v2.0.0-rc.8` 是 RC.9 的固定回滚标签；RC.8 的 CI、兼容、制品、证明、隔离安装和公开预发布证据只属于候选提交 `503f5e487580afed9fb905130c4206e1e018ed1d` 对应的不可变标签。
 - `v2.0.0-rc.7` 是 RC.8 的固定回滚标签；RC.7 的交付证据仍只属于它自身。
