@@ -6,10 +6,10 @@
     "skills/company-data-security/assets/chatgpt-work-instructions.md": "sha256:3bf085d72471b041c6791da2894bce2af30febd80c9d06509ad6a119303fdb80",
     "skills/company-data-security/assets/codex-agents-baseline.md": "sha256:24543ce1cdf25d9cae8e9247569d29c2ac5e1492f74d07510c34cff6bfd4a921",
     "skills/company-data-security/assets/ordinary-chat-instructions.md": "sha256:88658af74574702bb634f19fe90225be3c1f60cd9ba83e6e3772895b4f57ffdd",
-    "skills/company-data-security/references/data-handling-policy.md": "sha256:6d34620f2f628f7275e4cdef129fbdee75988981af00059e91e47d5b29aa6a6a",
+    "skills/company-data-security/references/data-handling-policy.md": "sha256:3f94a620dd9a22cfa40f89241ed1a340ec1cddf74fb8b86dd84711c9547114dd",
     "skills/company-data-security/references/surface-playbooks.md": "sha256:117fd7797e4a1702a457585dfd43dcfebf1caee7b049880a0d522cc0463235b4",
     "skills/company-data-security/scripts/data_security.py": "sha256:2b987edf1ded6a4a2c8fd918d864e17f28ca9f4b59ff2e4b0a13b999630cff7b",
-    "skills/company-data-security/scripts/dlp_approval.py": "sha256:bd58d6c879405c87d2e705b17d943b119d3501f021a8b15876ad215a3af902c6",
+    "skills/company-data-security/scripts/dlp_approval.py": "sha256:3c7e949b75a42131b4805e1823b467cf09fb86ba7879d5f0b3109fa17848a32a",
     "skills/company-data-security/scripts/dlp_policy.py": "sha256:195d9d6045a399cbd65f31c3d9082ac38b35572c59627eef83e918bba0b39dc3",
     "skills/company-data-security/scripts/doctor.py": "sha256:f2f97a52430a66d9352862612656907d3fe03140ddfd0394952399b3383776d0"
   },

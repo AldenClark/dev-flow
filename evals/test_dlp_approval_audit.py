@@ -38,6 +38,24 @@ approval = _load_module("dlp_approval_audit_module", APPROVAL_PATH)
 
 
 class ApprovalStateAuditTests(unittest.TestCase):
+    def test_master_key_control_bytes_round_trip_without_text_translation(self) -> None:
+        key = bytes([13, 10, 26, 10]) + bytes(range(28))
+        self.assertEqual(len(key), 32)
+        with self.local_state() as root:
+            with patch.object(approval.secrets, "token_bytes", return_value=key):
+                self.assertEqual(approval._master_key(), key)
+            if os.name == "nt":
+                descriptor = os.open(root / ("approval" + chr(46) + "key"), os.O_RDONLY | os.O_TEXT)
+                try:
+                    self.assertNotEqual(os.read(descriptor, 33), key, "native text-mode negative control must alter the control bytes")
+                finally:
+                    os.close(descriptor)
+            self.assertEqual(approval._master_key(), key)
+            request = approval.issue_request("UserPromptSubmit", b"binary-roundtrip", session_id="s", now=100)
+            approval.consume_prompt_request(request.request_id, request.token, b"binary-roundtrip", session_id="s", now=101)
+            with self.assertRaises(approval.ApprovalError):
+                approval.consume_prompt_request(request.request_id, request.token, b"binary-roundtrip", session_id="s", now=102)
+
     def test_exact_prompt_confirmation_preserves_original_leading_whitespace(self) -> None:
         for leading in ("  ", "\n", "\t"):
             with tempfile.TemporaryDirectory() as directory:

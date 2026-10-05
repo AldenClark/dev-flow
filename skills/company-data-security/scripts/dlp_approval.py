@@ -151,7 +151,9 @@ def _private_regular_file(path: Path) -> None:
 
 def _read_limited(path: Path, limit: int) -> tuple[bytes, bool]:
     """Read at most limit + 1 bytes from a private regular file."""
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    # Raw os.read must preserve arbitrary HMAC key bytes on Windows: CRT text
+    # descriptors translate CRLF and treat Ctrl-Z as EOF.
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
     descriptor: int | None = None
     try:
         descriptor = os.open(path, flags)

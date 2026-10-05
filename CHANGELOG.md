@@ -16,6 +16,7 @@ Current candidate source identity: `2.0.2`. Current workspace state: `developmen
 - Redact complete overlapping, encoded, reflowed and supported token values; fail closed at inspection/finding limits instead of exposing an unprocessed suffix.
 - Keep exact safe-file exemptions, inspect shell option/environment values and Windows paths, and bound shell tokenization within the Hook budget.
 - Validate Hook payloads and post-tool blocking, serialize one-shot confirmation, reject malformed persisted state, and recover from consumed stale records and interrupted atomic writes.
+- Preserve arbitrary HMAC key bytes during Windows state reads, preventing text-mode control-byte translation from intermittently rejecting valid confirmations.
 - Include all DLP audit modules in platform CI and keep protected-control diagnostics bounded.
 
 ### Verification

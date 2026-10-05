@@ -22,6 +22,13 @@ Delivery state: commit=not-run; hosted_ci=not-run; cross_platform=not-run; indep
 - Product-state, 15-Skill suite, knowledge, plugin, packaged security doctor, contracts, legacy-method data, RC.4/RC.5 static invariants, compilation and diff checks pass. Doctor has zero required failures and five manual/live gates. No protected DLP production/test/CI bytes changed since the final audit source manifest.
 - Cumulative stable review, exact-SHA hosted platform checks and artifact/public/install observations are pending. The first extra flow-metrics command incorrectly supplied unsupported `--root`; this was a test invocation error, corrected using the public command help rather than a product change.
 
+## Preserved candidate failure and repair
+
+- Candidate `79c90025935fbe32095eeff4852f023a15746c2d` was committed and pushed. Its local two-build artifacts match, and isolated local install/discovery/156-file identity, three Hook controls and uninstall pass. Deterministic activation matches all 38 catalog and 80 large-task cases; these are routing observations, not model-journey outcomes.
+- Exact-SHA CI run `37255846323` failed both Windows compatibility cells: three invalid-key errors on Python 3.11 and one missing-confirmation assertion on Python 3.14. Linux/macOS cells pass. The original native logs remain under the first delivery directory as `windows-first-real-3.11.log` and `windows-first-real-3.14.log`; no failed cell was removed or waived.
+- Causal repair: raw `_read_limited` descriptors now select `O_BINARY` on Windows, preventing CRT CRLF/Ctrl-Z translation of a valid random 32-byte HMAC key. A fixed control-byte key must round-trip, issue and consume once; native Windows additionally proves that explicit text-mode reading changes the bytes. A test-setup mock initially affected all random IDs and failed schema validation; narrowing the mock to key creation repaired the harness. That setup failure is not the native product failure.
+- The six-method cumulative independent review found no unresolved high-consequence issue and passed 78 focused tests before this platform repair. Its 35-file fingerprint and concrete controls are retained in `/tmp/dev-flow-2.0.2-cumulative-review-manifest.json`; the new minimal repair is independently rechecked separately. No public tag was created for the failed candidate.
+
 ## Hard conditions
 
 | ID | Condition | Gate | Status | Closure/decision |
