@@ -21,6 +21,7 @@
     "evals/test_agent_dispatch.py",
     "evals/test_ci_change_scope.py",
     "evals/test_data_security.py",
+    "evals/test_dlp_*_audit.py",
     "evals/test_engineering_context.py",
     "evals/test_outcome_observation.py",
     "evals/test_product_state.py",

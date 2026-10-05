@@ -8,10 +8,12 @@ They never contain the inspected prompt, tool input, or credential value.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import hashlib
 import hmac
 import itertools
 import json
+import math
 import os
 import re
 import secrets
@@ -20,7 +22,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 
 STATE_DIR_ENV = "DEV_FLOW_DLP_STATE_DIR"
@@ -29,11 +31,15 @@ DEFAULT_MODE = "personal"
 VALID_MODES = frozenset({"personal", "strict"})
 APPROVAL_TTL_SECONDS = 300
 MAX_PENDING_REQUESTS = 128
+MAX_STATE_RECORDS = MAX_PENDING_REQUESTS * 2
 MAX_STATE_FILE_BYTES = 16_384
+STATE_LOCK_TIMEOUT_SECONDS = 0.75
 _REQUEST_ID_RE = re.compile(r"^[0-9a-f]{24}$")
 _TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{24,96}$")
+_MAC_RE = re.compile(r"^[0-9a-f]{64}$")
+_PENDING_STAGING_RE = re.compile(r"\.[0-9a-f]{24}\.json\.[0-9a-f]{16}\.tmp")
 _PROMPT_MARKER_RE = re.compile(
-    r"\A\[\[DEV_FLOW_DLP_CONFIRM:([0-9a-f]{24}):([A-Za-z0-9_-]{24,96})\]\]\s*"
+    r"\A\[\[DEV_FLOW_DLP_CONFIRM:([0-9a-f]{24}):([A-Za-z0-9_-]{24,96})\]\]"
 )
 
 
@@ -57,16 +63,19 @@ class ApprovalRequest:
 
 
 def _state_root() -> Path:
-    override = os.environ.get(STATE_DIR_ENV)
-    if override:
-        return Path(override).expanduser().resolve()
-    if sys.platform == "darwin":
-        return Path.home() / "Library" / "Application Support" / "Codex" / "dev-flow" / "dlp"
-    if os.name == "nt":
-        base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
-        return base / "Codex" / "dev-flow" / "dlp"
-    base = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state"))
-    return base / "codex" / "dev-flow" / "dlp"
+    try:
+        override = os.environ.get(STATE_DIR_ENV)
+        if override:
+            return Path(override).expanduser().resolve()
+        if sys.platform == "darwin":
+            return Path.home() / "Library" / "Application Support" / "Codex" / "dev-flow" / "dlp"
+        if os.name == "nt":
+            base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+            return base / "Codex" / "dev-flow" / "dlp"
+        base = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state"))
+        return base / "codex" / "dev-flow" / "dlp"
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise StateUnavailable("local DLP state directory could not be resolved") from exc
 
 
 def _ensure_private_dir(path: Path) -> None:
@@ -76,7 +85,7 @@ def _ensure_private_dir(path: Path) -> None:
         except FileExistsError:
             pass
         info = path.lstat()
-    except OSError as exc:
+    except (OSError, ValueError) as exc:
         raise StateUnavailable("local DLP state directory is unavailable") from exc
     if path.is_symlink() or not stat.S_ISDIR(info.st_mode):
         raise StateUnavailable("local DLP state directory is not a regular directory")
@@ -122,7 +131,10 @@ def _atomic_replace(path: Path, data: bytes) -> None:
         if os.name != "nt":
             path.chmod(0o600)
     except OSError as exc:
-        temporary.unlink(missing_ok=True)
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass
         raise StateUnavailable("local DLP state could not be updated") from exc
 
 
@@ -137,6 +149,107 @@ def _private_regular_file(path: Path) -> None:
         raise StateUnavailable("local DLP state file permissions are too broad")
 
 
+def _read_limited(path: Path, limit: int) -> tuple[bytes, bool]:
+    """Read at most limit + 1 bytes from a private regular file."""
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    descriptor: int | None = None
+    try:
+        descriptor = os.open(path, flags)
+        info = os.fstat(descriptor)
+        if not stat.S_ISREG(info.st_mode):
+            raise OSError("state file is not regular")
+        if os.name != "nt" and stat.S_IMODE(info.st_mode) & 0o077:
+            raise OSError("state file permissions are too broad")
+        if info.st_size > limit:
+            return b"", True
+        data = bytearray()
+        while len(data) <= limit:
+            remaining = limit + 1 - len(data)
+            chunk = os.read(descriptor, min(4096, remaining))
+            if not chunk:
+                break
+            data.extend(chunk)
+        return bytes(data), len(data) > limit
+    finally:
+        if descriptor is not None:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+
+
+@contextmanager
+def _state_lock(root: Path) -> Iterator[None]:
+    """Serialize approval mutations across threads and Hook processes."""
+    path = root / "approval.lock"
+    flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
+    descriptor: int | None = None
+    locked = False
+    deadline = time.monotonic() + STATE_LOCK_TIMEOUT_SECONDS
+    try:
+        descriptor = os.open(path, flags, 0o600)
+        info = os.fstat(descriptor)
+        if not stat.S_ISREG(info.st_mode):
+            raise StateUnavailable("local DLP state lock is not a regular file")
+        if os.name != "nt" and stat.S_IMODE(info.st_mode) & 0o077:
+            raise StateUnavailable("local DLP state lock permissions are too broad")
+        if os.name == "nt":
+            import msvcrt
+
+            if info.st_size == 0:
+                os.lseek(descriptor, 0, os.SEEK_SET)
+                os.write(descriptor, b"\0")
+                os.fsync(descriptor)
+        else:
+            import fcntl
+
+        while True:
+            try:
+                if os.name == "nt":
+                    os.lseek(descriptor, 0, os.SEEK_SET)
+                    msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
+                else:
+                    fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except OSError as exc:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise StateUnavailable("local DLP state lock is busy") from exc
+                time.sleep(min(0.01, remaining))
+        locked = True
+    except StateUnavailable:
+        if descriptor is not None:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+        raise
+    except OSError as exc:
+        if descriptor is not None:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+        raise StateUnavailable("local DLP state could not be locked") from exc
+
+    try:
+        yield
+    finally:
+        if descriptor is not None:
+            if locked and os.name == "nt":
+                try:
+                    import msvcrt
+
+                    os.lseek(descriptor, 0, os.SEEK_SET)
+                    msvcrt.locking(descriptor, msvcrt.LK_UNLCK, 1)
+                except OSError:
+                    pass
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+
+
 def _master_key() -> bytes:
     root, _, _ = _paths()
     path = root / ("approval" + chr(46) + "key")
@@ -146,10 +259,10 @@ def _master_key() -> bytes:
         pass
     _private_regular_file(path)
     try:
-        value = path.read_bytes()
+        value, too_large = _read_limited(path, 32)
     except OSError as exc:
         raise StateUnavailable("local DLP approval key is unreadable") from exc
-    if len(value) != 32:
+    if too_large or len(value) != 32:
         raise StateUnavailable("local DLP approval key is invalid")
     return value
 
@@ -170,7 +283,7 @@ def canonical_scope(event_name: str, cwd: str, payload: Any, *, tool_name: str =
             sort_keys=True,
             separators=(",", ":"),
         ).encode("utf-8")
-    except (TypeError, ValueError, OSError) as exc:
+    except (TypeError, ValueError, OSError, RecursionError) as exc:
         raise ApprovalError("approval scope is not bounded JSON") from exc
     if len(serialized) > 4_194_304:
         raise ApprovalError("approval scope exceeds the local limit")
@@ -181,7 +294,14 @@ def parse_prompt_marker(prompt: str) -> tuple[str | None, str | None, str]:
     match = _PROMPT_MARKER_RE.match(prompt)
     if match is None:
         return None, None, prompt
-    return match.group(1), match.group(2), prompt[match.end():]
+    body = prompt[match.end():]
+    # The marker occupies its own line. Consume one framing line ending,
+    # never whitespace belonging to the exact original prompt scope.
+    if body.startswith("\r\n"):
+        body = body[2:]
+    elif body.startswith("\n"):
+        body = body[1:]
+    return match.group(1), match.group(2), body
 
 
 def _scope_mac(scope: bytes) -> str:
@@ -196,7 +316,11 @@ def _session_mac(session_id: str) -> str:
         or any(ord(character) < 32 for character in session_id)
     ):
         raise ApprovalError("approval requires a bounded host session id")
-    return _scope_mac(b"host-session\0" + session_id.encode("utf-8"))
+    try:
+        value = session_id.encode("utf-8")
+    except UnicodeEncodeError as exc:
+        raise ApprovalError("approval requires a valid host session id") from exc
+    return _scope_mac(b"host-session\0" + value)
 
 
 def _token_hash(token: str) -> str:
@@ -204,31 +328,109 @@ def _token_hash(token: str) -> str:
 
 
 def _validate_request_values(request_id: str, token: str | None = None) -> None:
-    if _REQUEST_ID_RE.fullmatch(request_id) is None:
+    if not isinstance(request_id, str) or _REQUEST_ID_RE.fullmatch(request_id) is None:
         raise ApprovalError("approval request id is invalid")
-    if token is not None and _TOKEN_RE.fullmatch(token) is None:
+    if token is not None and (not isinstance(token, str) or _TOKEN_RE.fullmatch(token) is None):
         raise ApprovalError("approval token is invalid")
+
+
+def _record_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    record: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in record:
+            raise ValueError("duplicate approval state field")
+        record[key] = value
+    return record
+
+
+def _finite_record_number(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("non-finite approval state number")
+    return number
 
 
 def _read_record(path: Path) -> dict[str, Any]:
     _private_regular_file(path)
     try:
-        raw = path.read_bytes()
-        if len(raw) > MAX_STATE_FILE_BYTES:
+        raw, too_large = _read_limited(path, MAX_STATE_FILE_BYTES)
+        if too_large:
             raise ApprovalError("approval record exceeds the local limit")
-        value = json.loads(raw.decode("utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        value = json.loads(raw.decode("utf-8"), object_pairs_hook=_record_pairs,
+                           parse_constant=_finite_record_number, parse_float=_finite_record_number)
+    except ApprovalError:
+        raise
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError, RecursionError) as exc:
         raise ApprovalError("approval record is unreadable") from exc
     if not isinstance(value, dict):
         raise ApprovalError("approval record is invalid")
     return value
 
 
-def _bounded_entries(directory: Path, limit: int) -> list[Path]:
+def _record_expiry(record: dict[str, Any], *, require_creation: bool) -> int:
+    expires_at = record.get("expires_at")
+    if type(expires_at) is not int:
+        raise ApprovalError("approval record expiry is invalid")
+    if require_creation:
+        created_at = record.get("created_at")
+        if type(created_at) is not int or expires_at != created_at + APPROVAL_TTL_SECONDS:
+            raise ApprovalError("approval record lifetime is invalid")
+    return expires_at
+
+
+def _validate_pending_record(path: Path, record: dict[str, Any]) -> int:
+    request_id = record.get("request_id")
+    kind = record.get("kind")
+    if (
+        record.get("schema") != "dev-flow.dlp-approval.v2"
+        or not isinstance(request_id, str)
+        or _REQUEST_ID_RE.fullmatch(request_id) is None
+        or path.name != f"{request_id}.json"
+        or not isinstance(kind, str)
+        or kind not in {"UserPromptSubmit", "PreToolUse"}
+        or type(record.get("approved")) is not bool
+    ):
+        raise ApprovalError("approval record is invalid")
+    for field in ("scope_mac", "session_mac", "token_hash"):
+        value = record.get(field)
+        if not isinstance(value, str) or _MAC_RE.fullmatch(value) is None:
+            raise ApprovalError("approval record is invalid")
+    expires_at = _record_expiry(record, require_creation=True)
+    if record["approved"]:
+        approved_at = record.get("approved_at")
+        if (
+            kind != "PreToolUse"
+            or type(approved_at) is not int
+            or approved_at >= expires_at
+            or record.get("approval_event") != "UserPromptSubmit"
+        ):
+            raise ApprovalError("approval confirmation record is invalid")
+    elif "approved_at" in record or "approval_event" in record:
+        raise ApprovalError("approval confirmation record is invalid")
+    return expires_at
+
+
+def _validate_used_record(path: Path, record: dict[str, Any]) -> int:
+    request_id = record.get("request_id")
+    if (
+        record.get("schema") != "dev-flow.dlp-used.v1"
+        or not isinstance(request_id, str)
+        or _REQUEST_ID_RE.fullmatch(request_id) is None
+        or path.name != f"{request_id}.json"
+    ):
+        raise ApprovalError("used approval record is invalid")
+    return _record_expiry(record, require_creation=False)
+
+
+def _entry_batch(directory: Path, limit: int) -> list[Path]:
     try:
-        entries = list(itertools.islice(directory.iterdir(), limit + 1))
+        return list(itertools.islice(directory.iterdir(), limit + 1))
     except OSError as exc:
         raise StateUnavailable("local DLP state could not be inspected") from exc
+
+
+def _bounded_entries(directory: Path, limit: int) -> list[Path]:
+    entries = _entry_batch(directory, limit)
     if len(entries) > limit:
         raise StateUnavailable("local DLP state contains too many records")
     return entries
@@ -238,17 +440,31 @@ def _cleanup(now: int) -> int:
     _, pending, used = _paths()
     active = 0
     for directory in (pending, used):
-        entries = _bounded_entries(directory, MAX_PENDING_REQUESTS * 2)
-        for path in entries:
+        entries = _entry_batch(directory, MAX_STATE_RECORDS)
+        for path in entries[:MAX_STATE_RECORDS]:
             try:
+                if directory == pending and _PENDING_STAGING_RE.fullmatch(path.name):
+                    # Only this process's atomic-write staging names are
+                    # disposable. Interrupted writes may contain partial JSON;
+                    # never interpret or promote their uncommitted contents.
+                    _private_regular_file(path)
+                    path.unlink(missing_ok=True)
+                    continue
                 record = _read_record(path)
-                expires_at = int(record.get("expires_at", 0))
+                if directory == pending:
+                    expires_at = _validate_pending_record(path, record)
+                else:
+                    expires_at = _validate_used_record(path, record)
                 if expires_at <= now:
                     path.unlink(missing_ok=True)
                 elif directory == pending:
                     active += 1
             except (ApprovalError, OSError, TypeError, ValueError):
                 raise StateUnavailable("local DLP state contains an invalid record")
+        if len(entries) > MAX_STATE_RECORDS:
+            # Older versions could overfill used records. Expired batches must
+            # make bounded progress before denying, so a retry can recover.
+            raise StateUnavailable("local DLP state contains too many records; retry after expired-record cleanup")
     return active
 
 
@@ -262,32 +478,36 @@ def issue_request(
     if kind not in {"UserPromptSubmit", "PreToolUse"}:
         raise ApprovalError("unsupported approval kind")
     current = int(time.time() if now is None else now)
-    if _cleanup(current) >= MAX_PENDING_REQUESTS:
-        raise StateUnavailable("too many pending local DLP confirmations")
-    _, pending, _ = _paths()
-    for _ in range(4):
-        request_id = secrets.token_hex(12)
-        token = secrets.token_urlsafe(24)
-        expires_at = current + APPROVAL_TTL_SECONDS
-        record = {
-            "schema": "dev-flow.dlp-approval.v2",
-            "request_id": request_id,
-            "kind": kind,
-            "scope_mac": _scope_mac(scope),
-            "session_mac": _session_mac(session_id),
-            "token_hash": _token_hash(token),
-            "created_at": current,
-            "expires_at": expires_at,
-            "approved": False,
-        }
-        try:
-            _exclusive_write(
-                pending / f"{request_id}.json",
-                json.dumps(record, sort_keys=True, separators=(",", ":")).encode("utf-8"),
-            )
-            return ApprovalRequest(request_id, token, expires_at)
-        except FileExistsError:
-            continue
+    root, pending, used = _paths()
+    with _state_lock(root):
+        active = _cleanup(current)
+        if active >= MAX_PENDING_REQUESTS:
+            raise StateUnavailable("too many pending local DLP confirmations")
+        if active + len(_bounded_entries(used, MAX_STATE_RECORDS)) >= MAX_STATE_RECORDS:
+            raise StateUnavailable("local DLP confirmation capacity is full until records expire")
+        for _ in range(4):
+            request_id = secrets.token_hex(12)
+            token = secrets.token_urlsafe(24)
+            expires_at = current + APPROVAL_TTL_SECONDS
+            record = {
+                "schema": "dev-flow.dlp-approval.v2",
+                "request_id": request_id,
+                "kind": kind,
+                "scope_mac": _scope_mac(scope),
+                "session_mac": _session_mac(session_id),
+                "token_hash": _token_hash(token),
+                "created_at": current,
+                "expires_at": expires_at,
+                "approved": False,
+            }
+            try:
+                _exclusive_write(
+                    pending / f"{request_id}.json",
+                    json.dumps(record, sort_keys=True, separators=(",", ":")).encode("utf-8"),
+                )
+                return ApprovalRequest(request_id, token, expires_at)
+            except FileExistsError:
+                continue
     raise StateUnavailable("local DLP request id allocation failed")
 
 
@@ -298,10 +518,14 @@ def _load_pending(request_id: str, *, now: int) -> tuple[Path, dict[str, Any]]:
         raise ApprovalError("approval was already consumed")
     path = pending / f"{request_id}.json"
     record = _read_record(path)
-    if record.get("schema") != "dev-flow.dlp-approval.v2" or record.get("request_id") != request_id:
+    expires_at = _validate_pending_record(path, record)
+    if record.get("request_id") != request_id:
         raise ApprovalError("approval record schema is invalid")
-    if int(record.get("expires_at", 0)) <= now:
-        path.unlink(missing_ok=True)
+    if expires_at <= now:
+        try:
+            path.unlink(missing_ok=True)
+        except OSError as exc:
+            raise StateUnavailable("expired local DLP approval could not be removed") from exc
         raise ApprovalError("approval expired")
     return path, record
 
@@ -316,22 +540,45 @@ def confirm_tool_request_from_prompt(
     """Advance a tool request only from the UserPromptSubmit Hook path."""
     _validate_request_values(request_id, token)
     current = int(time.time() if now is None else now)
-    path, record = _load_pending(request_id, now=current)
-    if record.get("kind") != "PreToolUse":
-        raise ApprovalError("confirmation marker does not belong to a tool request")
-    if not hmac.compare_digest(str(record.get("session_mac", "")), _session_mac(session_id)):
-        raise ApprovalError("approval host session changed")
-    if not hmac.compare_digest(str(record.get("token_hash", "")), _token_hash(token)):
-        raise ApprovalError("approval token does not match")
-    if record.get("approved") is True:
-        raise ApprovalError("tool request was already confirmed")
-    record["approved"] = True
-    record["approved_at"] = current
-    record["approval_event"] = "UserPromptSubmit"
-    _atomic_replace(path, json.dumps(record, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+    root, _, _ = _paths()
+    with _state_lock(root):
+        path, record = _load_pending(request_id, now=current)
+        if record.get("kind") != "PreToolUse":
+            raise ApprovalError("confirmation marker does not belong to a tool request")
+        if not hmac.compare_digest(str(record.get("session_mac", "")), _session_mac(session_id)):
+            raise ApprovalError("approval host session changed")
+        if not hmac.compare_digest(str(record.get("token_hash", "")), _token_hash(token)):
+            raise ApprovalError("approval token does not match")
+        if record.get("approved") is True:
+            raise ApprovalError("tool request was already confirmed")
+        record["approved"] = True
+        record["approved_at"] = current
+        record["approval_event"] = "UserPromptSubmit"
+        _atomic_replace(path, json.dumps(record, sort_keys=True, separators=(",", ":")).encode("utf-8"))
 
 
 def _consume(
+    request_id: str,
+    scope: bytes,
+    *,
+    kind: str,
+    token: str | None,
+    session_id: str,
+    now: int,
+) -> None:
+    root, _, _ = _paths()
+    with _state_lock(root):
+        _consume_locked(
+            request_id,
+            scope,
+            kind=kind,
+            token=token,
+            session_id=session_id,
+            now=now,
+        )
+
+
+def _consume_locked(
     request_id: str,
     scope: bytes,
     *,
@@ -355,7 +602,10 @@ def _consume(
             raise ApprovalError("approval token does not match")
     elif record.get("approved") is not True:
         raise ApprovalError("tool request has not been confirmed")
+    _cleanup(now)
     _, _, used = _paths()
+    if len(_bounded_entries(used, MAX_STATE_RECORDS)) >= MAX_STATE_RECORDS:
+        raise StateUnavailable("local DLP confirmation capacity is full until records expire")
     used_record = json.dumps(
         {"schema": "dev-flow.dlp-used.v1", "request_id": request_id, "expires_at": int(record["expires_at"])},
         sort_keys=True,
@@ -415,20 +665,27 @@ def find_approved_tool_request(
     now: int | None = None,
 ) -> str | None:
     current = int(time.time() if now is None else now)
-    _cleanup(current)
-    _, pending, _ = _paths()
-    expected = _scope_mac(scope)
-    expected_session = _session_mac(session_id)
-    for path in _bounded_entries(pending, MAX_PENDING_REQUESTS):
-        record = _read_record(path)
-        if (
-            record.get("kind") == "PreToolUse"
-            and record.get("approved") is True
-            and int(record.get("expires_at", 0)) > current
-            and hmac.compare_digest(str(record.get("scope_mac", "")), expected)
-            and hmac.compare_digest(str(record.get("session_mac", "")), expected_session)
-        ):
-            return str(record.get("request_id"))
+    root, pending, used = _paths()
+    with _state_lock(root):
+        _cleanup(current)
+        expected = _scope_mac(scope)
+        expected_session = _session_mac(session_id)
+        for path in _bounded_entries(pending, MAX_PENDING_REQUESTS):
+            # A successful consume may leave pending metadata when unlink
+            # fails. Its used marker remains authoritative for both replay
+            # rejection and selection of a subsequent fresh confirmation.
+            if (used / path.name).exists():
+                continue
+            record = _read_record(path)
+            expires_at = _validate_pending_record(path, record)
+            if (
+                record.get("kind") == "PreToolUse"
+                and record.get("approved") is True
+                and expires_at > current
+                and hmac.compare_digest(str(record.get("scope_mac", "")), expected)
+                and hmac.compare_digest(str(record.get("session_mac", "")), expected_session)
+            ):
+                return str(record.get("request_id"))
     return None
 
 
@@ -436,17 +693,23 @@ def current_mode() -> str:
     override = os.environ.get(MODE_ENV)
     if override is not None:
         return override if override in VALID_MODES else "strict"
-    root = _state_root()
-    path = root / "settings.json"
-    if not path.exists():
+    try:
+        root = _state_root()
+        path = root / "settings.json"
+        path.lstat()
+    except FileNotFoundError:
         return DEFAULT_MODE
+    except (OSError, ValueError, StateUnavailable):
+        return "strict"
     try:
         _ensure_private_dir(root)
         record = _read_record(path)
     except (ApprovalError, StateUnavailable):
         return "strict"
     mode = record.get("mode")
-    return str(mode) if mode in VALID_MODES else "strict"
+    if record.get("schema") != "dev-flow.dlp-settings.v1" or not isinstance(mode, str):
+        return "strict"
+    return mode if mode in VALID_MODES else "strict"
 
 
 def configure_mode(mode: str) -> None:

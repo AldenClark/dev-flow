@@ -17,7 +17,7 @@ from typing import Any
 
 
 PROTOCOL_SOURCE = "https://learn.chatgpt.com/docs/hooks"
-PROTOCOL_CHECKED_AT = "2026-08-31"
+PROTOCOL_CHECKED_AT = "2026-10-05"
 BASELINE_PATH = "skills/company-data-security/references/control-baseline.json"
 PROTECTED_PATHS = (
     "hooks/data_security_hook.py",
@@ -54,10 +54,22 @@ class Check:
 
 
 def _read_json(path: Path, *, max_bytes: int = 262_144) -> Any:
-    raw = path.read_bytes()
+    raw = _read_bounded(path, max_bytes=max_bytes)
+    return json.loads(raw.decode("utf-8"))
+
+
+def _read_bounded(path: Path, *, max_bytes: int) -> bytes:
+    if max_bytes < 0:
+        raise ValueError("doctor input limit must be non-negative")
+    with path.open("rb") as source:
+        raw = source.read(max_bytes + 1)
     if len(raw) > max_bytes:
         raise ValueError(f"{path.name} exceeds the doctor input limit")
-    return json.loads(raw.decode("utf-8"))
+    return raw
+
+
+def _read_text(path: Path, *, max_bytes: int = 262_144) -> str:
+    return _read_bounded(path, max_bytes=max_bytes).decode("utf-8")
 
 
 def _sha256(path: Path) -> str:
@@ -181,11 +193,12 @@ def _capability_checks(root: Path) -> list[Check]:
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError):
         return [Check("capability.registration", "fail", "capability registry is unreadable or invalid")]
     capabilities = contract.get("capabilities") if isinstance(contract, dict) else None
+    capability_schema_valid = isinstance(capabilities, list)
     matching = [
-        item for item in capabilities or []
+        item for item in (capabilities if capability_schema_valid else [])
         if isinstance(item, dict) and item.get("skill") == "company-data-security"
     ]
-    valid = (
+    valid = capability_schema_valid and (
         len(matching) == 1
         and matching[0].get("primary_outputs") == ["confidentiality.work-plan.v1"]
         and bool(matching[0].get("direct_trigger"))
@@ -195,7 +208,11 @@ def _capability_checks(root: Path) -> list[Check]:
         Check(
             "capability.registration",
             "pass" if valid else "fail",
-            "first-class Skill owner is registered" if valid else "Skill owner registration drifted",
+            "first-class Skill owner is registered"
+            if valid
+            else "capability registry is unreadable or invalid"
+            if not capability_schema_valid
+            else "Skill owner registration drifted",
         )
     ]
     try:
@@ -204,9 +221,12 @@ def _capability_checks(root: Path) -> list[Check]:
         checks.append(Check("capability.claim-kinds", "fail", "claim-kind registry is unreadable or invalid"))
         return checks
     kinds = claim_registry.get("kinds") if isinstance(claim_registry, dict) else None
+    if not isinstance(kinds, list):
+        checks.append(Check("capability.claim-kinds", "fail", "claim-kind registry is unreadable or invalid"))
+        return checks
     observed = {
         item.get("id")
-        for item in kinds or []
+        for item in kinds
         if isinstance(item, dict) and item.get("owner") == "company-data-security"
     }
     expected = {
@@ -349,6 +369,9 @@ def _self_test_checks(root: Path) -> list[Check]:
         post_ok = (
             post.returncode == 0
             and post_json.get("continue") is False
+            and post_json.get("decision") == "block"
+            and isinstance(post_json.get("reason"), str)
+            and bool(post_json["reason"])
             and "{{DLP:SECRET:" in post_json.get("hookSpecificOutput", {}).get("additionalContext", "")
         )
     except (OSError, subprocess.SubprocessError, UnicodeDecodeError, json.JSONDecodeError):
@@ -374,9 +397,24 @@ def _self_test_checks(root: Path) -> list[Check]:
 
 def _template_checks(root: Path) -> list[Check]:
     checks: list[Check] = []
-    yaml_text = (root / "skills" / "company-data-security" / "agents" / "openai.yaml").read_text(encoding="utf-8")
+    try:
+        yaml_text = _read_text(root / "skills" / "company-data-security" / "agents" / "openai.yaml")
+        yaml_read_error = False
+    except (OSError, UnicodeDecodeError, ValueError):
+        yaml_text = ""
+        yaml_read_error = True
     yaml_ok = "$company-data-security" in yaml_text and "allow_implicit_invocation: true" in yaml_text
-    checks.append(Check("skill.metadata", "pass" if yaml_ok else "fail", "Skill invocation metadata matches" if yaml_ok else "Skill metadata drifted"))
+    checks.append(
+        Check(
+            "skill.metadata",
+            "pass" if yaml_ok else "fail",
+            "Skill invocation metadata matches"
+            if yaml_ok
+            else "Skill metadata is unreadable or invalid"
+            if yaml_read_error
+            else "Skill metadata drifted",
+        )
+    )
     required_phrases = {
         "chatgpt_work": (
             "skills/company-data-security/assets/chatgpt-work-instructions.md",
@@ -389,8 +427,8 @@ def _template_checks(root: Path) -> list[Check]:
     }
     for surface, (relative, phrase) in required_phrases.items():
         try:
-            text = (root / relative).read_text(encoding="utf-8")
-        except OSError:
+            text = _read_text(root / relative)
+        except (OSError, UnicodeDecodeError, ValueError):
             text = ""
         valid = phrase in text
         checks.append(Check(f"template.{surface}", "pass" if valid else "fail", "explicit guidance-only boundary present" if valid else "surface limitation text drifted"))

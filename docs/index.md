@@ -19,6 +19,10 @@ This index routes contributors and agents to the smallest maintained knowledge o
 
 ## Managed work and release history
 
+- [Dev Flow 2.0.2](workstreams/dev-flow-2.0.2/): current DLP patch release, exact-candidate validation, publication and installation evidence.
+
+- [DLP comprehensive audit](workstreams/dlp-comprehensive-audit/implementation.md): source repair scope and [current findings/evidence](workstreams/dlp-comprehensive-audit/progress.md) for detection, redaction, Hook and one-shot state boundaries.
+
 - [Dev Flow 2.0 stable release](workstreams/dev-flow-2.0-stable/): completed implementation, qualification, public release and verified primary local installation, with first failures and evidence limits preserved.
 - [Dev Flow 2.0 stable optimization plan](workstreams/dev-flow-2.0/stable-master-plan.md): approved audit findings, foundational decisions, implementation slices and adversarial review.
 - [Dev Flow 2.0 baseline history](workstreams/dev-flow-2.0/): original requirements, RC.2 design and implementation history. Current semantics belong to the maintained Skills/governance and the stable workstream above; historical routing and model rules are not current requirements.

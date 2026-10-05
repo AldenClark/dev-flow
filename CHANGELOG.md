@@ -4,7 +4,23 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Current candidate source identity: `2.0.1`. Current workspace state: `development` from `v2.0.0`.
+No additional unreleased changes.
+
+## [2.0.2] - 2026-10-05
+
+Current candidate source identity: `2.0.2`. Current workspace state: `development` from `v2.0.0`.
+
+### Fixed
+
+- Allow ordinary source references and constructors, distinguish patch file targets from body references, and retain credential context through JSON/header/Unicode representations.
+- Redact complete overlapping, encoded, reflowed and supported token values; fail closed at inspection/finding limits instead of exposing an unprocessed suffix.
+- Keep exact safe-file exemptions, inspect shell option/environment values and Windows paths, and bound shell tokenization within the Hook budget.
+- Validate Hook payloads and post-tool blocking, serialize one-shot confirmation, reject malformed persisted state, and recover from consumed stale records and interrupted atomic writes.
+- Include all DLP audit modules in platform CI and keep protected-control diagnostics bounded.
+
+### Verification
+
+Three audit passes retain pre-fix failures, native recovery probes, independent rechecks and six isolated mutation controls. The pre-release audit ran 795 tests (794 passed, one native-Windows-only skip); final candidate, hosted platform, artifact and installation results are recorded in the [2.0.2 release workstream](docs/workstreams/dev-flow-2.0.2/progress.md). The user explicitly waived the five live-model journeys for this DLP patch; that waiver is not PASS. See the [detailed DLP audit](docs/workstreams/dlp-comprehensive-audit/progress.md).
 
 ## [2.0.1] - 2026-10-04
 

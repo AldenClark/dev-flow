@@ -8,7 +8,7 @@ or fixed reasons and never includes a matched secret value.
 from __future__ import annotations
 
 import json
-import re
+import math
 import sys
 from pathlib import Path
 from typing import Any
@@ -54,16 +54,89 @@ SAFE_LIMIT_REASON = (
     "The payload exceeded the bounded local DLP inspection limit, so it was not forwarded. "
     "Narrow the source or process it locally before continuing."
 )
+_SUPPORTED_EVENTS = frozenset({"UserPromptSubmit", "PreToolUse", "PostToolUse"})
 
 
 def _emit(payload: dict[str, Any]) -> None:
     print(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
 
 
+def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON object key")
+        result[key] = value
+    return result
+
+
+def _reject_json_constant(value: str) -> None:
+    raise ValueError(f"non-finite JSON number: {value}")
+
+
+def _finite_json_float(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("non-finite JSON number")
+    return number
+
+
 def _event_name_from_raw(raw: bytes) -> str:
-    prefix = raw[:8192].decode("utf-8", errors="ignore")
-    match = re.search(r'"hook_event_name"\s*:\s*"([A-Za-z]+)"', prefix)
-    return match.group(1) if match else ""
+    prefix = raw[:8192]
+    try:
+        text = prefix.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        # Preserve only the valid prefix. This still permits routing a failure
+        # after a top-level event name while rejecting corrupted event names.
+        text = prefix[: exc.start].decode("utf-8")
+
+    decoder = json.JSONDecoder(
+        object_pairs_hook=_unique_object,
+        parse_constant=_reject_json_constant,
+        parse_float=_finite_json_float,
+    )
+    index = 0
+    while index < len(text) and text[index] in " \t\r\n":
+        index += 1
+    if index >= len(text) or text[index] != "{":
+        return ""
+    index += 1
+    seen_keys: set[str] = set()
+    event_name = ""
+
+    while index < len(text):
+        while index < len(text) and text[index] in " \t\r\n":
+            index += 1
+        if index >= len(text) or text[index] == "}":
+            return event_name
+        try:
+            key, index = decoder.raw_decode(text, index)
+        except (json.JSONDecodeError, RecursionError, ValueError):
+            return event_name
+        if not isinstance(key, str) or key in seen_keys:
+            return ""
+        seen_keys.add(key)
+        while index < len(text) and text[index] in " \t\r\n":
+            index += 1
+        if index >= len(text) or text[index] != ":":
+            return event_name
+        index += 1
+        while index < len(text) and text[index] in " \t\r\n":
+            index += 1
+        try:
+            value, index = decoder.raw_decode(text, index)
+        except (json.JSONDecodeError, RecursionError, ValueError):
+            return event_name
+        if key == "hook_event_name":
+            if not isinstance(value, str) or value not in _SUPPORTED_EVENTS:
+                return ""
+            event_name = value
+        while index < len(text) and text[index] in " \t\r\n":
+            index += 1
+        if index >= len(text) or text[index] != ",":
+            return event_name
+        index += 1
+    return event_name
 
 
 def _pretool_deny(reason: str) -> dict[str, Any]:
@@ -106,6 +179,8 @@ def _posttool_replace(reason: str, context: str | None = None) -> dict[str, Any]
         "DLP-safe result: the original tool output was withheld locally because it could not be inspected inside the configured limit."
     )
     return {
+        "decision": "block",
+        "reason": reason,
         "continue": False,
         "stopReason": reason,
         "systemMessage": "Sensitive tool output was replaced locally before model processing.",
@@ -137,12 +212,44 @@ def _read_event() -> tuple[dict[str, Any] | None, str, int | None]:
     if len(raw) > MAX_HOOK_BYTES:
         return None, event_name, _safe_failure(event_name, SAFE_LIMIT_REASON)
     try:
-        value = json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError):
+        value = json.loads(
+            raw.decode("utf-8"),
+            object_pairs_hook=_unique_object,
+            parse_constant=_reject_json_constant,
+            parse_float=_finite_json_float,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError, ValueError):
         return None, event_name, _safe_failure(event_name, "Malformed Hook input was blocked locally.")
     if not isinstance(value, dict):
         return None, event_name, _safe_failure(event_name, "Invalid Hook input was blocked locally.")
-    return value, str(value.get("hook_event_name") or event_name), None
+    hook_event_name = value.get("hook_event_name")
+    return value, hook_event_name if isinstance(hook_event_name, str) else "", None
+
+
+def _event_schema_error(event_name: str, event: dict[str, Any]) -> str | None:
+    session_id = event.get("session_id")
+    cwd = event.get("cwd")
+    if (
+        not isinstance(session_id, str)
+        or not session_id
+        or len(session_id) > 256
+        or any(ord(character) < 32 for character in session_id)
+        or not isinstance(cwd, str)
+        or not cwd
+    ):
+        return "Invalid Hook event metadata was blocked locally."
+    if event_name == "UserPromptSubmit":
+        if not isinstance(event.get("prompt"), str):
+            return "Invalid prompt payload was blocked locally."
+    elif event_name == "PreToolUse":
+        if not isinstance(event.get("tool_name"), str) or not event.get("tool_name"):
+            return "Invalid tool payload was blocked locally."
+        if "tool_input" not in event:
+            return "Invalid tool payload was blocked locally."
+    elif event_name == "PostToolUse":
+        if "tool_response" not in event:
+            return "Invalid tool response payload was blocked locally."
+    return None
 
 
 def _storage_text(category: str) -> str:
@@ -167,7 +274,8 @@ def _prompt_confirmation_reason(findings: list[Any], request: Any) -> str:
     return (
         f"Possible test {safe_summary(findings)} detected locally; the prompt was not forwarded. "
         f"{_storage_text(category)} Preferred: replace the value with ${storage_advice(category).env_name}. "
-        f"To disclose this exact test value once, prefix {request.prompt_marker} and retry within 5 minutes. "
+        f"To disclose this exact test value once, put {request.prompt_marker} on its own line, "
+        "followed by the unchanged original prompt, and retry within 5 minutes. "
         "Any content change requires a new confirmation. The UI may already have created an empty task shell."
     )
 
@@ -218,7 +326,7 @@ def _handle_prompt(event: dict[str, Any]) -> int:
         return 0
     if not high_confidence:
         return 0
-    if current_mode() == "strict":
+    if current_mode() == "strict" or requires_hard_block(findings) or not declares_test_data(inspected_prompt):
         _emit(_prompt_block(_hard_block_reason(findings, [], status="the prompt was not forwarded")))
         return 0
     if request_id is not None and token is not None:
@@ -239,9 +347,6 @@ def _handle_prompt(event: dict[str, Any]) -> int:
             )
         )
         return 0
-    if requires_hard_block(findings) or not declares_test_data(inspected_prompt):
-        _emit(_prompt_block(_hard_block_reason(findings, [], status="the prompt was not forwarded")))
-        return 0
     try:
         scope = canonical_scope("UserPromptSubmit", str(event.get("cwd") or ""), inspected_prompt)
         request = issue_request(
@@ -256,11 +361,43 @@ def _handle_prompt(event: dict[str, Any]) -> int:
     return 0
 
 
+def _patch_path_inputs(value: Any) -> tuple[list[str], Any] | None:
+    """Select actual apply_patch targets; source references do not open files."""
+    remainder: Any = None
+    if isinstance(value, str):
+        patch_text = value
+    elif isinstance(value, dict):
+        fields = [key for key in ("input", "command", "patch") if key in value]
+        if len(fields) != 1 or not isinstance(value[fields[0]], str):
+            return None
+        patch_text = value[fields[0]]
+        remainder = {key: nested for key, nested in value.items() if key != fields[0]}
+    else:
+        return None
+    lines = patch_text.strip().splitlines()
+    if not lines or lines[0] != "*** Begin Patch" or lines[-1] != "*** End Patch":
+        return None
+    prefixes = ("*** Add File: ", "*** Update File: ", "*** Delete File: ", "*** Move to: ")
+    targets = [line[len(prefix):].strip() for line in lines for prefix in prefixes if line.startswith(prefix)]
+    return (targets, remainder) if targets and all(targets) else None
+
+
 def _handle_pretool(event: dict[str, Any]) -> int:
     tool_input = event.get("tool_input", {})
     try:
         findings = scan_value(tool_input, include_identifiers=False)
-        path_categories = sensitive_path_categories(tool_input)
+        patch_inputs = _patch_path_inputs(tool_input) if event.get("tool_name") in {"apply_patch", "functions.apply_patch"} else None
+        if patch_inputs is not None:
+            targets, remainder = patch_inputs
+            path_categories = sorted(set(
+                sensitive_path_categories(targets, command_tokens=False, literal_paths=True)
+                + sensitive_path_categories(remainder, command_tokens=False)
+            ))
+        else:
+            path_categories = sensitive_path_categories(
+                tool_input,
+                command_tokens=event.get("tool_name") in {"Bash", "bash", "exec_command", "functions.exec_command"},
+            )
     except InspectionLimit:
         return _safe_failure("PreToolUse", SAFE_LIMIT_REASON)
     if not contains_high_confidence(findings) and not path_categories:
@@ -333,6 +470,10 @@ def main() -> int:
     if early_code is not None:
         return early_code
     assert event is not None
+    if event_name in _SUPPORTED_EVENTS:
+        schema_error = _event_schema_error(event_name, event)
+        if schema_error is not None:
+            return _safe_failure(event_name, schema_error)
     if event_name == "UserPromptSubmit":
         return _handle_prompt(event)
     if event_name == "PreToolUse":

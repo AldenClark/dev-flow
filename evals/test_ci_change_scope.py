@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -17,6 +18,19 @@ import ci_change_scope  # noqa: E402
 
 
 class CompatibilityChangeScopeTests(unittest.TestCase):
+    def test_all_dlp_audits_trigger_and_run_in_compatibility(self) -> None:
+        audit_paths = sorted((ROOT / "evals").glob("test_dlp_*_audit.py"))
+        self.assertTrue(audit_paths)
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        compatibility = re.search(r"(?ms)^  compatibility:\n(.*?)(?=^  [A-Za-z0-9_-]+:|\Z)", workflow).group(1)
+        modules = set(re.findall(r"^\s+(evals\.[A-Za-z0-9_]+)\s*$", compatibility, re.MULTILINE))
+        for path in audit_paths:
+            relative = path.relative_to(ROOT).as_posix()
+            with self.subTest(path=relative, contract="change-discovery"):
+                self.assertTrue(ci_change_scope.requires_compatibility([relative])[0])
+            with self.subTest(path=relative, contract="test-execution"):
+                self.assertIn("evals." + path.stem, modules)
+
     def test_docs_only_change_skips_compatibility(self) -> None:
         required, matched = ci_change_scope.requires_compatibility(
             ["README.md", "docs/workstreams/example/progress.md"]

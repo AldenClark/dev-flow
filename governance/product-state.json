@@ -1,15 +1,15 @@
 {
   "schema_version": "dev-flow.product-state.v1",
   "source": {
-    "version": "2.0.1",
+    "version": "2.0.2",
     "phase": "source-candidate",
     "manifest": ".codex-plugin/plugin.json",
-    "workstream": "docs/workstreams/dev-flow-2.0.1"
+    "workstream": "docs/workstreams/dev-flow-2.0.2"
   },
   "workspace": {
     "phase": "development",
     "base_published": "v2.0.0",
-    "workstream": "docs/workstreams/dev-flow-2.0.1"
+    "workstream": "docs/workstreams/dev-flow-2.0.2"
   },
   "published": {
     "latest_rc": {
@@ -27,8 +27,8 @@
     "rollback_target": "v2.0.0"
   },
   "delivery": {
-    "commit": "passed",
-    "hosted_ci": "waived",
+    "commit": "not-run",
+    "hosted_ci": "not-run",
     "cross_platform": "not-run",
     "independent_review": "not-run",
     "tag": "not-run",

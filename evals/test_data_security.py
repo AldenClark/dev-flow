@@ -248,7 +248,8 @@ class EngineRedTests(unittest.TestCase):
 
     def test_finding_cap_is_enforced(self) -> None:
         many = " ".join(synthetic_token("github")[:-1] + chr(65 + index % 20) for index in range(dlp.MAX_FINDINGS + 20))
-        self.assertEqual(len(dlp.scan_text(many, include_identifiers=False)), dlp.MAX_FINDINGS)
+        with self.assertRaises(dlp.InspectionLimit):
+            dlp.scan_text(many, include_identifiers=False)
 
 
 class ApprovalStateTests(unittest.TestCase):
@@ -399,7 +400,11 @@ class HookBlueTests(unittest.TestCase):
                 with self.subTest(mode=mode, tool_input=tool_input):
                     result = invoke_hook(hook_event("PreToolUse", tool_name="apply_patch", tool_input=tool_input), mode=mode)
                     self.assertEqual(result, (0, "", ""))
-            sensitive_patch = source_patch.replace("*** End Patch", f'+let path = "/tmp/identity{member}"\n*** End Patch')
+            reference_patch = source_patch.replace("*** End Patch", f'+let path = "/tmp/identity{member}"\n*** End Patch')
+            self.assertEqual(invoke_hook(
+                hook_event("PreToolUse", tool_name="apply_patch", tool_input={"input": reference_patch}), mode=mode,
+            ), (0, "", ""))
+            sensitive_patch = source_patch.replace("/workspace/QualityScoring.swift", f"/tmp/identity{member}")
             code, stdout, stderr = invoke_hook(
                 hook_event("PreToolUse", tool_name="apply_patch", tool_input={"input": sensitive_patch}), mode=mode,
             )
