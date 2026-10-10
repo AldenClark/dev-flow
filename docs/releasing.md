@@ -2,15 +2,19 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
-## 2.0.3 personal-assistant hardening candidate
+## 2.0.3 personal-assistant hardening release
 
 `2.0.3` publishes the task-relative model routing calibration without weakening native verification or authority. The user authorized preparation, commit, push, stable publication and primary installation on 2026-10-10. This R1 change affects ordinary classification, P5/P6 explicit promotion, active guidance and an additive adaptive-verification workload; the existing CLI compatibility matrix applies. The user explicitly waived all five live-model journeys for this 2.0.3 release on 2026-10-10. Record WAIVED, not PASS; no model comparison or extra spend is authorized.
 
-`v2.0.0-rc.9` is the latest public immutable RC tag; `v2.0.2` remains the published stable and `v2.0.2` is the rollback target for `2.0.3`. The [release workstream](workstreams/dev-flow-2.0.3/progress.md) separates final local, hosted, functional, artifact, public and installed observations. Model quality-equivalence and cost-saving claims remain outside this release.
+`v2.0.0-rc.9` is the latest public immutable RC tag; `v2.0.3` is the published stable and `v2.0.2` is the rollback target for `2.0.3`. The [release workstream](workstreams/dev-flow-2.0.3/progress.md) separates final local, hosted, functional, artifact, public and installed observations. Model quality-equivalence and cost-saving claims remain outside this release.
 
-Delivery state: commit=not-run; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+Delivery state: commit=passed; hosted_ci=passed; cross_platform=passed; independent_review=passed; tag=passed; artifact=passed; publication=passed; isolated_install=passed.
 
 Use only verified exact-SHA hosted assets for publication. Pin `v2.0.2` if the new classification/override behavior causes a material workflow regression, then verify installed bytes and fresh-session loading. Do not remove old versioned caches needed by running Hook paths. Publication facts advance in a separate truth commit; never rewrite tagged candidate bytes.
+
+Final candidate `b5951234d50dc03425e17da2c858e8d7aceb97f8` passed 806 native tests (805 pass, one native-Windows-only skip), cumulative six-method clean-context review and all maintained validators. [Exact-source semantic/platform CI](https://github.com/AldenClark/dev-flow/actions/runs/38015692997) and the [hosted artifact workflow](https://github.com/AldenClark/dev-flow/actions/runs/38015944179) pass. Archive/manifest/checksums/SPDX identity and provenance/SBOM attestations enforce exact source/signer digests, workflow and main ref; all four [public stable assets](https://github.com/AldenClark/dev-flow/releases/tag/v2.0.3) match the hosted bytes.
+
+Public-tag isolated install/discovery, three synthetic Hook controls and uninstall pass. Primary installation separately reports installed/enabled 2.0.3, exact tag source, 466 matching tracked source/cache files (157 active plugin payload files), 15 Skills and zero required doctor failures. Old 2.0.2 Hook paths are backed up/restored; other plugin installations remain unchanged. Existing-chat loading, cache retention, live account policy and production results remain not_observed. Restart Codex and open a fresh chat to load 2.0.3. Five live-model journeys remain explicitly WAIVED; model-quality equivalence and cost savings are unproved.
 
 ## 2.0.2 personal-assistant hardening release
 

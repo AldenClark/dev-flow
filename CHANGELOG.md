@@ -8,7 +8,7 @@ No additional unreleased changes.
 
 ## [2.0.3] - 2026-10-10
 
-Current candidate source identity: `2.0.3`. Current workspace state: `development` from `v2.0.2`.
+Latest published source identity: `2.0.3`. Current workspace state: `development` from `v2.0.3`.
 
 ### Changed
 
@@ -19,7 +19,7 @@ Current candidate source identity: `2.0.3`. Current workspace state: `developmen
 
 ### Evidence boundary
 
-Independent clean-context review passed after closing a stale release-example version mismatch. Final native regression passed 806 tests (805 passes and one native Windows-only skip); maintained validators pass. The user explicitly waived this release's five live-model functional journeys on 2026-10-10; they remain WAIVED rather than passed. The routing calibration remains a bounded trial. Deterministic checks and functional journeys qualify their observed contracts and outcomes, not general model-quality equivalence or monetary savings. Published, installed, hosted and live-model evidence is recorded separately in the [2.0.3 workstream](docs/workstreams/dev-flow-2.0.3/progress.md).
+Independent clean-context review passed after closing a stale release-example version mismatch. Final native regression passed 806 tests (805 passes and one native Windows-only skip); maintained validators, exact-source semantic/five-platform CI, hosted/public artifacts and bound attestations pass. Public stable v2.0.3, isolated lifecycle and primary installed/enabled source/cache identity are observed; existing-chat loading is not_observed. The user explicitly waived this release's five live-model functional journeys on 2026-10-10; they remain WAIVED rather than passed. The routing calibration remains a bounded trial. Deterministic checks qualify native contracts; waived functional journeys provide no model-outcome evidence, general model-quality equivalence or monetary savings. Published, installed, hosted and live-model evidence is recorded separately in the [2.0.3 workstream](docs/workstreams/dev-flow-2.0.3/progress.md).
 
 ## [2.0.2] - 2026-10-05
 
