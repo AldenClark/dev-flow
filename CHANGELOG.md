@@ -6,6 +6,21 @@ All notable changes to this project are documented here. The format follows [Kee
 
 No additional unreleased changes.
 
+## [2.0.3] - 2026-10-10
+
+Current candidate source identity: `2.0.3`. Current workspace state: `development` from `v2.0.2`.
+
+### Changed
+
+- Ordinary cross-component work and security/data/compatibility/rollback review start at GPT-6.1 Sol medium with unchanged specialist and verification controls. Added P4 adaptive-verification for dynamic native UI/runtime checks; fixed commands retain P0.
+- Single oracle-challenge, conflicting-evidence, or nondeterminism signals no longer select P5. Concrete deep unresolved reasoning, genuinely disputed oracles and interacting contract/high-consequence decisions retain P5; compound Astra P6 conditions and all profile/model/effort vectors are unchanged.
+- Above-policy explicit P5/P6 requests require a concise AI-caller `--selection-reason`. This is not human approval or model-spend authority. Old unexplained overrides return an actionable error; use the policy route or provide the concrete reasoning need. Ordinary commands and matching-policy explicit profiles need no new flag.
+- Added current-task examples, actual-host inventory guidance and de-escalation after materially changed follow-ups. No cheap-model trial is mandatory, verification is not weakened, and no repeated unchanged routing or fresh child is required solely to change a label.
+
+### Evidence boundary
+
+Independent clean-context review passed after closing a stale release-example version mismatch. Final native regression passed 806 tests (805 passes and one native Windows-only skip); maintained validators pass. The user explicitly waived this release's five live-model functional journeys on 2026-10-10; they remain WAIVED rather than passed. The routing calibration remains a bounded trial. Deterministic checks and functional journeys qualify their observed contracts and outcomes, not general model-quality equivalence or monetary savings. Published, installed, hosted and live-model evidence is recorded separately in the [2.0.3 workstream](docs/workstreams/dev-flow-2.0.3/progress.md).
+
 ## [2.0.2] - 2026-10-05
 
 Latest published source identity: `2.0.2`. Current workspace state: `development` from `v2.0.2`.

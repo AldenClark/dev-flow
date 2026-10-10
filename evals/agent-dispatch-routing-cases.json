@@ -41,7 +41,7 @@
       "id": "DISPATCH-OPEN-FFI-CONTRACT",
       "args": ["--role", "dev-flow-worker", "--workload", "cross-component-change", "--risk", "ffi", "--signal", "ambiguity"],
       "exit": 0,
-      "expected": {"delegate": false, "selected_profile": "P5", "requested_model": "gpt-6.1-sol", "requested_reasoning_effort": "xhigh", "risks": ["ffi"]}
+      "expected": {"delegate": false, "selected_profile": "P4", "requested_model": "gpt-6.1-sol", "requested_reasoning_effort": "medium", "risks": ["ffi"]}
     },
     {
       "id": "DISPATCH-ORDINARY-AMBIGUITY",
@@ -59,7 +59,7 @@
       "id": "DISPATCH-BOUNDED-DEPTH",
       "args": ["--role", "dev-flow-explorer", "--workload", "broad-mapping", "--signal", "oracle-challenge"],
       "exit": 0,
-      "expected": {"delegate": false, "selected_profile": "P5", "requested_model": "gpt-6.1-sol", "requested_reasoning_effort": "xhigh"}
+      "expected": {"delegate": false, "selected_profile": "P4", "requested_model": "gpt-6.1-sol", "requested_reasoning_effort": "medium"}
     },
     {
       "id": "DISPATCH-BROAD-CAPABILITY",
@@ -71,7 +71,7 @@
       "id": "DISPATCH-BROAD-AND-DEEP",
       "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--signal", "large-context", "--signal", "oracle-challenge"],
       "exit": 0,
-      "expected": {"delegate": false, "selected_profile": "P5", "requested_model": "gpt-6.1-sol", "requested_reasoning_effort": "xhigh"}
+      "expected": {"delegate": false, "selected_profile": "P4", "requested_model": "gpt-6.1-sol", "requested_reasoning_effort": "medium"}
     },
     {
       "id": "DISPATCH-CRITICAL-RISK",
@@ -83,7 +83,7 @@
       "id": "DISPATCH-CRITICAL-ACCEPTANCE",
       "args": ["--role", "dev-flow-red-reviewer", "--workload", "high-risk-review", "--signal", "high-risk-acceptance"],
       "exit": 0,
-      "expected": {"delegate": false, "selected_profile": "P5", "requested_model": "gpt-6.1-sol", "requested_reasoning_effort": "xhigh"}
+      "expected": {"delegate": false, "selected_profile": "P4", "requested_model": "gpt-6.1-sol", "requested_reasoning_effort": "medium"}
     },
     {
       "id": "DISPATCH-DISPUTED-CAUSAL-DIAGNOSIS",
@@ -101,7 +101,7 @@
       "id": "DISPATCH-HIGH-RISK-REVIEW",
       "args": ["--role", "dev-flow-red-reviewer", "--workload", "high-risk-review", "--risk", "security", "--signal", "irreversible"],
       "exit": 0,
-      "expected": {"delegate": false, "selected_profile": "P5", "requested_model": "gpt-6.1-sol", "requested_reasoning_effort": "xhigh"}
+      "expected": {"delegate": false, "selected_profile": "P4", "requested_model": "gpt-6.1-sol", "requested_reasoning_effort": "medium"}
     },
     {
       "id": "DISPATCH-CRITICAL-ACCEPTANCE-SETTLED",
@@ -192,6 +192,36 @@
       "args": ["--role", "dev-flow-worker", "--workload", "broad-multi-step", "--task-structure", "sequential", "--parallel-units", "4", "--tool-density", "high"],
       "exit": 0,
       "expected": {"delegate": false, "selection_source": "root-sequential", "selected_profile": null, "requested_model": null, "requested_reasoning_effort": null}
+    },
+    {
+      "id": "DISPATCH-ADAPTIVE-NATIVE-VERIFICATION",
+      "args": ["--role", "dev-flow-test-runner", "--workload", "adaptive-verification", "--risk", "device", "--host-capability", "gpt-6.1-sol:medium"],
+      "exit": 0,
+      "expected": {"delegate": true, "dispatch_ready": true, "selected_profile": "P4", "requested_reasoning_effort": "medium"}
+    },
+    {
+      "id": "DISPATCH-OPEN-INTERACTING-CONTRACT",
+      "args": ["--role", "dev-flow-worker", "--workload", "cross-component-change", "--signal", "ambiguity", "--signal", "interacting-unknowns", "--signal", "cross-boundary-impact"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "P5", "requested_reasoning_effort": "xhigh"}
+    },
+    {
+      "id": "DISPATCH-HIGH-CONSEQUENCE-INTERACTING-DECISION",
+      "args": ["--role", "dev-flow-red-reviewer", "--workload", "high-risk-review", "--signal", "ambiguity", "--signal", "interacting-unknowns", "--signal", "high-risk-acceptance"],
+      "exit": 0,
+      "expected": {"delegate": false, "selected_profile": "P5", "requested_reasoning_effort": "xhigh"}
+    },
+    {
+      "id": "DISPATCH-P5-UNEXPLAINED-PROMOTION",
+      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--profile", "P5"],
+      "exit": 2,
+      "expected": {"status": "invalid"}
+    },
+    {
+      "id": "DISPATCH-P5-EXPLAINED-PROMOTION",
+      "args": ["--role", "dev-flow-worker", "--workload", "bounded-change", "--profile", "P5", "--selection-reason", "Observed crash leaves two competing recovery authorities unresolved.", "--host-capability", "gpt-6.1-sol:xhigh"],
+      "exit": 0,
+      "expected": {"delegate": true, "dispatch_ready": true, "policy_profile": "P2", "selected_profile": "P5", "selection_source": "explicit-profile"}
     }
   ]
 }

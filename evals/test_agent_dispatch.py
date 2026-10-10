@@ -44,7 +44,7 @@ class AgentDispatchBlackBoxTests(unittest.TestCase):
         self.assertEqual(invalid.returncode, 2)
         self.assertIn("invalid choice", invalid.stderr)
 
-    def test_frozen_routing_cases(self) -> None:
+    def test_deterministic_routing_cases(self) -> None:
         catalog = json.loads(CASES.read_text(encoding="utf-8"))
         self.assertEqual(catalog["schema_version"], "1.0")
         observed_ids: set[str] = set()
@@ -156,10 +156,13 @@ class AgentDispatchBlackBoxTests(unittest.TestCase):
     def test_current_sol_host_is_required_without_previous_sol_fallback(self) -> None:
         for workload, profile, effort in (
             ("routine-review", "P4", "medium"),
+            ("high-risk-review", "P4", "medium"),
             ("high-risk-review", "P5", "xhigh"),
         ):
             with self.subTest(profile=profile):
                 base = ("--role", "dev-flow-blue-reviewer", "--workload", workload)
+                if profile == "P5":
+                    base += ("--signal", "deep-unresolved")
                 current = run_route(*base, "--host-capability", f"gpt-6.1-sol:{effort}")
                 self.assertEqual(current.returncode, 0, current.stderr or current.stdout)
                 result = json.loads(current.stdout)
@@ -405,6 +408,128 @@ class AgentDispatchWhiteBoxTests(unittest.TestCase):
         # 1.x templates stay readable for existing packets but do not govern 2.0 delegation.
         self.assertIn("Dispatch profile", brief)
         self.assertIn("Dispatch profile/source", execution)
+
+
+class AgentCalibrationTests(unittest.TestCase):
+    def test_single_uncertainty_stays_at_ordinary_judgment(self) -> None:
+        for signal in ("oracle-challenge", "nondeterminism", "conflicting-evidence"):
+            with self.subTest(signal=signal):
+                payload = json.loads(run_route(
+                    "--role", "dev-flow-explorer", "--workload", "causal-debugging",
+                    "--signal", signal, "--host-capability", "gpt-6.1-sol:medium",
+                ).stdout)
+                self.assertEqual(payload["selected_profile"], "P4")
+                self.assertTrue(payload["dispatch_ready"])
+
+    def test_cross_component_and_risk_review_do_not_imply_deep_reasoning(self) -> None:
+        for role, workload in (
+            ("dev-flow-worker", "cross-component-change"),
+            ("dev-flow-red-reviewer", "high-risk-review"),
+        ):
+            with self.subTest(workload=workload):
+                payload = json.loads(run_route(
+                    "--role", role, "--workload", workload,
+                    "--risk", "security", "--risk", "data-deletion",
+                    "--signal", "irreversible", "--signal", "high-risk-acceptance",
+                ).stdout)
+                self.assertEqual(payload["selected_profile"], "P4")
+                self.assertEqual(payload["risks"], ["data-deletion", "security"])
+
+    def test_adaptive_verification_uses_judgment_not_exact_command_profile(self) -> None:
+        result = run_route(
+            "--role", "dev-flow-test-runner", "--workload", "adaptive-verification",
+            "--risk", "device", "--host-capability", "gpt-6.1-sol:medium",
+        )
+        self.assertEqual(result.returncode, 0, result.stdout or result.stderr)
+        self.assertEqual(json.loads(result.stdout)["selected_profile"], "P4")
+
+    def test_explicit_high_promotion_requires_caller_reason_not_user_approval(self) -> None:
+        base = ("--role", "dev-flow-worker", "--workload", "bounded-change", "--profile", "P5")
+        missing = run_route(*base)
+        self.assertEqual(missing.returncode, 2)
+        self.assertIn("--selection-reason", missing.stdout)
+        reason = "Two valid recovery authorities disagree on ownership after the observed crash."
+        explained = run_route(*base, "--selection-reason", reason,
+                              "--host-capability", "gpt-6.1-sol:xhigh")
+        self.assertEqual(explained.returncode, 0, explained.stdout or explained.stderr)
+        payload = json.loads(explained.stdout)
+        self.assertEqual((payload["policy_profile"], payload["selected_profile"]), ("P2", "P5"))
+        self.assertTrue(payload["dispatch_ready"])
+        self.assertEqual(payload["upgrade_reasons"][-1]["selection_reason"], reason)
+
+    def test_complex_contract_keeps_depth_but_settled_followup_deescalates(self) -> None:
+        complex_args = ("--role", "dev-flow-worker", "--workload", "cross-component-change",
+                        "--signal", "ambiguity", "--signal", "interacting-unknowns",
+                        "--signal", "cross-boundary-impact")
+        self.assertEqual(json.loads(run_route(*complex_args).stdout)["selected_profile"], "P5")
+        settled = run_route("--role", "dev-flow-worker", "--workload", "bounded-change",
+                            "--signal", "confirmed-semantics", "--signal", "deterministic-oracle")
+        self.assertEqual(json.loads(settled.stdout)["selected_profile"], "P2")
+        command = run_route("--role", "dev-flow-test-runner", "--workload", "exact-verification")
+        self.assertEqual(json.loads(command.stdout)["selected_profile"], "P0")
+
+    def test_disputed_oracle_and_deep_reasoning_are_not_capped(self) -> None:
+        for signals, expected in (
+            (["conflicting-evidence", "oracle-challenge"], "P5"),
+            (["deep-unresolved"], "P5"),
+            (["failed-sol-discrimination"], "P5"),
+            (["ambiguity", "interacting-unknowns", "high-risk-acceptance"], "P5"),
+            (["deep-unresolved", "interacting-unknowns", "cross-boundary-impact"], "P6"),
+        ):
+            with self.subTest(signals=signals):
+                args = ["--role", "dev-flow-worker", "--workload", "bounded-change"]
+                for signal in signals:
+                    args.extend(("--signal", signal))
+                self.assertEqual(json.loads(run_route(*args).stdout)["selected_profile"], expected)
+
+    def test_selection_reason_does_not_bypass_host_or_authority_boundaries(self) -> None:
+        base = ("--role", "dev-flow-worker", "--workload", "bounded-change", "--profile", "P6")
+        self.assertEqual(run_route(*base).returncode, 2)
+        explained = run_route(*base, "--selection-reason", "Interacting unresolved recovery authorities.",
+                              "--host-capability", "gpt-6.1-sol:medium")
+        payload = json.loads(explained.stdout)
+        self.assertEqual(explained.returncode, 2)
+        self.assertEqual(payload["status"], "capability_limit")
+        self.assertFalse(payload["dispatch_ready"])
+        for flags in (
+            ("--role", "root", "--workload", "root-decision"),
+            ("--role", "dev-flow-worker", "--workload", "bounded-change", "--task-structure", "coupled"),
+        ):
+            with self.subTest(flags=flags):
+                self.assertEqual(run_route(*flags, "--profile", "P5",
+                                          "--selection-reason", "Unresolved causes.").returncode, 2)
+
+    def test_matching_policy_and_ordinary_profiles_need_no_new_explanation(self) -> None:
+        for profile, signals in (("P4", []), ("P5", ["deep-unresolved"])):
+            args = ["--role", "dev-flow-blue-reviewer", "--workload", "routine-review",
+                    "--profile", profile]
+            for signal in signals:
+                args += ["--signal", signal]
+            with self.subTest(profile=profile):
+                self.assertEqual(run_route(*args).returncode, 0)
+
+    def test_selection_reason_contract_rejects_empty_or_unbound_values(self) -> None:
+        base = {"role": "dev-flow-worker", "workload": "bounded-change", "requested_profile": "P5"}
+        for reason in ("", "  ", True, 4, [], "x" * 1001):
+            with self.subTest(reason=type(reason).__name__), self.assertRaises(agent_dispatch.DispatchContractError):
+                agent_dispatch.route_agent(**base, selection_reason=reason)
+        with self.assertRaises(agent_dispatch.DispatchContractError):
+            agent_dispatch.route_agent(role="dev-flow-worker", workload="bounded-change",
+                                       selection_reason="No explicit choice.")
+
+    def test_single_signal_negative_control_detects_blanket_promotion(self) -> None:
+        registry = json.loads(REGISTRY.read_text())
+        ordinary = next(rule for rule in registry["upgrade_rules"] if rule["id"] == "ordinary-judgment")
+        ordinary["minimum_profile"] = "P5"
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "registry.json"
+            path.write_text(json.dumps(registry))
+            result = agent_dispatch.route_agent(
+                role="dev-flow-explorer", workload="causal-debugging",
+                signals=["nondeterminism"], registry_path=path,
+            )
+        self.assertNotEqual(result["selected_profile"], "P4")
+        self.assertEqual(result["selected_profile"], "P5")
 
 
 if __name__ == "__main__":

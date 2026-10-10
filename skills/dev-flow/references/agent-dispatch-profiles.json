@@ -1,6 +1,6 @@
 {
   "schema_version": "1.1",
-  "policy": "Task-relative child-agent dispatch. Semantic uncertainty and context breadth select model and effort; risks remain visible for verification and delivery evidence, not automatic model promotion.",
+  "policy": "Use the least sufficient task-relative child profile. Ordinary judgment stays at P4; P5 requires deep unresolved reasoning or compound decision difficulty. Risks determine verification, not model rank; selection does not establish outcome quality.",
   "runtime": {
     "minimum_codex": "0.147.0",
     "default_fork_turns": "none",
@@ -23,7 +23,7 @@
     {"id": "P2", "capability": "E", "reasoning_effort": "high", "exception": false, "purpose": "confirmed bounded implementation or repetitive change with a deterministic oracle"},
     {"id": "P3", "capability": "E", "reasoning_effort": "xhigh", "exception": false, "purpose": "large but clear context or a coordinated task with closed semantics"},
     {"id": "P4", "capability": "B", "reasoning_effort": "medium", "exception": false, "purpose": "everyday coding, moderate ambiguity, ordinary diagnosis, or routine review"},
-    {"id": "P5", "capability": "B", "reasoning_effort": "xhigh", "exception": false, "purpose": "competing causes, disputed oracle, cross-component contract, or careful high-risk review"},
+    {"id": "P5", "capability": "B", "reasoning_effort": "xhigh", "exception": false, "purpose": "deep unresolved causes, conflicting oracles, or interacting open contract/high-consequence decisions"},
     {"id": "P6", "capability": "F", "reasoning_effort": "xhigh", "exception": false, "purpose": "deep unresolved reasoning with interacting unknowns and cross-boundary impact"},
     {"id": "PX", "capability": "F", "reasoning_effort": "max", "exception": true, "purpose": "explicitly acknowledged and evaluated exceptional work only"}
   ],
@@ -41,13 +41,14 @@
     {"id": "broad-mapping", "roles": ["dev-flow-explorer"], "delegate": true, "default_profile": "P2", "purpose": "directed repository-wide impact or call-chain mapping"},
     {"id": "causal-debugging", "roles": ["dev-flow-explorer"], "delegate": true, "default_profile": "P4", "purpose": "ordinary causal diagnosis; conflicting evidence can raise the route"},
     {"id": "exact-verification", "roles": ["dev-flow-test-runner"], "delegate": true, "default_profile": "P0", "purpose": "execute an exact command and preserve its first result"},
+    {"id": "adaptive-verification", "roles": ["dev-flow-test-runner"], "delegate": true, "default_profile": "P4", "purpose": "observe and adapt native UI or runtime checks against a confirmed outcome; exact commands remain exact-verification"},
     {"id": "failure-triage", "roles": ["dev-flow-test-runner"], "delegate": true, "default_profile": "P1", "purpose": "classify bounded logs, failures, or environment evidence"},
     {"id": "mechanical-change", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P1", "purpose": "fully specified mechanical change with a deterministic oracle"},
     {"id": "bounded-change", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P2", "purpose": "confirmed bounded bug fix or feature slice with a deterministic oracle"},
     {"id": "broad-multi-step", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P3", "purpose": "multi-step work with a clear outcome and closed semantics"},
-    {"id": "cross-component-change", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P5", "purpose": "open cross-component contract change"},
+    {"id": "cross-component-change", "roles": ["dev-flow-worker"], "delegate": true, "default_profile": "P4", "purpose": "cross-component implementation or ordinary contract judgment; interacting unresolved decisions require depth signals"},
     {"id": "routine-review", "roles": ["dev-flow-blue-reviewer", "dev-flow-red-reviewer"], "delegate": true, "default_profile": "P4", "purpose": "routine independent integration or adversarial review"},
-    {"id": "high-risk-review", "roles": ["dev-flow-blue-reviewer", "dev-flow-red-reviewer"], "delegate": true, "default_profile": "P5", "purpose": "careful security, data, compatibility, or rollback review"},
+    {"id": "high-risk-review", "roles": ["dev-flow-blue-reviewer", "dev-flow-red-reviewer"], "delegate": true, "default_profile": "P4", "purpose": "security, data, compatibility, or rollback review with full risk controls; unresolved complex reasoning requires depth signals"},
     {"id": "root-decision", "roles": ["root"], "delegate": false, "default_profile": null, "purpose": "requirement semantics, dependency choice, architecture adjudication, or final claim"}
   ],
   "signal_vocabulary": [
@@ -81,15 +82,33 @@
     },
     {
       "id": "ordinary-judgment",
-      "any_signal": ["ambiguity", "causal-uncertainty", "consequential-judgment", "cross-boundary-impact", "independent-review", "interacting-unknowns"],
+      "any_signal": ["ambiguity", "causal-uncertainty", "consequential-judgment", "cross-boundary-impact", "independent-review", "interacting-unknowns", "conflicting-evidence", "nondeterminism", "oracle-challenge"],
       "minimum_profile": "P4",
       "reason": "semantic or causal judgment needs GPT-6.1 Sol medium"
     },
     {
-      "id": "disputed-reasoning",
-      "any_signal": ["conflicting-evidence", "deep-unresolved", "failed-sol-discrimination", "nondeterminism", "oracle-challenge"],
+      "id": "unresolved-depth",
+      "any_signal": ["deep-unresolved", "failed-sol-discrimination"],
       "minimum_profile": "P5",
-      "reason": "complex work, competing causes, or an uncertain oracle needs GPT-6.1 Sol xhigh"
+      "reason": "concrete deep unresolved reasoning or a documented current-Sol reasoning failure needs GPT-6.1 Sol xhigh"
+    },
+    {
+      "id": "disputed-oracle",
+      "all_signals": ["conflicting-evidence", "oracle-challenge"],
+      "minimum_profile": "P5",
+      "reason": "conflicting evidence that actually disputes the outcome oracle needs deeper discrimination"
+    },
+    {
+      "id": "interacting-contract-decisions",
+      "all_signals": ["ambiguity", "interacting-unknowns", "cross-boundary-impact"],
+      "minimum_profile": "P5",
+      "reason": "open meanings with interacting unknowns across a contract boundary need deeper reasoning"
+    },
+    {
+      "id": "interacting-high-consequence-decisions",
+      "all_signals": ["ambiguity", "interacting-unknowns", "high-risk-acceptance"],
+      "minimum_profile": "P5",
+      "reason": "interacting unresolved meanings at a high-consequence acceptance boundary need deeper reasoning"
     },
     {
       "id": "compound-frontier-reasoning",

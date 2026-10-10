@@ -2407,6 +2407,7 @@ def route_agent_command(args: argparse.Namespace) -> int:
             risks=args.risk,
             signals=args.signal,
             requested_profile=args.profile,
+            selection_reason=args.selection_reason,
             acknowledge_exception=args.acknowledge_exception,
             acknowledge_downgrade=args.acknowledge_downgrade,
             registry_path=args.registry,
@@ -3007,8 +3008,8 @@ def build_parser() -> argparse.ArgumentParser:
         "route-agent",
         help="Select a deterministic Multi-Agent V2 dispatch profile for one child workload",
     )
-    agent_route.add_argument("--role", required=True)
-    agent_route.add_argument("--workload", required=True)
+    agent_route.add_argument("--role", required=True, help="Registered role, e.g. dev-flow-worker or dev-flow-blue-reviewer")
+    agent_route.add_argument("--workload", required=True, help="Registered task shape, e.g. bounded-change, routine-review, or adaptive-verification; not task prose")
     agent_route.add_argument(
         "--risk",
         action="append",
@@ -3016,8 +3017,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         help="Observed engineering risk; repeat as needed",
     )
-    agent_route.add_argument("--signal", action="append", default=[])
+    agent_route.add_argument("--signal", action="append", default=[], help="Observed reasoning need, e.g. ambiguity or deep-unresolved; repeat only for current child evidence")
     agent_route.add_argument("--profile")
+    agent_route.add_argument(
+        "--selection-reason",
+        help="Concrete task-specific reasoning need; required for an explicit P5/P6 promotion above policy, not user approval",
+    )
     agent_route.add_argument(
         "--task-structure",
         choices=sorted(agent_dispatch.TASK_STRUCTURES),

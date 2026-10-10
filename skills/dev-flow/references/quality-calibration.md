@@ -114,7 +114,7 @@ python3 skills/dev-flow/scripts/dev-flow.py route-agent \
   [--signal <reasoning-signal>]
 ```
 
-Use the returned child role, model, reasoning effort, and fork request. P0–P3 use GPT-6 Luna for closed work, including clear multi-step work at xhigh. P4 uses GPT-6.1 Sol medium for ordinary judgment, coding, diagnosis, and review; P5 uses GPT-6.1 Sol xhigh as the complex-work default for competing causes, cross-component contracts, and careful review. P6 uses GPT-6 Astra only for compound, deep unresolved reasoning; risk, context size, or critical acceptance alone does not justify Astra. PX remains an explicit exceptional campaign. For an interactive non-trivial root task with unclear shape, recommend GPT-6.1 Sol medium without pretending this child router can switch the root model. Check the exact model/effort against the actual host and dispatch only when both `delegate` and `dispatch_ready` are true; an unchecked route is advice, and a capability limit cannot silently substitute GPT-6 Sol or GPT-5.6.
+Use the returned child role, model, reasoning effort, and fork request. P0–P3 use GPT-6 Luna for closed work. P4 uses GPT-6.1 Sol medium for ordinary coding, diagnosis, review, cross-component integration, and adaptive native verification. P5 uses GPT-6.1 Sol xhigh for concrete deep unresolved reasoning or compound decision difficulty; a single oracle challenge, nondeterminism, risk label, or careful review does not select P5. P6 retains compound deep unresolved reasoning; PX remains an explicit exceptional campaign. Read [model-selection.md](model-selection.md) for task examples, signal evidence, explained overrides, material follow-up de-escalation, and the bounded-trial quality limits. For a non-trivial interactive root task with unclear shape, recommend GPT-6.1 Sol medium; this router cannot switch the root model. Check the full relevant actual-host inventory and dispatch only when both `delegate` and `dispatch_ready` are true. An unchecked route is advice; a capability limit cannot silently substitute GPT-6 Sol or GPT-5.6.
 
 The 2026-09-30 development update follows OpenAI's [GPT-6.1 Sol model page](https://developers.openai.com/api/docs/models/gpt-6.1-sol) and [model-selection guidance](https://developers.openai.com/api/docs/guides/model-selection): near-Astra performance for complex coding, computer use, and professional work, while Luna remains the focused-work choice and Astra the most demanding-reasoning choice. Preserve P0–P6/PX IDs, efforts, and compound escalation conditions; the model description is not repository-specific proof that Sol can replace every Astra task. `failed-sol-discrimination` must refer to a documented failure of the current GPT-6.1 Sol on the relevant task, not an older model's result or an environment/tool failure. Paid comparisons, live-model qualification, and installed-plugin changes are separate and are not performed by this routing update; the development paired evaluator and frozen acceptance identities remain unchanged.
 
@@ -122,7 +122,7 @@ Under [standard API pricing](https://developers.openai.com/api/docs/pricing) for
 
 Routing is task-relative. Do not store the profile, generate a dispatch receipt, or turn a higher profile into a quality claim. If the selected route makes delegation more expensive than doing the work in the root context, do not delegate.
 
-P0–P6 encode a routing policy order for policy minimums, downgrade decisions, and host-capability suggestions, not an empirical total order of model quality. Different model/effort combinations remain different cost and reasoning choices. Report policy requirement, host availability, and observed outcome separately; the task oracle owns success. Respect an explicit eligible profile without requiring a prior lower-profile failure, and do not infer better correctness or lower total cost from its rank.
+P0–P6 encode a routing policy order for minimums, downgrade decisions, and host-capability suggestions, not an empirical total order of model quality. Report policy requirement, host availability, and observed outcome separately; the task oracle owns success. An above-policy P5/P6 request needs `--selection-reason` from the AI caller, not user approval or a prior lower-profile trial. Existing verification obligations stay fixed; static routing checks do not establish quality equivalence or per-task savings.
 
 ## Method activation
 
@@ -169,15 +169,17 @@ Use an independent context when at least one is true:
 
 Do not recursively review a review. When the primary task is already an independent read-only review, the current context owns that review; add a second context only for an explicit second-opinion/separation requirement or a concrete conflicting-evidence blind spot.
 
-If a child is actually justified, use registered runtime vocabulary rather than guessed labels. For a high-risk adversarial review:
+If a child is actually justified, use registered runtime vocabulary rather than guessed labels. For an ordinary independent adversarial review:
 
 ```text
 python3 skills/dev-flow/scripts/dev-flow.py route-agent \
   --role dev-flow-red-reviewer \
-  --workload high-risk-review \
+  --workload routine-review \
   --signal independent-review
 ```
 
 Freeze the relevant objective, contracts, diff/scope, and raw evidence for the review. Recheck findings in current source. Do not require a review packet, profile record, or generated report.
+
+Use `high-risk-review` when security/data/compatibility/rollback controls apply; it also starts at P4. Only concrete unresolved reasoning signals select P5/P6, not the red-reviewer role itself.
 
 When independent review has decision value, execute that clean-context route without a separate spawn authorization. If the host cannot provide an independent context, explicitly downgrade to same-context review and report `common-mode-risk`. A blue/red sequence performed by the implementer is a pair of useful lenses, not independent evidence. Never turn a capability or resource limit into an authorization claim.

@@ -75,6 +75,7 @@ def route_agent_command(args: argparse.Namespace) -> int:
             risks=args.risk,
             signals=args.signal,
             requested_profile=args.profile,
+            selection_reason=args.selection_reason,
             acknowledge_exception=args.acknowledge_exception,
             acknowledge_downgrade=args.acknowledge_downgrade,
             registry_path=args.registry,

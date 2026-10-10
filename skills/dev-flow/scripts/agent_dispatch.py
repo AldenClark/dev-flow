@@ -288,6 +288,7 @@ def route_agent(
     risks: Iterable[str] = (),
     signals: Iterable[str] = (),
     requested_profile: str | None = None,
+    selection_reason: str | None = None,
     acknowledge_exception: bool = False,
     acknowledge_downgrade: bool = False,
     registry_path: Path | None = None,
@@ -297,6 +298,12 @@ def route_agent(
     host_capabilities: Iterable[tuple[str, str]] | None = None,
 ) -> dict[str, Any]:
     registry = load_registry(registry_path)
+    if selection_reason is not None:
+        if not _nonempty(selection_reason) or len(selection_reason) > 1000:
+            raise DispatchContractError("selection reason must be non-empty text of at most 1000 characters")
+        if requested_profile is None:
+            raise DispatchContractError("--selection-reason requires an explicit --profile")
+        selection_reason = selection_reason.strip()
     workloads = {item["id"]: item for item in registry["workloads"]}
     profiles = {item["id"]: item for item in registry["profiles"]}
     if role not in registry["roles"]:
@@ -421,6 +428,15 @@ def route_agent(
                 f"requested profile {requested_profile} is below policy profile {policy_profile['id']}; "
                 "use --acknowledge-downgrade to make the downgrade explicit"
             )
+        if (
+            requested_profile in {"P5", "P6"}
+            and _profile_rank(requested_profile) > _profile_rank(minimum_profile)
+            and selection_reason is None
+        ):
+            raise DispatchContractError(
+                "promotion above policy to P5/P6 requires --selection-reason describing the concrete "
+                "unresolved decision or reasoning evidence; this is a caller explanation, not user approval"
+            )
         source = "explicit-profile"
         reasons.append(
             {
@@ -428,6 +444,7 @@ def route_agent(
                 "reason": "explicit profile request overrides the policy result with required acknowledgements",
                 "profile": requested_profile,
                 "policy_profile": policy_profile["id"],
+                **({"selection_reason": selection_reason} if selection_reason is not None else {}),
             }
         )
     capability = registry["runtime"]["capabilities"][selected["capability"]]

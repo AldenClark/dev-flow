@@ -6,6 +6,8 @@ Starting a child, allowing a child to start another child inside the inherited e
 
 Before every actual child dispatch, resolve the task-relative route with `route-agent` using the intended role, workload, observed engineering risks, and reasoning signals. Use the returned model, reasoning effort, and fork request. Do not create a routing receipt, add the profile to a workstream, or treat a high profile as proof of quality.
 
+Use [model-selection.md](model-selection.md) for the least sufficient current-task profile. Route exact commands separately from adaptive verification; ordinary cross-component or high-risk work can stay at P4 with unchanged risk controls. Do not inherit the parent's hardest signals, omit available lower host choices, or explicitly raise P5/P6 without a concrete `--selection-reason`. This caller explanation is not user approval. Re-route materially changed follow-up units after uncertainty is resolved; unchanged continuations need no new ceremony or child just to change a model label.
+
 Delegation exists only after a successful dispatch returns a non-empty child identity. Never wait or poll before that identity exists. An empty receiver list or empty agent state is not delegation; self-execution, rereading, or an inferred answer cannot substitute for a child result. Report the branch as unavailable or downgraded and never attribute a result to a child.
 
 If routing shows that a child needs broad/high-cost context but the work is not independently useful, keep it in the root context instead of delegating.
