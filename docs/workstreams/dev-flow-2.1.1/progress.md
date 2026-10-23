@@ -12,7 +12,7 @@
 - Published stable/workspace base: `v2.1.0`; candidate rollback target: `v2.1.0`.
 - User authority on 2026-10-24: commit current batch as 2.1.1, then formal release. Prior no-additional-model-evaluation and no-install constraints remain in force. Five real stable model journeys are NOT RUN; this constrained publication does not claim complete functional acceptance, model benefit or installed behavior. Historical release waivers do not transfer.
 
-Delivery state: commit=not-run; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+Delivery state: commit=passed; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
 
 ## Reused implementation evidence
 
@@ -26,7 +26,7 @@ Final-candidate observations are pending. Preserve source identities, first fail
 
 | ID | Condition | Gate | Status | Closure/decision |
 |---|---|---|---|---|
-| HC1 | Final native regression and maintained validators | qualification | not-run | Version/projection delta requires current evidence |
+| HC1 | Final native regression and maintained validators | qualification | passed | First full run: 822 tests, two stale assertion failures and one Windows-only skip; nine affected checks pass after focused repair; exact final hosted full suite remains HC3 |
 | HC2 | Cumulative public-stable-to-candidate semantic and six-method static review | qualification | passed | Independent clean-context review found no consequential defect in the cumulative guidance delta |
 | HC3 | Exact-SHA semantic and applicable compatibility CI | qualification | not-run | Hosted observations pending |
 | HC4 | Hosted archive, manifest, SBOM, checksums and bound attestations | qualification | not-run | Hosted observations pending |
@@ -45,3 +45,13 @@ A fresh P4 Sol-medium read-only review compared public v2.1.0 with all 11 change
 - Assumption/premortem: explicit counterrules address weakened guarantees, missing defenses, stale sensitivity evidence and untested failure branches; unknown dependencies require affected checks.
 
 Initial release workstream validation rejected the unsupported gate class `observation`; corrected it to the existing `qualification` vocabulary only. Original receipt: `/tmp/dev-flow-2.1.1-workstream-initial.json`. No product behavior or acceptance threshold changed.
+
+## Native first failure and bounded correction
+
+Candidate `40c7bb578b49d200b21005822af6ac2650f8ab52` ran the complete native suite once with Python 3.13.14 and ResourceWarnings as errors: 822 tests in 73.813 seconds, 819 passes, two failures, one native-Windows-only skip. The first log and receipt are preserved at `/Users/ethan/Documents/Codex/2026-10-23/dev-flow-2.1.1-release-qufne286/native-full.log` and `native-result.json`.
+
+Both failures were stale static wording oracles: `test_quality_practices` required the replaced phrase “practical negative control”; `test_rc7_test_skills` required “preserves the required behavior” while the maintained reference protects “preserves the requirement”. The current accepted guidance still requires a failure-sensitive assertion, invalidation/rechallenge, preserved input/failure/resource responsibilities and confirmation before changing business guarantees. Only these two existing test files were updated to observe those obligations. In-memory omission controls reject loss of each sensitivity obligation and each behavior/authority guard. Nine affected tests pass in `native-focused-repair.log`; no entire native rerun or product-rule weakening was performed. The final exact-source hosted full suite will separately qualify final bytes.
+
+All eleven maintained native validator commands pass: 39 structural contracts, product state, RC.5 coverage, RC.4 static invariants, shipped methods/knowledge, plugin, 15-Skill suite, packaged data-security doctor, compilation and workstream structure. The security doctor has zero required failures and five live/manual gates not_observed. Root checked release metadata, unchanged protected code and 100 local link targets; whitespace checks pass. The previously identified Markdown scanner false positive remains explicitly failed and outside this repair.
+
+The same independent reviewer inspected only the two repaired oracles and current metadata. No consequential finding: explicit sensitivity/invalidation and requirement/input/failure/resource/confirmation safeguards are retained, and omission controls expose their removal. First-failure and affected-pass receipts remain separate.

@@ -8,7 +8,7 @@ This runbook selects evidence from the changed surface. It separates implementat
 
 `v2.0.0-rc.9` is the latest public immutable RC tag; `v2.1.0` remains the published stable and default installation channel during preparation. `v2.1.0` is the rollback target for `2.1.1`.
 
-Delivery state: commit=not-run; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+Delivery state: commit=passed; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
 
 The [release progress](workstreams/dev-flow-2.1.1/progress.md) owns cumulative static review, final native checks, exact-SHA hosted CI and immutable artifact/publication observations. The existing compatibility selector includes manifest, workflow-default and product-state changes, so all five platform/Python cells remain applicable. Candidate and published bytes must not be rewritten. If the guidance weakens accepted guarantees or omits required defenses/evidence, pin the prior public `v2.1.0` and verify its installed identity in a separately authorized installation task.
 

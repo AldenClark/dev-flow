@@ -169,6 +169,14 @@ class Rc7TestSkillIntegrityTests(unittest.TestCase):
         guidance = read("skills/change-review/SKILL.md") + read(
             "skills/change-review/references/review-protocol.md"
         )
+        behavior_guard = (
+            "unsupported abstractions",
+            "preserves the requirement",
+            "preserves untrusted-input validation, contractual failures and resource safety",
+            "returning business guarantee changes for confirmation",
+            "Line count",
+            "not proof",
+        )
         assert_concepts(
             self,
             guidance,
@@ -179,12 +187,7 @@ class Rc7TestSkillIntegrityTests(unittest.TestCase):
                     "current source location",
                     "bounded correction",
                 ),
-                "simplification with behavior guard": (
-                    "unsupported abstractions",
-                    "preserves the required behavior",
-                    "Line count",
-                    "not proof",
-                ),
+                "simplification with behavior guard": behavior_guard,
                 "test self-proof challenge": (
                     "AI self-confirmation",
                     "product contracts",
@@ -200,6 +203,15 @@ class Rc7TestSkillIntegrityTests(unittest.TestCase):
                 ),
             },
         )
+
+        for term in behavior_guard[1:4]:
+            with self.subTest(missing_behavior_guard=term):
+                with self.assertRaises(AssertionError):
+                    assert_concepts(
+                        self,
+                        guidance.replace(term, "", 1),
+                        {"simplification with behavior guard": behavior_guard},
+                    )
 
 
 if __name__ == "__main__":

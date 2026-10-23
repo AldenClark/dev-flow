@@ -35,7 +35,20 @@ class QualityPracticesContractTests(unittest.TestCase):
         self.assertEqual(missing_contract_terms(strategy, required), [])
         self.assertIn("where they add distinct failure sensitivity", skill)
         self.assertIn("Do not require each view or a prose `N/A`", skill)
-        self.assertIn("practical negative control", skill)
+        sensitivity = (
+            "reuse valid sensitivity proof or challenge the oracle",
+            "Confirm failure at the protected assertion",
+            "Rechallenge when sensitivity is unknown or invalidated",
+        )
+        self.assertEqual(missing_contract_terms(skill, sensitivity), [])
+
+        # Reuse must retain both a failure-sensitive oracle and an invalidation rule.
+        for term in sensitivity:
+            with self.subTest(missing_sensitivity_rule=term):
+                self.assertEqual(
+                    missing_contract_terms(skill.replace(term, "", 1), sensitivity),
+                    [term],
+                )
 
         # Negative control: losing an available derivation view weakens the strategy contract.
         without_white_box = strategy.replace("**White-box:**", "**Structure checks:**", 1)
