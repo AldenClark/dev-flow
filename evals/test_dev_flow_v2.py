@@ -484,6 +484,8 @@ class RoutingTests(unittest.TestCase):
     def test_ambiguous_defect_upgrades_to_semantic_confirmation(self) -> None:
         bounded = route("--task-type", "bugfix", "--requirement-class", "defect-correction", "--ambiguity")
         self.assertEqual(bounded["requirement_understanding"]["class"], "semantic-change")
+        self.assertEqual(bounded["requirement_understanding"]["confirmation"], "not-required")
+        self.assertFalse(bounded["requirement_understanding"]["confirmation_required"])
         self.assertTrue(bounded["requirement_understanding"]["design_allowed"])
         payload = route(
             "--task-type",
@@ -496,7 +498,10 @@ class RoutingTests(unittest.TestCase):
         understanding = payload["requirement_understanding"]
         self.assertEqual(understanding["class"], "semantic-change")
         self.assertEqual(understanding["class_source"], "ambiguous-defect-upgrade")
+        self.assertEqual(understanding["confirmation"], "not-required")
+        self.assertFalse(understanding["confirmation_required"])
         self.assertFalse(understanding["design_allowed"])
+        self.assertFalse(understanding["implementation_allowed"])
 
     def test_read_only_intents_do_not_acquire_a_requirements_confirmation(self) -> None:
         for intent in ("research", "review", "delivery"):

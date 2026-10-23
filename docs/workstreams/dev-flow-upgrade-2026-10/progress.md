@@ -193,3 +193,13 @@ S2两版均查到既有IPC/命令、区分新旧选择路径与发布/热应用/
 定向验证：`python3.13 -m unittest -v`显式运行4个原失败用例、新identity用例、host-inventory/dispatch-readiness CLI用例、routine direct/packet-free CLI用例和correction/late-child恢复用例，共8项通过（0.142秒）；完整名称与结果见 `/tmp/dev-flow-2.1.0-review-closeout/targeted-final.log`。未重跑全套、未追加模型对照；此前未受影响的源码/原生证据复用。
 
 已先读原始SUMMARY并核对冻结协调副本：3案例/8次启动完成、两版主要判据均达到、候选优势有限；每臂每案例一次、观察者知晓版本。重要首次功能的真实用户确认未覆盖，冻结副本没有后续compact-context等协调措辞，本次补回的identity约束亦未经过该行为对照。design与前文概括性NOT RUN已同步为这个限定结论；不把已完成观察抹成未执行，也不推断整体收益。宿主实际执行、完整用户旅程、长期/跨环境效果和发布/安装资格仍未验证；用户waiver及Codex #56234的宿主遥测顺序不在本次修复范围，未作为候选安全缺陷修补。
+
+## 2026-10-23 2.1.0 发布准备与本次明确豁免
+
+在本地收尾提交 `7315ddb1cff4a58651f804969271a996e626cdec` 后，用户要求完成2.1.0发布，随后明确选择“允许原生／CI，明确豁免本次未覆盖的模型旅程”。这仅解除本次最终原生与托管验证限制，授权必要的提交、推送、制品、标签及公开发布；未覆盖的稳定功能旅程按本次明确决定记WAIVED，不继承旧版豁免、不计PASS、不启动新付费模型对照或裁判。日常插件不安装或切换；实际宿主、完整真实确认、长期收益仍未观察。
+
+对v2.0.3（b5951234）至7315ddb的累计静态独立审查完成：traceability、影响图、示例契约、功能交互、黑白盒oracle及假设/premortem六种视角各有源码检查结论，未发现已证实的实质缺陷。检查为静态/有界，不代替原生、托管、制品或安装证据。
+
+最终本地原生全套只运行一次：822项，69.428秒；首次820通过、1项native-Windows-only跳过、1项失败，原始日志保留。失败来自FLOW-AMBIGUOUS-DEFECT-UPGRADES-TO-U1的旧expect仍把普通U1歧义当成首次重要功能确认。按已接受契约仅改该fixture，新增confirmation_required/first_important_implementation为false及implementation_allowed仍false的断言；路由实现未改，未决业务选择继续阻止依赖设计和实施。目录匹配、故意错误预期负对照及相关既有路由用例3项复查通过（1.349秒）；未重跑本地全套。有效的820项及既有控制证据复用，最终精确SHA的托管全套另行观察。初始测试准备曾遗漏uv解释器prefix/bin，尚未启动测试；核对空回执目录后改用本机已有3.13目录，只设置该子进程PATH，未安装依赖或改全局配置。
+
+product-state、39项contracts、methods、knowledge、plugin、suite、data-security doctor、RC5 coverage与RC4静态扫描均通过；doctor人工/live门保持未观察。发布材料、原始native-first.log、activation-recheck.log、原生调用身份及独立审查范围保存在 `/Users/ethan/Documents/Codex/2026-10-23/dev-flow-2.1.0-release-iijj7rx5/`。先前7315ddb本地源码制品保留为已失效候选证据，不用于最终发布；新的精确SHA、托管平台、制品/证明及公开结果只按后续实际回执更新。

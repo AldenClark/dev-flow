@@ -4,7 +4,7 @@ This runbook selects evidence from the changed surface. It separates implementat
 
 ## 2.1.0 personal-assistant hardening candidate
 
-`2.1.0` is the local whole-version candidate. On 2026-10-23 the user authorized its version update and local commit only, with no additional evaluation or test rerun. Push, tag, artifact construction, publication and installation are not authorized. Implementation is complete; release qualification is not claimed.
+`2.1.0` is the whole-version source candidate. On 2026-10-23 the user subsequently authorized publication, one final native regression and hosted CI, and explicitly waived the uncovered stable functional journeys for this release. These journeys are WAIVED, never PASS; the earlier 3-case/eight-task observation remains bounded evidence. No new paid model comparison, primary installation or plugin-version switch is authorized. Applicable native, hosted and artifact evidence is recorded as observed before publication.
 
 `v2.0.0-rc.9` is the latest public immutable RC tag; `v2.0.3` remains the published stable and default installation channel. `v2.0.3` is the rollback target for `2.1.0`. The previous published release and its `v2.0.2` rollback record below remain unchanged.
 

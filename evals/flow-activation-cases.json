@@ -150,8 +150,11 @@
       "command": ["route-task", "--intent", "diagnose", "--requirement-class", "defect-correction", "--ambiguity", "--user-choice-open"],
       "expect": {
         "requirement_understanding.class": "semantic-change",
-        "requirement_understanding.confirmation": "required",
-        "requirement_understanding.design_allowed": false
+        "requirement_understanding.confirmation": "not-required",
+        "requirement_understanding.confirmation_required": false,
+        "requirement_understanding.first_important_implementation": false,
+        "requirement_understanding.design_allowed": false,
+        "requirement_understanding.implementation_allowed": false
       },
       "contains": {"routes": ["requirements-design", "systematic-debugging"]}
     },
