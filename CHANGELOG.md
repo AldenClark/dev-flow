@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [2.1.1] - 2026-10-24
 
-Current candidate source identity: `2.1.1`. Current workspace state: `development` from `v2.1.0`. Independent clean-context review passed for the cumulative guidance delta. Publication is in preparation; release observations belong to the [2.1.1 progress](docs/workstreams/dev-flow-2.1.1/progress.md). Live-model qualification and installation are NOT RUN under the continuing user scope.
+Latest published source identity: `2.1.1`. Current workspace state: `development` from `v2.1.1`. Independent clean-context review passed for the cumulative guidance delta. Published from `7c0c950f58e848d5452eb5d6242e9d8661d2095a` with exact-source semantic/platform CI, bound hosted attestations and four matching public assets; release observations belong to the [2.1.1 progress](docs/workstreams/dev-flow-2.1.1/progress.md). Live-model qualification and installation are NOT RUN under the continuing user scope.
 
 ### Changed
 

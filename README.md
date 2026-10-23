@@ -2,7 +2,7 @@
 
 Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是建立第二套工作流引擎，而是用最少的流程成本保持三件事：长期业务工作不漂移、技术结论有原生工程证据、高后果动作保留明确安全边界。
 
-候选源码身份为 `2.1.1`。当前工作区处于 `development` 状态，基于 `v2.1.0`。`v2.1.0` 是最近已发布的稳定标签，也是默认固定安装通道。`v2.0.0-rc.9` 是最近已发布的 RC；2.1.1 的回滚目标为 `v2.1.0`。本次调整让设计保证、代码防御与验证投入符合实际责任和收益；三个目标已完成本地实现。用户已授权提交及正式发布，候选资格与外部事实见[发布记录](docs/workstreams/dev-flow-2.1.1/progress.md)。按用户持续限制不追加模型评测或安装，真实任务收益尚未验证。2.0 的 1.x 破坏性切换边界保持不变。
+已发布源码身份为 `2.1.1`。当前工作区处于 `development` 状态，基于 `v2.1.1`。`v2.1.1` 是最近已发布的稳定标签，也是默认固定安装通道。`v2.0.0-rc.9` 是最近已发布的 RC；2.1.1 的回滚目标为 `v2.1.0`。本次调整让设计保证、代码防御与验证投入符合实际责任和收益；三个目标已完整落地并正式发布。精确源码 CI、五组平台兼容检查、来源证明及四份公开制品均已核实，外部事实见[发布记录](docs/workstreams/dev-flow-2.1.1/progress.md)。按用户持续限制不追加模型评测或安装，真实任务收益尚未验证。2.0 的 1.x 破坏性切换边界保持不变。
 
 ## 2.0 核心模型
 
@@ -222,7 +222,7 @@ python3 skills/dev-flow/scripts/dev-flow.py outcomes summary
 固定安装当前公开稳定版：
 
 ```bash
-codex plugin marketplace add AldenClark/dev-flow --ref v2.1.0
+codex plugin marketplace add AldenClark/dev-flow --ref v2.1.1
 codex plugin add dev-flow@dev-flow
 ```
 
@@ -253,7 +253,7 @@ CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job �
 
 ## 版本和发布状态
 
-- `2.1.1` 是当前候选源码身份；发布准备与证据见[发布记录](docs/workstreams/dev-flow-2.1.1/progress.md)。
+- `2.1.1` 是当前已发布源码身份；不可变 [v2.1.1](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.1) 来自 `7c0c950f58e848d5452eb5d6242e9d8661d2095a`。精确源码 CI、五组平台兼容检查与四份公开制品核对通过；模型旅程及安装 NOT RUN，详情见[发布记录](docs/workstreams/dev-flow-2.1.1/progress.md)。
 - `2.1.0` 是此前已发布源码身份；不可变 [v2.1.0](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.0) 来自 `0d0ef9e2eed869e84d78ab2350be0a75fd2c3000`。精确SHA语义全套、5个平台/Python兼容单元、来源/SBOM证明及4份公开下载核对通过。未覆盖的稳定功能旅程明确WAIVED；本次未安装，详情与原始失败见[发布记录](docs/workstreams/dev-flow-upgrade-2026-10/progress.md)。
 - `2.0.3` 是此前已发布的稳定源码身份；不可变 `v2.0.3` 来自候选 `b5951234d50dc03425e17da2c858e8d7aceb97f8`。本地、托管语义及五个平台检查、制品、公开发布与本机安装已核实。用户已于 2026-10-10 明确豁免本次五条真实模型旅程，记录为 WAIVED，不推断模型质量等价。
 - `2.0.2` 是此前已发布源码身份；不可变 `v2.0.2` 来自候选 `e5abd4bbb2dc6758400ea74a299e12d5e0770c39`；其 DLP 豁免和测试证据保留在历史发布记录。

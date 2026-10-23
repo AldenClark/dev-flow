@@ -2,13 +2,15 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
-## 2.1.1 personal-assistant hardening candidate
+## 2.1.1 personal-assistant hardening release
 
 `2.1.1` contains the accepted proportionate-engineering guidance: assess the value of product guarantees, keep code defenses at responsible boundaries, and reuse still-valid verification evidence. This R1 release adds no CLI, Hook, schema, dependency or model-evaluation mechanism. The user authorized commit and formal publication on 2026-10-24; the preceding no-additional-model-evaluation and no-install constraints remain in force. The five real model journeys are NOT RUN, not PASS; no earlier release waiver or model outcome is reused. Publication is requested with this explicit scope limitation, and no complete functional-acceptance or installed-behavior claim follows.
 
-`v2.0.0-rc.9` is the latest public immutable RC tag; `v2.1.0` remains the published stable and default installation channel during preparation. `v2.1.0` is the rollback target for `2.1.1`.
+`v2.0.0-rc.9` is the latest public immutable RC tag; `v2.1.1` is the published stable and default installation channel. `v2.1.0` is the rollback target for `2.1.1`.
 
-Delivery state: commit=passed; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+Delivery state: commit=passed; hosted_ci=passed; cross_platform=passed; independent_review=passed; tag=passed; artifact=passed; publication=passed; isolated_install=not-run.
+
+Published from immutable `7c0c950f58e848d5452eb5d6242e9d8661d2095a`. [Exact-source CI](https://github.com/AldenClark/dev-flow/actions/runs/39987471900) passes 822 semantic tests with two environment-specific skips and five 361-test compatibility cells. [Hosted artifacts](https://github.com/AldenClark/dev-flow/actions/runs/39988199437) pass archive/manifest/checksum/SPDX identity and exact-source/ref/signer-workflow-bound provenance/SBOM attestation checks. All four [public stable assets](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.1) match the verified hosted bytes, and 2.1.1 is observed as latest stable. The first native wording failures and scoped correction are preserved in the release progress record. Installation remains not-run and the complete delivery gate is not claimed passed.
 
 The [release progress](workstreams/dev-flow-2.1.1/progress.md) owns cumulative static review, final native checks, exact-SHA hosted CI and immutable artifact/publication observations. The existing compatibility selector includes manifest, workflow-default and product-state changes, so all five platform/Python cells remain applicable. Candidate and published bytes must not be rewritten. If the guidance weakens accepted guarantees or omits required defenses/evidence, pin the prior public `v2.1.0` and verify its installed identity in a separately authorized installation task.
 
