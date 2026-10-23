@@ -42,14 +42,14 @@ When the blind spot is non-trivial, read [coverage-techniques.md](coverage-techn
 ## Execute and challenge
 
 1. Run the smallest reproducer or focused changed test first; preserve its first failure.
-2. Challenge a high-risk or easy-to-fake oracle by showing it fails when its protected behavior is broken: use a pre-fix result, negative fixture, deliberate bounded perturbation, changed-code mutation, seeded fault, or independent cross-oracle.
-3. Restore perturbations, rerun the focused check, then run affected native module and boundary suites.
-4. Inspect the final diff and test changes. Rerun any check invalidated by later source, fixture, generated output, environment, or oracle edits.
+2. For a high-risk or easy-to-fake oracle, reuse applicable sensitivity evidence or show that breaking its protected behavior fails the intended assertion: use a pre-fix result, negative fixture, bounded mutation, seeded fault or independent relation. Rechallenge when the relevant inputs/oracle change or sensitivity is doubtful, not merely because another run started.
+3. If a perturbation was made, restore it and rerun the focused check. Run module and boundary checks affected by the repair, reusing valid results under [evidence freshness](evidence-contract.md#freshness-binding).
+4. Inspect the final diff and test changes against the last valid evidence for each claim. Include affected transitive consumers, assertions, fixture, runner/selector, configuration, generated output, toolchain and environment; cumulative PR breadth alone is not an intermediate repair's rerun scope. Unknown identity or impact needs a conservative affected check.
 5. Add broader regression, compatibility, or environment waves only where blast radius, delivery, or consequence requires them.
 
 For a target-environment promise, verify only its applicable links: final tested bytes, built artifact, installed/deployed target, effective config and data, intended user flow or effect, observation, and recovery. Read the target's effective state rather than trusting a source file or build command. A stale artifact or configuration change invalidates downstream evidence. Record host, simulator/emulator, device, hosted, and production claims separately.
 
-Do not skip a cheap focused check because a broad suite will run later. If retries disagree, record `FLAKY`; a retry is evidence about instability, not permission to keep the green attempt.
+Normal completion owes its result and resource guarantees; timeout/cancellation/recovery-specific proof is required when that path executes, not as a condition of an untriggered path's success. Material failure paths still need their own coverage. Do not skip a cheap focused check because a broad suite will run later. If retries disagree, record `FLAKY`; a retry is evidence about instability, not permission to keep the green attempt.
 
 ## Spend by consequence and stop by value
 
@@ -57,7 +57,7 @@ Do not skip a cheap focused check because a broad suite will run later. If retri
 - **Extended:** common configurations, affected platforms, historical defects, and plausible abnormal paths when they add a new obligation or meaningful sensitivity.
 - **Fringe:** low-probability, low-consequence, high-cost variants. Stop when these are all that remain and further work exposes no new material obligation, credible fault, or valuable mutant.
 
-Probability alone cannot demote a security, privacy, financial, corruption, safety, or irreversible failure. User-requested broad exploration also changes the budget. Otherwise do not enumerate an unbounded Cartesian product to manufacture completeness.
+Probability alone cannot demote a security, privacy, financial, corruption, safety, or irreversible failure. User-requested broad exploration also changes the budget; explicit full reruns or repeated stability observations remain part of the outcome. Otherwise do not enumerate an unbounded Cartesian product to manufacture completeness.
 
 For routine work, test code, commands, results, and a short limit are enough. Write a matrix only when several environments, compatibility directions, owners, or high-consequence gates genuinely need coordination. Long-lived project strategy belongs in the repository's existing testing owner when it will be reused.
 

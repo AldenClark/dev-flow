@@ -19,4 +19,8 @@ Do not commit, upload, attach, or externally share artifacts without separate au
 
 ## Freshness binding
 
-Any edit after a PASS to affected source, configuration, generated output, test oracle, platform wrapper, or delivery candidate invalidates that PASS until the smallest affected check runs on the final relevant bytes. Apply the same rule after delegated edits, review repair, new platform/repository scope, final-diff expansion, and delivery preparation. An unrelated documentation-only edit does not require an irrelevant runtime rerun.
+Bind each conclusion to its relevant source and transitive consumers, assertions, fixture, runner/selector, configuration, generated output, toolchain, environment and artifact identity. A change to an input that can affect the conclusion invalidates that PASS until the smallest affected check runs on the final inputs. Unchanged product code alone does not establish freshness. An unrelated documentation-only edit does not require an irrelevant runtime rerun.
+
+For an intermediate repair, compare with the last valid evidence for each claim, including unresolved failures and transitive impact; do not automatically rerun the cumulative PR scope. If identity or dependencies are uncertain, state the uncertainty and use a conservative affected check, not an assumed cache hit or a new evidence registry. A frozen delivery candidate still needs the repository's applicable acceptance evidence; an earlier similar command is insufficient.
+
+Apply this rule to sensitivity evidence too: retain a valid pre-fix failure or negative control while its protected fault, oracle and relevant inputs remain applicable. Rechallenge a changed or doubtful boundary; do not repeat fault injection solely because a new test run started. Explicit user requests for full reruns or repeated stability observations remain part of the authorized outcome.

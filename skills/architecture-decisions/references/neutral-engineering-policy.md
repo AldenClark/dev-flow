@@ -27,17 +27,18 @@ These are portable preferences among correct options. They do not override expli
 ## Types, failures, and resources
 
 - Use strong types, explicit capabilities, validated constructors, and exhaustive state handling where they reduce invalid states.
-- Validate untrusted input at the boundary and move typed values inward.
-- Use typed/matchable errors at library/domain boundaries and add operational context at application boundaries.
+- Validate external input, reloaded persisted data and cross-process representations at their trust boundary. Rely on validated internal types for invariants they actually guarantee; avoid repeating the same validation at every layer. Dynamic authorization and state checks remain necessary.
+- Use typed/matchable errors at library/domain boundaries and add operational context at application boundaries. Handle contractual recoverable failures; do not replace them with assertions, empty results or default success. Internal invariant violations follow language and repository conventions, including assertions where appropriate, without an automatic recovery promise.
+- Add retries, compensation, durable recovery, fallback stores or generic result wrappers only for a current responsibility with a credible failure model. Before removing an existing defense, trace its consumers and the responsibility that remains. A reachable counterexample or platform contract can justify protection without a past incident; low frequency alone cannot dismiss serious consequences.
 - Prefer structured concurrency, explicit resource owners, cancellation and join paths, deadlines, bounded queues, and named overload behavior.
-- Make acquisition, handoff, shutdown, drain, callback quiescence, and cleanup observable when the system owns such resources.
+- Make acquisition, handoff, shutdown, drain, callback quiescence, and cleanup observable when the system owns such resources. Require timeout/cancellation/recovery-specific proof when that path executes; normal completion still owes its own result and resource guarantees, not evidence of an untriggered failure response.
 
 ## Falsifiable design choices
 
 - Compare the existing convention, a smaller/local alternative, and any option with a demonstrated benefit; record only the decision facts that would matter to a future change.
 - State the assumption, consumer or workload that makes a material choice worthwhile and the condition that reopens it. Use a spike, contract check, measurement, or failure/recovery scenario when prose cannot distinguish alternatives.
 - AHA and design ablation apply only when a proposed abstraction, layer, dependency, cache, state machine, or extension point has unclear value. Keep local duplication or remove/bypass the isolated component, compare required behavior and failure surface, then simplify or retain the demonstrated responsibility.
-- Parse untrusted representation into a trusted type at the boundary when it centralizes normalization and error classification. It does not replace authorization or state checks that remain dynamic.
+- For disputed or costly defenses, explain the owned boundary, credible failure, existing protection and marginal benefit; ordinary guards need no separate justification record. Do not add a general recovery framework merely to make a lifecycle look complete.
 
 ## Dependencies and performance
 

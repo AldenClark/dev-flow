@@ -11,10 +11,10 @@ Do not activate it merely because a feature has tests or verification is request
 
 ## Choose the mode
 
-- **Diagnose/repair:** preserve the first suspicious result, separate product failure from harness failure, read `references/test-system-integrity.md`, account for all six obligations at the affected boundary, and challenge the native runner with the smallest safe negative control.
+- **Diagnose/repair:** preserve the first suspicious result, separate product failure from harness failure, read `references/test-system-integrity.md`, and account for all six obligations at the affected boundary. Reuse valid integrity evidence; challenge a changed or doubtful boundary with the smallest safe negative control.
 - **Establish/strengthen:** when a real task lacks the start, health, focused-test, boundary-oracle, targeted-log, or recovery feedback needed to see its outcome, read `references/system-design.md`. Build the smallest project-native capability that closes the observed gap. A small closed task with adequate feedback needs no setup expansion.
 
-In either mode, confirm what was discovered and executed. For an external effect, make the oracle identify the intended actor/source, request or event, and target effect; a background event or a mock call is not that outcome. Repair only the causal boundary, rerun the negative control and affected suite, then hand the six integrity dispositions and exact claim limits to `verification`.
+In either mode, confirm what was discovered and executed. For an external effect, make the oracle identify the intended actor/source, request or event, and target effect; a background event or a mock call is not that outcome. Repair only the causal boundary, recheck affected sensitivity and tests while retaining unaffected evidence, then hand the six integrity dispositions and exact claim limits to `verification`.
 
 Audit AI-authored tests against a source independent of the implementation—requirements/public contracts, final-code branch risks, properties/models, differential or metamorphic relations, or seeded faults. Test count and green execution do not resolve self-confirmation.
 

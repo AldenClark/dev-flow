@@ -12,9 +12,9 @@ Prove filters, paths, schemes, tags, feature flags, build variants, shards, and 
 
 ## Sensitivity
 
-Use a pre-fix result, negative fixture, safe changed-code/semantic mutation, seeded fault, deliberate assertion inversion, property violation, or independent oracle to show the gate fails when its claim is false. Confirm it fails because of the target assertion rather than setup or unrelated infrastructure. Restore perturbations before retaining evidence.
+Use a pre-fix result, negative fixture, safe changed-code/semantic mutation, seeded fault, deliberate assertion inversion, property violation, or independent oracle to show the gate fails when its claim is false. Confirm it fails because of the target assertion rather than setup or unrelated infrastructure. Restore perturbations before retaining evidence. Reuse this proof while the protected fault, oracle and relevant inputs remain applicable; challenge again when that boundary changes or sensitivity is doubtful, not on every run.
 
-For an external effect, seed an event from the wrong actor/source or with the wrong request identity. The intended user-flow oracle must fail even if a generic health check, network packet, log line, or mock invocation exists. Then show the intended actor produces the promised effect at the real boundary.
+For an external effect needing an attribution challenge, reuse applicable wrong-source evidence or seed an event from the wrong actor/source or request. The intended user-flow oracle must fail even if a generic health check, network packet, log line, or mock invocation exists. Show the intended actor produces the promised effect at the real boundary; a reused negative control does not replace affected product checks.
 
 ## Isolation
 
@@ -24,7 +24,7 @@ Check fixtures, clocks, randomness/seeds, environment, caches, files, ports, pro
 
 Distinguish runner launch, collection, executed tests, assertion outcomes, skips, expected failures, quarantines, cached results, retries, flaky disagreement, timeout, crash, cancellation, and infrastructure error. Inspect whether a retry hid the first failure and whether a cache reused results for different bytes/configuration. Do not collapse them into exit zero/nonzero.
 
-A green run from old source, generated inputs, configuration, or selected artifact is stale evidence. Bind the retained result to those inputs and repeat the smallest affected native check on the final inputs.
+A change to relevant source/consumers, assertions, fixture, runner/selector, configuration, generated inputs, toolchain, environment or selected artifact can invalidate a green result. Apply [evidence freshness](../../verification/references/evidence-contract.md#freshness-binding) and repeat the smallest affected native check; unrelated edits do not invalidate every result. Preserve the first failure and distinguish a repaired observation from a repaired product.
 
 ## Representativeness
 

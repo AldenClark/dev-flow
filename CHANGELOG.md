@@ -4,7 +4,17 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-No additional unreleased changes.
+## [2.1.1] - 2026-10-24
+
+Current candidate source identity: `2.1.1`. Current workspace state: `development` from `v2.1.0`. Independent clean-context review passed for the cumulative guidance delta. Publication is in preparation; release observations belong to the [2.1.1 progress](docs/workstreams/dev-flow-2.1.1/progress.md). Live-model qualification and installation are NOT RUN under the continuing user scope.
+
+### Changed
+
+- Evaluate the value of additional product guarantees before choosing mechanisms. Omit unsupported extras, recommend sufficient simpler options, and preserve user decisions over accepted behavior.
+- Keep code defenses at the boundaries that own their responsibilities; preserve untrusted-input, recoverable-failure and resource protections without adding default recovery promises for internal invariant violations.
+- Reuse applicable outcome and oracle-sensitivity evidence across intermediate repairs. Invalidate affected claims for changes to consumers, fixtures, runners, toolchains and environments; preserve first failures, explicit rerun requests and frozen-candidate acceptance requirements.
+
+These guidance changes implement the [audited proportionate engineering plan](docs/proportionate-engineering-plan.md). They add no CLI, Hook, schema, dependency or model-evaluation mechanism. Real-task benefit and cost reductions remain unverified.
 
 ## [2.1.0] - 2026-10-23
 

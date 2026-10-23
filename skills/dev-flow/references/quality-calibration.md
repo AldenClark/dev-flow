@@ -82,11 +82,13 @@ A missing capability does not grant substitute-tool authority. Judge an alternat
 
 ## Evidence freshness
 
-Bind an evidence conclusion to the relevant bytes, scope, environment, platform, and compatibility direction it actually observed. An affected source/config/generated-file edit after a PASS invalidates that PASS until the smallest affected-scope freshness check runs again. The same rule applies after delegated edits, review repairs, new platform/repository scope, final-diff expansion, and delivery preparation.
+Bind each conclusion to relevant source and transitive consumers, assertions, fixture, runner/selector, configuration, generated output, toolchain, environment, artifact and compatibility direction. A change that can affect it invalidates that PASS until the smallest affected-scope freshness check runs again. Apply the same rule after delegated edits, review repairs, new platform/repository scope, final-diff expansion and delivery preparation; unchanged product code alone does not establish freshness.
 
 Do not rerun an irrelevant oracle merely because any file changed: an unrelated documentation edit leaves unaffected runtime evidence current. At resume or fork, compare current Git roots and changed paths with the prior semantic checkpoint; mark only affected claims stale, carry forward clearly unaffected evidence, and choose the smallest ready next slice.
 
-For each added check, identify the remaining risk, which decision the result can change, and the stopping result or limit. Consume valid original results from their native owner instead of regenerating receipts or repeating status across documents. Distinguish an intermediate repair's affected evidence from the broader acceptance needed for a frozen delivery candidate. Once the primary outcome has sufficient evidence, reassess the net value of remaining auxiliary work before continuing; “deep” does not require exhausting every possible check.
+For intermediate repairs, use changes since the last valid evidence and unresolved conclusions, including transitive impact; cumulative PR breadth alone does not require another full run. Unknown identities or dependencies require a conservative affected check, not assumed reuse or a new tracking system. Frozen delivery candidates still need applicable repository acceptance. User-requested full reruns or repeated stability observations remain authorized outcomes.
+
+For each added check, identify the remaining risk, which decision the result can change, and the stopping result or limit. Consume valid original results, including applicable sensitivity evidence, from their native owner instead of regenerating receipts. Rechallenge changed or doubtful oracles; once the primary outcome has sufficient evidence, reassess remaining auxiliary work rather than exhausting every possible check.
 
 ## Semantic continuation checkpoint
 
