@@ -23,10 +23,12 @@
     "eligibility": "material user-owned bounded non-secret decision",
     "maximum_batch_size": 3,
     "recommendation": "first option with impact and tradeoff",
-    "free_form": "offer only when it can materially improve the decision",
+    "free_form": "allow additions, compatible combinations and uncertainty through a supported free-form path or conversation",
     "repository_resolvable_facts": "investigate without asking",
     "optional_only_surface": "optional non-blocking clarification only; never required decisions or approvals",
-    "required_choice": "pause dependent commitments and implementation until a valid answer"
+    "required_choice": "pause dependent commitments and implementation until a valid answer",
+    "technical_unknowns": "investigate autonomously; ask only user-owned business tradeoffs",
+    "rounds": "one to three high-value questions per round; no fixed total while material choices survive"
   },
   "routes": [
     {
@@ -40,7 +42,7 @@
       "id": "bounded-choice-fallback",
       "need": "material bounded non-secret choice",
       "tool_availability": "ineligible-unavailable-or-failed",
-      "route": "one focused non-enumerated Default-mode question or explicit blocker",
+      "route": "one focused Default-mode question with meaningful plain-text options when permitted, or explicit blocker",
       "transport": "normal conversation"
     },
     {
@@ -72,15 +74,19 @@
     "option_answer": "accept exactly one presented non-empty option",
     "other_answer": "accept exactly one non-empty free-form answer only when Other is enabled",
     "unknown_question_or_stale_revision": "ignore and leave unresolved",
-    "multiple_or_conflicting_answers": "leave unresolved as invalid",
+    "multiple_or_conflicting_answers": "invalid single-select transport stays unresolved; compatible free-form or conversational combinations require semantic interpretation",
     "cancel_or_interrupt": "leave unresolved without immediate re-prompt",
     "empty_omitted_or_malformed": "leave unresolved",
     "asynchronous_dispatch_or_pending": "leave unresolved; continue only independent authorized reversible work",
     "asynchronous_answer": "validate eventual answer and correlation to current question and meaning",
     "tool_exposed_but_ineligible": "use normal conversation for a required choice or report the blocker; never switch mode",
-    "tool_unavailable_or_invocation_failed": "allow at most one focused non-enumerated Default-mode fallback when the host permits, otherwise block",
+    "tool_unavailable_or_invocation_failed": "allow at most one focused Default-mode fallback with meaningful plain-text options when the host permits, otherwise block",
     "fallback_attempt_limit": 1,
-    "silent_recommendation_default": "forbidden"
+    "silent_recommendation_default": "forbidden",
+    "semantic_scope": "local answers resolve only their question; partial acceptance applies only to the accepted subset",
+    "uncertainty": "a valid uncertain answer leaves the material product choice unresolved",
+    "first_implementation": "important new feature requires explicit whole business-and-technical understanding acceptance or explicit waiver before first implementation; reuse accepted same scope",
+    "caller_flags": "diagnostic claims only; never evidence of user authority"
   },
   "recheck_triggers": [
     "effective input-tool mode, purpose, schema, or response lifecycle changes",

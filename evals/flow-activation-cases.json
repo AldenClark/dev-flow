@@ -4,7 +4,7 @@
   "cases": [
     {
       "id": "FLOW-U1-STOPS-BEFORE-DESIGN",
-      "command": ["route-task", "--intent", "change", "--requirement-class", "semantic-change", "--user-choice-open"],
+      "command": ["route-task", "--intent", "change", "--requirement-class", "semantic-change", "--first-important-implementation", "--user-choice-open"],
       "expect": {
         "requirement_understanding.confirmation": "required",
         "requirement_understanding.design_allowed": false,
@@ -14,18 +14,20 @@
       "excludes": {"routes": "architecture-decisions"}
     },
     {
-      "id": "FLOW-U1-WITH-CLEAR-SEMANTICS-CONTINUES",
-      "command": ["route-task", "--intent", "change", "--requirement-class", "semantic-change"],
+      "id": "FLOW-U1-CLEAR-DESIGN-WAITS-BEFORE-IMPLEMENTATION",
+      "command": ["route-task", "--intent", "change", "--requirement-class", "semantic-change", "--first-important-implementation"],
       "expect": {
-        "requirement_understanding.confirmation": "not-required",
+        "requirement_understanding.confirmation": "required",
         "requirement_understanding.design_allowed": true,
-        "requirement_understanding.next_action": "publish-understanding-and-continue"
+        "requirement_understanding.implementation_allowed": false,
+        "requirement_understanding.stop_before": "implementation",
+        "requirement_understanding.next_action": "design-then-confirm-whole-understanding-before-implementation"
       },
       "contains": {"routes": "requirements-design"}
     },
     {
       "id": "FLOW-U1-CONFIRMATION-RESUMES",
-      "command": ["route-task", "--intent", "change", "--requirement-class", "semantic-change", "--understanding-confirmed"],
+      "command": ["route-task", "--intent", "change", "--requirement-class", "semantic-change", "--first-important-implementation", "--understanding-confirmed"],
       "expect": {
         "requirement_understanding.confirmation": "confirmed",
         "requirement_understanding.design_allowed": true,

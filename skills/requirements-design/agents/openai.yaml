@@ -1,4 +1,4 @@
 interface:
   display_name: "Requirements and Design"
   short_description: "Clarify material product behavior and scope"
-  default_prompt: "Use $requirements-design to clarify the observable result, counterexample, protected behavior, and material product choices; for U1, publish a technology-neutral understanding sufficient for the next slice and stop in Default mode only for a surviving material user-owned choice or explicit review-first request; settled or confirmed semantics proceed through already-authorized work."
+  default_prompt: "Use $requirements-design to separate goals, constraints, preferences, candidate mechanisms and delegated technical exploration. Investigate technical facts, proactively clarify material business choices with meaningful options, and allow additions, combinations or uncertainty. Settled business meaning permits design; before an important new feature's first implementation obtain one explicit whole business-and-technical understanding confirmation or explicit waiver. Reuse accepted scope, keep local answers local, and remain in Default mode."

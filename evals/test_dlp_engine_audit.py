@@ -41,6 +41,30 @@ class AssignmentAuditTests(unittest.TestCase):
                 with self.subTest(expression=expression, separator=separator):
                     self.assertFalse(dlp.scan_text(source, include_identifiers=False))
 
+    def test_inline_relative_documentation_links_are_not_secret_literals(self):
+        field = "pass" + "word"
+        for link in (
+            "[configuration](docs/configuration.md)",
+            "[database setup](docs/guides/database-setup.md)",
+            "[configuration reference](docs/configuration.md)",
+        ):
+            with self.subTest(link=link):
+                self.assertFalse(dlp.scan_text(field + ": " + link, include_identifiers=False))
+
+        token = synthetic_token()
+        near_misses = (
+            "[configuration]",  # arbitrary bracketed values are still literals
+            "[configuration](https://example.invalid/docs.md)",
+            "[configuration](docs/configuration.md",  # malformed syntax
+            "[" + token + "](docs/configuration.md)",
+            "[configuration](docs/" + token + ".md)",
+            "[configuration](docs/configuration.md)" + token,
+            "[configuration reference](docs/configuration.md)extra-secret-value",
+        )
+        for link in near_misses:
+            with self.subTest(near_miss=link[:32]):
+                self.assertTrue(dlp.contains_high_confidence(dlp.scan_text(field + ": " + link, include_identifiers=False)))
+
     def test_literals_and_structured_assignments_remain_detected_and_redacted(self):
         field = "pass" + "word"
         value = "N7rQ4zP9mL2xV8cB"
@@ -136,6 +160,27 @@ class AssignmentAuditTests(unittest.TestCase):
 
 
 class RedactionAuditTests(unittest.TestCase):
+    def test_existing_report_redaction_marker_is_an_exact_placeholder(self):
+        field = "pass" + "word"
+        marker = "[REDACTED_SECRET]"
+        for payload in (
+            field + ": " + marker,
+            field + ": " + json.dumps(marker),
+            {field: marker},
+            {"report": [{field: marker}]},
+        ):
+            with self.subTest(payload_type=type(payload).__name__):
+                redacted, findings = dlp.redact_value(payload)
+                self.assertFalse(findings)
+                self.assertEqual(redacted, payload)
+
+        # A placeholder is an exact value, never a substring exemption.
+        token = synthetic_token()
+        for value in (marker + token, token + marker, "[UNREDACTED_VALUE]"):
+            redacted, findings = dlp.redact_value({field: value})
+            self.assertTrue(dlp.contains_high_confidence(findings))
+            self.assertNotIn(value, json.dumps(redacted))
+
     def test_generated_redaction_labels_are_stable_exact_placeholders(self):
         field = "pass" + "word"
         token = synthetic_token()

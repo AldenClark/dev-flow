@@ -184,6 +184,46 @@ class HookPayloadAuditTests(unittest.TestCase):
         self.assertLess(len(context), 1_000)
         self.assertLess(len(stdout), 2_000)
 
+    def test_posttool_existing_redaction_marker_keeps_safe_reports_visible(self) -> None:
+        field = "pass" + "word"
+        for padding in ("", "ordinary report text\n" * 400):
+            response = {"report": padding + field + ": [REDACTED_SECRET]"}
+            event = _base_event("PostToolUse") | {
+                "tool_name": "Bash",
+                "tool_input": {},
+                "tool_response": response,
+            }
+            with self.subTest(long_report=bool(padding)):
+                self.assertEqual(_invoke(event), (0, b"", b""))
+
+            token = _synthetic_token()
+            event["tool_response"] = {"report": response, "nested": [{field: token}]}
+            code, stdout, stderr = _invoke(event)
+            self.assertEqual((code, stderr), (0, b""))
+            result = json.loads(stdout)
+            self.assertEqual(result["decision"], "block")
+            self.assertFalse(result["continue"])
+            self.assertNotIn(token, stdout.decode("utf-8"))
+
+    def test_posttool_inline_documentation_reference_stays_visible(self) -> None:
+        field = "pass" + "word"
+        response = {"report": "ordinary report text\n" * 400 + field + ": [configuration reference](docs/configuration.md)"}
+        event = _base_event("PostToolUse") | {
+            "tool_name": "Bash",
+            "tool_input": {},
+            "tool_response": response,
+        }
+        self.assertEqual(_invoke(event), (0, b"", b""))
+
+        token = _synthetic_token()
+        event["tool_response"] = {"report": field + ": [" + token + "](docs/configuration.md)"}
+        code, stdout, stderr = _invoke(event)
+        self.assertEqual((code, stderr), (0, b""))
+        result = json.loads(stdout)
+        self.assertEqual(result["decision"], "block")
+        self.assertFalse(result["continue"])
+        self.assertNotIn(token, stdout.decode("utf-8"))
+
     def test_unicode_and_deep_json_fail_closed_without_tracebacks(self) -> None:
         token = _synthetic_token()
         invalid_unicode = _base_event("PostToolUse") | {

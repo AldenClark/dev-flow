@@ -11,7 +11,7 @@ from typing import Any
 
 
 ROUTE_BASIS_SCHEMA = "dev-flow.route-basis.v1"
-ROUTER_SEMANTICS_VERSION = "dev-flow.route-semantics.rc8.v1"
+ROUTER_SEMANTICS_VERSION = "dev-flow.route-semantics.v3"
 MAX_PREVIOUS_ROUTE_BYTES = 512 * 1024
 MAX_BASIS_LIST_ITEMS = 64
 MAX_BASIS_VALUE_CHARS = 256
@@ -30,6 +30,7 @@ ROUTE_BASIS_OPTION_DIMENSIONS = {
     "method_prerequisite": {"method"},
     "method_depth": {"method"},
     "requirement_class": {"requirement"},
+    "first_important_implementation": {"requirement"},
     "understanding_confirmed": {"requirement"},
     "waive_understanding_confirmation": {"requirement"},
     "user_choice_open": {"requirement"},
@@ -119,6 +120,7 @@ def build_basis(args: Any, context: dict[str, Any]) -> dict[str, Any]:
         },
         "requirement": {
             "class": context["understanding"]["class"],
+            "first_important_implementation": bool(context["understanding"]["first_important_implementation"]),
             "confirmed": bool(args.understanding_confirmed),
             "waived": bool(args.waive_understanding_confirmation),
             "user_choice_open": bool(args.user_choice_open),

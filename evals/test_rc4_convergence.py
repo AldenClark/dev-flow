@@ -317,6 +317,7 @@ class IncrementalRouteTests(unittest.TestCase):
             "method_prerequisite": ("--intent", "change", "--method-prerequisite", "test-oracle"),
             "method_depth": ("--intent", "change", "--method-depth", "deep"),
             "requirement_class": ("--intent", "change", "--requirement-class", "semantic-change"),
+            "first_important_implementation": ("--intent", "change", "--first-important-implementation"),
             "understanding_confirmed": ("--intent", "change", "--understanding-confirmed"),
             "waive_understanding_confirmation": ("--intent", "change", "--waive-understanding-confirmation"),
             "user_choice_open": ("--intent", "change", "--user-choice-open"),

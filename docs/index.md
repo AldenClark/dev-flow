@@ -19,7 +19,9 @@ This index routes contributors and agents to the smallest maintained knowledge o
 
 ## Managed work and release history
 
-- [Dev Flow 2.0.2](workstreams/dev-flow-2.0.2/): current DLP patch release, exact-candidate validation, publication and installation evidence.
+- [Dev Flow 2.1.0 local candidate](workstreams/dev-flow-upgrade-2026-10/implementation.md): current research and implementation boundaries, [competing designs](workstreams/dev-flow-upgrade-2026-10/design.md), and [facts, evidence and open decisions](workstreams/dev-flow-upgrade-2026-10/progress.md); no new release or installation claim.
+- [Dev Flow 2.0.3](workstreams/dev-flow-2.0.3/): current published stable release, routing calibration and action-specific delivery evidence.
+- [Dev Flow 2.0.2](workstreams/dev-flow-2.0.2/): historical DLP patch release, exact-candidate validation, publication and installation evidence.
 
 - [DLP comprehensive audit](workstreams/dlp-comprehensive-audit/implementation.md): source repair scope and [current findings/evidence](workstreams/dlp-comprehensive-audit/progress.md) for detection, redaction, Hook and one-shot state boundaries.
 

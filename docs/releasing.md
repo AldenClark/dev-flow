@@ -2,6 +2,16 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
+## 2.1.0 personal-assistant hardening candidate
+
+`2.1.0` is the local whole-version candidate. On 2026-10-23 the user authorized its version update and local commit only, with no additional evaluation or test rerun. Push, tag, artifact construction, publication and installation are not authorized. Implementation is complete; release qualification is not claimed.
+
+`v2.0.0-rc.9` is the latest public immutable RC tag; `v2.0.3` remains the published stable and default installation channel. `v2.0.3` is the rollback target for `2.1.0`. The previous published release and its `v2.0.2` rollback record below remain unchanged.
+
+Delivery state: commit=passed; hosted_ci=not-run; cross_platform=not-run; independent_review=not-run; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+
+Reuse the [candidate workstream evidence](workstreams/dev-flow-upgrade-2026-10/progress.md), retaining first failures, affected rechecks, the Windows-only skip and all unrun environments. Prior scoped independent reviews do not constitute final 2.1.0 release review. The three-case/eight-task behavior observation found no material regression and proved no overall benefit or cost advantage; it predates the latest coordination-guidance revision. Hosted/platform qualification, exact-candidate artifact/install/loading, full user journeys and long-term effects remain unverified. No existing 2.0.3 delivery pass or waiver transfers to this candidate. Local metadata/structure checks do not establish release readiness.
+
 ## 2.0.3 personal-assistant hardening release
 
 `2.0.3` publishes the task-relative model routing calibration without weakening native verification or authority. The user authorized preparation, commit, push, stable publication and primary installation on 2026-10-10. This R1 change affects ordinary classification, P5/P6 explicit promotion, active guidance and an additive adaptive-verification workload; the existing CLI compatibility matrix applies. The user explicitly waived all five live-model journeys for this 2.0.3 release on 2026-10-10. Record WAIVED, not PASS; no model comparison or extra spend is authorized.
@@ -164,14 +174,14 @@ For an R3 change, two local builds can establish deterministic behavior before h
 ```bash
 git rev-parse HEAD
 python3 tools/build_release.py build \
-  --root . --output dist-a --version 2.0.3 --commit FULL_COMMIT_SHA
+  --root . --output dist-a --version 2.1.0 --commit FULL_COMMIT_SHA
 python3 tools/build_release.py build \
-  --root . --output dist-b --version 2.0.3 --commit FULL_COMMIT_SHA
-cmp dist-a/dev-flow-2.0.3.tar.gz dist-b/dev-flow-2.0.3.tar.gz
+  --root . --output dist-b --version 2.1.0 --commit FULL_COMMIT_SHA
+cmp dist-a/dev-flow-2.1.0.tar.gz dist-b/dev-flow-2.1.0.tar.gz
 cmp dist-a/release-manifest.json dist-b/release-manifest.json
 cmp dist-a/SHA256SUMS dist-b/SHA256SUMS
 python3 tools/build_release.py verify \
-  --artifact-dir dist-a --expected-version 2.0.3 --expected-commit FULL_COMMIT_SHA
+  --artifact-dir dist-a --expected-version 2.1.0 --expected-commit FULL_COMMIT_SHA
 ```
 
 Determinism is asserted within the pinned environment. Promotion reuses attested bytes instead of rebuilding on another zlib/toolchain version.
@@ -182,17 +192,17 @@ After applicable exact-SHA CI is green:
 
 ```bash
 gh workflow run release-candidate.yml \
-  --ref main -f version=2.0.3 -f expected_sha=FULL_COMMIT_SHA
+  --ref main -f version=2.1.0 -f expected_sha=FULL_COMMIT_SHA
 ```
 
 The workflow has `contents: read`, `id-token: write`, and `attestations: write`. It has no release-publication permission. After download:
 
 ```bash
 python3 tools/build_release.py verify \
-  --artifact-dir dist --expected-version 2.0.3 --expected-commit FULL_COMMIT_SHA
-gh attestation verify dist/dev-flow-2.0.3.tar.gz \
+  --artifact-dir dist --expected-version 2.1.0 --expected-commit FULL_COMMIT_SHA
+gh attestation verify dist/dev-flow-2.1.0.tar.gz \
   --repo AldenClark/dev-flow
-gh attestation verify dist/dev-flow-2.0.3.tar.gz \
+gh attestation verify dist/dev-flow-2.1.0.tar.gz \
   --repo AldenClark/dev-flow \
   --predicate-type https://spdx.dev/Document/v2.3
 ```

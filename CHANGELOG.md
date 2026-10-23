@@ -4,7 +4,27 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-No additional unreleased changes.
+## [2.1.0] - Unreleased
+
+Current candidate source identity: `2.1.0`. Current workspace state: `development` from `v2.0.3`. Local commit only; no push, tag, publication or installation.
+
+### Fixed
+
+- Recognize the complete `[REDACTED_SECRET]` marker in already-redacted reports without treating it as a credential assignment. Marker substrings, unrelated bracketed values and neighboring secrets remain scanned; Hook output limits are unchanged.
+
+- Keep complete simple relative Markdown documentation links visible in reports while preserving literal-value and neighboring-secret detection.
+
+### Changed
+
+- Connect proactive business clarification, autonomous technical investigation, and one explicit whole-understanding confirmation before important first feature implementation. Reuse accepted scope and permit host-compatible plain-text choices.
+- Separate settled business/design scope from the first-implementation checkpoint in `route-task`, retain caller-reported authority limits in full and compact output, and invalidate old route reuse with semantics `v3`. `--first-important-implementation` separates checkpoint applicability from U1 depth; legacy `large-feature`, existing flags and aliases remain supported.
+- Report local Markdown handoff availability separately from tracking state and byte-matching availability at the checked HEAD, without making untracked documents errors.
+- Carry actual method conclusions into design, child briefs, review and acceptance; distinguish original intent, accepted subsets, current requirements and implementation gaps in existing knowledge owners.
+- Preserve simplification objectives and apply risk/decision/stopping criteria to added checks while reusing valid native evidence. Keep host interruption and late-result recovery separate from fresh success.
+
+- Reduce repeated routing/context reads, short polling and duplicate summaries in existing coordination guidance while retaining per-dispatch authority, budget and evidence checks; no new coordinator or tracking layer.
+
+These are local source changes under the [accepted whole-version design](docs/workstreams/dev-flow-upgrade-2026-10/design.md). Existing native evidence and the bounded three-case/eight-task behavior observation remain scoped in [progress](docs/workstreams/dev-flow-upgrade-2026-10/progress.md); first failures, affected rechecks and unrun environments are preserved. The behavior observation predates the coordination-guidance revision and establishes neither overall benefit nor cost savings. The 2.1.0 version/commit step adds no evaluation or test rerun, and grants no release or installation qualification.
 
 ## [2.0.3] - 2026-10-10
 

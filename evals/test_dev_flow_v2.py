@@ -86,6 +86,78 @@ class RuntimeGuidanceContractTests(unittest.TestCase):
 
 
 class RoutingTests(unittest.TestCase):
+    def test_minor_semantic_change_does_not_require_first_feature_confirmation(self) -> None:
+        for extra in ((), ("--ambiguity",), ("--material-tradeoff",)):
+            with self.subTest(extra=extra):
+                understanding = route("--intent", "change", "--requirement-class", "U1", *extra)["requirement_understanding"]
+                self.assertFalse(understanding["confirmation_required"])
+                self.assertTrue(understanding["implementation_allowed"])
+                self.assertFalse(understanding["authorization_granted"])
+        pending = route("--intent", "change", "--requirement-class", "U1", "--user-choice-open")["requirement_understanding"]
+        self.assertFalse(pending["design_allowed"])
+        self.assertFalse(pending["implementation_allowed"])
+
+    def test_risk_signal_does_not_establish_repository_investigation(self) -> None:
+        args = ("--intent", "design", "--risk", "public-api")
+        absent = route(*args)["capability_activation"]["method"]["selection"]
+        self.assertNotIn("repository-facts", absent["inferred_prerequisites"])
+        present = route(*args, "--repo-fact", "language=python")["capability_activation"]["method"]["selection"]
+        self.assertIn("repository-facts", present["inferred_prerequisites"])
+
+    def test_first_semantic_implementation_requires_whole_understanding(self) -> None:
+        arguments = ("--intent", "change", "--requirement-class", "U1", "--first-important-implementation")
+        pending = route(*arguments)["requirement_understanding"]
+        self.assertTrue(pending["confirmation_required"])
+        self.assertTrue(pending["design_allowed"])
+        self.assertTrue(pending["requirement_baseline_ready"])
+        self.assertFalse(pending["implementation_allowed"])
+        self.assertEqual(pending["stop_before"], "implementation")
+        self.assertEqual(pending["confirmation_evidence"], "not-verified-by-cli")
+        self.assertFalse(pending["authorization_granted"])
+        for flag in ("--understanding-confirmed", "--waive-understanding-confirmation"):
+            with self.subTest(flag=flag):
+                reported = route(*arguments, flag)["requirement_understanding"]
+                self.assertTrue(reported["implementation_allowed"])
+                self.assertEqual(reported["confirmation_evidence"], "not-verified-by-cli")
+                self.assertFalse(reported["authorization_granted"])
+        for flag in ("--understanding-confirmed", "--waive-understanding-confirmation"):
+            self.assertNotEqual(run_flow("route-task", *arguments, "--user-choice-open", flag).returncode, 0)
+
+    def test_first_feature_flag_survives_alias_and_structured_corrections(self) -> None:
+        alias = route("--intent", "diagnosis", "--first-important-implementation")
+        self.assertEqual(alias["intent"], "diagnose")
+        self.assertFalse(alias["requirement_understanding"]["implementation_allowed"])
+        invalid = run_flow("route-task", "--intent", "change", "--first-important-implementation", "--work-mode", "managd")
+        self.assertEqual(invalid.returncode, 2)
+        command = json.loads(invalid.stdout)["corrected_command"]
+        self.assertIn("--first-important-implementation", command)
+        replay = subprocess.run(shlex.split(command), capture_output=True, text=True)
+        self.assertEqual(replay.returncode, 0, replay.stderr)
+        self.assertFalse(json.loads(replay.stdout)["requirement_understanding"]["implementation_allowed"])
+        legacy = route("--task-type", "large-feature")["requirement_understanding"]
+        self.assertTrue(legacy["confirmation_required"])
+
+    def test_compact_preserves_implementation_checkpoint_and_authority_limit(self) -> None:
+        arguments = ("--intent", "design", "--requirement-class", "U1", "--first-important-implementation")
+        for flags in ((), ("--user-choice-open",), ("--understanding-confirmed",)):
+            with self.subTest(flags=flags):
+                full = route(*arguments, *flags)["requirement_understanding"]
+                compact = route(*arguments, *flags, "--compact")["requirement_understanding"]
+                for key in ("confirmation", "design_allowed", "implementation_allowed", "stop_before",
+                            "confirmation_evidence", "authorization_granted"):
+                    self.assertEqual(compact[key], full[key])
+
+    def test_previous_compact_confirmation_semantics_cannot_be_reused(self) -> None:
+        previous = route("--intent", "change", "--requirement-class", "U1", "--first-important-implementation", "--compact")
+        previous["route_basis"]["router_semantics"] = "dev-flow.route-semantics.v2"
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "previous.json"
+            source.write_text(json.dumps(previous), encoding="utf-8")
+            current = route("--intent", "change", "--requirement-class", "U1", "--first-important-implementation", "--previous-route", source)
+        self.assertEqual(current["recalibration"]["reason"], "incompatible-router-semantics")
+        self.assertEqual(current["recalibration"]["descendant_result_disposition"], "reject-until-rebased")
+        self.assertEqual(current["requirement_understanding"]["stop_before"], "implementation")
+
     def test_new_intent_is_primary_and_legacy_task_type_remains_compatible(self) -> None:
         current = route("--intent", "diagnose")
         self.assertEqual(current["intent"], "diagnose")
@@ -329,25 +401,30 @@ class RoutingTests(unittest.TestCase):
         self.assertTrue(direct["requirement_understanding"]["design_allowed"])
         self.assertEqual(
             direct["requirement_understanding"]["next_action"],
-            "publish-understanding-and-continue",
+            "continue",
         )
 
         managed = route("--intent", "design", "--durable-plan")
         self.assertEqual(managed["work_mode"], "managed")
         self.assertIn("durable-plan", managed["work_mode_reasons"])
         self.assertTrue(managed["requirement_understanding"]["durable_requirement_source"])
+        self.assertEqual(
+            managed["continuity"]["conditional_artifact_rules"]["design.md"],
+            "real-technical-tradeoffs-within-settled-business-scope-before-first-implementation-confirmation",
+        )
 
-    def test_semantic_change_stops_only_for_a_surviving_user_choice(self) -> None:
-        clear = route("--intent", "change", "--requirement-class", "semantic-change")
-        self.assertFalse(clear["requirement_understanding"]["confirmation_required"])
+    def test_semantic_design_and_first_implementation_have_distinct_stops(self) -> None:
+        clear = route("--intent", "change", "--requirement-class", "semantic-change", "--first-important-implementation")
+        self.assertTrue(clear["requirement_understanding"]["confirmation_required"])
         self.assertTrue(clear["requirement_understanding"]["design_allowed"])
-        self.assertEqual(clear["requirement_understanding"]["next_action"], "publish-understanding-and-continue")
+        self.assertEqual(clear["requirement_understanding"]["next_action"], "design-then-confirm-whole-understanding-before-implementation")
 
         pending = route(
             "--intent",
             "change",
             "--requirement-class",
             "semantic-change",
+            "--first-important-implementation",
             "--user-choice-open",
         )
         understanding = pending["requirement_understanding"]
@@ -357,7 +434,7 @@ class RoutingTests(unittest.TestCase):
         self.assertFalse(understanding["design_allowed"])
         self.assertEqual(understanding["stop_before"], "technical-design")
         self.assertIn("remain in Default mode", understanding["rules"])
-        self.assertTrue(any("stop only for an unresolved user-owned choice" in rule for rule in understanding["rules"]))
+        self.assertTrue(any("resolve user-owned choices before dependent commitments" in rule for rule in understanding["rules"]))
         self.assertIn("requirements-design", [item["skill"] for item in pending["routes"]])
         self.assertNotIn("a correction requires a complete revised understanding", understanding["rules"])
         self.assertTrue(
@@ -370,6 +447,7 @@ class RoutingTests(unittest.TestCase):
             "change",
             "--requirement-class",
             "semantic-change",
+            "--first-important-implementation",
             "--understanding-confirmed",
         )
         self.assertEqual(confirmed["requirement_understanding"]["confirmation"], "confirmed")
@@ -754,6 +832,7 @@ class RoutingTests(unittest.TestCase):
             "deep",
             "--requirement-class",
             "structural-adjustment",
+            "--first-important-implementation",
             "--understanding-confirmed",
             "--profile-operation",
             "--suite-maintenance",
@@ -1058,14 +1137,15 @@ class RoutingTests(unittest.TestCase):
             "requirement-baseline", pending_selection["available_prerequisites"]
         )
 
-    def test_settled_u1_method_baseline_tracks_design_permission(self) -> None:
+    def test_settled_u1_method_baseline_does_not_require_implementation_confirmation(self) -> None:
         arguments = (
-            "--intent", "change", "--requirement-class", "U1",
+            "--intent", "change", "--requirement-class", "U1", "--first-important-implementation",
             "--method-signal", "complex-rules", "--repo-fact", "language=python",
         )
         settled = route(*arguments)
         understanding = settled["requirement_understanding"]
-        self.assertTrue(understanding["design_allowed"])
+        self.assertTrue(understanding["requirement_baseline_ready"])
+        self.assertFalse(understanding["implementation_allowed"])
         selection = settled["capability_activation"]["method"]["selection"]
         self.assertIn("requirement-baseline", selection["inferred_prerequisites"])
         self.assertIn("decision-table", selection["selected"])
@@ -1156,7 +1236,7 @@ class RoutingTests(unittest.TestCase):
         )
         self.assertEqual(payload["intent"], "review")
         self.assertEqual(
-            set(payload["requirement_understanding"]), {"class", "next_action"}
+            set(payload["requirement_understanding"]), {"class", "next_action", "confirmation", "design_allowed", "implementation_allowed", "stop_before", "confirmation_evidence", "authorization_granted", "first_important_implementation"}
         )
         self.assertNotIn("confirmation_required", payload["requirement_understanding"])
         self.assertNotIn("method_selection", payload)
@@ -1523,10 +1603,10 @@ class ActiveGuidanceTests(unittest.TestCase):
         requirements = (ROOT / "skills" / "requirements-design" / "SKILL.md").read_text()
         semantic = (ROOT / "skills" / "requirements-design" / "references" / "semantic-and-scope.md").read_text()
         for phrase in (
-            "next coherent slice",
+            "next implementation slice",
             "read-only investigation",
             "reversible isolated probes",
-            "dependent commitments or implementation",
+            "Do not commit to or implement a branch",
             "does not select a product branch",
         ):
             with self.subTest(phrase=phrase):
@@ -1645,16 +1725,14 @@ class ActiveGuidanceTests(unittest.TestCase):
         self.assertIn("repository `progress.md` or its native equivalent", delivery)
         self.assertIn("owned paths or read-only responsibility", agent_control)
 
-    def test_requirements_agent_prompt_makes_u1_stop_conditional(self) -> None:
+    def test_requirements_agent_prompt_separates_design_and_first_implementation(self) -> None:
         prompt = (ROOT / "skills" / "requirements-design" / "agents" / "openai.yaml").read_text(
             encoding="utf-8"
         )
-        self.assertIn("for U1", prompt)
-        self.assertIn("technology-neutral understanding", prompt)
-        self.assertIn("stop in Default mode only", prompt)
-        self.assertIn("material user-owned choice", prompt)
-        self.assertIn("explicit review-first request", prompt)
-        self.assertIn("settled or confirmed semantics proceed", prompt)
+        for phrase in ("Investigate technical facts", "material business choices", "combinations or uncertainty",
+                       "Settled business meaning permits design", "first implementation", "whole business-and-technical",
+                       "Reuse accepted scope", "keep local answers local", "Default mode"):
+            self.assertIn(phrase, prompt)
         self.assertNotIn("approved requirement, design, and change-scope baseline", prompt)
 
     def test_readme_describes_every_change_review_trigger(self) -> None:

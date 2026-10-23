@@ -472,7 +472,7 @@ def evaluate_user_interaction_case(case: dict[str, object]) -> str:
         if event in {"tool-unavailable", "invocation-failed-before-presentation"}:
             attempts = case.get("fallback_attempts")
             if isinstance(attempts, int) and attempts < 1 and case.get("host_allows_plain_text") is True:
-                return "fallback-nonenumerated"
+                return "fallback-plain-text"
             return "unresolved-blocked"
     return "invalid-case"
 
@@ -717,7 +717,7 @@ def main() -> int:
         errors.append("structured user input must limit a batch to three questions")
     expected_routes = {
         "bounded-choice-native": ("eligible", "eligible current-turn synchronous or asynchronous question surface", "host owned"),
-        "bounded-choice-fallback": ("ineligible-unavailable-or-failed", "one focused non-enumerated Default-mode question or explicit blocker", "normal conversation"),
+        "bounded-choice-fallback": ("ineligible-unavailable-or-failed", "one focused Default-mode question with meaningful plain-text options when permitted, or explicit blocker", "normal conversation"),
         "open-ended": ("irrelevant", "normal conversation", "normal conversation"),
         "command-or-file-approval": ("irrelevant", "host native approval surface", "host owned"),
         "secret": ("secure-surface-dependent", "host-approved secure input with observed protected schema, or stop", "host owned"),
@@ -742,12 +742,12 @@ def main() -> int:
         "option_answer": "accept exactly one presented non-empty option",
         "other_answer": "accept exactly one non-empty free-form answer only when Other is enabled",
         "unknown_question_or_stale_revision": "ignore and leave unresolved",
-        "multiple_or_conflicting_answers": "leave unresolved as invalid",
+        "multiple_or_conflicting_answers": "invalid single-select transport stays unresolved; compatible free-form or conversational combinations require semantic interpretation",
         "cancel_or_interrupt": "leave unresolved without immediate re-prompt",
         "empty_omitted_or_malformed": "leave unresolved",
         "asynchronous_dispatch_or_pending": "leave unresolved; continue only independent authorized reversible work",
         "asynchronous_answer": "validate eventual answer and correlation to current question and meaning",
-        "tool_unavailable_or_invocation_failed": "allow at most one focused non-enumerated Default-mode fallback when the host permits, otherwise block",
+        "tool_unavailable_or_invocation_failed": "allow at most one focused Default-mode fallback with meaningful plain-text options when the host permits, otherwise block",
     }
     for field, expected in expected_response_policy.items():
         if response_policy.get(field) != expected:
@@ -803,6 +803,8 @@ def main() -> int:
         "invocation-failed-fallback",
         "fallback-exhausted",
         "plain-text-disallowed",
+        "compatible-combination-freeform",
+        "uncertain-freeform",
     }
     if observed_case_ids != required_case_ids:
         errors.append("user interaction response/lifecycle cases are incomplete")

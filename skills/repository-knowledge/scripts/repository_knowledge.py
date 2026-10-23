@@ -1006,8 +1006,80 @@ def _markdown_files(root: Path) -> list[str]:
     return sorted(item for item in files if Path(item).suffix.lower() in {".md", ".mdx"})
 
 
+def _versioned_paths(root: Path) -> tuple[set[str] | None, set[str] | None, str]:
+    """Return indexed paths, current HEAD paths, and the checked HEAD identity."""
+    try:
+        revision = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--verify", "HEAD"],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=30,
+        )
+        head_identity = revision.stdout.decode("ascii", errors="replace").strip() if revision.returncode == 0 else "unknown"
+        indexed = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "-z"],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=30,
+        )
+        head = subprocess.run(
+            ["git", "-C", str(root), "ls-tree", "-r", "--name-only", "-z", head_identity],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None, None, "unknown"
+    if indexed.returncode != 0:
+        return None, None, "unknown"
+    indexed_paths = {item.decode("utf-8", errors="replace") for item in indexed.stdout.split(b"\0") if item}
+    if head.returncode != 0:
+        return indexed_paths, None, "unknown"
+    head_paths = {item.decode("utf-8", errors="replace") for item in head.stdout.split(b"\0") if item}
+    if head_identity == "unknown":
+        return indexed_paths, None, "unknown"
+    return indexed_paths, head_paths, head_identity
+
+
+def _target_version_status(
+    root: Path, relative: str, head_paths: set[str] | None, head_identity: str
+) -> str:
+    if head_paths is None:
+        return "unknown"
+    if relative not in head_paths:
+        return "not-available"
+    path = root / relative
+    try:
+        if path.stat().st_size > 2 * 1024 * 1024:
+            return "unknown"
+    except OSError:
+        return "unknown"
+    if path.is_symlink():
+        return "unknown"
+    try:
+        committed = subprocess.run(
+            ["git", "-C", str(root), "show", f"{head_identity}:{relative}"],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=30,
+        )
+        if committed.returncode != 0:
+            return "unknown"
+        return "available" if committed.stdout == path.read_bytes() else "unknown"
+    except (OSError, subprocess.TimeoutExpired):
+        return "unknown"
+
+
 def _check_links(root: Path, repo: dict[str, Any]) -> list[dict[str, str]]:
     findings: list[dict[str, str]] = []
+    indexed_paths, head_paths, head_identity = _versioned_paths(root)
+    repo["link_handoffs"] = []
+    handoffs: set[tuple[str, str]] = set()
+    target_versions: dict[str, str] = {}
     observed: set[tuple[str, str, str]] = set()
     for relative in _markdown_files(root):
         source = root / relative
@@ -1045,7 +1117,17 @@ def _check_links(root: Path, repo: dict[str, Any]) -> list[dict[str, str]]:
                 continue
             if "/" not in decoded and "\\" not in decoded and "." not in decoded:
                 continue
-            resolved = (source.parent / decoded).resolve()
+            unresolved = source.parent / decoded
+            target_is_symlink = False
+            symlink_probe = unresolved
+            while symlink_probe == root or root in symlink_probe.parents:
+                if symlink_probe.is_symlink():
+                    target_is_symlink = True
+                    break
+                if symlink_probe == root:
+                    break
+                symlink_probe = symlink_probe.parent
+            resolved = unresolved.resolve()
             try:
                 resolved.relative_to(root.resolve())
             except ValueError:
@@ -1073,6 +1155,27 @@ def _check_links(root: Path, repo: dict[str, Any]) -> list[dict[str, str]]:
                             "message": f"Missing relative link target: {target}",
                         }
                     )
+                continue
+            if resolved.suffix.lower() not in {".md", ".mdx"}:
+                continue
+            target_path = resolved.relative_to(root.resolve()).as_posix()
+            handoff_key = (relative, target_path)
+            if handoff_key not in handoffs:
+                handoffs.add(handoff_key)
+                if target_path not in target_versions:
+                    target_versions[target_path] = _target_version_status(
+                        root, target_path, head_paths, head_identity
+                    )
+                repo["link_handoffs"].append(
+                    {
+                        "source": relative,
+                        "target": target_path,
+                        "local": "available",
+                        "repository": "tracked" if indexed_paths is not None and target_path in indexed_paths else "local-only" if indexed_paths is not None else "unknown",
+                        "target_version": "unknown" if target_is_symlink else target_versions[target_path],
+                        "checked_version": head_identity,
+                    }
+                )
     return findings
 
 
@@ -1127,6 +1230,11 @@ def check_report(
         "schema_version": SCHEMA_VERSION,
         "target": report["target"],
         "topology": report["topology"],
+        "link_handoffs": [
+            {"repository_path": repo["relative_path"], **handoff}
+            for repo in report["repositories"]
+            for handoff in repo.get("link_handoffs", [])
+        ],
         "status": "failed" if counts["error"] else "passed-with-warnings" if counts["warning"] else "passed",
         "counts": {"errors": counts["error"], "warnings": counts["warning"]},
         "findings": findings,
@@ -1262,7 +1370,13 @@ def check_markdown(result: dict[str, Any]) -> str:
         lines.append(
             f"- **{finding['severity'].upper()}** `{finding['code']}` `{finding['path']}` — {finding['message']}"
         )
-    if not result["findings"]:
+    if result["link_handoffs"]:
+        lines.extend(["", "## Relative Markdown handoffs", "", "| Repository | From | To | Local | Repository state | Target version |", "|---|---|---|---|---|---|"])
+        for handoff in result["link_handoffs"]:
+            lines.append(
+                f"| {handoff['repository_path']} | `{handoff['source']}` | `{handoff['target']}` | {handoff['local']} | {handoff['repository']} | {handoff['target_version']} |"
+            )
+    if not result["findings"] and not result["link_handoffs"]:
         lines.append("No deterministic knowledge findings.")
     return "\n".join(lines).rstrip() + "\n"
 

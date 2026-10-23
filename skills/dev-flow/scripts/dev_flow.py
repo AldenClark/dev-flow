@@ -349,6 +349,8 @@ def preprocess_route_argv(
         "--material-exposure",
         "--independent-review-authorized",
         "--understanding-confirmed",
+        "--first-important-implementation",
+        "--user-choice-open",
         "--waive-understanding-confirmation",
         "--profile-operation",
         "--suite-maintenance",
@@ -614,6 +616,8 @@ def corrected_route_command(
         command.extend(("--method-depth", args.method_depth))
     if args.requirement_class is not None:
         command.extend(("--requirement-class", args.requirement_class))
+    if args.first_important_implementation:
+        command.append("--first-important-implementation")
     if args.understanding_confirmed:
         command.append("--understanding-confirmed")
     if args.waive_understanding_confirmation:
@@ -940,7 +944,13 @@ def route_requirement_understanding(
         requirement_class = "semantic-change"
         source = "unresolved-user-choice-upgrade"
 
-    confirmation_required = requirement_class == "semantic-change" and args.user_choice_open
+    # Semantic depth does not establish an important feature's first implementation.
+    first_important_implementation = args.first_important_implementation or args.task_type == "large-feature"
+    if first_important_implementation:
+        requirement_class = "semantic-change"
+        source = "first-important-implementation"
+    # The route reports caller facts; it cannot observe consent or grant authority.
+    confirmation_required = first_important_implementation
     if args.understanding_confirmed:
         confirmation = "confirmed"
     elif args.waive_understanding_confirmation:
@@ -949,32 +959,44 @@ def route_requirement_understanding(
         confirmation = "required"
     else:
         confirmation = "not-required"
-    design_allowed = not confirmation_required or confirmation in {"confirmed", "waived"}
+    design_allowed = not args.user_choice_open
+    implementation_allowed = design_allowed and (
+        not confirmation_required or confirmation in {"confirmed", "waived"}
+    )
 
     return {
         "class": requirement_class,
         "class_source": source,
         "detailed_output": requirement_class in {"semantic-change", "structural-adjustment"},
         "confirmation_required": confirmation_required,
+        "first_important_implementation": first_important_implementation,
         "confirmation": confirmation,
+        "confirmation_evidence": "not-verified-by-cli",
+        "authorization_granted": False,
         "design_allowed": design_allowed,
-        "design_scope": "commitments and implementation dependent on the unresolved user choice",
+        "design_scope": "technical design within settled business scope; unresolved choices block dependent commitments",
+        "requirement_baseline_ready": not args.user_choice_open,
+        "implementation_allowed": implementation_allowed,
         "independent_learning_allowed": True,
         "next_action": (
             "publish-detailed-understanding-and-stop"
-            if confirmation_required and not design_allowed
-            else "publish-understanding-and-continue"
-            if requirement_class == "semantic-change" and confirmation == "not-required"
+            if not design_allowed
+            else "design-then-confirm-whole-understanding-before-implementation"
+            if not implementation_allowed
             else "continue"
         ),
-        "stop_before": "technical-design" if confirmation_required and not design_allowed else None,
+        "stop_before": (
+            "technical-design" if not design_allowed
+            else "implementation" if not implementation_allowed else None
+        ),
         "durable_requirement_source": work_mode == "managed" and requirement_class == "semantic-change",
         "rules": [
             "remain in Default mode",
             "resolve repository facts before asking the user",
-            "stop only for an unresolved user-owned choice that changes the outcome",
+            "resolve user-owned choices before dependent commitments; confirm whole business and material technical understanding before first important feature implementation",
+            "reuse accepted same-scope understanding; silence, partial answers, and caller flags are not user acceptance",
             "a correction revises the affected understanding and invalidates dependent design, code, tests and child results",
-            "independent authorized learning may continue; design_allowed and stop_before govern choice-dependent commitments and implementation",
+            "independent authorized learning may continue; pending first-implementation confirmation does not block technical investigation",
             "confirmation does not authorize dependencies, delivery, or destructive/external action",
         ],
     }
@@ -1078,9 +1100,9 @@ def route_capability_activation(
         translated_signals = {METHOD_SIGNAL_TRANSLATIONS[value] for value in method_signals}
         supplied_prerequisites = set(args.method_prerequisite)
         inferred_prerequisites: set[str] = set()
-        if repository_facts:
+        if args.repo_fact:
             inferred_prerequisites.add("repository-facts")
-        if understanding["design_allowed"]:
+        if understanding["requirement_baseline_ready"]:
             inferred_prerequisites.add("requirement-baseline")
         available_prerequisites = supplied_prerequisites | inferred_prerequisites
         method_phase, method_phase_source = task_facing_method_phase(
@@ -2176,7 +2198,7 @@ def route_task(args: argparse.Namespace) -> int:
                 else [],
                 "conditional_artifact_rules": {
                     "requirements.md": "only-confirmed-complex-semantics-not-an-unknown-baseline",
-                    "design.md": "only-real-technical-tradeoffs-after-required-semantic-confirmation",
+                    "design.md": "real-technical-tradeoffs-within-settled-business-scope-before-first-implementation-confirmation",
                     "decisions.md": "only-durable-decisions-without-a-repository-native-home",
                 }
                 if work_mode == "managed"
@@ -2297,7 +2319,11 @@ def route_task(args: argparse.Namespace) -> int:
             "work_mode": payload["work_mode"],
             "requirement_understanding": {
                 key: payload["requirement_understanding"][key]
-                for key in ("class", "next_action")
+                for key in (
+                    "class", "next_action", "confirmation", "design_allowed",
+                    "implementation_allowed", "stop_before", "first_important_implementation",
+                    "confirmation_evidence", "authorization_granted",
+                )
             },
             "routes": [item["skill"] for item in payload["routes"]],
             "risk_overlays": [item["overlay"] for item in payload["risk_overlays"]],
@@ -2894,16 +2920,21 @@ def build_parser() -> argparse.ArgumentParser:
         choices=sorted(REQUIREMENT_CLASSES),
         help="Semantic understanding depth; U1-U5 aliases are accepted and output remains canonical",
     )
+    route.add_argument(
+        "--first-important-implementation",
+        action="store_true",
+        help="Caller identifies an important new feature's first implementation; requires whole understanding confirmation; large-feature implies this flag",
+    )
     route_confirmation = route.add_mutually_exclusive_group()
     route_confirmation.add_argument(
         "--understanding-confirmed",
         action="store_true",
-        help="The complete U1 understanding was explicitly confirmed; retain semantic-change and continue",
+        help="Caller reports explicit acceptance of whole U1 business and technical understanding; retain semantic-change and continue; CLI does not verify consent",
     )
     route_confirmation.add_argument(
         "--waive-understanding-confirmation",
         action="store_true",
-        help="The request explicitly waives U1 reconfirmation; retain semantic-change and continue",
+        help="Caller reports an explicit user waiver of U1 confirmation; retain semantic-change and continue; never infer a waiver from silence",
     )
     route_confirmation.add_argument(
         "--user-choice-open",

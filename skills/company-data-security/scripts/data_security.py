@@ -107,6 +107,8 @@ _ASSIGNMENT_RE = re.compile(
 )
 _QUOTED_LITERAL_RE = re.compile(r'''[ \t\r\n]*(?P<literal>"(?:[^"\\\r\n]|\\[^\r\n])*"|'(?:[^'\\\r\n]|\\[^\r\n])*')''')
 
+_RELATIVE_DOC_LINK_RE = re.compile(r"\[[a-z]+(?:[ -][a-z]+)*\]\(docs/(?:[a-z0-9-]+/)*[a-z0-9-]+\.md\)")
+
 _IDENTIFIER_RULES = (
     _Rule(
         "C3-EMAIL",
@@ -132,6 +134,7 @@ _PRIVATE_KEY_BODY_RE = re.compile(
 )
 _PLACEHOLDER_RE = re.compile(
     r"(?:\{\{DLP:(?:SECRET|EMAIL|PHONE):[0-9a-f]{8}\}\})|"
+    r"\[REDACTED_SECRET\]|"
     r"(?:\$(?:\{[A-Z_][A-Z0-9_]*\}|[A-Z_][A-Z0-9_]*)|\{\{[A-Z_][A-Z0-9_]{0,79}\}\}|"
     r"<(?:redacted|placeholder|secret|token|password)>|(?-i:<[A-Z_][A-Z0-9_]{0,79}>)|"
     r"\b(?:redacted|placeholder|example|sample|dummy|fake|test|testing|changeme|replace[_-]?me|your[_-](?:api[_-]key|token|password|secret|access[_-]token|client[_-]secret|key))\b|"
@@ -251,6 +254,13 @@ def _assignment_findings(text: str) -> list[Finding]:
                 quoted = True
                 start, end = nested.span("literal")
         if not _assignment_value_is_confident(value, literal=quoted):
+            continue
+        # A complete, simple relative Markdown reference to a docs/*.md page
+        # is report prose. Keep the grammar deliberately narrow: arbitrary
+        # brackets, external links, malformed links, and mixed-case/token-like
+        # labels or paths remain subject to the ordinary assignment scan.
+        link = _RELATIVE_DOC_LINK_RE.match(text, start) if not quoted else None
+        if link and (link.end() == len(text) or text[link.end()] in " \t\r\n\"',;}{"):
             continue
         _add_finding(found, Finding("C4-SENSITIVE-ASSIGNMENT", "secret_assignment", "C4", "secret", start + quoted, end - quoted))
     return found

@@ -43,6 +43,17 @@ def init_repo(path: Path, files: dict[str, str]) -> None:
         target.write_text(content, encoding="utf-8")
 
 
+def commit_repo(path: Path) -> None:
+    subprocess.run(["git", "-C", str(path), "add", "-A"], check=True)
+    subprocess.run(
+        [
+            "git", "-C", str(path), "-c", "user.name=Knowledge Test",
+            "-c", "user.email=knowledge-test@example.invalid", "commit", "-qm", "fixture",
+        ],
+        check=True,
+    )
+
+
 class RepositoryKnowledgeTests(unittest.TestCase):
     def test_single_repository_reuses_small_readme_as_index(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -211,6 +222,61 @@ class RepositoryKnowledgeTests(unittest.TestCase):
                 item for item in result["findings"] if item["code"] == "nonportable-local-link"
             )
             self.assertNotIn("C:/", local_finding["message"])
+
+    def test_check_reports_relative_markdown_handoff_availability(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "service"
+            init_repo(
+                root,
+                {
+                    "AGENTS.md": "# Guidance\n",
+                    "docs/index.md": "[Tracked](tracked.md) [Local](local.md)\n",
+                    "docs/tracked.md": "# Tracked\n",
+                },
+            )
+            commit_repo(root)
+            (root / "docs" / "local.md").write_text("# Local\n", encoding="utf-8")
+
+            report = knowledge.scan(root)
+            result = knowledge.check_report(report)
+            handoffs = {(item["target"], item["repository"], item["target_version"]) for item in result["link_handoffs"]}
+            self.assertIn(("docs/tracked.md", "tracked", "available"), handoffs)
+            self.assertIn(("docs/local.md", "local-only", "not-available"), handoffs)
+            self.assertFalse(any(item["code"] == "untracked-handoff" for item in result["findings"]))
+
+            (root / "docs" / "tracked.md").write_text("# Edited locally\n", encoding="utf-8")
+            result = knowledge.check_report(knowledge.scan(root))
+            tracked = next(item for item in result["link_handoffs"] if item["target"] == "docs/tracked.md")
+            self.assertEqual(tracked["repository"], "tracked")
+            self.assertEqual(tracked["target_version"], "unknown")
+
+    def test_symlink_handoff_is_unknown_and_names_checked_head(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "service"
+            init_repo(
+                root,
+                {
+                    "AGENTS.md": "# Guidance\n",
+                    "docs/index.md": "[Next](linked/next.md)\n",
+                    "docs/actual/next.md": "# Actual\n",
+                },
+            )
+            (root / "docs" / "linked").symlink_to("actual", target_is_directory=True)
+            commit_repo(root)
+
+            result = knowledge.check_report(knowledge.scan(root))
+            handoff = result["link_handoffs"][0]
+            self.assertEqual(handoff["target_version"], "unknown")
+            self.assertEqual(len(handoff["checked_version"]), 40)
+
+    def test_handoff_target_version_is_unknown_without_a_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "service"
+            init_repo(root, {"docs/index.md": "[Next](next.md)\n", "docs/next.md": "# Next\n"})
+
+            result = knowledge.check_report(knowledge.scan(root))
+            self.assertEqual(result["link_handoffs"][0]["repository"], "local-only")
+            self.assertEqual(result["link_handoffs"][0]["target_version"], "unknown")
 
     def test_scan_is_read_only_and_ignores_sensitive_filename(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

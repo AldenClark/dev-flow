@@ -8,7 +8,7 @@ Use this reference to decide which artifact owns a fact and how agents discover 
 |---|---|---|---|
 | Navigation | `AGENTS.md`, existing instruction equivalent | Scope, pointers, golden commands, protected boundaries | Always for the affected path |
 | Stable map | `README.md`, `docs/index.md`, or repository-native portal | Components, purpose, ownership, boundaries, deeper links | At task entry, then follow relevant links |
-| Current truth | Architecture, product, contract, operations, module documents | Maintained explanation of how the system works | Only for an affected boundary |
+| Current contract and implementation | Architecture, product, contract, operations, module documents | Required behavior, observed implementation, and any gap between them | Only for an affected boundary |
 | Rationale | ADRs, fork records, focused change records | Why a durable choice exists, alternatives, consequences, recheck trigger | When changing or challenging the choice |
 | Operations | Runbooks plus repository commands | Human judgment, prerequisites, failure/recovery, deterministic execution | For the named operation |
 | Managed change | Repository-native workstream/plan documents | Scope, slices, design, progress, handoff | While the workstream is active |
@@ -38,7 +38,17 @@ Exclude:
 
 Use a stable index when readers need to choose among three or more components or knowledge areas. A small library may use its README as the index. A larger repository should normally link from README to a focused `docs/index.md`; do not create a second index that duplicates a complete working README.
 
-Use an ADR for a material choice whose rationale and alternatives will remain useful after implementation. Accepted ADRs are historical records: supersede rather than silently rewrite them. Put the maintained present behavior in current-truth documentation and link to the ADR for rationale.
+Use an ADR for a material choice whose rationale and alternatives will remain useful after implementation. Accepted ADRs are historical records: supersede rather than silently rewrite them. Put the maintained current requirement and implementation status in their existing owners and link to the ADR for rationale.
+
+## Intent, accepted decisions, and implementation gaps
+
+Keep the original intent traceable through an existing issue, user statement, or decision source, including the reason for the accepted choice. A proposed mechanism or an assistant summary is not a user decision. When only part of a proposal was accepted, identify that subset and leave the rest proposed or unresolved; do not promote the whole proposal into the contract.
+
+Distinguish what is currently required from what source or runtime evidence shows is implemented. Name a material gap, including platform differences, rather than rewriting the requirement to match today's code. Link implementation status to its native evidence; do not copy logs or maintain a second inventory.
+
+A later decision may replace only one clause: identify that clause and its replacement source while preserving the unaffected contract and historical rationale. If the requirement body cannot be updated in the same authorized change, put a short temporary pointer in the affected paragraph to the accepted decision, then remove it when the body is synchronized. A note hidden only in progress is insufficient for a reader who starts from the requirement.
+
+Implementation rollback changes observed delivery status; it does not revoke an accepted product decision. Only an actual superseding product decision changes the requirement. Record the resulting implementation gap in the existing owner. These are content distinctions, not mandatory fields, a new ledger, or an approval workflow. For a worked handoff into design and verification, see [the integrated example](../../dev-flow/references/methodology-system.md#integrated-example-status-presentation-and-recovery).
 
 Use a runbook when success depends on human judgment, credentials/roles, environment state, sequencing, observation, or recovery. Move repeated deterministic steps into a repository command; keep the runbook as the explanation and exception/recovery guide.
 

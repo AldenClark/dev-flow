@@ -86,6 +86,8 @@ Bind an evidence conclusion to the relevant bytes, scope, environment, platform,
 
 Do not rerun an irrelevant oracle merely because any file changed: an unrelated documentation edit leaves unaffected runtime evidence current. At resume or fork, compare current Git roots and changed paths with the prior semantic checkpoint; mark only affected claims stale, carry forward clearly unaffected evidence, and choose the smallest ready next slice.
 
+For each added check, identify the remaining risk, which decision the result can change, and the stopping result or limit. Consume valid original results from their native owner instead of regenerating receipts or repeating status across documents. Distinguish an intermediate repair's affected evidence from the broader acceptance needed for a frozen delivery candidate. Once the primary outcome has sufficient evidence, reassess the net value of remaining auxiliary work before continuing; “deep” does not require exhausting every possible check.
+
 ## Semantic continuation checkpoint
 
 Before interruption/handoff and after a material objective, repository, platform, or delivery-boundary change, record only completed/current/next outcomes, the terminal condition, discovery mode, mutation/action boundary, non-goals and rejected expansions, affected Git roots, user-owned changes, active process identity when one exists, stale evidence, blockers or unrun gates, the recommended next slice, and worktree/parallel-change state. This is repository-owned continuity, not a transcript, task database, or authority to create a host task/worktree.

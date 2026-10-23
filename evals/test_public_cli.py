@@ -95,12 +95,12 @@ class PublicCliTests(unittest.TestCase):
                 direct = run(LEGACY, command, "--help")
                 self.assertEqual(direct.returncode, 2)
 
-    def test_supported_route_uses_compact_rc8_contract(self) -> None:
+    def test_supported_route_uses_current_compact_contract(self) -> None:
         result = run(FLOW, "route-task", "--intent", "change", "--compact")
         self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
         payload = json.loads(result.stdout)
         self.assertEqual(set(payload["route_basis"]), {"schema", "router_semantics", "digest"})
-        self.assertEqual(payload["route_basis"]["router_semantics"], "dev-flow.route-semantics.rc8.v1")
+        self.assertEqual(payload["route_basis"]["router_semantics"], "dev-flow.route-semantics.v3")
         self.assertEqual(set(payload["method"]), {"action", "status", "selected", "blocked"})
 
     def test_explain_is_the_explicit_full_form_and_conflicts_with_compact(self) -> None:

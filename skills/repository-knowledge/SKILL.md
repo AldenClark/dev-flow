@@ -5,7 +5,7 @@ description: "Use when durable truth lacks a discoverable owner, is stale or con
 
 # Repository Knowledge
 
-Establish the smallest maintainable knowledge topology that lets people and later agents find current truth without relying on chat history. This Skill owns placement and reader paths, not every ordinary documentation update.
+Establish the smallest maintainable knowledge topology that lets people and later agents find current requirements, their rationale, and actual implementation without relying on chat history. This Skill owns placement and reader paths, not every ordinary documentation update.
 
 ## Responsibility contract
 
@@ -39,6 +39,8 @@ python3 scripts/repository_knowledge.py map --root <path> --task "<task>" --form
 python3 scripts/repository_knowledge.py check --root <path> --format markdown
 ```
 
+A passed `check` confirms only the local checkout and reported target-version evidence; report the selected owner and delivery scope separately.
+
 ## First action
 
 Identify the next reader and the durable fact they need, then locate its existing owner and entry path before proposing files. For a new small library, test whether its README can be the native entry. For conflicting API guidance, identify each active claimant and its readers before choosing one canonical owner. Do not start by creating a `docs/` tree or a phase template.
@@ -51,7 +53,7 @@ Identify the next reader and the durable fact they need, then locate its existin
 4. Read [knowledge-topology.md](references/knowledge-topology.md) when selecting artifacts or deciding what belongs in AGENTS.md, an index, current-truth docs, ADRs, runbooks, automation, or generated maps.
 5. Read [repository-shapes.md](references/repository-shapes.md) for monorepo, nested-root, workspace-container, or multi-repository planning.
 6. Preserve a useful existing convention. Prefer linking and focused repair over creating a parallel `docs/` hierarchy. Never copy facts already owned by manifests, source, schemas, tests, CI, or runtime configuration.
-7. For `plan`, assign one canonical owner to each durable fact and identify readers, next-read path, enforcement, freshness/recheck trigger, and disposition of overlapping existing documents. Distinguish current truth from historical rationale and generated evidence; merge, link, supersede, or report conflicting owners rather than silently duplicating them.
+7. For `plan`, assign one canonical owner to each durable fact and identify readers, next-read path, enforcement, freshness/recheck trigger, and disposition of overlapping existing documents. Separate current required behavior, actual implementation and its gaps, historical rationale, and generated evidence using [knowledge-topology.md](references/knowledge-topology.md). Merge, link, supersede, or report conflicting owners rather than silently duplicating them.
 8. For `bootstrap`, show the plan before material replacement unless the user already authorized the exact rewrite. Create only files justified by current knowledge; do not create empty ADR, runbook, architecture, catalog, or workstream shells. A README can be the native entry for a small project; establish `docs/` plus an index (or a project equivalent) only once multiple long-lived knowledge domains need navigation.
 9. Write maintained prose for both people and agents. Read [writing-for-people-and-agents.md](references/writing-for-people-and-agents.md) before generating or materially restructuring documents.
 10. For a code task, use `map --task` after the stable index identifies the affected repository or component. Treat its ranked paths and symbols as candidate retrieval evidence; verify the actual source before deciding or editing.
@@ -71,6 +73,6 @@ Identify the next reader and the durable fact they need, then locate its existin
 
 ## Quality and stopping
 
-A useful result lets the next reader find the needed current truth, know why it is authoritative, and know when to recheck it. A later task should not need this chat to continue. Stop after the smallest owner/path change that solves that problem. If ownership remains genuinely ambiguous, report the competing owners and needed owner decision; do not promote an inference into policy or keep expanding documentation.
+A useful result lets the next reader find the current requirement and implementation gap, know why each is authoritative, and know when to recheck it. Check the affected entry path: a later task should be able to carry the accepted intent into design and test expectations without this chat or inferring requirements from code. Stop after the smallest owner/path change that solves that problem. If ownership remains genuinely ambiguous, report the competing owners and needed owner decision; do not promote an inference into policy or keep expanding documentation.
 
 Do not use this Skill to execute or monitor a release, manage personal preferences, generate generic language documentation, or replace a repository's working documentation system without a demonstrated navigation, ownership, or drift problem.

@@ -123,5 +123,39 @@ class AsyncInteractionTests(unittest.TestCase):
                 self.assertEqual(evaluate_user_interaction_case(case | change), expected)
 
 
+class FreeFormAndFallbackTests(unittest.TestCase):
+    def test_combination_and_uncertainty_are_valid_single_freeform_responses(self) -> None:
+        # Transport acceptance does not decide compatibility or authorize implementation.
+        base = {
+            "kind": "response", "question_id": "scope", "expected_question_id": "scope",
+            "requirement_revision": 1, "current_requirement_revision": 1,
+            "options": ["existing", "new"], "other_enabled": True,
+        }
+        for answer in ("Both, keeping opt-in migration", "Not sure; compare the consequences"):
+            with self.subTest(answer=answer):
+                case = base | {"answers": [answer]}
+                self.assertEqual(evaluate_user_interaction_case(case), "accepted-other")
+                self.assertEqual(
+                    evaluate_user_interaction_case(case | {"other_enabled": False}),
+                    "unresolved-invalid",
+                )
+        self.assertEqual(
+            evaluate_user_interaction_case(base | {"answers": ["existing", "new"]}),
+            "unresolved-invalid",
+        )
+
+    def test_fallback_before_presentation_preserves_cancel_and_host_limits(self) -> None:
+        base = {"kind": "lifecycle", "event": "tool-unavailable",
+                "fallback_attempts": 0, "host_allows_plain_text": True}
+        self.assertEqual(evaluate_user_interaction_case(base), "fallback-plain-text")
+        for change, expected in (
+            ({"host_allows_plain_text": False}, "unresolved-blocked"),
+            ({"fallback_attempts": 1}, "unresolved-blocked"),
+            ({"event": "user-cancelled"}, "unresolved-no-reprompt"),
+        ):
+            with self.subTest(change=change):
+                self.assertEqual(evaluate_user_interaction_case(base | change), expected)
+
+
 if __name__ == "__main__":
     unittest.main()

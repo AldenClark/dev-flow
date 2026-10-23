@@ -4,7 +4,7 @@ Use these methods to prevent “correct implementation of the wrong thing.” Re
 
 ## Semantic baseline
 
-Keep the current understood outcome, protected constraints, reversible assumptions, unresolved material choices, and observable acceptance in the existing owner. A short task may keep this in its current conversation; durable continuation uses the repository's existing contract, design, or progress surface. Resolve repository facts directly and ask only for a surviving user-owned choice. On correction, replace the affected understanding and invalidate dependent plans, tests, and late child results before continuing.
+Keep the current understood outcome, protected constraints, reversible assumptions, unresolved material choices, and observable acceptance in the existing owner. A short task may keep this in its current conversation; durable continuation uses the repository's existing contract, design, or progress surface. Resolve technical facts directly and proactively ask about material business choices. Settled business scope supports design; important first feature implementation still needs explicit whole business-and-technical acceptance under `requirements-design`. On correction, replace the affected understanding and invalidate dependent plans, tests, and late child results before continuing.
 
 Ordinary work needs no ambiguity ledger, stable acceptance IDs, approved-byte snapshot, or digest. Use such structure only when a genuine native consumer or regulated traceability contract requires it. The evidence is current user intent plus observable examples and failure-sensitive checks; a recorded baseline alone proves neither agreement nor correctness.
 

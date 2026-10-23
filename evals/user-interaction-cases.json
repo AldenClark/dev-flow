@@ -115,7 +115,7 @@
       "event": "tool-unavailable",
       "fallback_attempts": 0,
       "host_allows_plain_text": true,
-      "expected": "fallback-nonenumerated"
+      "expected": "fallback-plain-text"
     },
     {
       "id": "invocation-failed-fallback",
@@ -123,7 +123,7 @@
       "event": "invocation-failed-before-presentation",
       "fallback_attempts": 0,
       "host_allows_plain_text": true,
-      "expected": "fallback-nonenumerated"
+      "expected": "fallback-plain-text"
     },
     {
       "id": "fallback-exhausted",
@@ -140,6 +140,30 @@
       "fallback_attempts": 0,
       "host_allows_plain_text": false,
       "expected": "unresolved-blocked"
+    },
+    {
+      "kind": "response",
+      "expected_question_id": "scope",
+      "question_id": "scope",
+      "options": ["existing users", "new users"],
+      "other_enabled": true,
+      "requirement_revision": 3,
+      "current_requirement_revision": 3,
+      "expected": "accepted-other",
+      "id": "compatible-combination-freeform",
+      "answers": ["Both existing and new users; retain the existing migration opt-in."]
+    },
+    {
+      "kind": "response",
+      "expected_question_id": "scope",
+      "question_id": "scope",
+      "options": ["existing users", "new users"],
+      "other_enabled": true,
+      "requirement_revision": 3,
+      "current_requirement_revision": 3,
+      "expected": "accepted-other",
+      "id": "uncertain-freeform",
+      "answers": ["Not sure; compare the user-visible consequences first."]
     }
   ]
 }

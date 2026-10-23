@@ -5,7 +5,7 @@ description: "Guide non-trivial repository work from intent through design, impl
 
 # Dev Flow · Repository Engineering
 
-Deliver the outcome through the smallest complete path. Show it in decisions, code, tests, and maintained knowledge—not mandatory artifacts.
+Deliver the outcome with minimal process and trustworthy evidence.
 
 ## Boundaries
 
@@ -18,11 +18,11 @@ Use `repo-context` alone for a narrow read-only repository fact. Handle a self-c
 
 ## Natural loop
 
-Move through only the positions the work needs. Revisit one when evidence changes its premise.
+Revisit a position only when evidence changes its premise.
 
-1. **Understand.** Inspect truth. Use `requirements-design` for the next slice's behavior, counterexamples, recovery, and choices. In Default mode, pause dependent work only for a material choice or explicit review-first request under `user-interaction.md`; confirmed semantics proceed. Independent authorized learning may continue.
-2. **Shape.** Trace affected boundaries and consumers. Load a professional owner when it can change a decision. For uncertain meaning or cause, compare decision-changing alternatives and one disconfirming case; closed work needs no broad ideation.
-3. **Implement a coherent slice.** Prefer an end-to-end result over disconnected layers. Separate behavior from broad refactoring where practical. Parse at untrusted boundaries, make invalid states harder to represent, follow repository conventions, and update generated and consumer surfaces together.
+1. **Understand.** Inspect truth; distinguish goals, constraints, preferences, candidate ideas, and delegated exploration. Use `requirements-design` to clarify business choices proactively; investigate technical unknowns yourself. Pause only dependent work for unresolved material choices or an explicit review-first request.
+2. **Shape.** Trace boundaries and consumers. Use the owner or method that can change the decision; carry its actual insight into design, implementation, and acceptance. Compare alternatives and a disconfirming case for uncertain meaning or cause. Keep simplification focused on mechanisms worth retaining, combining, replacing, or deleting.
+3. **Implement a coherent slice.** Before an important new feature's first implementation, obtain explicit acceptance of the whole business understanding and material technical effects or an explicit waiver under `requirements-design`; reuse accepted scope. Then build end to end, parse at untrusted boundaries, protect state invariants, and update affected consumers together.
 4. **Build sensitive evidence.** Derive black-box checks from outcomes/contracts and white-box checks from changed branches, states, boundaries, errors, concurrency, resources, and recovery. Choose native layers that can disprove the claim. Challenge weak oracles with a pre-fix failure, negative control, mutation, seeded fault, independent relation, or equivalent evidence.
 5. **Integrate and close.** Reconcile the user's goal, authoritative source, final diff, last applicable oracle, and unrun environments. Repair consequential findings and recheck only affected evidence. Finish the authorized outcome, not just the first implementation.
 
@@ -32,19 +32,19 @@ Move through only the positions the work needs. Revisit one when evidence change
 
 Load the smallest set that can change a decision or evidence surface. Discovery and intent: `repo-context`, `requirements-design`, `product-ux-discovery`. Solution and diagnosis: `architecture-decisions`, `dependency-decisions`, `systematic-debugging`. Quality: `verification`, `test-system-engineering`, `change-review`. Durable/project concerns: `repository-knowledge`, `manage-engineering-profiles`, `company-data-security`, `delivery-readiness`, `dev-flow-maintainer`.
 
-Their descriptions own detailed triggers. Keep `repository-knowledge` quiet for ordinary updates to a clear owner; consume only confirmed profiles; use `dev-flow-maintainer` only for explicit suite maintenance. Advice never grants repair or delivery authority.
+Descriptions own triggers. Keep routine owner updates quiet; consume confirmed profiles; `dev-flow-maintainer` is explicit-only. Advice grants no repair or delivery authority.
 
 Reconsider routing only when intent, semantics, scope, platform, authority, principal risk, or evidence needs materially change—not for continuation, tool interruption, compaction, or a restated goal. Follow `core-lifecycle.md` after corrections. `route-task` is an inspectable diagnostic, not a precondition.
 
 ## Knowledge for the next step
 
-Leave each durable result in the existing canonical product, contract, design, architecture, test, runbook, changelog, comment, or code owner so the next position can trust it.
+Keep traceable intent, accepted decisions, current requirements, and implementation gaps distinct in existing owners. The next position consumes their implications, not a summary of activity.
 
-Do not create one file per phase. Add a change record or implementation/progress pair only when existing owners cannot support continuation across sessions, owners, or useful slices. A small project may use README; add `docs/` navigation for several durable knowledge domains. Never create empty shells. Use direct work while context and owners suffice; managed continuity is navigation, not a gate or authority source.
+Use a change record or implementation/progress pair only when existing owners cannot carry continuation across sessions, owners, or slices. README may suffice; add `docs/` navigation for several durable domains. No per-phase files or empty shells; managed continuity is navigation, not authority.
 
 ## Testing depth
 
-Cover core success, material failure/recovery, changed structure, public contracts, and credible high-consequence risks. Expand combinations and environments only when they can change the decision. Advanced test methods need a specific blind spot to expose, not a quota.
+Cover core success, material failure/recovery, changed structure/contracts, and high-consequence risks. Reuse valid evidence; expand checks only for a named risk and decision, with a stopping condition. Advanced test methods need a specific blind spot.
 
 Stop low-probability, low-consequence, high-cost fringe exploration unless requested. Rare security, privacy, financial, corruption, or irreversible failures remain core because consequence controls priority.
 
@@ -58,6 +58,7 @@ Independent review needs a separate context and stable target. If unavailable, r
 
 ## References
 
+- [User interaction](../requirements-design/references/user-interaction.md): remain in Default mode.
 - `references/core-lifecycle.md`: depth, continuity, re-entry.
 - `references/quality-calibration.md`: scope and evidence.
 - `references/multi-agent-v2-orchestration.md`: agent mechanics.

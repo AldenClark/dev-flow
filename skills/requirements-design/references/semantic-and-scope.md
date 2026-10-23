@@ -4,25 +4,25 @@ Use this reference when several plausible product meanings, compatibility direct
 
 ## Collaboration
 
-- Execute directly when product meaning is clear and repository facts resolve implementation.
-- Pause for the user only when a surviving choice changes business behavior, public contract, scope, irreversible consequences, dependency choice, or external authority.
+- Execute established local work directly when product meaning is clear; important new features still need the first implementation understanding below.
+- Pause choice-dependent work for a material business/authority decision. Separately confirm the whole business and technical understanding before an important new feature's first implementation.
 - Co-design when several valid product directions remain. Material UI does not require a named approval artifact when intent is already explicit.
 
 ## Understanding depth
 
 Classify from the semantic decision Codex must make, not the user's noun:
 
-- `U1 semantic creation/change`: new or changed product behavior, public contract, authorization, data lifecycle, user flow, external integration, migration semantics, or an unresolved defect expectation. Publish understanding sufficient for the next coherent slice; stop dependent work only for a surviving material user-owned choice or an explicit review-first request.
+- `U1 semantic creation/change`: new or changed product behavior, public contract, authorization, data lifecycle, user flow, external integration, migration semantics, or an unresolved defect expectation. Publish business understanding sufficient for design; pause choice-dependent work for a material user-owned choice or explicit review-first request. Important new features also require whole-understanding confirmation before first implementation.
 - `U2 structural adjustment`: behavior-preserving refactor, dependency/configuration/performance work, internal interface change, or another engineering adjustment. Stop only when a user-owned behavior, compatibility, or operational meaning can change.
 - `U3 defect correction`: current behavior is wrong and expected/protected behavior is established by repository evidence or a clear request. Diagnose and repair without a confirmation stop; upgrade to U1 when plausible product meanings survive.
 - `U4 mechanical`: exact spelling, formatting, replacement, generated synchronization, or another deterministic edit. Proceed directly.
 - `U5 read-only`: research, review, and delivery assessment, including an explicit review of a proposed design or architecture. Clarify only a material target/scope ambiguity; do not reclassify the task as U1 merely because the reviewed subject would change semantics if later implemented.
 
-An original request may explicitly waive U1 reconfirmation when it names an already accepted requirement source or directs Codex to proceed without another stop. Do not infer a waiver from urgency or silence.
+A prior explicit acceptance of the same business and technical scope remains valid. An explicit direction to proceed without confirmation can waive the first implementation checkpoint; merely naming a requirements source, asking to build a new feature, urgency, or silence cannot. No approval receipt or ledger is required.
 
 ## Requirement model
 
-Describe the actor, trigger, preconditions, inputs and trust boundary, observable outcome/state, important failures, cancellation/retry/timeout, recovery, authorization/privacy, compatibility, performance/resource limits, observability/support, non-goals, and bounded assumptions that actually matter.
+Distinguish goals, hard constraints, preferences, candidate mechanisms, and delegated exploration before deciding what is settled. Investigate technical feasibility and compare credible alternatives autonomously; return only user-owned business trade-offs. Describe the actor, trigger, preconditions, inputs and trust boundary, observable outcome/state, important failures, cancellation/retry/timeout, recovery, authorization/privacy, compatibility, performance/resource limits, observability/support, non-goals, and bounded assumptions that actually matter.
 
 Use repository-native issue or requirement IDs when the project already relies on them. Dev Flow does not create AC/SC/VO/AMB identifiers, revisions, or digests for 2.0 work.
 
@@ -50,4 +50,4 @@ Classify late discovery as covered impact, implementation defect, design defect,
 
 An explicit user answer or implementation request is sufficient authority for the product decision it names. It does not authorize a different dependency, destructive action, or external delivery. Record rationale in the repository only when future maintainers need it; do not create approval receipts or hash-bind prose.
 
-For U1, a clear implementation request or confirmed plan authorizes technical design once the next decision has enough semantic grounding and no material user-owned choice remains. A generic request does not choose between materially different product meanings. Ask for that choice, then continue through already-authorized local implementation without a second approval; stop again only for a new material decision or another authority boundary.
+For U1, settled business meaning permits technical design within existing authority. An important new feature means a material new capability, user flow, public contract, authorization or data lifecycle, rather than an established defect or mechanical edit. Before its first implementation, present one concise whole understanding: business scenarios/UI/rules and material states/recovery, together with the technical effects that explain the same change. Cover consequential field/default/threshold semantics, conditions, algorithms, dependencies, data paths, compatibility and risk; disclose undecided technical details. Obtain explicit whole acceptance or an explicit waiver, then reuse it across the accepted scope. A local option answer closes only its question; partial acceptance authorizes only the accepted subset. CLI confirmation flags report caller claims and never establish user authority. Reopen only a new material choice or changed scope; do not create fixed two-round sign-off or ask again for already accepted work.
