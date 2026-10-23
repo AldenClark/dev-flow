@@ -234,7 +234,15 @@ class RepositoryKnowledgeTests(unittest.TestCase):
                     "docs/tracked.md": "# Tracked\n",
                 },
             )
+            # Availability requires identical bytes, independent of write_text's
+            # platform newline conversion and Git's checkout normalization.
+            tracked_path = root / "docs" / "tracked.md"
+            tracked_path.write_bytes(b"# Tracked\n")
             commit_repo(root)
+            self.assertEqual(
+                subprocess.check_output(["git", "-C", str(root), "show", "HEAD:docs/tracked.md"]),
+                tracked_path.read_bytes(),
+            )
             (root / "docs" / "local.md").write_text("# Local\n", encoding="utf-8")
 
             report = knowledge.scan(root)
@@ -244,7 +252,13 @@ class RepositoryKnowledgeTests(unittest.TestCase):
             self.assertIn(("docs/local.md", "local-only", "not-available"), handoffs)
             self.assertFalse(any(item["code"] == "untracked-handoff" for item in result["findings"]))
 
-            (root / "docs" / "tracked.md").write_text("# Edited locally\n", encoding="utf-8")
+            # Line endings alone change byte identity even when Git sees clean text.
+            tracked_path.write_bytes(b"# Tracked\r\n")
+            result = knowledge.check_report(knowledge.scan(root))
+            tracked = next(item for item in result["link_handoffs"] if item["target"] == "docs/tracked.md")
+            self.assertEqual(tracked["target_version"], "unknown")
+
+            tracked_path.write_text("# Edited locally\n", encoding="utf-8")
             result = knowledge.check_report(knowledge.scan(root))
             tracked = next(item for item in result["link_handoffs"] if item["target"] == "docs/tracked.md")
             self.assertEqual(tracked["repository"], "tracked")
