@@ -4,9 +4,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-## [2.1.0] - Unreleased
+No additional unreleased changes.
 
-Current candidate source identity: `2.1.0`. Current workspace state: `development` from `v2.0.3`. Local commit only; no push, tag, publication or installation.
+## [2.1.0] - 2026-10-23
+
+Latest published source identity: `2.1.0`. Current workspace state: `development` from `v2.1.0`. Published from `0d0ef9e2eed869e84d78ab2350be0a75fd2c3000`. Independent clean-context review passed for the cumulative semantic delta and affected fixture rechecks; exact-source CI, five compatibility cells, hosted artifact attestations and four public assets are verified. Uncovered stable model journeys are explicitly WAIVED for 2.1.0; installation is not run.
 
 ### Fixed
 
@@ -24,7 +26,7 @@ Current candidate source identity: `2.1.0`. Current workspace state: `developmen
 
 - Reduce repeated routing/context reads, short polling and duplicate summaries in existing coordination guidance while retaining per-dispatch authority, budget and evidence checks; no new coordinator or tracking layer.
 
-These are local source changes under the [accepted whole-version design](docs/workstreams/dev-flow-upgrade-2026-10/design.md). Existing native evidence and the bounded three-case/eight-task behavior observation remain scoped in [progress](docs/workstreams/dev-flow-upgrade-2026-10/progress.md); first failures, affected rechecks and unrun environments are preserved. The behavior observation predates the coordination-guidance revision and establishes neither overall benefit nor cost savings. The 2.1.0 version/commit step adds no evaluation or test rerun, and grants no release or installation qualification.
+These changes follow the [accepted whole-version design](docs/workstreams/dev-flow-upgrade-2026-10/design.md). The [release progress](docs/workstreams/dev-flow-upgrade-2026-10/progress.md) preserves native and first hosted failures, the affected fixture corrections, final exact-SHA hosted evidence, and remaining unrun environments. The bounded three-case/eight-task behavior observation predates the final coordination revision and proves neither overall benefit nor cost savings. Uncovered stable journeys are explicitly WAIVED for this release; no paid model comparison or primary-profile installation was performed.
 
 ## [2.0.3] - 2026-10-10
 

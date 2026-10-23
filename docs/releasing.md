@@ -2,15 +2,17 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
-## 2.1.0 personal-assistant hardening candidate
+## 2.1.0 personal-assistant hardening release
 
-`2.1.0` is the whole-version source candidate. On 2026-10-23 the user subsequently authorized publication, one final native regression and hosted CI, and explicitly waived the uncovered stable functional journeys for this release. These journeys are WAIVED, never PASS; the earlier 3-case/eight-task observation remains bounded evidence. No new paid model comparison, primary installation or plugin-version switch is authorized. Applicable native, hosted and artifact evidence is recorded as observed before publication.
+`2.1.0` is the published whole-version release from immutable `0d0ef9e2eed869e84d78ab2350be0a75fd2c3000`. On 2026-10-23 the user authorized publication, final native/hosted checks and an explicit waiver of the uncovered stable functional journeys. These journeys are WAIVED, never PASS; no new paid model comparison or judge was run. The earlier three-case/eight-task observation remains limited and predates the final coordination wording.
 
-`v2.0.0-rc.9` is the latest public immutable RC tag; `v2.0.3` remains the published stable and default installation channel. `v2.0.3` is the rollback target for `2.1.0`. The previous published release and its `v2.0.2` rollback record below remain unchanged.
+`v2.0.0-rc.9` is the latest public immutable RC tag; `v2.1.0` is the published stable and default installation channel. `v2.0.3` is the rollback target for `2.1.0`; the historical 2.0.3 rollback record below remains unchanged.
 
-Delivery state: commit=passed; hosted_ci=not-run; cross_platform=not-run; independent_review=not-run; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+Delivery state: commit=passed; hosted_ci=passed; cross_platform=passed; independent_review=passed; tag=passed; artifact=passed; publication=passed; isolated_install=not-run.
 
-Reuse the [candidate workstream evidence](workstreams/dev-flow-upgrade-2026-10/progress.md), retaining first failures, affected rechecks, the Windows-only skip and all unrun environments. Prior scoped independent reviews do not constitute final 2.1.0 release review. The three-case/eight-task behavior observation found no material regression and proved no overall benefit or cost advantage; it predates the latest coordination-guidance revision. Hosted/platform qualification, exact-candidate artifact/install/loading, full user journeys and long-term effects remain unverified. No existing 2.0.3 delivery pass or waiver transfers to this candidate. Local metadata/structure checks do not establish release readiness.
+The [workstream](workstreams/dev-flow-upgrade-2026-10/progress.md) preserves the first native failure and first Windows CI failures, scoped fixture corrections and negative controls. [Exact-source CI](https://github.com/AldenClark/dev-flow/actions/runs/39888838172) passes the 822-test semantic lane and five 361-test platform/Python compatibility cells; skips remain explicit. The cumulative independent static review and affected rechecks found no consequential defect. [Hosted artifact evidence](https://github.com/AldenClark/dev-flow/actions/runs/39889153920) passes archive/manifest/checksum/SPDX identity and exact-source/signer-workflow-bound provenance/SBOM attestation verification. The annotated tag points to the candidate, and all four [public stable assets](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.0) match the verified hosted bytes.
+
+No isolated or primary-profile installation, plugin-version switch, live Hook loading, complete real user journey or long-term outcome is claimed. Installation remains not-run; publication is observed separately and does not turn the complete delivery gate green. A future install or rollback needs its own authority and actual installed-byte/fresh-session observation. Never rewrite tagged source or replace published bytes behind an existing identity.
 
 ## 2.0.3 personal-assistant hardening release
 

@@ -3,19 +3,19 @@
 
 - State: implementation-complete
 - Current slice: S4
-- Terminal condition: 整体接受后的实现覆盖四方向及精简目标，实际diff与必要证据收口；没有安装/发布或模型收益推断。
+- Terminal condition: 整体实现覆盖四方向及精简目标；2.1.0发布事实按实际证据收口，不推断安装、宿主加载或模型收益。
 - Updated: 2026-10-23 Asia/Shanghai
 
 ## Current truth
 
-- Source candidate: `2.1.0`
-- Source phase: `source-candidate`; workspace: `development` from `v2.0.3`.
-- Published stable/default installation: `v2.0.3`; candidate rollback target: `v2.0.3`. Historical 2.0.3 rollback remains `v2.0.2`.
-- Local commit authorized on 2026-10-23; implementation-complete remains distinct from release-qualified.
+- Published source: `2.1.0`
+- Source phase: `stable`; workspace: `development` from `v2.1.0`.
+- Published stable/default installation: `v2.1.0`; rollback target: `v2.0.3`. Historical 2.0.3 rollback remains `v2.0.2`.
+- Public stable publication observed on 2026-10-23 from `0d0ef9e2eed869e84d78ab2350be0a75fd2c3000`; isolated/primary installation not run, uncovered stable model journeys explicitly WAIVED.
 
-Delivery state: commit=passed; hosted_ci=not-run; cross_platform=not-run; independent_review=not-run; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+Delivery state: commit=passed; hosted_ci=passed; cross_platform=passed; independent_review=passed; tag=passed; artifact=passed; publication=passed; isolated_install=not-run.
 
-The commit status records only the authorized local Git action; Git owns its exact identity. Existing scoped reviews and native/behavior evidence remain below, with original failures, skips, rechecks and limits. Final-version hosted CI, cross-platform qualification, cumulative independent release review, tag, artifact, publication and isolated installation are not run for 2.1.0; older release passes and waivers do not transfer.
+Git and the immutable v2.1.0 tag own source identity. Final exact-SHA hosted CI/platform cells, cumulative independent static review with affected rechecks, hosted artifacts/attestations, tag and public publication are observed separately. Original failures, skips and bounded behavior limits remain below. Uncovered stable model journeys are explicitly WAIVED for 2.1.0; isolated/primary installation and live loading remain not-run/not_observed. Older release passes or waivers do not transfer.
 
 ## 当前本地基线
 
@@ -126,7 +126,7 @@ S3结束时文档与局部源码检查（不覆盖后续S2改动）：`check-wor
 | HC1 | 整体方向与首次重要功能理解已明确接受 | implementation | passed | 2026-10-23用户明确接受B；仅本地候选，不含发布/安装/新增模型评测 |
 | HC2 | 四方向及精简目标的实际diff、必要正负例和交接一致 | implementation | passed | 本地回归及受影响复验、独立审查修复复核、validators和工作流结构收口；不推断模型收益 |
 | HC3 | 已证实固定脱敏标记误报修复及秘密检测负例保留 | implementation | passed | 首失败保留；2个新回归、93项定向检查、doctor、独立复核；未修所有未分类摩擦 |
-| HC4 | 未覆盖的用户确认、宿主和平台资格按实际采用声明具备 | qualification | not-run | 3案例8次限定行为观察已完成，完整首次确认、宿主及平台资格未覆盖；不作为本次实现验收前置条件，implementation-complete不是release-qualified |
+| HC4 | 未覆盖的用户确认、宿主和平台资格按实际采用声明具备 | qualification | not-run | 2.1.0公开发布、托管平台与制品已核实；3案例8次观察保留，未覆盖稳定模型旅程明确WAIVED，安装/现场宿主仍NOT RUN；不将整门或模型收益标PASS |
 
 Active convergence checkpoint: 未出现同一辅助机制两次无进展修理。历史目录diff不继续追绿；首次失败保留，语义等价文案修正只重验受影响项；不新增证明包或持续扩展检查。
 
@@ -205,3 +205,13 @@ S2两版均查到既有IPC/命令、区分新旧选择路径与发布/热应用/
 product-state、39项contracts、methods、knowledge、plugin、suite、data-security doctor、RC5 coverage与RC4静态扫描均通过；doctor人工/live门保持未观察。发布材料、原始native-first.log、activation-recheck.log、原生调用身份及独立审查范围保存在 `/Users/ethan/Documents/Codex/2026-10-23/dev-flow-2.1.0-release-iijj7rx5/`。先前7315ddb本地源码制品保留为已失效候选证据，不用于最终发布；新的精确SHA、托管平台、制品/证明及公开结果只按后续实际回执更新。
 
 首轮精确SHA托管CI（259d55a，[39887910894](https://github.com/AldenClark/dev-flow/actions/runs/39887910894)）保留失败：Ubuntu语义全套、macOS 3.11/3.14及Ubuntu 3.11兼容通过；Windows 3.11/3.14均在同一知识交接测试失败，各361项、1失败/4跳过。原测试用write_text在Windows产生CRLF，Git归一化的HEAD是LF；严格逐字节契约下unknown正确，原测试却无条件期待available，属于夹具/oracle假设。临时仓库core.autocrlf=true已复现这个字节差异和相同unknown结果，未改真实仓库或全局Git配置。只改该用例：正例显式写LF并先核对HEAD blob与工作字节相同，再加纯CRLF差异必须unknown的负例，原本正文编辑unknown和未跟踪not-available负例保留。默认及autocrlf=true两个定向运行各1项通过（0.211/0.200秒）；生产实现不改，本地全套不重跑。原始托管失败、字节复现及定向结果保存在同一发布证据目录；后续新SHA托管结果单独记录，不重命名旧失败。
+
+## 2026-10-23 2.1.0 公开发布事实
+
+最终不可变源码 `0d0ef9e2eed869e84d78ab2350be0a75fd2c3000` 已推送；[v2.1.0公开稳定发布](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.0)于2026-10-23T02:29:20Z观察为非draft、非prerelease且是latest stable。远端annotated tag及解引用源码已核对。最终[CI 39888838172](https://github.com/AldenClark/dev-flow/actions/runs/39888838172)通过：精确源码语义全套822项（134.854秒，Windows-only跳过仍单列），五个既有OS/Python兼容单元各361项，Windows两单元也通过；首轮native与CI失败不被重命名为PASS，本地全套未再重跑。
+
+[制品工作流39889153920](https://github.com/AldenClark/dev-flow/actions/runs/39889153920)绑定同一SHA；归档、manifest version/git_commit/git_tree及SHA256SUMS核对通过，SPDX2.3 SBOM含575个文件且根包版本2.1.0。来源和SBOM证明使用source-ref、source-digest、signer-workflow、signer-digest约束同一源码/工作流后验证通过。4份公开下载（tar.gz、SPDX、manifest、checksums）与已验证托管字节逐一相同；tar.gz SHA-256为`516f54fe0d3c2427449e17ab1b719e14c768bf1e5a654e7c51742a04fb13ce86`。先前7315ddb本地归档保留为失效候选证据，未发布。
+
+累计六视角静态独立审查及两个仅受影响的fixture复核均无已证实实质缺陷；普通U1 fixture与Windows字节夹具修复未改产品实现。Model旅程按本次用户明确决定WAIVED，不计PASS；旧3案例/8启动观察仍只有有限结果、非盲单样本，首次重要功能确认及最后协调措辞未覆盖。没有新增付费模型对照、裁判、平台规则或状态机。
+
+本次没有运行Codex插件安装、升级或切换命令，也未修改日常缓存、账户或安全设置。isolated_install保持not-run；现场Hook/宿主加载、真实首次确认、完整用户旅程与长期/跨环境收益保持未验证。公开发布已完成，完整delivery gate因未运行安装仍不宣称通过。当前源码/发布/默认安装通道投影同步为2.1.0，回退目标v2.0.3；这份发布事实在独立truth提交记录，不重写标签或制品。
