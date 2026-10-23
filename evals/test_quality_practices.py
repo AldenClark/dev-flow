@@ -108,11 +108,16 @@ class QualityPracticesContractTests(unittest.TestCase):
             "stop conditions",
             "expected return",
             "Shared writers need disjoint paths",
-            "root reconciles returned work against the current Git state",
-            "reruns affected checks",
-            "A child final is a report",
         ):
             self.assertIn(term, orchestration)
+        for contract in (
+            r"(?i)use (?:the )?returned model, (?:reasoning )?effort,? and fork (?:request|settings)",
+            r"(?i)\broot\b[^.\n]*checks?[^.\n]*actual (?:returned )?writes[^.\n]*before integration",
+            r"(?i)reconcile[^.\n]*current Git[^.\n]*actual diff",
+            r"(?i)rechecks? (?:only )?affected (?:evidence|checks)",
+            r"(?i)child (?:report|final)[^.\n]*\b(?:never|cannot|does not)\b[^.\n]*proves? integration",
+        ):
+            self.assertRegex(orchestration, contract)
         self.assertIn("Do not require packet IDs", orchestration)
         self.assertIn("context fingerprints", orchestration)
         self.assertIn("unless a repository-native system genuinely consumes them", orchestration)

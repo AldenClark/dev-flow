@@ -167,23 +167,19 @@ class ScopeAndContinuationContracts(unittest.TestCase):
             "intersection of all ancestor",
             "cannot restore authority",
             "bounded expansion request",
-            "successful dispatch returns a non-empty child identity",
-            "empty receiver list or empty agent state is not delegation",
-            "never attribute a result to a child",
-            "actual returned writes",
-            "compliant report never overrides an out-of-scope diff",
         ):
             self.assertIn(phrase, guidance)
+        for contract in (
+            r"(?i)successful dispatch returns[^.\n]*non-empty child identity",
+            r"(?i)empty receiver lists?[^.\n]*agent state[^.\n]*\bnot delegation\b",
+            r"(?i)never attribute[^.\n]*result[^.\n]*child[^.\n]*not started",
+            r"(?i)\broot\b[^.\n]*checks?[^.\n]*actual (?:returned )?writes[^.\n]*before integration",
+            r"(?i)child report[^.\n]*never overrides[^.\n]*out-of-scope diff",
+        ):
+            self.assertRegex(guidance, contract)
 
         active = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
-        agent_reference = (ROOT / "skills" / "dev-flow" / "references" / "multi-agent-v2-orchestration.md").read_text(encoding="utf-8")
         calibration = (ROOT / "skills" / "dev-flow" / "references" / "quality-calibration.md").read_text(encoding="utf-8")
-        for phrase in (
-            "successful dispatch returns a non-empty child identity",
-            "Never wait or poll before that identity exists",
-            "never attribute a result to a child",
-        ):
-            self.assertIn(phrase, agent_reference)
         self.assertIn("They cannot restore authority", active)
         self.assertIn("must reject integration and report or defer the proposal", calibration)
 
@@ -214,6 +210,27 @@ class ScopeAndContinuationContracts(unittest.TestCase):
             renewed["turns"][0]["expected"],
         )
         self.assertIn("renewed-authority-required", renewed["turns"][0]["expected"])
+
+    def test_child_identity_precedes_wait_and_uncertain_dispatch_is_reconciled(self) -> None:
+        """Check written dispatch constraints, not host enforcement or model behavior."""
+        guidance = ORCHESTRATION.read_text(encoding="utf-8")
+        identity = r"(?i)successful dispatch returns[^.\n]*\bvalid\b[^.\n]*non-empty child identity"
+        wait = r"(?i)before that identity (?:is obtained|exists),?\s*(?:never|do not) wait[^.\n]*child[^.\n]*poll[^.\n]*status"
+        failure = r"(?i)failed creation[^.\n]*missing identity[^.\n]*uncertain response[^.\n]*does not establish a started task"
+        recovery = r"(?i)reconcile[^.\n]*actual dispatch/host state[^.\n]*failure/recovery rules[^.\n]*before any wait or retry"
+        for contract in (identity, wait, failure, recovery):
+            with self.subTest(contract=contract):
+                self.assertRegex(guidance, contract)
+
+        # Removing each protection must fail its own written-contract oracle.
+        for contract, removed in (
+            (identity, guidance.replace("valid, non-empty", "non-empty", 1)),
+            (wait, guidance.replace("never wait", "may wait", 1)),
+            (failure, guidance.replace("does not establish a started task", "establishes a started task", 1)),
+            (recovery, guidance.replace("before any wait or retry", "after any wait or retry", 1)),
+        ):
+            with self.subTest(negative_control=contract):
+                self.assertNotRegex(removed, contract)
 
     def test_task_history_and_process_adapters_have_negative_boundaries(self) -> None:
         guidance = ADAPTERS.read_text(encoding="utf-8")

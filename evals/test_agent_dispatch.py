@@ -398,12 +398,20 @@ class AgentDispatchWhiteBoxTests(unittest.TestCase):
         brief = (ROOT / "skills" / "dev-flow" / "templates" / "task-brief.md").read_text(encoding="utf-8")
         execution = (ROOT / "skills" / "dev-flow" / "templates" / "execution.md").read_text(encoding="utf-8")
         self.assertIn("route-agent", orchestration)
-        self.assertIn("Use the returned model, reasoning effort, and fork request", orchestration)
+        routed_settings = r"(?i)use (?:the )?returned model, (?:reasoning )?effort,? and fork (?:request|settings)"
+        self.assertRegex(orchestration, routed_settings)
+        for missing in ("model", "effort", "fork"):
+            with self.subTest(removed_route_setting=missing):
+                without_setting = orchestration.replace(missing, "omitted")
+                self.assertNotRegex(without_setting, routed_settings)
         for token in ("requested_model", "requested_reasoning_effort", "effective_model", "fallback_reason"):
             self.assertNotIn(token, orchestration)
         for token in ("objective and expected outcome", "owned paths", "allowed verification", "expected return"):
             self.assertIn(token, orchestration)
-        self.assertIn("A child final is a report", orchestration)
+        self.assertRegex(
+            orchestration,
+            r"(?i)child (?:report|final)[^.\n]*\b(?:never|cannot|does not)\b[^.\n]*proves? integration",
+        )
 
         # 1.x templates stay readable for existing packets but do not govern 2.0 delegation.
         self.assertIn("Dispatch profile", brief)

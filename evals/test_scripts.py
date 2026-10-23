@@ -5234,11 +5234,21 @@ class RepositoryContractTests(unittest.TestCase):
             "allowed verification and resource limits",
             "stop conditions",
             "expected return",
-            "root reconciles returned work against the current Git state",
-            "reruns affected checks",
-            "A child final is a report",
         ):
             self.assertIn(token, orchestration)
+        contracts = (
+            r"(?i)\broot\b[^.\n]*checks?[^.\n]*actual (?:returned )?writes[^.\n]*before integration",
+            r"(?i)reconcile[^.\n]*current Git[^.\n]*actual diff",
+            r"(?i)rechecks? (?:only )?affected (?:evidence|checks)",
+            r"(?i)child (?:report|final)[^.\n]*\b(?:never|cannot|does not)\b[^.\n]*proves? integration",
+        )
+        for contract in contracts:
+            self.assertRegex(orchestration, contract)
+        # A report-only claim cannot satisfy the integration-evidence contract.
+        report_proves_integration = orchestration.replace(
+            "a child report never overrides", "a child report overrides", 1
+        )
+        self.assertNotRegex(report_proves_integration, contracts[-1])
         for token in ("packet IDs", "AC/SC/VO mappings", "context fingerprints", "lease epochs"):
             self.assertIn(token, orchestration)
 
