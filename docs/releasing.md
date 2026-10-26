@@ -2,15 +2,17 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
-## 2.1.2 personal-assistant hardening candidate
+## 2.1.2 personal-assistant hardening release
 
 `2.1.2` repairs code-shaped DLP false positives and adjacent credential-protection gaps. This R2/R3 change modifies the detection engine and its integrity digest, with native paired controls and the [code audit](dlp-code-false-positive-audit.md); no new dependency, Hook registration, approval protocol or model-routing behavior is added. The user authorized commit, formal release and local Dev Flow update on 2026-10-26. Prior no-additional-model-evaluation scope continues: five live-model journeys are NOT RUN, not PASS or an inherited waiver. Native, hosted, public, installed and active-session observations remain separate.
 
-`v2.0.0-rc.9` is the latest public immutable RC tag; `v2.1.1` remains the published stable and default installation channel during preparation. `v2.1.1` is the rollback target for `2.1.2`.
+`v2.0.0-rc.9` is the latest public immutable RC tag; `v2.1.2` is the published stable and default installation channel. `v2.1.1` is the rollback target for `2.1.2`.
 
-Delivery state: commit=not-run; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+Delivery state: commit=passed; hosted_ci=passed; cross_platform=passed; independent_review=passed; tag=passed; artifact=passed; publication=passed; isolated_install=passed.
 
 The [release progress](workstreams/dev-flow-2.1.2/progress.md) owns the cumulative six-method review, final native checks, exact-source semantic/platform CI, immutable hosted/public artifact identity, isolated lifecycle and primary installation. Reuse existing builder/security negative tests; publish verified hosted bytes. Preserve the old Hook cache for active chats. A material false-positive or missed-credential regression can be recovered by separately installing public v2.1.1 and verifying its bytes; no state-schema migration is introduced.
+
+Published [v2.1.2](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.2) resolves to `176daea484cdbd63abd492c806b36c2dfa5ea16b`. Exact-source CI 40269650028 passes 841 semantic tests (839 pass/two environment skips) and five 380-test compatibility cells. Hosted run 40270112939 supplies the four public assets; all downloaded bytes match verified hosted hashes and both attestations bind the exact source/workflow. Isolated install/discovery/controls/uninstall pass. The primary plugin is installed/enabled 2.1.2, all 476 archive files match, three synthetic Hook controls pass, doctor has zero required failures/five manual not_observed gates, and 23 unrelated plugins and marketplace bindings are unchanged. The prior 2.1.1 cache is retained. A later documentation/state-only truth commit records these observations without changing the immutable tagged runtime. Existing-chat loading and live-model journeys remain unobserved.
 
 ## 2.1.1 personal-assistant hardening release
 

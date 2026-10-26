@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [2.1.2] - 2026-10-26
 
-Current candidate source identity: `2.1.2`. Current workspace state: `development` from `v2.1.1`. Independent clean-context review passed for the cumulative DLP delta. Release and installation are authorized; observations belong to the [2.1.2 progress](docs/workstreams/dev-flow-2.1.2/progress.md). Live-model journeys remain NOT RUN under the continuing no-additional-model-evaluation scope.
+Latest published source identity: `2.1.2` from immutable `176daea484cdbd63abd492c806b36c2dfa5ea16b`. Current workspace state: `development` from `v2.1.2`. Independent clean-context review passed for the cumulative DLP delta. Exact-source CI, hosted/public artifacts, isolated lifecycle and primary installation are observed; the local plugin is installed/enabled as 2.1.2 with 476 archive files matching and three synthetic installed-Hook controls passing. Details belong to the [2.1.2 progress](docs/workstreams/dev-flow-2.1.2/progress.md). Live-model journeys remain NOT RUN under the continuing no-additional-model-evaluation scope; existing-chat loading is not_observed.
 
 ### Fixed
 

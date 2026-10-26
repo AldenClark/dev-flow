@@ -20,7 +20,7 @@ This index routes contributors and agents to the smallest maintained knowledge o
 
 ## Managed work and release history
 
-- [Dev Flow 2.1.2](workstreams/dev-flow-2.1.2/progress.md): current DLP release and installation qualification, exact identities and remaining limits.
+- [Dev Flow 2.1.2](workstreams/dev-flow-2.1.2/progress.md): published DLP release, verified public artifacts and local installation, exact identities and remaining limits.
 - [Dev Flow 2.1.1](workstreams/dev-flow-2.1.1/progress.md): published stable guidance update, exact-source CI, hosted/public artifacts and action-specific limits; model journeys and installation not run.
 - [Proportionate engineering](proportionate-engineering-plan.md): accepted goals, local implementation and bounded evidence for design guarantees, code defenses, and evidence reuse; publication belongs to the 2.1.1 record above, with no installation or model-benefit claim.
 - [Dev Flow 2.1.0](workstreams/dev-flow-upgrade-2026-10/implementation.md): historical published whole-version changes, [accepted design](workstreams/dev-flow-upgrade-2026-10/design.md), and [native/hosted/artifact/public facts with limits](workstreams/dev-flow-upgrade-2026-10/progress.md); installation not run.
