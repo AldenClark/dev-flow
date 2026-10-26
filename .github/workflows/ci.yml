@@ -132,6 +132,7 @@ jobs:
           evals.test_ci_change_scope
           evals.test_data_security
           evals.test_dlp_engine_audit
+          evals.test_dlp_code_false_positives
           evals.test_dlp_approval_audit
           evals.test_dlp_hook_audit
           evals.test_dlp_doctor_audit

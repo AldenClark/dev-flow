@@ -16,6 +16,7 @@ import json
 import re
 import secrets
 import shlex
+import string
 import sys
 import unicodedata
 from collections import Counter
@@ -93,19 +94,43 @@ _HIGH_RULES = (
         "credentialed_url",
         "C4",
         "secret",
-        re.compile(r"\b[a-z][a-z0-9+.-]{1,20}://[^\s/:@]+:([^\s/@]{8,})@[^\s/]+", re.IGNORECASE),
+        re.compile(r"\b[a-z][a-z0-9+.-]{1,20}://[^\s/:@]+:([^\s/@]{8,})@[^\s/\"'`]+", re.IGNORECASE),
         1,
     ),
 )
 
 _SENSITIVE_NAME = r"(?:(?:[A-Za-z][A-Za-z0-9]*_)*(?:password|passwd|pwd|secret|api[_-]?(?:key|token)|access[_-]?token|refresh[_-]?token|session[_-]?token|client[_-]?secret)|aws_secret_access_key|x-api-key)"
 _SENSITIVE_NAME_RE = re.compile(_SENSITIVE_NAME, re.IGNORECASE)
+_STRING_LITERAL_PATTERN = (
+    r'"""(?:\\[\s\S]|(?!""")[\s\S])*(?:"""|$)'
+    r"|'''(?:\\[\s\S]|(?!''')[\s\S])*(?:'''|$)"
+    r'|"(?:[^"\\\r\n]|\\[^\r\n])*"'
+    r"|'(?:[^'\\\r\n]|\\[^\r\n])*'"
+)
 _ASSIGNMENT_RE = re.compile(
     r"\b" + _SENSITIVE_NAME + r"\b[\"']?[ \t\r\n]*[:=](?!=)[ \t\r\n]*"
-    r'''("(?:[^"\\\r\n]|\\[^\r\n])*"|'(?:[^'\\\r\n]|\\[^\r\n])*'|[^\s"',;}{]+)''',
+    r"(" + _STRING_LITERAL_PATTERN + r"""|[^\s"',;}{]+)""",
     re.IGNORECASE,
 )
-_QUOTED_LITERAL_RE = re.compile(r'''[ \t\r\n]*(?P<literal>"(?:[^"\\\r\n]|\\[^\r\n])*"|'(?:[^'\\\r\n]|\\[^\r\n])*')''')
+_QUOTED_LITERAL_RE = re.compile(r"[ \t\r\n]*(?P<literal>" + _STRING_LITERAL_PATTERN + r")")
+_RUST_RAW_LITERAL_PATTERN = r'\b(?:br|r)(?P<raw_hashes>\#{1,8})"(?P<raw_body>[\s\S]*?)"(?P=raw_hashes)'
+_RUST_RAW_LITERAL_RE = re.compile(_RUST_RAW_LITERAL_PATTERN)
+_EXPRESSION_LITERAL_RE = re.compile(
+    r"(?P<rust_raw>" + _RUST_RAW_LITERAL_PATTERN + r")"
+    r"|(?P<comment>//[^\r\n]*|\#[^\r\n]*|/\*[\s\S]*?(?:\*/|$))"
+    r"|(?P<literal>" + _STRING_LITERAL_PATTERN + r")|(?P<delimiter>[();])"
+)
+_SOURCE_ARGUMENT_REFERENCE_RE = re.compile(
+    r"\(*(?P<root>[&*]*(?:r#)?[A-Za-z_]\w*|\.[A-Za-z_]\w*|\$\d+)"
+    r"(?:(?:::|->|\?\.|\.)[A-Za-z_]\w*|\[(?:[A-Za-z_]\w*|\d+)\])*"
+    r"(?:!{1,2}|\?)?[)\]]*(?:\.[A-Za-z_]\w*\(\)[)\]]*)*"
+)
+_SOURCE_CALL_PREFIX_RE = re.compile(r"\b[A-Za-z_]\w*\s*\([^;]*$")
+_FORMAT_FIELD_REFERENCE_RE = re.compile(
+    r"(?:[A-Za-z_]\w*|\d+)(?:\.[A-Za-z_]\w*|\[(?:[A-Za-z_]\w*|\d+)\])*"
+)
+_FORMATTED_STRING_RE = re.compile(r"(?P<prefix>\b(?:f|fr|rf))?(?P<literal>" + _STRING_LITERAL_PATTERN + r")", re.IGNORECASE)
+_FORMAT_SPEC_RE = re.compile(r"(?:(?:[^\r\n{}])?[<>=^])?[+\- ]?#?0?\d{0,4}[,_]?(?:\.\d{1,3})?[bcdeEfFgGnosxX%]?")
 
 _RELATIVE_DOC_LINK_RE = re.compile(r"\[[a-z]+(?:[ -][a-z]+)*\]\(docs/(?:[a-z0-9-]+/)*[a-z0-9-]+\.md\)")
 
@@ -146,7 +171,7 @@ _SENSITIVE_PATH_RE = re.compile(
     # sensitive filename must occupy the whole value; quoted filenames may
     # contain spaces, but cannot cross a quote or newline boundary.
     r"(?:^|[/\\]|^[A-Za-z]:)(?:"
-    r"\.env(?:\.[A-Za-z0-9_-]+)?|\.npmrc|\.pypirc|\.netrc|"
+    r"\.env(?:\.[A-Za-z0-9_-]+)*|\.npmrc|\.pypirc|\.netrc|"
     r"\.aws[/\\]credentials|\.kube[/\\]config|\.docker[/\\]config\.json|"
     r"\.ssh[/\\](?:id_[^/\\\s\"']+|config)|"
     r"(?:auth|credentials?|service[-_]?account)\.json"
@@ -197,6 +222,96 @@ def _assignment_value_is_confident(value: str, *, literal: bool = False) -> bool
     return classes >= 2 or (len(stripped) >= 24 and len(set(stripped)) >= 10)
 
 
+def _source_argument_reference(text: str, start: int, value: str) -> bool:
+    """Recognize complete unquoted references in a bounded named-argument context.
+
+    Keep the original value/span for literal detection and redaction. Trimming
+    delimiters globally would also exempt ordinary unquoted credential values.
+    """
+    prefix = text[max(0, start - 1024):start].rstrip()
+    if not prefix.endswith(("(", ",")) or not _SOURCE_CALL_PREFIX_RE.search(prefix):
+        return False
+    reference = _SOURCE_ARGUMENT_REFERENCE_RE.fullmatch(value)
+    if reference is None:
+        return False
+    root = reference.group("root")
+    return _source_reference(root) or root.startswith(".") or bool(re.fullmatch(r"\$\d+", root))
+
+
+def _formatted_literal_is_confident(value: str) -> bool:
+    """References alone are not literal material; literal fragments still are."""
+    try:
+        return any(
+            _assignment_value_is_confident(literal, literal=True)
+            for literal, _, _, _ in string.Formatter().parse(_literal_content(value)[0])
+        )
+    except ValueError:
+        return _assignment_value_is_confident(value, literal=True)
+
+
+def _literal_content(value: str) -> tuple[str, int, int]:
+    width = 3 if value.startswith(('"""', "'''")) else 1
+    closing = width if len(value) >= 2 * width and value.endswith(value[:width]) else 0
+    return value[width:len(value) - closing if closing else len(value)], width, closing
+
+
+def _wrapper_literal_findings(text: str, opening: int) -> tuple[list[Finding], int]:
+    """Inspect literal arguments without executing the assigned expression."""
+    found: list[Finding] = []
+
+    def inspect_literal(value: str, start: int, end: int) -> None:
+        prefix = text[max(opening + 1, start - 3):start]
+        content, left, right = _literal_content(value)
+        confident = _formatted_literal_is_confident(value) if re.search(r"\b(?:f|fr|rf)$", prefix, re.IGNORECASE) else _assignment_value_is_confident(content, literal=True)
+        if confident:
+            _add_finding(found, Finding("C4-SENSITIVE-ASSIGNMENT", "secret_assignment", "C4", "secret", start + left, end - right))
+
+    depth = 1
+    for token in _EXPRESSION_LITERAL_RE.finditer(text, opening + 1):
+        value = token.group("literal")
+        if token.group("rust_raw") is not None:
+            if _assignment_value_is_confident(token.group("raw_body"), literal=True):
+                _add_finding(found, Finding("C4-SENSITIVE-ASSIGNMENT", "secret_assignment", "C4", "secret", token.start("raw_body"), token.end("raw_body")))
+        elif value is not None:
+            inspect_literal(value, token.start(), token.end())
+        elif token.group("comment") is not None:
+            # Comment punctuation cannot close the surrounding call, but
+            # quoted material inside comments can still disclose a credential.
+            for literal in _QUOTED_LITERAL_RE.finditer(token.group("comment")):
+                inspect_literal(literal.group("literal"), token.start() + literal.start("literal"), token.start() + literal.end("literal"))
+        elif token.group("delimiter") == "(":
+            depth += 1
+        elif token.group("delimiter") == ")":
+            depth -= 1
+            if depth == 0:
+                return found, token.end()
+        else:
+            return found, token.end()
+    return found, len(text)
+
+
+def _url_reference_field(value: str) -> bool:
+    try:
+        parts = list(string.Formatter().parse(value))
+    except ValueError:
+        return False
+    if len(parts) != 1:
+        return False
+    literal, field, spec, conversion = parts[0]
+    return (
+        not literal and field is not None
+        and _FORMAT_FIELD_REFERENCE_RE.fullmatch(field) is not None
+        and conversion in (None, "s", "r", "a")
+        and _FORMAT_SPEC_RE.fullmatch(spec) is not None
+    )
+
+
+def _formatted_string_ranges(text: str) -> Iterator[tuple[int, int]]:
+    for token in _FORMATTED_STRING_RE.finditer(text):
+        if token.group("prefix") or re.match(r"[ \t]*\.format\s*\(", text[token.end():token.end() + 128]):
+            yield token.start("literal"), token.end()
+
+
 def _overlaps(left: Finding, right: Finding) -> bool:
     return left.path == right.path and left.start < right.end and right.start < left.end
 
@@ -241,18 +356,45 @@ def _phone_is_confident(value: str, prefix: str = "") -> bool:
 
 def _assignment_findings(text: str) -> list[Finding]:
     found: list[Finding] = []
+    wrapper_checked_until = 0
     for match in _ASSIGNMENT_RE.finditer(text):
         value = match.group(1)
         quoted = value.startswith(("\"", "'")) and value[-1:] == value[:1]
         start, end = match.span(1)
         # A wrapper around a literal does not make that literal a reference.
         # Inspect its first literal argument without executing or parsing code.
-        if not quoted and (value.endswith("(") or value in {"&", "*"}):
-            nested = _QUOTED_LITERAL_RE.match(text, end)
+        if not quoted:
+            raw = _RUST_RAW_LITERAL_RE.match(text, start)
+            if raw:
+                if _assignment_value_is_confident(raw.group("raw_body"), literal=True):
+                    _add_finding(found, Finding("C4-SENSITIVE-ASSIGNMENT", "secret_assignment", "C4", "secret", raw.start("raw_body"), raw.end("raw_body")))
+                continue
+            opening = text.find("(", start, end) if _source_reference(value) else -1
+            if opening < 0 and _source_reference(value):
+                spaced = re.match(r"[ \t\r\n]+\(", text[end:])
+                if spaced:
+                    opening = end + spaced.end() - 1
+            if opening >= wrapper_checked_until and opening >= 0:
+                literals, wrapper_checked_until = _wrapper_literal_findings(text, opening)
+                for literal in literals:
+                    _add_finding(found, literal)
+            literal_start = end if value.endswith("(") or value in {"&", "*"} else None
+            prefixed = re.fullmatch(r"(?:r\#{0,8}|br|rb|fr|rf|[buf])", value, re.IGNORECASE)
+            if prefixed:
+                literal_start = end
+            elif _source_reference(value):
+                spaced_call = re.match(r"[ \t\r\n]+\(", text[end:])
+                if spaced_call:
+                    literal_start = end + spaced_call.end()
+            nested = _QUOTED_LITERAL_RE.match(text, literal_start) if literal_start is not None else None
             if nested:
                 value = nested.group("literal")
+                if prefixed and "f" in match.group(1).lower() and not _formatted_literal_is_confident(value):
+                    continue
                 quoted = True
                 start, end = nested.span("literal")
+        if not quoted and _source_argument_reference(text, match.start(), value):
+            continue
         if not _assignment_value_is_confident(value, literal=quoted):
             continue
         # A complete, simple relative Markdown reference to a docs/*.md page
@@ -262,17 +404,30 @@ def _assignment_findings(text: str) -> list[Finding]:
         link = _RELATIVE_DOC_LINK_RE.match(text, start) if not quoted else None
         if link and (link.end() == len(text) or text[link.end()] in " \t\r\n\"',;}{"):
             continue
-        _add_finding(found, Finding("C4-SENSITIVE-ASSIGNMENT", "secret_assignment", "C4", "secret", start + quoted, end - quoted))
+        left, right = _literal_content(value)[1:] if quoted else (0, 0)
+        _add_finding(found, Finding("C4-SENSITIVE-ASSIGNMENT", "secret_assignment", "C4", "secret", start + left, end - right))
     return found
 
 
 def _direct_findings(text: str, rules: Iterable[_Rule]) -> list[Finding]:
     found: list[Finding] = []
     for rule in rules:
+        format_ranges: Iterator[tuple[int, int]] | None = None
+        format_range: tuple[int, int] | None = None
         for match in rule.pattern.finditer(text):
             value = match.group(rule.value_group)
             if _is_placeholder(value):
                 continue
+            if rule.category == "credentialed_url" and _url_reference_field(value):
+                # Only an entire reference in an actual formatting expression
+                # is source. Mixed literal/reference credentials stay protected.
+                if format_ranges is None:
+                    format_ranges = iter(_formatted_string_ranges(text))
+                    format_range = next(format_ranges, None)
+                while format_range is not None and format_range[1] <= match.start():
+                    format_range = next(format_ranges, None)
+                if format_range is not None and format_range[0] <= match.start() and match.end() <= format_range[1]:
+                    continue
             if rule.category == "phone" and not _phone_is_confident(value, text[max(0, match.start() - 32):match.start()]):
                 continue
             start, end = match.span(rule.value_group)
@@ -480,6 +635,112 @@ class _ShellLexemeStream(io.StringIO):
         return value
 
 
+def _shell_path_strings(command: str, *, depth: int = 0) -> Iterator[tuple[str, bool]]:
+    """Separate a few established source/pattern operands from file operands."""
+    if depth > MAX_DEPTH:
+        raise InspectionLimit("shell nesting exceeds the inspection depth limit")
+    if _utf8_size(command) > MAX_TEXT_BYTES:
+        raise InspectionLimit("shell command exceeds the local inspection limit")
+    for posix in (False, True):
+        stream = _ShellLexemeStream(command)
+        lexer = shlex.shlex(stream, posix=posix, punctuation_chars="();<>|&")
+        lexer.whitespace_split = True
+        lexer.commenters = ""
+        tokens: list[str] = []
+        try:
+            for token in lexer:
+                tokens.append(token)
+                stream.remaining = MAX_SHELL_LEXEME_CHARS
+        except InspectionLimit:
+            raise
+        except ValueError:
+            yield command, False
+            continue
+        executable = ""
+        subcommand = ""
+        next_role = ""
+        pattern_seen = False
+        explicit_pattern = False
+        options_done = False
+        implicit_pattern_known = True
+        python_options = True
+        for token in tokens:
+            candidate = token
+            if len(candidate) >= 2 and candidate[0] in "\"'" and candidate[-1] == candidate[0]:
+                candidate = candidate[1:-1]
+            if next_role:
+                role, next_role = next_role, ""
+                if role == "shell":
+                    yield from _shell_path_strings(candidate, depth=depth + 1)
+                elif role == "source":
+                    # Keep quoted/opened path references inspectable, without
+                    # interpreting a final member expression as a filename.
+                    yield "source: " + candidate, False
+                    python_options = False
+                elif role == "pattern":
+                    pattern_seen = True
+                else:
+                    yield candidate, True
+                continue
+            if candidate and all(char in "<>" for char in candidate):
+                next_role = "literal"
+                continue
+            if candidate and all(char in ";|&()" for char in candidate):
+                executable = subcommand = ""
+                pattern_seen = explicit_pattern = options_done = False
+                implicit_pattern_known = True
+                python_options = True
+                continue
+            if not executable:
+                if re.fullmatch(r"[A-Za-z_]\w*=.*", candidate, re.DOTALL):
+                    yield candidate.split("=", 1)[1], True
+                    continue
+                executable = candidate.rsplit("/", 1)[-1]
+                yield candidate, True
+            elif executable in {"sh", "bash", "zsh", "dash"} and candidate in {"-c", "-lc"}:
+                next_role = "shell"
+            elif re.fullmatch(r"python(?:[23](?:\.\d+)?)?", executable) and python_options and candidate == "-c":
+                next_role = "source"
+            elif executable == "rg" and not options_done and candidate in {"-e", "--regexp"}:
+                next_role = "pattern"
+                explicit_pattern = True
+            elif executable == "rg" and not options_done and candidate.startswith("--regexp="):
+                pattern_seen = explicit_pattern = True
+            elif executable == "rg" and not options_done and candidate == "--":
+                options_done = True
+            elif executable == "rg" and not options_done and candidate in {"-f", "--file", "-g", "--glob", "--iglob", "-t", "--type", "-T", "--type-not", "--encoding", "--threads", "-j", "--max-count", "-m"}:
+                # These operands are not regexes. In particular, -f opens a
+                # file and glob operands can select sensitive input files.
+                if candidate in {"-f", "--file"}:
+                    explicit_pattern = True
+                next_role = "literal"
+            elif executable == "rg" and not options_done and candidate.startswith("-"):
+                # Unknown option operands must not accidentally become an
+                # exempt implicit pattern. Explicit -e remains unambiguous.
+                if candidate not in {"-n", "--line-number", "-i", "--ignore-case", "-s", "--case-sensitive", "-F", "--fixed-strings", "-w", "--word-regexp", "-x", "--line-regexp", "--hidden", "-l", "--files-with-matches", "-q", "--quiet", "--no-heading", "--heading"}:
+                    implicit_pattern_known = False
+                assignment = re.fullmatch(r"--?[A-Za-z][\w-]*=(.*)", candidate, re.DOTALL)
+                yield assignment[1] if assignment else candidate, True
+            elif executable == "rg" and implicit_pattern_known and not candidate.startswith("-") and not pattern_seen and not explicit_pattern:
+                pattern_seen = True
+            elif executable == "git" and not subcommand and not candidate.startswith("-"):
+                subcommand = candidate
+                yield candidate, True
+            elif executable == "git" and subcommand == "log" and not options_done and candidate == "--grep":
+                next_role = "pattern"
+            elif executable == "git" and subcommand == "log" and not options_done and candidate.startswith("--grep="):
+                continue
+            else:
+                if re.fullmatch(r"python(?:[23](?:\.\d+)?)?", executable) and (candidate in {"--", "-m"} or not candidate.startswith("-")):
+                    python_options = False
+                if candidate == "--":
+                    options_done = True
+                assignment = re.fullmatch(r"(?:[A-Za-z_]\w*|--?[A-Za-z][\w-]*)=(.*)", candidate, re.DOTALL)
+                candidate = assignment[1] if assignment else candidate
+                complete = posix or all(candidate.count(quote) % 2 == 0 for quote in "\"'")
+                yield candidate, complete
+
+
 def _iter_strings(value: Any, *, path: str = "$", depth: int = 0, command_tokens: bool = False) -> Iterator[tuple[str, str, bool]]:
     if depth > MAX_DEPTH:
         raise InspectionLimit("value exceeds the inspection depth limit")
@@ -489,32 +750,11 @@ def _iter_strings(value: Any, *, path: str = "$", depth: int = 0, command_tokens
         for index, (key, nested) in enumerate(value.items()):
             if isinstance(key, str):
                 yield f"{path}/@key/{index}", key, False
-            yield from _iter_strings(nested, path=f"{path}/@item/{index}", depth=depth + 1, command_tokens=command_tokens)
             if command_tokens and key in ("cmd", "command") and isinstance(nested, str):
-                # Keep Windows spelling and also resolve POSIX quoting,
-                # escapes and adjacent shell punctuation (e.g. file;next).
-                for posix in (False, True):
-                    stream = _ShellLexemeStream(nested)
-                    lexer = shlex.shlex(stream, posix=posix, punctuation_chars="();<>|&")
-                    lexer.whitespace_split = True
-                    lexer.commenters = ""
-                    try:
-                        for token_index, token in enumerate(lexer):
-                            # Static option/environment assignments retain the
-                            # same literal file argument as their bare RHS.
-                            assignment = re.fullmatch(r"(?:[A-Za-z_]\w*|--?[A-Za-z][\w-]*)=(.*)", token, re.DOTALL)
-                            candidate = assignment[1] if assignment else token
-                            # Non-POSIX shlex may split a quote embedded after
-                            # '='. Such fragments retain raw-text inspection;
-                            # only the POSIX pass owns their complete filename.
-                            complete = posix or all(candidate.count(quote) % 2 == 0 for quote in "\"'")
-                            yield f"{path}/@command/{index}/{posix}/{token_index}", candidate, complete
-                            stream.remaining = MAX_SHELL_LEXEME_CHARS
-                    except InspectionLimit:
-                        raise
-                    except ValueError:
-                        # Previously yielded tokens and raw text were inspected.
-                        continue
+                for token_index, (candidate, complete) in enumerate(_shell_path_strings(nested)):
+                    yield f"{path}/@command/{index}/{token_index}", candidate, complete
+            else:
+                yield from _iter_strings(nested, path=f"{path}/@item/{index}", depth=depth + 1, command_tokens=command_tokens)
     elif isinstance(value, list):
         for index, nested in enumerate(value):
             yield from _iter_strings(nested, path=f"{path}/{index}", depth=depth + 1, command_tokens=command_tokens)

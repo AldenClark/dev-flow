@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2.1.2] - 2026-10-26
+
+Current candidate source identity: `2.1.2`. Current workspace state: `development` from `v2.1.1`. Independent clean-context review passed for the cumulative DLP delta. Release and installation are authorized; observations belong to the [2.1.2 progress](docs/workstreams/dev-flow-2.1.2/progress.md). Live-model journeys remain NOT RUN under the continuing no-additional-model-evaluation scope.
+
+### Fixed
+
+- Fix code-shaped DLP false positives in named-argument references, URL interpolation and command operand roles; preserve credential-literal checks across triple quotes, wrapper arguments and comments, stop Python option parsing after its execution target, and retain fail-closed bounds, nested shell reads and multi-suffix environment-file protection. See the [bounded code audit](docs/dlp-code-false-positive-audit.md).
+
 ## [2.1.1] - 2026-10-24
 
 Latest published source identity: `2.1.1`. Current workspace state: `development` from `v2.1.1`. Independent clean-context review passed for the cumulative guidance delta. Published from `7c0c950f58e848d5452eb5d6242e9d8661d2095a` with exact-source semantic/platform CI, bound hosted attestations and four matching public assets; release observations belong to the [2.1.1 progress](docs/workstreams/dev-flow-2.1.1/progress.md). Live-model qualification and installation are NOT RUN under the continuing user scope.
