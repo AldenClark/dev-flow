@@ -2,7 +2,7 @@
 
 Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是建立第二套工作流引擎，而是用最少的流程成本保持三件事：长期业务工作不漂移、技术结论有原生工程证据、高后果动作保留明确安全边界。
 
-候选源码身份为 `2.1.3`。当前工作区处于 `development` 状态，基于 `v2.1.2`。`v2.1.2` 是最近已发布的稳定标签，也是默认固定安装通道。`v2.0.0-rc.9` 是最近已发布的 RC；2.1.3 的回滚目标为 `v2.1.2`。本次收紧 DLP Hook 一次性确认的目录元数据校验，拒绝相对路径及无效目录，不扩大确认范围。现有 Codex 二进制尚未呈现 PR57198/PR57203 的执行目录语义，因此不声明真实宿主上的跨 workdir 确认隔离已通过。提交、正式发布及本地更新已获授权，执行事实见[发布记录](docs/workstreams/dev-flow-2.1.3/progress.md)。不升级宿主或安装 alpha，不追加模型评测。2.0 的 1.x 破坏性切换边界保持不变。
+已发布源码身份为 `2.1.3`。当前工作区处于 `development` 状态，基于 `v2.1.3`。`v2.1.3` 是最近已发布的稳定标签，也是默认固定安装通道。`v2.0.0-rc.9` 是最近已发布的 RC；2.1.3 的回滚目标为 `v2.1.2`。本次收紧 DLP Hook 一次性确认的目录元数据校验，拒绝相对路径及无效目录，不扩大确认范围。现有 Codex 二进制尚未呈现 PR57198/PR57203 的执行目录语义，因此不声明真实宿主上的跨 workdir 确认隔离已通过。提交、正式发布及本地安装更新均已核实，执行事实见[发布记录](docs/workstreams/dev-flow-2.1.3/progress.md)。不升级宿主或安装 alpha，不追加模型评测。2.0 的 1.x 破坏性切换边界保持不变。
 
 ## 2.0 核心模型
 
@@ -222,7 +222,7 @@ python3 skills/dev-flow/scripts/dev-flow.py outcomes summary
 固定安装当前公开稳定版：
 
 ```bash
-codex plugin marketplace add AldenClark/dev-flow --ref v2.1.2
+codex plugin marketplace add AldenClark/dev-flow --ref v2.1.3
 codex plugin add dev-flow@dev-flow
 ```
 
@@ -253,7 +253,7 @@ CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job �
 
 ## 版本和发布状态
 
-- `2.1.3` 是当前候选源码身份；目录校验、当前宿主反例及发布/安装观察见[发布记录](docs/workstreams/dev-flow-2.1.3/progress.md)。
+- `2.1.3` 是当前已发布源码身份；不可变 [v2.1.3](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.3) 来自 `2dc35efe8e76fe3e80c8a5469ee73027e4dfc93d`。精确源码 CI、五组平台检查、四份公开制品及隔离生命周期通过。本机已安装并启用 2.1.3，478 个归档文件匹配、8 项安装态合成检查通过。当前 Codex 执行目录元数据限制和未观察范围见[发布记录](docs/workstreams/dev-flow-2.1.3/progress.md)。
 - `2.1.2` 是此前已发布源码身份；不可变 [v2.1.2](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.2) 来自 `176daea484cdbd63abd492c806b36c2dfa5ea16b`。精确源码 CI、五组平台兼容检查、四份公开制品及隔离安装/卸载通过；本机已安装并启用 2.1.2，476 个文件与公开归档匹配，三项安装态 Hook 控制通过。模型旅程和现有聊天重载仍未观察，详情见[发布记录](docs/workstreams/dev-flow-2.1.2/progress.md)。
 - `2.1.1` 是此前已发布源码身份；不可变 [v2.1.1](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.1) 来自 `7c0c950f58e848d5452eb5d6242e9d8661d2095a`。精确源码 CI、五组平台兼容检查与四份公开制品核对通过；模型旅程及安装 NOT RUN，详情见[发布记录](docs/workstreams/dev-flow-2.1.1/progress.md)。
 - `2.1.0` 是此前已发布源码身份；不可变 [v2.1.0](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.0) 来自 `0d0ef9e2eed869e84d78ab2350be0a75fd2c3000`。精确SHA语义全套、5个平台/Python兼容单元、来源/SBOM证明及4份公开下载核对通过。未覆盖的稳定功能旅程明确WAIVED；本次未安装，详情与原始失败见[发布记录](docs/workstreams/dev-flow-upgrade-2026-10/progress.md)。

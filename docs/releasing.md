@@ -2,15 +2,17 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
-## 2.1.3 personal-assistant hardening candidate
+## 2.1.3 personal-assistant hardening release
 
 `2.1.3` rejects missing, relative, NUL-containing and URI-valued Hook cwd before one-shot DLP issuance, marker confirmation or consumption. Existing native absolute scope, complete payload/session binding and single consumption remain unchanged. This R2/R3 patch changes no Hook registration, approval schema, dependency, Codex version or directory fallback.
 
-`v2.0.0-rc.9` is the latest public immutable RC tag; `v2.1.2` remains published stable/default install during preparation. `v2.1.2` is the rollback target for `2.1.3`. User authority on2026-10-27 covers commit, push, formal publication and local Dev Flow update; no additional model campaign, Codex upgrade or alpha installation is authorized.
+`v2.0.0-rc.9` is the latest public immutable RC tag; `v2.1.3` is the published stable/default installation channel. `v2.1.2` is the rollback target for `2.1.3`. User authority on2026-10-27 covers commit, push, formal publication and local Dev Flow update; no additional model campaign, Codex upgrade or alpha installation is authorized.
 
-Delivery state: commit=not-run; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+Delivery state: commit=passed; hosted_ci=passed; cross_platform=passed; independent_review=passed; tag=passed; artifact=passed; publication=passed; isolated_install=passed.
 
 The [release progress](workstreams/dev-flow-2.1.3/progress.md) owns source/native/hosted/artifact/public/install identities. The existing local binary0.164.0-alpha.11.1 does not exhibit upstream PR57198/PR57203 semantics: actual relative/absolute workdirs differ while Pre/Post cwd remains host cwd, and delayed completion reports the later turn cwd. Original failures and this negative real-host result remain visible. No full workdir-isolation, remote-directory, native Windows host, stdin approval or active-chat loading claim follows. Five model journeys remain NOT RUN; publication under this explicit limitation does not establish complete functional qualification. Preserve old caches; on a material guard regression, separately install publicv2.1.2 and verify its bytes. No approval-state migration is introduced.
+
+Published [v2.1.3](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.3) resolves to `2dc35efe8e76fe3e80c8a5469ee73027e4dfc93d`. CI 40435410692 passes848 semantic tests (846 pass/two environment skips) and five 387-test compatibility cells. Artifact run 40435973989 binds archive/checksums/587-file SPDX and both attestations to that source. All four public downloads match hosted bytes; isolated lifecycle completes after one preserved Git clone reset and bounded recovery. Primary discovery reports enabled/installed 2.1.3 from the same source: 478 files match, eight synthetic methods pass, doctor has zero required failures/five manual not_observed gates, 23 unrelated plugin records and marketplace bindings remain unchanged, and 519 prior-cache file hashes match. Later truth-only documentation does not change the immutable tag/runtime. Current-host execution-cwd isolation remains blocked and model journeys/current-chat loading remain unobserved.
 
 ## 2.1.2 personal-assistant hardening release
 

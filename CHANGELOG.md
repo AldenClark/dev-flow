@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [2.1.3] - 2026-10-27
 
-Current candidate source identity: `2.1.3`. Current workspace state: `development` from `v2.1.2`. Independent clean-context review passed for the cumulative cwd hardening delta. Release and local installation are authorized; observations belong to the [2.1.3 progress](docs/workstreams/dev-flow-2.1.3/progress.md). Existing Codex0.164.0-alpha.11.1 still reports host/current-turn cwd instead of actual local execution cwd. This patch hardens metadata validation; it does not claim end-to-end workdir isolation on that host. Live-model journeys remain NOT RUN.
+Latest published source identity: `2.1.3`. Current workspace state: `development` from `v2.1.3`. Independent clean-context review passed for the cumulative cwd hardening delta. Formal release and primary installation are observed from immutable `2dc35efe8e76fe3e80c8a5469ee73027e4dfc93d`, with 478 matching archive files and eight installed synthetic checks passing; observations belong to the [2.1.3 progress](docs/workstreams/dev-flow-2.1.3/progress.md). Existing Codex0.164.0-alpha.11.1 still reports host/current-turn cwd instead of actual local execution cwd. This patch hardens metadata validation; it does not claim end-to-end workdir isolation on that host. Live-model journeys remain NOT RUN.
 
 ### Fixed
 

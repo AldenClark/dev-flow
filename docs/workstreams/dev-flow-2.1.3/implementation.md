@@ -1,6 +1,6 @@
 # Dev Flow 2.1.3 Hook cwd release
 
-> Status: source-candidate for `2.1.3`
+> Status: `2.1.3` published; isolated lifecycle and primary installation verified
 
 <!-- dev-flow-workstream-contract: v1 -->
 
@@ -8,6 +8,6 @@ Release the accepted native-absolute cwd validation repair and seven synthetic r
 
 | Slice | Outcome | Write prefixes | Protected paths | Evidence | Status | Decision |
 |---|---|---|---|---|---|---|
-| S1 | Qualify, commit/push, publish 2.1.3 and verify isolated lifecycle and primary installation | `.codex-plugin/plugin.json`, `.github/workflows/release-candidate.yml`, `governance/product-state.json`, `README.md`, `CHANGELOG.md`, `docs/`, `hooks/data_security_hook.py`, `skills/company-data-security/scripts/dlp_approval.py`, `skills/company-data-security/references/`, `evals/test_dlp_approval_audit.py`, `evals/test_dlp_hook_audit.py` | `skills/company-data-security/scripts/data_security.py`, `tools/`, `benchmarks/` | Cumulative static review, native regression and validators, exact-source CI/artifacts, public bytes, isolated lifecycle, primary identity and focused synthetic Hook controls | in-progress | Existing host cannot supply reliable execution cwd; no complete workdir-isolation, live-model or existing-chat reload claim |
+| S1 | Qualify, commit/push, publish 2.1.3 and verify isolated lifecycle and primary installation | `.codex-plugin/plugin.json`, `.github/workflows/release-candidate.yml`, `governance/product-state.json`, `README.md`, `CHANGELOG.md`, `docs/`, `hooks/data_security_hook.py`, `skills/company-data-security/scripts/dlp_approval.py`, `skills/company-data-security/references/`, `evals/test_dlp_approval_audit.py`, `evals/test_dlp_hook_audit.py` | `skills/company-data-security/scripts/data_security.py`, `tools/`, `benchmarks/` | Cumulative static review, native regression and validators, exact-source CI/artifacts, public bytes, isolated lifecycle, primary identity and focused synthetic Hook controls | complete | Existing host cannot supply reliable execution cwd; no complete workdir-isolation, live-model or existing-chat reload claim |
 
 Keep the implementation scope stable; progress owns changing observations. Immutable candidate bytes and later publication/install truth documentation remain separate commits.
