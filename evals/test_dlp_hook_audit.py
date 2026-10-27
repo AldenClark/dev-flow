@@ -39,16 +39,17 @@ def _invoke(
     *,
     state_dir: Path | None = None,
     mode: str = "personal",
+    process_cwd: Path | None = None,
 ) -> tuple[int, bytes, bytes]:
     raw = event if isinstance(event, bytes) else json.dumps(event, ensure_ascii=True).encode("utf-8")
 
     if state_dir is not None:
-        return _run(raw, state_dir, mode)
+        return _run(raw, state_dir, mode, process_cwd)
     with tempfile.TemporaryDirectory() as directory:
-        return _run(raw, Path(directory), mode)
+        return _run(raw, Path(directory), mode, process_cwd)
 
 
-def _run(raw: bytes, state_dir: Path, mode: str) -> tuple[int, bytes, bytes]:
+def _run(raw: bytes, state_dir: Path, mode: str, process_cwd: Path | None = None) -> tuple[int, bytes, bytes]:
     environment = os.environ.copy()
     environment[STATE_DIR_ENV] = str(state_dir)
     environment[MODE_ENV] = mode
@@ -60,6 +61,7 @@ def _run(raw: bytes, state_dir: Path, mode: str) -> tuple[int, bytes, bytes]:
         timeout=10,
         check=False,
         env=environment,
+        cwd=process_cwd,
     )
     return result.returncode, result.stdout, result.stderr
 
@@ -293,6 +295,138 @@ class HookPayloadAuditTests(unittest.TestCase):
             self.assertEqual((code, stderr), (0, b""))
             replay = json.loads(stdout)
             self.assertEqual(replay["hookSpecificOutput"]["permissionDecision"], "deny")
+
+
+class HookCwdCompatibilityTests(unittest.TestCase):
+    def call(self, event: dict[str, Any], state: Path, process_cwd: Path) -> dict[str, Any]:
+        code, stdout, stderr = _invoke(event, state_dir=state, process_cwd=process_cwd)
+        self.assertEqual((code, stderr), (0, b""))
+        self.assertNotIn(_synthetic_token().encode(), stdout)
+        return json.loads(stdout) if stdout else {}
+
+    def pending(self, cwd: Path, state: Path, host: Path) -> tuple[dict[str, Any], str]:
+        event = _base_event("PreToolUse") | {
+            "cwd": str(cwd), "turn_id": "turn-1", "tool_use_id": "original-command",
+            "tool_name": "Bash", "tool_input": {"command": "echo synthetic test " + _synthetic_token()},
+        }
+        result = self.call(event, state, host)
+        self.assertEqual(result["hookSpecificOutput"]["permissionDecision"], "deny")
+        marker = re.search(r"\[\[DEV_FLOW_DLP_CONFIRM:[^\]]+\]\]", result["hookSpecificOutput"]["permissionDecisionReason"])
+        self.assertIsNotNone(marker)
+        return event, marker.group(0)
+
+    def confirm(self, marker: str, cwd: Path, state: Path, host: Path) -> None:
+        # UserPromptSubmit retains the host directory, not the command workdir.
+        result = self.call(_base_event("UserPromptSubmit") | {
+            "cwd": str(cwd), "turn_id": "turn-2", "prompt": marker,
+        }, state, host)
+        self.assertNotIn("decision", result)
+        self.assertIn("confirmed", result["hookSpecificOutput"]["additionalContext"])
+
+    def test_tool_confirmation_is_cwd_bound_and_one_shot_across_turns(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            host, first, other = (root / name for name in ("host", "first", "other"))
+            for path in (host, first, other):
+                path.mkdir()
+            state = root / "state"
+            event, marker = self.pending(first, state, host)
+            self.confirm(marker, host, state, other)
+            wrong = self.call(event | {"cwd": str(other)}, state, host)
+            self.assertEqual(wrong["hookSpecificOutput"]["permissionDecision"], "deny")
+            retry = event | {"turn_id": "turn-3", "tool_use_id": "retry-command"}
+            allowed = self.call(retry, state, other)
+            self.assertNotIn("permissionDecision", allowed["hookSpecificOutput"])
+            self.assertIn("already consumed", allowed["hookSpecificOutput"]["additionalContext"])
+            replay = self.call(retry, state, host)
+            self.assertEqual(replay["hookSpecificOutput"]["permissionDecision"], "deny")
+            self.assertEqual(len(list((state / "used").glob("*.json"))), 1)
+
+    def test_relative_retry_cannot_use_hook_process_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            event, marker = self.pending(root, root / "state", root)
+            self.confirm(marker, root, root / "state", root)
+            rejected = self.call(event | {"cwd": "."}, root / "state", root)
+            self.assertEqual(rejected.get("hookSpecificOutput", {}).get("permissionDecision"), "deny")
+            allowed = self.call(event, root / "state", root)
+            self.assertNotIn("permissionDecision", allowed["hookSpecificOutput"])
+
+    def test_invalid_cwd_cannot_confirm_pending_tool_request(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            for index, cwd in enumerate((None, "", ".", "child", "file:///synthetic", "ssh://host.invalid/repo", str(root) + "\0")):
+                with self.subTest(cwd=cwd):
+                    state = root / f"state-{index}"
+                    event, marker = self.pending(root, state, root)
+                    result = self.call(_base_event("UserPromptSubmit") | {"cwd": cwd, "prompt": marker}, state, root)
+                    self.assertEqual(result.get("decision"), "block")
+                    self.confirm(marker, root, state, root)
+                    allowed = self.call(event, state, root)
+                    self.assertNotIn("permissionDecision", allowed["hookSpecificOutput"])
+
+    def test_invalid_cwd_blocks_all_supported_events_without_creating_state(self) -> None:
+        payloads = {
+            "UserPromptSubmit": {"prompt": "ordinary"},
+            "PreToolUse": {"tool_name": "Bash", "tool_input": {"command": "echo ordinary"}},
+            "PostToolUse": {"tool_name": "Bash", "tool_response": "ordinary"},
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            state = root / "state"
+            for name, fields in payloads.items():
+                for cwd in (None, "", ".", "../other", "file:///synthetic", "ssh://host.invalid/repo", str(root) + "\0"):
+                    with self.subTest(event=name, cwd=cwd):
+                        event = _base_event(name) | fields
+                        if cwd is None:
+                            del event["cwd"]
+                        else:
+                            event["cwd"] = cwd
+                        result = self.call(event, state, root)
+                        if name == "PreToolUse":
+                            self.assertEqual(result.get("hookSpecificOutput", {}).get("permissionDecision"), "deny")
+                        else:
+                            self.assertEqual(result.get("decision"), "block")
+            self.assertFalse(state.exists())
+
+    def test_delayed_bash_result_keeps_original_cwd_without_consuming_confirmation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            original, later = root / "original", root / "later-turn"
+            original.mkdir()
+            later.mkdir()
+            state = root / "state"
+            event, marker = self.pending(original, state, root)
+            self.confirm(marker, later, state, later)
+            # PR57203: write_stdin completion reports the original Bash input,
+            # tool_use_id and execution cwd; only turn/process cwd have changed.
+            post = event | {"hook_event_name": "PostToolUse", "turn_id": "later-turn", "tool_response": _synthetic_token()}
+            result = self.call(post, state, later)
+            self.assertEqual(result["decision"], "block")
+            self.assertRegex(result["hookSpecificOutput"]["additionalContext"], r"\{\{DLP:SECRET:[0-9a-f]{8}\}\}")
+            self.assertEqual(len(list((state / "used").glob("*.json"))), 0)
+            allowed = self.call(event | {"turn_id": "next-turn"}, state, later)
+            self.assertNotIn("permissionDecision", allowed["hookSpecificOutput"])
+
+    def test_host_cwd_is_not_inferred_from_remote_payload_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            state = root / "state"
+            # MCP input retains arguments; a remote workdir is payload, never a
+            # replacement for top-level host cwd. Bash exposes command only.
+            event = _base_event("PreToolUse") | {
+                "cwd": str(root), "tool_name": "mcp__synthetic__remote",
+                "tool_input": {"command": "echo synthetic test " + _synthetic_token(), "workdir": "remote/relative"},
+            }
+            denied = self.call(event, state, root)
+            marker = re.search(r"\[\[DEV_FLOW_DLP_CONFIRM:[^\]]+\]\]", denied["hookSpecificOutput"]["permissionDecisionReason"])
+            self.assertIsNotNone(marker)
+            self.confirm(marker.group(0), root, state, root)
+            altered = event | {"tool_input": event["tool_input"] | {"workdir": "remote/other"}}
+            self.assertEqual(self.call(altered, state, root)["hookSpecificOutput"]["permissionDecision"], "deny")
+            self.assertEqual(self.call(event | {"cwd": "ssh://host.invalid/repo"}, state, root)["hookSpecificOutput"]["permissionDecision"], "deny")
+            allowed = self.call(event, state, root)
+            self.assertNotIn("permissionDecision", allowed["hookSpecificOutput"])
 
 
 if __name__ == "__main__":

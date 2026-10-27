@@ -2,6 +2,16 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
+## 2.1.3 personal-assistant hardening candidate
+
+`2.1.3` rejects missing, relative, NUL-containing and URI-valued Hook cwd before one-shot DLP issuance, marker confirmation or consumption. Existing native absolute scope, complete payload/session binding and single consumption remain unchanged. This R2/R3 patch changes no Hook registration, approval schema, dependency, Codex version or directory fallback.
+
+`v2.0.0-rc.9` is the latest public immutable RC tag; `v2.1.2` remains published stable/default install during preparation. `v2.1.2` is the rollback target for `2.1.3`. User authority on2026-10-27 covers commit, push, formal publication and local Dev Flow update; no additional model campaign, Codex upgrade or alpha installation is authorized.
+
+Delivery state: commit=not-run; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+
+The [release progress](workstreams/dev-flow-2.1.3/progress.md) owns source/native/hosted/artifact/public/install identities. The existing local binary0.164.0-alpha.11.1 does not exhibit upstream PR57198/PR57203 semantics: actual relative/absolute workdirs differ while Pre/Post cwd remains host cwd, and delayed completion reports the later turn cwd. Original failures and this negative real-host result remain visible. No full workdir-isolation, remote-directory, native Windows host, stdin approval or active-chat loading claim follows. Five model journeys remain NOT RUN; publication under this explicit limitation does not establish complete functional qualification. Preserve old caches; on a material guard regression, separately install publicv2.1.2 and verify its bytes. No approval-state migration is introduced.
+
 ## 2.1.2 personal-assistant hardening release
 
 `2.1.2` repairs code-shaped DLP false positives and adjacent credential-protection gaps. This R2/R3 change modifies the detection engine and its integrity digest, with native paired controls and the [code audit](dlp-code-false-positive-audit.md); no new dependency, Hook registration, approval protocol or model-routing behavior is added. The user authorized commit, formal release and local Dev Flow update on 2026-10-26. Prior no-additional-model-evaluation scope continues: five live-model journeys are NOT RUN, not PASS or an inherited waiver. Native, hosted, public, installed and active-session observations remain separate.
@@ -200,14 +210,14 @@ For an R3 change, two local builds can establish deterministic behavior before h
 ```bash
 git rev-parse HEAD
 python3 tools/build_release.py build \
-  --root . --output dist-a --version 2.1.2 --commit FULL_COMMIT_SHA
+  --root . --output dist-a --version 2.1.3 --commit FULL_COMMIT_SHA
 python3 tools/build_release.py build \
-  --root . --output dist-b --version 2.1.2 --commit FULL_COMMIT_SHA
-cmp dist-a/dev-flow-2.1.2.tar.gz dist-b/dev-flow-2.1.2.tar.gz
+  --root . --output dist-b --version 2.1.3 --commit FULL_COMMIT_SHA
+cmp dist-a/dev-flow-2.1.3.tar.gz dist-b/dev-flow-2.1.3.tar.gz
 cmp dist-a/release-manifest.json dist-b/release-manifest.json
 cmp dist-a/SHA256SUMS dist-b/SHA256SUMS
 python3 tools/build_release.py verify \
-  --artifact-dir dist-a --expected-version 2.1.2 --expected-commit FULL_COMMIT_SHA
+  --artifact-dir dist-a --expected-version 2.1.3 --expected-commit FULL_COMMIT_SHA
 ```
 
 Determinism is asserted within the pinned environment. Promotion reuses attested bytes instead of rebuilding on another zlib/toolchain version.
@@ -218,17 +228,17 @@ After applicable exact-SHA CI is green:
 
 ```bash
 gh workflow run release-candidate.yml \
-  --ref main -f version=2.1.2 -f expected_sha=FULL_COMMIT_SHA
+  --ref main -f version=2.1.3 -f expected_sha=FULL_COMMIT_SHA
 ```
 
 The workflow has `contents: read`, `id-token: write`, and `attestations: write`. It has no release-publication permission. After download:
 
 ```bash
 python3 tools/build_release.py verify \
-  --artifact-dir dist --expected-version 2.1.2 --expected-commit FULL_COMMIT_SHA
-gh attestation verify dist/dev-flow-2.1.2.tar.gz \
+  --artifact-dir dist --expected-version 2.1.3 --expected-commit FULL_COMMIT_SHA
+gh attestation verify dist/dev-flow-2.1.3.tar.gz \
   --repo AldenClark/dev-flow
-gh attestation verify dist/dev-flow-2.1.2.tar.gz \
+gh attestation verify dist/dev-flow-2.1.3.tar.gz \
   --repo AldenClark/dev-flow \
   --predicate-type https://spdx.dev/Document/v2.3
 ```

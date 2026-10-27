@@ -38,6 +38,13 @@ approval = _load_module("dlp_approval_audit_module", APPROVAL_PATH)
 
 
 class ApprovalStateAuditTests(unittest.TestCase):
+    def test_scope_requires_native_absolute_cwd_without_process_fallback(self) -> None:
+        for cwd in (None, "", ".", "child", "../other", "file:///synthetic", "ssh://host.invalid/repo", str(ROOT) + "\0"):
+            with self.subTest(cwd=cwd), self.assertRaises(approval.ApprovalError):
+                approval.canonical_scope("PreToolUse", cwd, {"command": "ordinary"}, tool_name="Bash")
+        scope = json.loads(approval.canonical_scope("PreToolUse", str(ROOT), {"command": "ordinary"}, tool_name="Bash"))
+        self.assertEqual(scope["cwd"], str(ROOT.resolve()))
+
     def test_master_key_control_bytes_round_trip_without_text_translation(self) -> None:
         key = bytes([13, 10, 26, 10]) + bytes(range(28))
         self.assertEqual(len(key), 32)

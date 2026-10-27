@@ -20,6 +20,7 @@ This index routes contributors and agents to the smallest maintained knowledge o
 
 ## Managed work and release history
 
+- [Dev Flow 2.1.3](workstreams/dev-flow-2.1.3/progress.md): Hook cwd hardening, current host metadata limits and release/install observations.
 - [Dev Flow 2.1.2](workstreams/dev-flow-2.1.2/progress.md): published DLP release, verified public artifacts and local installation, exact identities and remaining limits.
 - [Dev Flow 2.1.1](workstreams/dev-flow-2.1.1/progress.md): published stable guidance update, exact-source CI, hosted/public artifacts and action-specific limits; model journeys and installation not run.
 - [Proportionate engineering](proportionate-engineering-plan.md): accepted goals, local implementation and bounded evidence for design guarantees, code defenses, and evidence reuse; publication belongs to the 2.1.1 record above, with no installation or model-benefit claim.

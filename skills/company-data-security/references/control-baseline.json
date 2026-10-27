@@ -1,15 +1,15 @@
 {
   "files": {
-    "hooks/data_security_hook.py": "sha256:fcd7b9aa7a5e65fce1b0f7a51be4c7a8f77c81f09dd8577cc9301647d087d663",
+    "hooks/data_security_hook.py": "sha256:ff3fc3bc107ae3e9e08334fc032d4f4f8b4d881665e5080dd3ffd0433cb4836c",
     "skills/company-data-security/SKILL.md": "sha256:bb7db889799fdec68f1d0fe4ded1d26f0840c8cb1443067e1231140a8bc832b3",
     "skills/company-data-security/agents/openai.yaml": "sha256:744850ccdf171f7388fc4fc56193ffe24ae4c2d52cba69b6e23cbf159242928b",
     "skills/company-data-security/assets/chatgpt-work-instructions.md": "sha256:3bf085d72471b041c6791da2894bce2af30febd80c9d06509ad6a119303fdb80",
     "skills/company-data-security/assets/codex-agents-baseline.md": "sha256:24543ce1cdf25d9cae8e9247569d29c2ac5e1492f74d07510c34cff6bfd4a921",
     "skills/company-data-security/assets/ordinary-chat-instructions.md": "sha256:88658af74574702bb634f19fe90225be3c1f60cd9ba83e6e3772895b4f57ffdd",
-    "skills/company-data-security/references/data-handling-policy.md": "sha256:3f94a620dd9a22cfa40f89241ed1a340ec1cddf74fb8b86dd84711c9547114dd",
+    "skills/company-data-security/references/data-handling-policy.md": "sha256:fc5b6bc3fbd649ed4e362bc4513ecc29e7ab23ac63441cc57fa2989b93e018aa",
     "skills/company-data-security/references/surface-playbooks.md": "sha256:117fd7797e4a1702a457585dfd43dcfebf1caee7b049880a0d522cc0463235b4",
     "skills/company-data-security/scripts/data_security.py": "sha256:9b7a287db5181fddb92cc4339e3ef0ec29428f2ceb87f3abef2c7978e5132027",
-    "skills/company-data-security/scripts/dlp_approval.py": "sha256:3c7e949b75a42131b4805e1823b467cf09fb86ba7879d5f0b3109fa17848a32a",
+    "skills/company-data-security/scripts/dlp_approval.py": "sha256:6367243ac1e8bb836a6e97182e63d072469572b74b3073fea71549676d2bb934",
     "skills/company-data-security/scripts/dlp_policy.py": "sha256:195d9d6045a399cbd65f31c3d9082ac38b35572c59627eef83e918bba0b39dc3",
     "skills/company-data-security/scripts/doctor.py": "sha256:f2f97a52430a66d9352862612656907d3fe03140ddfd0394952399b3383776d0"
   },

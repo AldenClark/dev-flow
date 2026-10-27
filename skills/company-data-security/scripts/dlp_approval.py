@@ -271,8 +271,10 @@ def _master_key() -> bytes:
 
 def canonical_scope(event_name: str, cwd: str, payload: Any, *, tool_name: str = "") -> bytes:
     """Return the exact bounded approval scope used for local keyed matching."""
-    if not isinstance(cwd, str) or not cwd:
-        raise ApprovalError("approval scope requires a working directory")
+    # Event cwd is authoritative; never resolve relative metadata against the
+    # Hook process cwd, which can differ from the command's execution directory.
+    if not isinstance(cwd, str) or not cwd or "\0" in cwd or not Path(cwd).is_absolute():
+        raise ApprovalError("approval scope requires an absolute working directory")
     try:
         serialized = json.dumps(
             {

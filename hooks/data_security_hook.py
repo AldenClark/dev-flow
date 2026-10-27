@@ -236,6 +236,8 @@ def _event_schema_error(event_name: str, event: dict[str, Any]) -> str | None:
         or any(ord(character) < 32 for character in session_id)
         or not isinstance(cwd, str)
         or not cwd
+        or "\0" in cwd
+        or not Path(cwd).is_absolute()
     ):
         return "Invalid Hook event metadata was blocked locally."
     if event_name == "UserPromptSubmit":

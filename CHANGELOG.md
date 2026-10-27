@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2.1.3] - 2026-10-27
+
+Current candidate source identity: `2.1.3`. Current workspace state: `development` from `v2.1.2`. Independent clean-context review passed for the cumulative cwd hardening delta. Release and local installation are authorized; observations belong to the [2.1.3 progress](docs/workstreams/dev-flow-2.1.3/progress.md). Existing Codex0.164.0-alpha.11.1 still reports host/current-turn cwd instead of actual local execution cwd. This patch hardens metadata validation; it does not claim end-to-end workdir isolation on that host. Live-model journeys remain NOT RUN.
+
+### Fixed
+
+- Reject missing, relative, NUL-containing or URI-valued Hook working-directory metadata before any one-shot DLP confirmation. Preserve exact native absolute-directory binding and single consumption; add synthetic controls for changed workdirs, Hook process directories, cross-turn Bash completion and remote payload paths. Document Codex PR57198/PR57203 semantics and the unobservable remote-directory boundary without adding a directory fallback or approval scope.
+
 ## [2.1.2] - 2026-10-26
 
 Latest published source identity: `2.1.2` from immutable `176daea484cdbd63abd492c806b36c2dfa5ea16b`. Current workspace state: `development` from `v2.1.2`. Independent clean-context review passed for the cumulative DLP delta. Exact-source CI, hosted/public artifacts, isolated lifecycle and primary installation are observed; the local plugin is installed/enabled as 2.1.2 with 476 archive files matching and three synthetic installed-Hook controls passing. Details belong to the [2.1.2 progress](docs/workstreams/dev-flow-2.1.2/progress.md). Live-model journeys remain NOT RUN under the continuing no-additional-model-evaluation scope; existing-chat loading is not_observed.
