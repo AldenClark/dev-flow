@@ -2,7 +2,7 @@
 
 Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是建立第二套工作流引擎，而是用最少的流程成本保持三件事：长期业务工作不漂移、技术结论有原生工程证据、高后果动作保留明确安全边界。
 
-候选源码身份为 `2.2.0`，阶段为 `source-candidate`。当前工作区处于 `development` 状态，基于 `v2.1.3`。`v2.1.3` 是最近已发布的稳定标签，也是默认固定安装通道。`v2.0.0-rc.9` 是最近已发布的 RC；2.2.0 的回滚目标为 `v2.1.3`。本次删减会诱导额外工作的规则，保留及时原生需求澄清、适当设计、代码正确性和必要验证，并修复四处 CLI 残留。独立审计及修复复核已完成；提交、托管 CI、跨平台、标签、制品、公开发布及隔离安装尚未运行。用户在已披露真实宿主验证和五条模型旅程仍为 `NOT RUN` 后，要求提交、推送、正式发布，并在发布成功后更新本机 Dev Flow；此要求不把缺失证据变成 `PASSED` 或既有 `WAIVED`，也不证明成本或效果收益。当前执行事实见[发布记录](docs/workstreams/dev-flow-2.2.0/progress.md)。2.0 的 1.x 破坏性切换边界保持不变。
+已发布源码身份为 `2.2.0`，阶段为 `stable`。当前工作区处于 `development` 状态，基于 `v2.2.0`。`v2.2.0` 是最近已发布的稳定标签，也是默认固定安装通道。`v2.0.0-rc.9` 是最近已发布的 RC；2.2.0 的回滚目标为 `v2.1.3`。本次删减诱导额外工作的规则，保留及时原生需求澄清、适当设计、代码正确性和必要验证，并对齐 CLI。提交、托管检查、公开制品、正式发布、隔离生命周期和本机安装均已核实；本机已启用 2.2.0，旧 Hook 缓存保留。真实模型旅程、当前会话加载及长期收益仍未验证，不声明完整功能资格。执行事实见[发布记录](docs/workstreams/dev-flow-2.2.0/progress.md)。2.0 的 1.x 破坏性切换边界保持不变。
 
 ## 2.0 核心模型
 
@@ -222,7 +222,7 @@ python3 skills/dev-flow/scripts/dev-flow.py outcomes summary
 固定安装当前公开稳定版：
 
 ```bash
-codex plugin marketplace add AldenClark/dev-flow --ref v2.1.3
+codex plugin marketplace add AldenClark/dev-flow --ref v2.2.0
 codex plugin add dev-flow@dev-flow
 ```
 
@@ -253,9 +253,9 @@ CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job �
 
 ## 版本和发布状态
 
-- `2.2.0` 是当前候选源码身份，阶段为 `source-candidate`；工作区基于 `v2.1.3`，回滚目标为 `v2.1.3`。独立审计及修复复核通过；提交、托管 CI、跨平台、标签、制品、公开发布及隔离安装为 `NOT RUN`。真实宿主验证和五条模型旅程仍为 `NOT RUN`，未声称模型行为或收益已证实。详见[发布记录](docs/workstreams/dev-flow-2.2.0/progress.md)。
-- `v2.0.0-rc.9` 是最近已发布的 RC；最近已发布的稳定版及默认安装通道仍为 `v2.1.3`，其交付证据不自动适用于 2.2.0。
-- `2.1.3` 是已发布的稳定源码身份；不可变 [v2.1.3](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.3) 来自 `2dc35efe8e76fe3e80c8a5469ee73027e4dfc93d`。精确源码 CI、五组平台检查、四份公开制品及隔离生命周期通过。本机已安装并启用 2.1.3，478 个归档文件匹配、8 项安装态合成检查通过。当前 Codex 执行目录元数据限制和未观察范围见[发布记录](docs/workstreams/dev-flow-2.1.3/progress.md)。
+- `2.2.0` 是当前已发布源码身份；工作区基于 `v2.2.0`，回滚目标为 `v2.1.3`。独立审计及修复复核通过；提交、托管 CI、跨平台、标签、制品、公开发布、隔离生命周期及本机安装已核实。真实宿主验证和五条模型旅程仍为 `NOT RUN`，未声称模型行为或收益已证实。详见[发布记录](docs/workstreams/dev-flow-2.2.0/progress.md)。
+- `v2.0.0-rc.9` 是最近已发布的 RC；最近已发布的稳定版及默认安装通道为 `v2.2.0`，其交付证据不自动适用于 2.2.0。
+- `2.1.3` 是此前已发布的稳定源码身份；不可变 [v2.1.3](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.3) 来自 `2dc35efe8e76fe3e80c8a5469ee73027e4dfc93d`。精确源码 CI、五组平台检查、四份公开制品及隔离生命周期通过。本机已安装并启用 2.1.3，478 个归档文件匹配、8 项安装态合成检查通过。当前 Codex 执行目录元数据限制和未观察范围见[发布记录](docs/workstreams/dev-flow-2.1.3/progress.md)。
 - `2.1.2` 是此前已发布源码身份；不可变 [v2.1.2](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.2) 来自 `176daea484cdbd63abd492c806b36c2dfa5ea16b`。精确源码 CI、五组平台兼容检查、四份公开制品及隔离安装/卸载通过；本机已安装并启用 2.1.2，476 个文件与公开归档匹配，三项安装态 Hook 控制通过。模型旅程和现有聊天重载仍未观察，详情见[发布记录](docs/workstreams/dev-flow-2.1.2/progress.md)。
 - `2.1.1` 是此前已发布源码身份；不可变 [v2.1.1](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.1) 来自 `7c0c950f58e848d5452eb5d6242e9d8661d2095a`。精确源码 CI、五组平台兼容检查与四份公开制品核对通过；模型旅程及安装 NOT RUN，详情见[发布记录](docs/workstreams/dev-flow-2.1.1/progress.md)。
 - `2.1.0` 是此前已发布源码身份；不可变 [v2.1.0](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.0) 来自 `0d0ef9e2eed869e84d78ab2350be0a75fd2c3000`。精确SHA语义全套、5个平台/Python兼容单元、来源/SBOM证明及4份公开下载核对通过。未覆盖的稳定功能旅程明确WAIVED；本次未安装，详情与原始失败见[发布记录](docs/workstreams/dev-flow-upgrade-2026-10/progress.md)。
