@@ -4,7 +4,7 @@ Collect and retain only evidence needed for the claim. Logs, screenshots, traces
 
 ## Before collection
 
-- Prefer a focused command/result, targeted excerpt, structured summary, or hash over a bulk copy.
+- Prefer a focused command/result, targeted excerpt or short summary over a bulk copy. Use a hash only when byte identity is the question being checked.
 - Use synthetic or minimized data where it preserves the failure.
 - Redact secrets, tokens, cookies, authorization headers, direct identifiers, payload bodies, and production data.
 - Do not put credentials in commands, source, workstream documents, briefs, screenshots, or retained artifacts.
@@ -19,8 +19,8 @@ Do not commit, upload, attach, or externally share artifacts without separate au
 
 ## Freshness binding
 
-Bind each conclusion to its relevant source and transitive consumers, assertions, fixture, runner/selector, configuration, generated output, toolchain, environment and artifact identity. A change to an input that can affect the conclusion invalidates that PASS until the smallest affected check runs on the final inputs. Unchanged product code alone does not establish freshness. An unrelated documentation-only edit does not require an irrelevant runtime rerun.
+Reuse native results unless a subsequent change can affect what they established. Follow changed behavior through affected callers and usage paths; rerun the smallest check that observes the affected outcome. Changes to a test, fixture, runner, configuration, generated output or environment matter when they can alter that result, even if product code is unchanged. Ordinary local work needs no full input inventory, artifact identity sweep or separate binding for each conclusion.
 
-For an intermediate repair, compare with the last valid evidence for each claim, including unresolved failures and transitive impact; do not automatically rerun the cumulative PR scope. If identity or dependencies are uncertain, state the uncertainty and use a conservative affected check, not an assumed cache hit or a new evidence registry. A frozen delivery candidate still needs the repository's applicable acceptance evidence; an earlier similar command is insufficient.
+For an intermediate repair, retain unaffected results and unresolved failures instead of rerunning the cumulative PR scope. Investigate uncertain dependencies only when they could change the correctness or delivery decision. Installed, packaged and release claims need enough identity to establish that the tested artifact and configuration are the ones being claimed; an earlier similar command is insufficient. Unrelated edits do not invalidate a result.
 
-Apply this rule to sensitivity evidence too: retain a valid pre-fix failure or negative control while its protected fault, oracle and relevant inputs remain applicable. Rechallenge a changed or doubtful boundary; do not repeat fault injection solely because a new test run started. Explicit user requests for full reruns or repeated stability observations remain part of the authorized outcome.
+Retain a valid pre-fix failure or negative control while its protected fault and oracle remain applicable. Rechallenge a changed or doubtful boundary; do not repeat fault injection solely because a new test run started. Explicit user requests for full reruns or repeated stability observations remain part of the authorized outcome.

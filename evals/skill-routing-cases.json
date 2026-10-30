@@ -68,7 +68,7 @@
     {
       "id": "ROUTE-MATERIAL-UI",
       "args": ["--intent", "change", "--material-tradeoff", "--ui-impact", "material"],
-      "work_mode": "managed",
+      "work_mode": "direct",
       "expected": ["repo-context", "product-ux-discovery", "requirements-design", "verification"],
       "required": ["product-ux-discovery", "requirements-design", "verification"],
       "forbidden": ["systematic-debugging", "dependency-decisions", "change-review", "delivery-readiness"]

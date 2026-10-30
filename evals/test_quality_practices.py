@@ -15,85 +15,50 @@ def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def missing_contract_terms(text: str, terms: tuple[str, ...]) -> list[str]:
-    """Return exact terms lost from a policy/template projection."""
-    return [term for term in terms if term not in text]
-
-
 class QualityPracticesContractTests(unittest.TestCase):
     def test_verification_selects_views_by_failure_sensitivity(self) -> None:
         skill = read("skills/verification/SKILL.md")
         strategy = read("skills/verification/references/test-strategy.md")
-        required = (
-            "Start from the changed behavior",
-            "Black-box",
-            "White-box",
-            "distinct failure sensitivity",
-            "do not require every view or a prose `N/A`",
-            "high-risk or easy-to-fake oracle",
+        self.assertRegex(
+            strategy,
+            r"(?i)focused regression[^.\n]*no further classification",
         )
-        self.assertEqual(missing_contract_terms(strategy, required), [])
-        self.assertIn("where they add distinct failure sensitivity", skill)
-        self.assertIn("Do not require each view or a prose `N/A`", skill)
-        sensitivity = (
-            "reuse valid sensitivity proof or challenge the oracle",
-            "Confirm failure at the protected assertion",
-            "Rechallenge when sensitivity is unknown or invalidated",
+        self.assertRegex(
+            strategy,
+            r"(?i)views when they resolve a concrete uncertainty",
         )
-        self.assertEqual(missing_contract_terms(skill, sensitivity), [])
+        self.assertRegex(
+            skill,
+            r"(?i)When evidence is suspicious[^.\n]*credible high-consequence failure",
+        )
+        self.assertRegex(
+            skill,
+            r"(?i)Confirm failure at the protected assertion[^.\n]*restore[^.\n]*rerun",
+        )
 
-        # Reuse must retain both a failure-sensitive oracle and an invalidation rule.
-        for term in sensitivity:
-            with self.subTest(missing_sensitivity_rule=term):
-                self.assertEqual(
-                    missing_contract_terms(skill.replace(term, "", 1), sensitivity),
-                    [term],
-                )
-
-        # Negative control: losing an available derivation view weakens the strategy contract.
-        without_white_box = strategy.replace("**White-box:**", "**Structure checks:**", 1)
-        self.assertIn("**White-box:**", missing_contract_terms(without_white_box, ("**White-box:**",)))
-
-    def test_test_matrix_accounts_for_techniques_and_oracle_validity(self) -> None:
+    def test_test_matrix_is_optional_coordination(self) -> None:
         matrix = read("skills/dev-flow/templates/test-matrix.md")
-        for term in (
-            "## Technique accountability",
-            "| Black-box |",
-            "| White-box |",
-            "| Experience-based / exploratory / adversarial |",
-            "concrete change-specific reason",
-            "cannot substitute",
-            "## Oracle validity review",
-            "Failure-sensitivity challenge",
-            "pre-fix failure",
-            "OPEN evidence gap",
-        ):
-            self.assertIn(term, matrix)
-
-        without_oracle_review = matrix.replace("## Oracle validity review", "## Notes", 1)
-        self.assertEqual(
-            missing_contract_terms(without_oracle_review, ("## Oracle validity review",)),
-            ["## Oracle validity review"],
+        self.assertRegex(
+            matrix,
+            r"(?i)ordinary work[^\n]*native test results[^\n]*no matrix",
         )
+        self.assertRegex(
+            matrix,
+            r"(?i)table only when[^.\n]*required environments or owners[^.\n]*coordination",
+        )
+        table = [line for line in matrix.splitlines() if line.startswith("|")]
+        self.assertTrue(table)
+        self.assertTrue(all(len(line.strip("|").split("|")) == 3 for line in table))
 
     def test_slice_and_comment_policy_is_quality_first_without_count_targets(self) -> None:
         policy = read(
             "skills/architecture-decisions/references/neutral-engineering-policy.md"
         )
         for term in (
-            "Re-read current product intent",
             "smallest coherent change",
-            "Run the narrow oracle early",
-            "representative integration path when relevant",
-            "Before calling a slice complete",
             "never authorizes stage, commit, push, PR, release, or deployment",
-            "why, invariants, safety/privacy, compatibility",
             "ownership/lifecycle",
-            "workaround removal",
-            "public limits",
             "narrate obvious code",
-            "preserve dead code",
-            "unowned deferred marker",
             "distinct failure sensitivity",
         ):
             self.assertIn(term, policy)
@@ -113,38 +78,19 @@ class QualityPracticesContractTests(unittest.TestCase):
         execution = read("skills/dev-flow/templates/execution.md")
         report = read("skills/dev-flow/templates/agent-report.md")
 
-        for term in (
-            "objective and expected outcome",
-            "relevant business/repository context",
-            "owned paths or an explicit read-only boundary",
-            "allowed verification and resource limits",
-            "stop conditions",
-            "expected return",
-            "Shared writers need disjoint paths",
-        ):
-            self.assertIn(term, orchestration)
         for contract in (
-            r"(?i)use (?:the )?returned model, (?:reasoning )?effort,? and fork (?:request|settings)",
-            r"(?i)\broot\b[^.\n]*checks?[^.\n]*actual (?:returned )?writes[^.\n]*before integration",
-            r"(?i)reconcile[^.\n]*current Git[^.\n]*actual diff",
-            r"(?i)rechecks? (?:only )?affected (?:evidence|checks)",
+            r"(?i)short brief[^.\n]*sufficient[^.\n]*small task",
+            r"(?i)child boundary[^.\n]*subset[^.\n]*parent envelope",
+            r"(?i)Before integrating child changes[^.\n]*actual diff[^.\n]*delegated scope[^.\n]*recheck only affected evidence",
             r"(?i)child (?:report|final)[^.\n]*\b(?:never|cannot|does not)\b[^.\n]*proves? integration",
         ):
             self.assertRegex(orchestration, contract)
-        self.assertIn("Do not require packet IDs", orchestration)
-        self.assertIn("context fingerprints", orchestration)
-        self.assertIn("unless a repository-native system genuinely consumes them", orchestration)
+        self.assertIn("Shared writers need disjoint paths", orchestration)
 
         # Legacy templates remain readable, but they are not the 2.0 orchestration contract.
         self.assertTrue(brief)
         self.assertTrue(execution)
         self.assertTrue(report)
-
-        without_objective = orchestration.replace("objective and expected outcome", "goal", 1)
-        self.assertEqual(
-            missing_contract_terms(without_objective, ("objective and expected outcome",)),
-            ["objective and expected outcome"],
-        )
 
 
 if __name__ == "__main__":

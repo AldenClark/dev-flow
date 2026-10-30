@@ -4,14 +4,14 @@ Use this reference when a change needs more than an obvious focused regression. 
 
 ## Start from the changed behavior
 
-Begin with the current product intent, final implementation, affected consumers, credible failures, and environment claim. Derive obligations twice:
+Begin with the current product intent, final implementation, affected callers and usage paths, and credible failures. An obvious focused regression needs no further classification. Use these views when they resolve a concrete uncertainty:
 
 - **Black-box:** start outside the implementation. Turn the promised user/API/CLI/UI outcome, public contract, material failure, recovery, permission, persistence, and compatibility behavior into observable examples and counterexamples.
 - **White-box:** inspect the final changed code. Find branches and compound conditions, states and transitions, boundaries and limits, typed and swallowed errors, ownership and resource lifetime, concurrency and ordering, cancellation, timeout, retry, idempotency, rollback, and cleanup.
 
-Do not derive white-box cases from a stale plan. A later implementation may introduce risks the design never mentioned. Conversely, do not let implementation details replace the black-box meaning. The two views can land in the same test when it proves both.
+Use the final code rather than a stale plan to find implementation risks, while keeping the user-visible meaning of the outcome. The two views may share a test; neither requires a separate test or report.
 
-For a material change, check coverage across six lenses: user behavior/contract; risk/failure/recovery; structure/state/data boundaries; combinations/event order/compatibility direction; environment/platform/real integration; and oracle sensitivity. These are prompts for finding omissions, not report columns. Use multiple views only for distinct failure sensitivity; do not require every view or a prose `N/A`.
+For a remaining blind spot, consider the relevant behavior, failure/recovery, state/data boundary, event order/compatibility, platform/integration, or oracle sensitivity. Use only the perspective that can expose a credible fault; do not scan every category or record unused ones.
 
 ## Put the oracle at the promise boundary
 
@@ -25,7 +25,7 @@ Choose the cheapest layer that still observes the promised behavior. For traffic
 - **Platform/device:** behavior owned by an OS, browser engine, hardware, signing, permissions, lifecycle, or device-only API.
 - **Non-functional:** performance, accessibility, security, recovery, resource use, and migration with a workload and correctness guard appropriate to the claim.
 
-A mock can isolate logic but cannot prove the mocked boundary. A host test cannot prove a target runtime; a simulator or emulator cannot prove a physical-device property. Use the real boundary when the promise requires it, or preserve `BLOCKED`/`NOT RUN` rather than lowering the claim.
+A mock can isolate logic but cannot prove the mocked boundary. A host test cannot prove a target runtime; a simulator or emulator cannot prove a physical-device property. Use the real boundary when the promise requires it, or preserve `BLOCKED`/`NOT RUN` rather than lowering the claim. Other environments do not become obligations merely because they exist.
 
 Examples:
 
@@ -35,31 +35,31 @@ Examples:
 
 ## Find blind spots, not target scores
 
-Line, branch, condition, and coverage-diff reports reveal code that did not execute. Compare those gaps with the black-box and white-box obligations: an uncovered changed error branch may be core, while generated glue may not merit a test. Branch coverage can still miss a compound condition's independent effect; use condition coverage or MC/DC only when that consequence justifies it.
+Use available line, branch, condition, or coverage-diff reports to investigate a concrete gap, rather than collecting them for every change. An uncovered changed error branch may matter, while generated glue may not merit a test. Branch coverage can still miss a compound condition's independent effect; use condition coverage or MC/DC only when that consequence justifies it.
 
-When the blind spot is non-trivial, read [coverage-techniques.md](coverage-techniques.md) and select the method that changes the input space, oracle, or failure sensitivity. Changed-code mutation and small seeded faults are especially useful when AI wrote both implementation and tests. A surviving mutant matters only if it represents a credible fault; do not lock down implementation trivia to improve a mutation score.
+For a non-trivial blind spot, read [coverage-techniques.md](coverage-techniques.md) and select a method that changes the input space, oracle, or failure sensitivity. Use mutation or seeded faults when the oracle is doubtful or a credible high-consequence failure warrants a challenge. AI authorship alone does not require fault injection. A surviving mutant matters only if it represents a credible fault; do not lock down implementation trivia to improve a mutation score.
 
 ## Execute and challenge
 
 1. Run the smallest reproducer or focused changed test first; preserve its first failure.
-2. For a high-risk or easy-to-fake oracle, reuse applicable sensitivity evidence or show that breaking its protected behavior fails the intended assertion: use a pre-fix result, negative fixture, bounded mutation, seeded fault or independent relation. Rechallenge when the relevant inputs/oracle change or sensitivity is doubtful, not merely because another run started.
+2. For a doubtful or easy-to-fake oracle, or one protecting a credible high-consequence failure, reuse applicable sensitivity evidence or show that breaking its protected behavior fails the intended assertion: use a pre-fix result, negative fixture, bounded mutation, seeded fault or independent relation. Rechallenge when that boundary changes or sensitivity is doubtful, not merely because another run started.
 3. If a perturbation was made, restore it and rerun the focused check. Run module and boundary checks affected by the repair, reusing valid results under [evidence freshness](evidence-contract.md#freshness-binding).
-4. Inspect the final diff and test changes against the last valid evidence for each claim. Include affected transitive consumers, assertions, fixture, runner/selector, configuration, generated output, toolchain and environment; cumulative PR breadth alone is not an intermediate repair's rerun scope. Unknown identity or impact needs a conservative affected check.
+4. Inspect the final diff for changed outcomes, callers and usage paths that earlier checks no longer cover. Rerun the affected checks; cumulative PR breadth alone does not set an intermediate repair's rerun scope. Investigate uncertain impact when it could change the decision, without enumerating every input or artifact.
 5. Add broader regression, compatibility, or environment waves only where blast radius, delivery, or consequence requires them.
 
-For a target-environment promise, verify only its applicable links: final tested bytes, built artifact, installed/deployed target, effective config and data, intended user flow or effect, observation, and recovery. Read the target's effective state rather than trusting a source file or build command. A stale artifact or configuration change invalidates downstream evidence. Record host, simulator/emulator, device, hosted, and production claims separately.
+For a target-environment promise, check the applicable artifact, installed/deployed target, effective configuration/data and intended user flow or effect, including recovery when the promise depends on it. Read relevant effective state rather than trusting a source file or build command. An artifact or configuration change requires rechecking the affected downstream behavior. Distinguish host, simulator/emulator, device, hosted and production results when reporting them.
 
 Normal completion owes its result and resource guarantees; timeout/cancellation/recovery-specific proof is required when that path executes, not as a condition of an untriggered path's success. Material failure paths still need their own coverage. Do not skip a cheap focused check because a broad suite will run later. If retries disagree, record `FLAKY`; a retry is evidence about instability, not permission to keep the green attempt.
 
 ## Spend by consequence and stop by value
 
-- **Core:** principal success behavior; material failure and recovery; changed branches/states/boundaries; public contracts; regressions; and credible high-consequence risk.
-- **Extended:** common configurations, affected platforms, historical defects, and plausible abnormal paths when they add a new obligation or meaningful sensitivity.
-- **Fringe:** low-probability, low-consequence, high-cost variants. Stop when these are all that remain and further work exposes no new material obligation, credible fault, or valuable mutant.
+- **Core:** principal success behavior, material failure/recovery, affected contracts and consumers, regressions, and credible high-consequence failures connected to the change.
+- **Extended:** configurations, affected platforms, historical defects and abnormal paths when they add meaningful fault sensitivity.
+- **Stop:** omit further checks when they cannot change a material correctness or delivery decision.
 
-Probability alone cannot demote a security, privacy, financial, corruption, safety, or irreversible failure. User-requested broad exploration also changes the budget; explicit full reruns or repeated stability observations remain part of the outcome. Otherwise do not enumerate an unbounded Cartesian product to manufacture completeness.
+A serious failure needs a credible mechanism connected to this change before it becomes a verification obligation; severity alone is insufficient. A credible rare failure with serious consequences may still need a focused check. User-requested broad exploration, full reruns or repeated stability observations remain part of the outcome.
 
-For routine work, test code, commands, results, and a short limit are enough. Write a matrix only when several environments, compatibility directions, owners, or high-consequence gates genuinely need coordination. Long-lived project strategy belongs in the repository's existing testing owner when it will be reused.
+For routine work, consume the native result and report the command and material limit. No per-check risk rationale, full input record or proof bundle is needed. Write a matrix only when several required environments, compatibility directions or owners need coordination. Long-lived project strategy belongs in the repository's existing testing owner when it will be reused.
 
 ## Fresh claims
 
@@ -70,4 +70,4 @@ For routine work, test code, commands, results, and a short limit are enough. Wr
 - `NOT RUN`: not executed, with reason.
 - `WAIVED`: an authorized omission with owner/rationale; never a pass.
 
-Bind the status to final relevant bytes, exact root, command/procedure, runtime/platform/device/account/data class, compatibility direction, result, and limitation. One environment, version direction, or fallback proves only itself.
+Include environment, artifact or compatibility detail only when it distinguishes what the result proves. One environment, version direction or fallback proves only itself. A required unobserved path stays `BLOCKED` or `NOT RUN`; unrelated environments do not create pending work.

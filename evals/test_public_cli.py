@@ -100,7 +100,7 @@ class PublicCliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
         payload = json.loads(result.stdout)
         self.assertEqual(set(payload["route_basis"]), {"schema", "router_semantics", "digest"})
-        self.assertEqual(payload["route_basis"]["router_semantics"], "dev-flow.route-semantics.v3")
+        self.assertEqual(payload["route_basis"]["router_semantics"], "dev-flow.route-semantics.v5")
         self.assertEqual(set(payload["method"]), {"action", "status", "selected", "blocked"})
 
     def test_explain_is_the_explicit_full_form_and_conflicts_with_compact(self) -> None:

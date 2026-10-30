@@ -5,30 +5,30 @@ description: Use when a user task, UI state, recovery flow, or design truth is u
 
 # Product and UX Discovery
 
-Use this Skill when a user-facing change alters a workflow, information architecture, or product behavior. Small visual fixes normally stay on the direct path.
+Use this Skill when a user goal, changed workflow, or design choice is unclear enough to affect implementation. An understood change can use the established flow and components directly.
 
 This Skill may operate alone for bounded product discovery. If the result drives material repository mutation, cross-boundary implementation, managed continuity, or high-risk delivery, load `dev-flow` as the coordinating kernel when it is available and not already active; keep this Skill as the product/UX owner.
 
 ## First action
 
-Walk one real user goal from its entry point to success or recovery using current behavior and plausible data. For example, a new upload flow is not understood until a user can find it, see progress, recover from a rejected file, and return without losing context. Do not begin with a component list, a visual style, or an ideal-state screenshot.
+Identify the user's goal and the changed part of the current flow from the nearest product evidence. If a material product choice is apparent, ask it through an eligible native surface before investigating every state or technical branch. Walk the affected path only far enough to understand the result and any consequential exception.
 
 ## Procedure
 
 1. Classify UI impact as none, preserve, or material.
-2. Inspect current source and rendered behavior when available, including navigation, state ownership, design system, assets, and freshest product truth.
-3. Identify users, jobs, domain distinctions, primary flows, IA/navigation, and protected behavior.
-4. Cover applicable loading, empty, error, offline, permission, destructive confirmation, success, undo, cancellation, retry, and recovery states. Make state transitions and the user's next available action explicit when they are not already obvious.
+2. Inspect the current source or rendered behavior needed to resolve the uncertainty; reuse established navigation and component behavior.
+3. Explain the user goal, changed interaction, and behavior to preserve.
+4. Resolve states or exceptions that the change introduces or affects, including permission or destructive-action consequences. Make the user's next action clear where the changed flow leaves it uncertain; retain established failure and recovery behavior elsewhere.
 5. Resolve design truth in this order: explicit direction, accepted design, shipped behavior, canonical components/tokens, maintained product documentation.
 6. Use the least fidelity that resolves uncertainty: prose, flow/table, wireframe, or rendered prototype.
-7. Define accessibility and responsive intent across semantics, keyboard/focus, names/status, contrast, scaling, motion, input modes, and relevant viewports/devices.
-8. When repository mutation is explicitly in scope, write durable user-flow, information, state, accessibility, and design-truth decisions back to the existing design/product owner. If mutation is not authorized, return the proposed owner and exact update in chat without editing the repository. Keep screenshots and raw test output as runtime evidence. If that owner or the next-reader path is missing, conflicting, or chat-only, hand the topology decision to `repository-knowledge` rather than creating a parallel design file.
+7. Preserve accessibility and responsive behavior through native components and existing conventions; resolve specific consequences of the changed interaction, layout, or supported device.
+8. When future work needs a durable UX decision and repository mutation is in scope, update the existing design/product owner. Otherwise, report any material owner update in chat. Keep screenshots and raw test output as runtime evidence. Use `repository-knowledge` when a missing or conflicting owner blocks continuation.
 
 Read `references/product-ux-contract.md` for complex state, accessibility, or design-truth conflicts.
 
 ## Quality, handoff, and stopping
 
-Return a flow a later implementer can follow: user goal and entry, meaningful states and transitions, protected behavior, recovery, accessibility intent, canonical design truth, and unresolved product decisions. Use the least-fidelity artifact that resolves the uncertainty; a state table or real rendering can be stronger than a polished prototype.
+Return enough understanding to implement the changed interaction while preserving its affected contract, with any unresolved product decision stated. Use the least-fidelity explanation or artifact that resolves the uncertainty.
 
 Stop when the real task and its material exceptions are understandable enough to implement and verify. Return open product meaning to `requirements-design`, technical boundaries to their owner, and contradicting or missing durable truth to `repository-knowledge`. Do not create a UX artifact, introduce new visual preferences, or extend accessibility analysis beyond the affected promise merely to make the work look complete.
 

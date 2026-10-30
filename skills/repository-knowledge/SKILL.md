@@ -24,13 +24,13 @@ Stay quiet for one nearby update to a clear owner, a typo or formatting change, 
 
 Select one mode from the request; start with `audit` when write scope is unclear.
 
-- `audit`: inventory repositories, documents, instructions, CI/release surfaces, and gaps without mutation.
+- `audit`: inspect the relevant owners, entry paths, and knowledge gaps without mutation.
 - `plan`: produce a reviewable, per-artifact create/keep/merge/move/generate/retire proposal without mutation.
 - `map`: build a bounded, task-specific file and symbol map for progressive retrieval without mutation.
 - `bootstrap`: apply an authorized plan with minimal files and preserve existing repository conventions and user changes.
 - `check`: validate deterministic knowledge invariants and report drift without rewriting content.
 
-The script is read-only in every mode:
+The optional script is read-only in every mode:
 
 ```bash
 python3 scripts/repository_knowledge.py scan --root <path> --format markdown
@@ -47,20 +47,20 @@ Identify the next reader and the durable fact they need, then locate its existin
 
 ## Procedure
 
-1. Resolve the requested path, actual Git roots, effective AGENTS.md chain, user changes, and whether the path is a repository or only a workspace container. Use the scanner before broad manual traversal.
+1. Resolve the requested path, relevant Git roots, effective instructions, and protected user changes. Use bounded inspection; use the scanner when it answers a real navigation question more directly.
 2. Keep file contents local and inspect only maintained engineering surfaces. Do not open credential stores, `.env` values, raw production data, or generated dependency/build trees.
 3. Classify facts as `observed`, `inferred`, `owner-input-required`, or `unknown`. A folder containing several Git roots is a multi-repository workspace until an owner confirms program-level authority.
-4. Read [knowledge-topology.md](references/knowledge-topology.md) when selecting artifacts or deciding what belongs in AGENTS.md, an index, current-truth docs, ADRs, runbooks, automation, or generated maps.
+4. Consult [knowledge-topology.md](references/knowledge-topology.md) when artifact ownership or placement remains unclear.
 5. Read [repository-shapes.md](references/repository-shapes.md) for monorepo, nested-root, workspace-container, or multi-repository planning.
 6. Preserve a useful existing convention. Prefer linking and focused repair over creating a parallel `docs/` hierarchy. Never copy facts already owned by manifests, source, schemas, tests, CI, or runtime configuration.
-7. For `plan`, assign one canonical owner to each durable fact and identify readers, next-read path, enforcement, freshness/recheck trigger, and disposition of overlapping existing documents. Separate current required behavior, actual implementation and its gaps, historical rationale, and generated evidence using [knowledge-topology.md](references/knowledge-topology.md). Merge, link, supersede, or report conflicting owners rather than silently duplicating them.
+7. For `plan`, identify the affected fact's canonical owner, reader entry path, and disposition of conflicting documents. Keep required behavior, implementation gaps, and historical rationale distinct. Merge, link, supersede, or report conflicting owners rather than silently duplicating them.
 8. For `bootstrap`, show the plan before material replacement unless the user already authorized the exact rewrite. Create only files justified by current knowledge; do not create empty ADR, runbook, architecture, catalog, or workstream shells. A README can be the native entry for a small project; establish `docs/` plus an index (or a project equivalent) only once multiple long-lived knowledge domains need navigation.
-9. Write maintained prose for both people and agents. Read [writing-for-people-and-agents.md](references/writing-for-people-and-agents.md) before generating or materially restructuring documents.
-10. For a code task, use `map --task` after the stable index identifies the affected repository or component. Treat its ranked paths and symbols as candidate retrieval evidence; verify the actual source before deciding or editing.
+9. Write maintained prose for both people and agents. Consult [writing-for-people-and-agents.md](references/writing-for-people-and-agents.md) when style or structure needs guidance.
+10. Use `map --task` only when a task-specific retrieval map would resolve a navigation problem. Its ranked paths and symbols are candidate evidence; verify the actual source before deciding or editing.
 11. Keep generated inventories and task maps replaceable. Do not treat inferred descriptions, dependency graphs, or generated summaries as project policy.
-12. For a material lifecycle handoff, return the chosen canonical owner, next-reader path, freshness trigger, updates due to current truth, and any unresolved owner decision. Write durable product/contract, UX, architecture/ADR, testing-strategy, and operational facts back to their respective owners instead of copying them into a central record.
+12. For a real handoff, provide the owner and entry path needed by the next reader, plus any unresolved material decision. Write durable facts to their respective owners instead of copying them into a central record.
 13. Create a minimal change record only when work must continue across sessions, owners, or independent slices and existing owners cannot provide reliable progress navigation. It links those owners and current blockers; it is not a packet, approval record, or duplicate long-term truth.
-14. Run `check`, repository-native documentation checks, and affected suite checks. Report fresh evidence and unresolved owner decisions separately.
+14. Check the affected reader path and changed knowledge invariant. Use `check` or repository-native documentation checks when they can detect a relevant error; run suite checks only when the change affects behavior or a suite-consumed contract. Scan, map, and check are independent tools, not a required pipeline. Report only evidence limits and unresolved owner decisions that affect the requested outcome.
 
 ## Core invariants
 

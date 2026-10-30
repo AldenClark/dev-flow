@@ -47,10 +47,10 @@ class RuntimeGuidanceContractTests(unittest.TestCase):
             "authority",
             "external",
             "observable readiness facts are unchanged",
-            "continue unrelated safe repository-native checks",
             "do not add a readiness registry",
         ):
             self.assertIn(phrase, guidance)
+        self.assertRegex(guidance, r"continue [^\n]*safe repository-native checks")
         self.assertIn("Retry once when a relevant fact changes", guidance)
 
     def test_continuation_contract_has_semantic_checkpoint_and_negative_trigger(self) -> None:
@@ -59,22 +59,19 @@ class RuntimeGuidanceContractTests(unittest.TestCase):
         self.assertIn("Reconsider routing only when intent, semantics, scope, platform, authority", guidance)
         self.assertIn("not for continuation, tool interruption, compaction, or a restated goal", guidance)
         self.assertIn("Bind claims to observed bytes and environment", guidance)
-        for phrase in (
-            "affected Git roots",
-            "user-owned changes",
-            "stale evidence",
-            "recommended next slice",
-            "a bare completion acknowledgement is not final evidence",
-        ):
-            self.assertIn(phrase, continuation)
+        self.assertRegex(
+            continuation,
+            r"Before claiming completion,[^\n]*current goal[^\n]*final diff[^\n]*evidence",
+        )
+        self.assertIn("A pre-change PASS is stale for an affected claim", continuation)
 
     def test_evidence_freshness_distinguishes_affected_and_unrelated_edits(self) -> None:
         guidance = VERIFICATION_SKILL.read_text(encoding="utf-8")
         evidence = (
             ROOT / "skills" / "verification" / "references" / "evidence-contract.md"
         ).read_text(encoding="utf-8")
-        self.assertIn("invalidates that PASS", evidence)
-        self.assertIn("unrelated documentation-only edit", evidence)
+        self.assertRegex(evidence, r"rerun the smallest check[^\n]*affected outcome")
+        self.assertIn("Unrelated edits do not invalidate a result", evidence)
         self.assertIn("fallback proves only its own narrower claim", guidance)
 
     def test_release_review_uses_bounded_realized_methods_without_replaying_tests(self) -> None:
@@ -98,7 +95,7 @@ class RoutingTests(unittest.TestCase):
         self.assertFalse(pending["implementation_allowed"])
 
     def test_risk_signal_does_not_establish_repository_investigation(self) -> None:
-        args = ("--intent", "design", "--risk", "public-api")
+        args = ("--intent", "design", "--risk", "public-api", "--method-signal", "trust-boundary")
         absent = route(*args)["capability_activation"]["method"]["selection"]
         self.assertNotIn("repository-facts", absent["inferred_prerequisites"])
         present = route(*args, "--repo-fact", "language=python")["capability_activation"]["method"]["selection"]
@@ -348,6 +345,21 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("first-surprising-failure", payload["quality_calibration"]["recheck_on"])
         self.assertIn("route-agent", payload["delegation"])
 
+    def test_cross_module_tradeoff_and_task_labels_do_not_require_workstream(self) -> None:
+        for args in (
+            ("--intent", "change", "--cross-module"), ("--intent", "change", "--material-tradeoff"),
+            ("--task-type", "large-feature"), ("--task-type", "large-refactor"),
+            ("--task-type", "migration"),
+        ):
+            with self.subTest(args=args):
+                payload = route(*args)
+                self.assertEqual(payload["work_mode"], "direct")
+                self.assertFalse(payload["continuity"]["documents_required"])
+                self.assertEqual(payload["continuity"]["artifacts"], [])
+                self.assertEqual(payload["knowledge"]["disposition"], ["none"])
+        explicit = route("--intent", "change", "--cross-module", "--work-mode", "managed")
+        self.assertTrue(explicit["continuity"]["documents_required"])
+
     def test_direct_and_managed_routes_preserve_terminal_and_scope_reconciliation(self) -> None:
         for args in (("--intent", "change"), ("--intent", "change", "--multi-session")):
             with self.subTest(args=args):
@@ -376,7 +388,7 @@ class RoutingTests(unittest.TestCase):
     def test_persisted_data_alone_does_not_imply_migration_overlay(self) -> None:
         local_state = route("--intent", "change", "--risk", "persisted-data")
         self.assertNotIn("migration", [item["overlay"] for item in local_state["risk_overlays"]])
-        self.assertIn("signal:state-lifecycle", local_state["capability_activation"]["method"]["reasons"])
+        self.assertIsNone(local_state["capability_activation"]["method"]["selection"])
 
         for companion in ("schema", "version-compatibility", "rollback"):
             with self.subTest(companion=companion):
@@ -432,7 +444,13 @@ class RoutingTests(unittest.TestCase):
         self.assertTrue(understanding["confirmation_required"])
         self.assertEqual(understanding["confirmation"], "required")
         self.assertFalse(understanding["design_allowed"])
-        self.assertEqual(understanding["stop_before"], "technical-design")
+        self.assertEqual(understanding["stop_before"], "dependent-commitments")
+        for flags in ((), ("--compact",)):
+            projected = route("--intent", "change", "--user-choice-open", *flags)["requirement_understanding"]
+            self.assertEqual(projected["next_action"], "ask-native-question-and-pause-dependent-commitments")
+            self.assertEqual(projected["stop_before"], "dependent-commitments")
+            self.assertTrue(projected["independent_learning_allowed"])
+            self.assertFalse(projected["implementation_allowed"])
         self.assertIn("remain in Default mode", understanding["rules"])
         self.assertTrue(any("resolve user-owned choices before dependent commitments" in rule for rule in understanding["rules"]))
         self.assertIn("requirements-design", [item["skill"] for item in pending["routes"]])
@@ -583,23 +601,18 @@ class RoutingTests(unittest.TestCase):
         )
         activation = payload["capability_activation"]
         self.assertIsNone(activation["artifact"])
-        self.assertEqual(
-            activation["passes"],
-            ["after-repository-discovery", "after-material-requirement-confirmation"],
-        )
         self.assertTrue(activation["method"]["active_match_required"])
-        self.assertIn("risk:ffi", activation["method"]["reasons"])
         self.assertIn("signal:multi-version-coexistence", activation["method"]["reasons"])
         self.assertEqual(activation["method"]["maximum_loaded_methods"], 3)
         self.assertFalse(activation["method"]["persisted"])
         selection = activation["method"]["selection"]
         self.assertEqual(selection["phase"], "implementation")
-        self.assertEqual(selection["depth"], "deep")
+        self.assertEqual(selection["depth"], "starter")
         self.assertIn("RM-ABI-FFI-BOUNDARY", selection["matched_risk_models"])
         considered = set(selection["selected"]) | {
             item["method"] for item in selection["blocked"]
         }
-        self.assertIn("cross-language-abi-contract", considered)
+        self.assertNotIn("cross-language-abi-contract", considered)
         self.assertNotIn("data-lineage-provenance", considered)
         self.assertLessEqual(len(considered), 3)
 
@@ -611,6 +624,8 @@ class RoutingTests(unittest.TestCase):
             "ffi",
             "--method-signal",
             "multi-version-coexistence",
+            "--method-depth",
+            "deep",
             "--method-prerequisite",
             "repository-facts",
             "--method-prerequisite",
@@ -652,7 +667,7 @@ class RoutingTests(unittest.TestCase):
                 self.assertEqual(normalization["derived_from_risks"], [])
                 self.assertEqual(normalization["translations"][0]["kind"], "alias")
 
-    def test_explicit_signal_is_supplemented_by_uncovered_risk_families(self) -> None:
+    def test_explicit_signal_is_not_expanded_by_broad_risk_families(self) -> None:
         payload = route(
             "--intent",
             "change",
@@ -668,61 +683,36 @@ class RoutingTests(unittest.TestCase):
         method = payload["capability_activation"]["method"]
         self.assertEqual(
             method["signal_normalization"]["canonical"],
-            ["multi-version-coexistence", "state-lifecycle"],
+            ["multi-version-coexistence"],
         )
         self.assertEqual(
             method["signal_normalization"]["derived_from_risks"],
-            ["state-lifecycle"],
+            [],
         )
         selection = method["selection"]
-        self.assertEqual(selection["phase"], "design")
-        considered = set(selection["selected"]) | {
-            item["method"] for item in selection["blocked"]
-        }
-        self.assertIn("state-transition-model", considered)
-        self.assertTrue(
-            considered & {"branch-abstraction-feature-flag", "parallel-change-expand-contract"}
-        )
+        self.assertEqual(selection["depth"], "starter")
 
-    def test_risk_only_activation_derives_foundational_method_signal(self) -> None:
-        payload = route("--intent", "change", "--risk", "concurrency")
-        method = payload["capability_activation"]["method"]
-        self.assertTrue(method["active_match_required"])
-        self.assertEqual(
-            method["signal_normalization"]["derived_from_risks"],
-            ["state-lifecycle"],
-        )
-        self.assertIn("signal:state-lifecycle", method["reasons"])
-        selection = method["selection"]
-        self.assertEqual(selection["phase"], "design")
-        self.assertEqual(selection["phase_source"], "signal-adjacent-owner")
-        self.assertTrue(selection["actionable"])
-        self.assertIn(
-            "state-transition-model",
-            set(selection["selected"]) | {item["method"] for item in selection["blocked"]},
-        )
-
-    def test_risk_signal_derivation_covers_each_foundational_family(self) -> None:
-        cases = {
-            "ordering": ["state-lifecycle"],
-            "recovery": ["state-lifecycle"],
-            "distributed-state": ["cross-participant-flow"],
-            "migration": ["multi-version-coexistence"],
-            "version-compatibility": ["multi-version-coexistence"],
-            "rollback": ["multi-version-coexistence"],
-            "security": ["trust-boundary"],
-            "authorization": ["trust-boundary"],
-            "privacy": ["trust-boundary"],
-            "persisted-data": ["state-lifecycle"],
-            "data-deletion": ["state-lifecycle"],
-        }
-        for risk, expected in cases.items():
+    def test_risk_labels_keep_methods_and_independent_review_quiet(self) -> None:
+        for risk in (
+            "concurrency", "ordering", "recovery", "distributed-state", "migration",
+            "version-compatibility", "rollback", "security", "authorization", "privacy",
+            "persisted-data", "data-deletion", "weak-tests", "ffi", "public-api",
+        ):
             with self.subTest(risk=risk):
                 payload = route("--intent", "change", "--risk", risk)
-                derived = payload["capability_activation"]["method"]["signal_normalization"][
-                    "derived_from_risks"
-                ]
-                self.assertEqual(derived, expected)
+                activation = payload["capability_activation"]
+                self.assertFalse(activation["method"]["active_match_required"])
+                self.assertIsNone(activation["method"]["selection"])
+                self.assertEqual(activation["method"]["signal_normalization"]["canonical"], [])
+                self.assertFalse(activation["independent_review"]["required"])
+                self.assertIn("verification", [item["skill"] for item in payload["routes"]])
+
+    def test_method_depth_is_explicit_and_does_not_grant_authority(self) -> None:
+        payload = route("--intent", "change", "--risk", "persisted-data", "--method-depth", "deep")
+        method = payload["capability_activation"]["method"]
+        self.assertTrue(method["active_match_required"])
+        self.assertEqual(method["selection"]["depth"], "deep")
+        self.assertFalse(payload["requirement_understanding"]["authorization_granted"])
 
     def test_route_risk_alias_preserves_canonical_method_output(self) -> None:
         payload = route("--intent", "change", "--risk", "data-loss")
@@ -962,10 +952,8 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(corrected.returncode, 0, corrected.stderr or corrected.stdout)
         corrected_payload = json.loads(corrected.stdout)
         self.assertEqual(corrected_payload["work_mode"], "managed")
-        considered = set(corrected_payload["method"]["selected"]) | set(
-            corrected_payload["method"]["blocked"]
-        )
-        self.assertIn("state-transition-model", considered)
+        self.assertEqual(corrected_payload["method"]["status"], "not-selected")
+        self.assertEqual(corrected_payload["method"]["selected"], [])
 
         workflow = run_flow(
             "route-task",
@@ -1005,19 +993,18 @@ class RoutingTests(unittest.TestCase):
         )
         self.assertEqual(replay.returncode, 0, replay.stderr or replay.stdout)
         replay_payload = json.loads(replay.stdout)
-        self.assertIn("risk:concurrency", replay_payload["capability_activation"]["method"]["reasons"])
         self.assertIn(
             "signal:state-lifecycle",
             replay_payload["capability_activation"]["method"]["reasons"],
         )
 
     def test_weak_oracle_and_model_evaluation_are_task_facing_methods(self) -> None:
-        weak = route("--intent", "review", "--risk", "weak-tests")
+        weak = route("--intent", "review", "--risk", "weak-tests", "--method-signal", "oracle-challenge")
         weak_method = weak["capability_activation"]["method"]
         self.assertTrue(weak_method["active_match_required"])
         self.assertEqual(
             weak_method["signal_normalization"]["derived_from_risks"],
-            ["oracle-challenge"],
+            [],
         )
         self.assertIn("RM-WEAK-ORACLE", weak_method["selection"]["matched_risk_models"])
         self.assertTrue(weak_method["selection"]["actionable"])
@@ -1107,6 +1094,8 @@ class RoutingTests(unittest.TestCase):
             "weak-tests",
             "--method-signal",
             "model-evaluation",
+            "--method-depth",
+            "deep",
             "--repo-fact",
             "context=synthetic-evaluation",
             "--method-prerequisite",
@@ -1163,7 +1152,7 @@ class RoutingTests(unittest.TestCase):
                 self.assertNotIn("decision-table", selection["selected"])
 
     def test_broad_security_does_not_surface_unrelated_domain_methods(self) -> None:
-        payload = route("--intent", "change", "--risk", "security")
+        payload = route("--intent", "change", "--risk", "security", "--method-signal", "trust-boundary")
         selection = payload["capability_activation"]["method"]["selection"]
         considered = set(selection["selected"]) | {
             item["method"] for item in selection["blocked"]
@@ -1173,19 +1162,13 @@ class RoutingTests(unittest.TestCase):
         self.assertNotIn("multi-agent-topology-ownership", considered)
 
     def test_privacy_method_requires_and_uses_a_privacy_data_map(self) -> None:
-        blocked_payload = route("--intent", "change", "--risk", "privacy")
+        base = ("--intent", "change", "--risk", "privacy", "--method-signal", "trust-boundary", "--method-depth", "deep")
+        blocked_payload = route(*base)
         blocked = blocked_payload["capability_activation"]["method"]["selection"]
         linddun = next(item for item in blocked["blocked"] if item["method"] == "linddun-privacy-model")
         self.assertEqual(linddun["missing_prerequisites"], ["privacy-data-map"])
 
-        ready_payload = route(
-            "--intent",
-            "change",
-            "--risk",
-            "privacy",
-            "--method-prerequisite",
-            "privacy-data-map",
-        )
+        ready_payload = route(*base, "--method-prerequisite", "privacy-data-map")
         ready = ready_payload["capability_activation"]["method"]["selection"]
         self.assertEqual(ready["phase"], "design")
         self.assertIn("linddun-privacy-model", ready["selected"])
@@ -1200,6 +1183,10 @@ class RoutingTests(unittest.TestCase):
             "ordering",
             "--risk",
             "resource-limits",
+            "--method-signal",
+            "state-lifecycle",
+            "--method-depth",
+            "deep",
             "--method-prerequisite",
             "task-dependency-graph",
             "--method-prerequisite",
@@ -1241,7 +1228,7 @@ class RoutingTests(unittest.TestCase):
         )
         self.assertEqual(payload["intent"], "review")
         self.assertEqual(
-            set(payload["requirement_understanding"]), {"class", "next_action", "confirmation", "design_allowed", "implementation_allowed", "stop_before", "confirmation_evidence", "authorization_granted", "first_important_implementation"}
+            set(payload["requirement_understanding"]), {"class", "next_action", "confirmation", "design_allowed", "implementation_allowed", "stop_before", "confirmation_evidence", "authorization_granted", "first_important_implementation", "independent_learning_allowed"}
         )
         self.assertNotIn("confirmation_required", payload["requirement_understanding"])
         self.assertNotIn("method_selection", payload)
@@ -1264,6 +1251,8 @@ class RoutingTests(unittest.TestCase):
             "review",
             "--risk",
             "public-api",
+            "--method-signal",
+            "trust-boundary",
             "--method-prerequisite",
             "stable-contract",
         )
@@ -1389,7 +1378,7 @@ class RoutingTests(unittest.TestCase):
             "non-empty-dispatched-reviewer-or-receiver-id",
         )
         self.assertTrue(review["evidence_required"]["completed_result"])
-        self.assertEqual(review["execution"], "route-agent")
+        self.assertEqual(review["execution"], "dispatch-independent-context")
         self.assertTrue(review["delegation_authorized"])
         self.assertFalse(review["authorization_from_route"])
         self.assertEqual(review["route_agent"]["role"], "dev-flow-red-reviewer")
@@ -1404,17 +1393,17 @@ class RoutingTests(unittest.TestCase):
             "--independent-review-authorized",
         )["capability_activation"]["independent_review"]
         self.assertTrue(authorized["delegation_authorized"])
-        self.assertEqual(authorized["execution"], "route-agent")
+        self.assertEqual(authorized["execution"], "dispatch-independent-context")
         self.assertEqual(authorized["route_agent"]["role"], "dev-flow-red-reviewer")
         self.assertEqual(review, authorized)
 
-    def test_intrinsically_consequential_risks_require_review_without_extra_flag(self) -> None:
+    def test_material_risks_require_review_when_actual_exposure_is_identified(self) -> None:
         for risk in ("data-deletion", "rollback", "version-compatibility"):
             with self.subTest(risk=risk):
-                payload = route("--intent", "change", "--risk", risk)
+                payload = route("--intent", "change", "--risk", risk, "--material-exposure")
                 review = payload["capability_activation"]["independent_review"]
                 self.assertTrue(review["required"])
-                self.assertIn(f"risk:{risk}", review["reasons"])
+                self.assertIn("material-exposure", review["reasons"])
                 self.assertIn("change-review", [item["skill"] for item in payload["routes"]])
 
         durable = route(
@@ -1426,10 +1415,11 @@ class RoutingTests(unittest.TestCase):
             "external-write",
             "--risk",
             "backpressure",
+            "--material-exposure",
         )
         review = durable["capability_activation"]["independent_review"]
         self.assertTrue(review["required"])
-        self.assertIn("cross-system-durability", review["reasons"])
+        self.assertIn("material-exposure", review["reasons"])
         self.assertIn("change-review", [item["skill"] for item in durable["routes"]])
 
     def test_security_family_labels_do_not_imply_architecture(self) -> None:
@@ -1592,7 +1582,7 @@ class ActiveGuidanceTests(unittest.TestCase):
     def test_unavailable_capability_allows_only_authorized_scoped_alternatives(self) -> None:
         skill = DEV_FLOW_SKILL.read_text(encoding="utf-8")
         calibration = QUALITY_CALIBRATION.read_text(encoding="utf-8")
-        self.assertIn("If unavailable, report the capability limit", skill)
+        self.assertIn("A missing capability does not grant substitute-tool authority", calibration)
         for phrase in (
             "already-authorized outcome, data, actions, and tool restrictions",
             "already exposed and eligible",
@@ -1606,30 +1596,25 @@ class ActiveGuidanceTests(unittest.TestCase):
 
     def test_unresolved_semantics_permit_learning_but_not_dependent_commitments(self) -> None:
         requirements = (ROOT / "skills" / "requirements-design" / "SKILL.md").read_text()
-        semantic = (ROOT / "skills" / "requirements-design" / "references" / "semantic-and-scope.md").read_text()
-        for phrase in (
-            "next implementation slice",
-            "read-only investigation",
-            "reversible isolated probes",
-            "Do not commit to or implement a branch",
-            "does not select a product branch",
-        ):
-            with self.subTest(phrase=phrase):
-                self.assertTrue(phrase in requirements + "\n" + semantic, f"missing learning boundary: {phrase}")
+        interaction = (ROOT / "skills" / "requirements-design" / "references" / "user-interaction.md").read_text()
+        self.assertRegex(
+            requirements,
+            r"eligible native question surface[^.\n]*before[^.\n]*technical investigation",
+        )
+        self.assertIn("Do not commit to or implement a branch", requirements)
+        self.assertRegex(
+            interaction,
+            r"required choice is pending,[^\n]*only independent reversible work already authorized",
+        )
         self.assertNotIn("publish the complete requirement understanding", requirements)
         self.assertNotIn("Do not start technical design or product-code mutation while", requirements)
 
     def test_correction_reaches_implementation_oracles_and_late_child_results(self) -> None:
         core = (ROOT / "skills" / "dev-flow" / "references" / "core-lifecycle.md").read_text()
-        for phrase in (
-            "design, code/data, tests/oracles, children, and external actions",
-            "Changing only a summary",
-            "late child output",
-            "already-executed effects are not automatically undone",
-            "user example and a counterexample",
-        ):
-            with self.subTest(phrase=phrase):
-                self.assertTrue(phrase in core, f"missing correction boundary: {phrase}")
+        self.assertRegex(core, r"trace its affected consumers[^\n]*invalidate dependent evidence")
+        self.assertIn("Changing only a summary", core)
+        self.assertRegex(core, r"late child output[^\n]*current semantics")
+        self.assertIn("already-executed effects are not automatically undone", core)
         for name in ("requirements-design", "architecture-decisions", "verification", "change-review"):
             with self.subTest(owner=name):
                 self.assertIn("correction", (ROOT / "skills" / name / "SKILL.md").read_text())
@@ -1689,7 +1674,7 @@ class ActiveGuidanceTests(unittest.TestCase):
         self.assertIn("reviewer needs no separate user authorization", skill)
         payload = route("--intent", "change", "--material-exposure")
         review = payload["capability_activation"]["independent_review"]
-        self.assertEqual(review["execution"], "route-agent")
+        self.assertEqual(review["execution"], "dispatch-independent-context")
         self.assertIsNotNone(review["route_agent"])
         self.assertFalse(review["same_context_is_independent"])
         self.assertEqual(review["downgrade"]["required_report"], "common-mode-risk")
@@ -1697,7 +1682,14 @@ class ActiveGuidanceTests(unittest.TestCase):
     def test_review_and_fix_is_explicit_in_the_active_skill(self) -> None:
         payload = route("--intent", "change", "--need", "review")
         self.assertIn("change-review", [item["skill"] for item in payload["routes"]])
-        self.assertTrue(payload["capability_activation"]["independent_review"]["required"])
+        self.assertFalse(payload["capability_activation"]["independent_review"]["required"])
+        independent = route("--intent", "change", "--need", "independent-review")
+        self.assertIn("change-review", [item["skill"] for item in independent["routes"]])
+        self.assertTrue(independent["capability_activation"]["independent_review"]["required"])
+        self.assertEqual(
+            independent["capability_activation"]["independent_review"]["reasons"],
+            ["explicit-independent-review-need"],
+        )
 
     def test_method_selection_accepts_the_same_intent_vocabulary(self) -> None:
         result = subprocess.run(
@@ -1734,10 +1726,9 @@ class ActiveGuidanceTests(unittest.TestCase):
         prompt = (ROOT / "skills" / "requirements-design" / "agents" / "openai.yaml").read_text(
             encoding="utf-8"
         )
-        for phrase in ("Investigate technical facts", "material business choices", "combinations or uncertainty",
-                       "Settled business meaning permits design", "first implementation", "whole business-and-technical",
-                       "Reuse accepted scope", "keep local answers local", "Default mode"):
-            self.assertIn(phrase, prompt)
+        self.assertRegex(prompt, r"timely [^\n]*native questions")
+        self.assertRegex(prompt, r"Confirm the overall result, scope[^\n]*major trade-offs once[^\n]*first implementation")
+        self.assertRegex(prompt, r"reuse accepted decisions[^\n]*Default mode")
         self.assertNotIn("approved requirement, design, and change-scope baseline", prompt)
 
     def test_readme_describes_every_change_review_trigger(self) -> None:

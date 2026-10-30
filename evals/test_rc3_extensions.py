@@ -173,7 +173,7 @@ class ScopeAndContinuationContracts(unittest.TestCase):
             r"(?i)successful dispatch returns[^.\n]*non-empty child identity",
             r"(?i)empty receiver lists?[^.\n]*agent state[^.\n]*\bnot delegation\b",
             r"(?i)never attribute[^.\n]*result[^.\n]*child[^.\n]*not started",
-            r"(?i)\broot\b[^.\n]*checks?[^.\n]*actual (?:returned )?writes[^.\n]*before integration",
+            r"(?i)before integrating child changes[^.\n]*inspect[^.\n]*actual diff[^.\n]*delegated scope",
             r"(?i)child report[^.\n]*never overrides[^.\n]*out-of-scope diff",
         ):
             self.assertRegex(guidance, contract)
@@ -317,6 +317,16 @@ class ScopeAndContinuationContracts(unittest.TestCase):
 
 
 class MethodDispositionContracts(unittest.TestCase):
+    def test_risk_labels_do_not_activate_optional_methods(self) -> None:
+        for risk in ("privacy", "concurrency", "persisted-data", "weak-tests"):
+            with self.subTest(risk=risk):
+                method = route("--intent", "review", "--risk", risk)[
+                    "capability_activation"
+                ]["method"]
+                self.assertFalse(method["active_match_required"])
+                self.assertIsNone(method["selection"])
+                self.assertFalse(method["signal_normalization"]["derived_from_risks"])
+
     def test_method_pair_contract_is_bounded_fixed_and_non_scoring(self) -> None:
         catalog = json.loads(METHOD_PAIRS.read_text(encoding="utf-8"))
         self.assertEqual(catalog["schema_version"], "method.marginal-utility.catalog.v1")
@@ -381,10 +391,12 @@ class MethodDispositionContracts(unittest.TestCase):
         )
         selection = payload["capability_activation"]["method"]["selection"]
         self.assertEqual(selection["phase"], "verification")
+        self.assertEqual(selection["depth"], "starter")
         self.assertTrue(selection["selected"])
         self.assertNotEqual(selection["selected"], ["n-version-independent-derivation"])
         self.assertEqual(selection["selection_count_is_quality"], False)
-        self.assertIn("execute-ready-method", selection["disposition_options"])
+        self.assertNotIn("disposition_options", selection)
+        self.assertFalse(selection["realization_required"])
 
     def test_ready_projection_is_actionable_and_blocked_projection_is_honest(self) -> None:
         ready_payload = route(
@@ -392,6 +404,8 @@ class MethodDispositionContracts(unittest.TestCase):
             "review",
             "--risk",
             "weak-tests",
+            "--method-signal",
+            "oracle-challenge",
             "--method-prerequisite",
             "test-oracle",
         )
@@ -412,7 +426,9 @@ class MethodDispositionContracts(unittest.TestCase):
         ):
             self.assertIn(field, guidance)
 
-        blocked_payload = route("--intent", "change", "--risk", "privacy")
+        blocked_payload = route(
+            "--intent", "design", "--risk", "privacy", "--method-depth", "deep"
+        )
         blocked = blocked_payload["capability_activation"]["method"]["selection"]["blocked"][0]
         self.assertEqual(blocked["disposition"], "blocked")
         self.assertTrue(blocked["missing_prerequisites"])
@@ -420,7 +436,9 @@ class MethodDispositionContracts(unittest.TestCase):
         self.assertTrue(blocked["limitations"])
 
     def test_observed_prerequisite_can_move_blocked_method_to_ready(self) -> None:
-        blocked = route("--intent", "change", "--risk", "privacy")
+        blocked = route(
+            "--intent", "design", "--risk", "privacy", "--method-depth", "deep"
+        )
         blocked_selection = blocked["capability_activation"]["method"]["selection"]
         self.assertIn(
             "linddun-privacy-model",
@@ -428,9 +446,11 @@ class MethodDispositionContracts(unittest.TestCase):
         )
         ready = route(
             "--intent",
-            "change",
+            "design",
             "--risk",
             "privacy",
+            "--method-depth",
+            "deep",
             "--method-prerequisite",
             "privacy-data-map",
         )

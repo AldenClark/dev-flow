@@ -254,7 +254,7 @@ class FlowActivationCoverageTests(unittest.TestCase):
         self.assertIn("dev-flow.py route-task", guidance)
         self.assertIn("--method-signal", guidance)
         self.assertIn("--compact", guidance)
-        self.assertIn("at most one selection", guidance)
+        self.assertIn("Risk labels alone do not activate method selection", guidance)
         self.assertIn("do not browse", guidance)
         self.assertIn("Do not recursively review a review", guidance)
         self.assertNotIn("`select-methods --intent", guidance)

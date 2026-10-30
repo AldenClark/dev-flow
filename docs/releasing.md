@@ -2,6 +2,16 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
+## 2.2.0 personal-assistant hardening candidate
+
+`2.2.0` is a `source-candidate` that removes rules inducing extra process while preserving timely native requirements questions, suitable design, code correctness and necessary verification. Four audited CLI remnants are repaired: unresolved product choices pause only dependent commitments and compact output preserves independent learning; cross-module, material-trade-off and legacy task labels do not force managed mode; method consultation retains valid verification and child results while routes without a target revision still reconcile the objective; routine same-model delegation does not require `route-agent`. Broad risks no longer imply deep methods or independent review. Route semantics is `dev-flow.route-semantics.v5`.
+
+`v2.0.0-rc.9` is the latest public immutable RC tag; `v2.1.3` remains the published stable/default installation channel and workspace base. `v2.1.3` is the rollback target for `2.2.0`. The user authorized commit, push, formal publication and, after successful publication, the local Codex Dev Flow update on 2026-10-30 after the missing real-host and five live-model journey evidence was disclosed.
+
+Delivery state: commit=not-run; hosted_ci=not-run; cross_platform=not-run; independent_review=passed; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+
+Independent clean-context review and affected repair rechecks passed across three audit groups. The [release progress](workstreams/dev-flow-2.2.0/progress.md) owns the candidate and subsequent native/hosted/artifact/public/install observations. Real-host validation, the five live-model journeys and active-chat loading remain `NOT RUN` or `not_observed`; publication authorization does not convert them into `PASSED`, an inherited waiver or measured cost/effect benefits. Preserve prior release evidence and caches; no historical 2.1.x result qualifies changed 2.2.0 bytes.
+
 ## 2.1.3 personal-assistant hardening release
 
 `2.1.3` rejects missing, relative, NUL-containing and URI-valued Hook cwd before one-shot DLP issuance, marker confirmation or consumption. Existing native absolute scope, complete payload/session binding and single consumption remain unchanged. This R2/R3 patch changes no Hook registration, approval schema, dependency, Codex version or directory fallback.
@@ -212,14 +222,14 @@ For an R3 change, two local builds can establish deterministic behavior before h
 ```bash
 git rev-parse HEAD
 python3 tools/build_release.py build \
-  --root . --output dist-a --version 2.1.3 --commit FULL_COMMIT_SHA
+  --root . --output dist-a --version 2.2.0 --commit FULL_COMMIT_SHA
 python3 tools/build_release.py build \
-  --root . --output dist-b --version 2.1.3 --commit FULL_COMMIT_SHA
-cmp dist-a/dev-flow-2.1.3.tar.gz dist-b/dev-flow-2.1.3.tar.gz
+  --root . --output dist-b --version 2.2.0 --commit FULL_COMMIT_SHA
+cmp dist-a/dev-flow-2.2.0.tar.gz dist-b/dev-flow-2.2.0.tar.gz
 cmp dist-a/release-manifest.json dist-b/release-manifest.json
 cmp dist-a/SHA256SUMS dist-b/SHA256SUMS
 python3 tools/build_release.py verify \
-  --artifact-dir dist-a --expected-version 2.1.3 --expected-commit FULL_COMMIT_SHA
+  --artifact-dir dist-a --expected-version 2.2.0 --expected-commit FULL_COMMIT_SHA
 ```
 
 Determinism is asserted within the pinned environment. Promotion reuses attested bytes instead of rebuilding on another zlib/toolchain version.
@@ -230,17 +240,17 @@ After applicable exact-SHA CI is green:
 
 ```bash
 gh workflow run release-candidate.yml \
-  --ref main -f version=2.1.3 -f expected_sha=FULL_COMMIT_SHA
+  --ref main -f version=2.2.0 -f expected_sha=FULL_COMMIT_SHA
 ```
 
 The workflow has `contents: read`, `id-token: write`, and `attestations: write`. It has no release-publication permission. After download:
 
 ```bash
 python3 tools/build_release.py verify \
-  --artifact-dir dist --expected-version 2.1.3 --expected-commit FULL_COMMIT_SHA
-gh attestation verify dist/dev-flow-2.1.3.tar.gz \
+  --artifact-dir dist --expected-version 2.2.0 --expected-commit FULL_COMMIT_SHA
+gh attestation verify dist/dev-flow-2.2.0.tar.gz \
   --repo AldenClark/dev-flow
-gh attestation verify dist/dev-flow-2.1.3.tar.gz \
+gh attestation verify dist/dev-flow-2.2.0.tar.gz \
   --repo AldenClark/dev-flow \
   --predicate-type https://spdx.dev/Document/v2.3
 ```

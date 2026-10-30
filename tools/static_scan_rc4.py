@@ -160,7 +160,7 @@ def scan(root: Path, *, check_event: bool = False) -> dict[str, Any]:
         "skills/dev-flow/SKILL.md": ("route-task", "managed continuity"),
         "skills/dev-flow/references/core-lifecycle.md": ("Incremental route continuity", "structural-consistency"),
         "skills/verification/references/test-environments.md": ("resource-lease acquire", "resource-preflight"),
-        "skills/test-system-engineering/SKILL.md": ("all six obligations", "negative control"),
+        "skills/test-system-engineering/SKILL.md": ("suspect boundary", "negative control"),
     }
     for relative, anchors in required_guidance.items():
         guidance = (root / relative).read_text(encoding="utf-8")

@@ -398,7 +398,8 @@ class AgentDispatchWhiteBoxTests(unittest.TestCase):
         brief = (ROOT / "skills" / "dev-flow" / "templates" / "task-brief.md").read_text(encoding="utf-8")
         execution = (ROOT / "skills" / "dev-flow" / "templates" / "execution.md").read_text(encoding="utf-8")
         self.assertIn("route-agent", orchestration)
-        routed_settings = r"(?i)use (?:the )?returned model, (?:reasoning )?effort,? and fork (?:request|settings)"
+        self.assertRegex(orchestration, r"(?i)routine same-model delegation can dispatch directly")
+        routed_settings = r"(?i)when using a route[^.\n]*returned model, (?:reasoning )?effort, fork (?:request|settings)"
         self.assertRegex(orchestration, routed_settings)
         for missing in ("model", "effort", "fork"):
             with self.subTest(removed_route_setting=missing):
@@ -406,7 +407,7 @@ class AgentDispatchWhiteBoxTests(unittest.TestCase):
                 self.assertNotRegex(without_setting, routed_settings)
         for token in ("requested_model", "requested_reasoning_effort", "effective_model", "fallback_reason"):
             self.assertNotIn(token, orchestration)
-        for token in ("objective and expected outcome", "owned paths", "allowed verification", "expected return"):
+        for token in ("outcome", "owned paths", "resource/action limits", "stopping point", "return shape"):
             self.assertIn(token, orchestration)
         self.assertRegex(
             orchestration,

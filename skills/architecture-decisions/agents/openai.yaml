@@ -1,4 +1,4 @@
 interface:
   display_name: "Architecture Decisions"
   short_description: "Choose minimal, testable technical designs"
-  default_prompt: "Use $architecture-decisions to compare minimal technical designs and state what evidence could falsify the choice."
+  default_prompt: "Use $architecture-decisions to choose a sufficient direct design; compare alternatives only for a material trade-off."

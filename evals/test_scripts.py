@@ -5013,17 +5013,17 @@ class RepositoryContractTests(unittest.TestCase):
             "Bind claims to observed bytes and environment",
         ):
             self.assertIn(control_plane_boundary, dev_flow)
-        self.assertIn("Requirements Design owns product meaning and semantic answer records", interaction)
-        self.assertIn("Verification owns executable response and lifecycle checks", interaction)
-        self.assertIn(
-            "Default-mode control, waiver state, and post-interaction continuation are owned by Dev Flow",
+        self.assertRegex(interaction, r"Requirements Design owns product meaning\b")
+        self.assertRegex(
             interaction,
+            r"Dev Flow owns[^.\n]*operational approval[^.\n]*post-interaction continuation",
         )
+        self.assertIn("The host owns question rendering", interaction)
         self.assertIn("Configuration is not execution", verification)
-        self.assertIn("test code, commands, results, and a short limit are enough", test_strategy)
-        self.assertIn("Do not create IDs, digests, approval records", interaction)
+        self.assertIn("No per-check risk rationale", test_strategy)
+        self.assertIn("Do not create an answer ledger", interaction)
         self.assertIn("preserve `BLOCKED`/`NOT RUN`", test_strategy)
-        self.assertIn("The two views can land in the same test when it proves both", test_strategy)
+        self.assertRegex(test_strategy, r"The two views (?:can land in the same test|may share a test)")
 
     def test_release_tiers_and_proportional_quality_contracts_are_actionable(self) -> None:
         devflow = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
@@ -5059,14 +5059,14 @@ class RepositoryContractTests(unittest.TestCase):
             self.assertIn(release_contract, releasing)
 
         for proportional_contract in (
-            "Load the smallest set that can change a decision or evidence surface",
+            "Use ordinary engineering judgment and native controls when sufficient",
             "Implement a coherent slice",
-            "Advanced test methods need a specific blind spot",
+            "Add advanced methods only for a specific blind spot",
         ):
             self.assertIn(proportional_contract, devflow)
-        self.assertIn("chosen minimum", architecture)
-        self.assertIn("existing capabilities", dependency)
-        self.assertIn("cheapest truthful layer", verification)
+        self.assertIn("smallest coherent design", architecture)
+        self.assertRegex(dependency, r"existing capabilit(?:y|ies)")
+        self.assertIn("cheapest native check", verification)
         self.assertIn("ordinary changes do not require ceremonial reports", change_review)
         self.assertIn("Do not create a packet closeout", delivery)
 
@@ -5227,26 +5227,19 @@ class RepositoryContractTests(unittest.TestCase):
         orchestration = (ROOT / "skills" / "dev-flow" / "references" / "multi-agent-v2-orchestration.md").read_text(encoding="utf-8")
         execution = (ROOT / "skills" / "dev-flow" / "templates" / "execution.md").read_text(encoding="utf-8")
         brief = (ROOT / "skills" / "dev-flow" / "templates" / "task-brief.md").read_text(encoding="utf-8")
-        for token in (
-            "objective and expected outcome",
-            "relevant business/repository context",
-            "owned paths or an explicit read-only boundary",
-            "allowed verification and resource limits",
-            "stop conditions",
-            "expected return",
-        ):
-            self.assertIn(token, orchestration)
+        self.assertRegex(orchestration, r"owned paths or (?:an explicit )?read-only boundary")
+        self.assertIn("resource/action limits", orchestration)
+        self.assertIn("no fixed report or method checklist is required", orchestration)
         contracts = (
-            r"(?i)\broot\b[^.\n]*checks?[^.\n]*actual (?:returned )?writes[^.\n]*before integration",
-            r"(?i)reconcile[^.\n]*current Git[^.\n]*actual diff",
+            r"(?i)before integrating child changes[^.\n]*inspect[^.\n]*actual diff[^.\n]*delegated scope",
             r"(?i)rechecks? (?:only )?affected (?:evidence|checks)",
             r"(?i)child (?:report|final)[^.\n]*\b(?:never|cannot|does not)\b[^.\n]*proves? integration",
         )
         for contract in contracts:
             self.assertRegex(orchestration, contract)
         # A report-only claim cannot satisfy the integration-evidence contract.
-        report_proves_integration = orchestration.replace(
-            "a child report never overrides", "a child report overrides", 1
+        report_proves_integration = re.sub(
+            r"(child report) never", r"\1", orchestration, count=1, flags=re.IGNORECASE
         )
         self.assertNotRegex(report_proves_integration, contracts[-1])
         for token in ("packet IDs", "AC/SC/VO mappings", "context fingerprints", "lease epochs"):

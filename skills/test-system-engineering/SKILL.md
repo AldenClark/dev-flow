@@ -11,16 +11,16 @@ Do not activate it merely because a feature has tests or verification is request
 
 ## Choose the mode
 
-- **Diagnose/repair:** preserve the first suspicious result, separate product failure from harness failure, read `references/test-system-integrity.md`, and account for all six obligations at the affected boundary. Reuse valid integrity evidence; challenge a changed or doubtful boundary with the smallest safe negative control.
+- **Diagnose/repair:** preserve the first suspicious result, separate product failure from harness failure, and use the relevant part of `references/test-system-integrity.md` to investigate the suspect boundary. Reuse valid results; use a negative control when sensitivity is doubtful or a credible high-consequence failure warrants it.
 - **Establish/strengthen:** when a real task lacks the start, health, focused-test, boundary-oracle, targeted-log, or recovery feedback needed to see its outcome, read `references/system-design.md`. Build the smallest project-native capability that closes the observed gap. A small closed task with adequate feedback needs no setup expansion.
 
-In either mode, confirm what was discovered and executed. For an external effect, make the oracle identify the intended actor/source, request or event, and target effect; a background event or a mock call is not that outcome. Repair only the causal boundary, recheck affected sensitivity and tests while retaining unaffected evidence, then hand the six integrity dispositions and exact claim limits to `verification`.
+Consume native discovery and execution results directly; investigate collection or selection only when they are unclear or suspect. For an external effect, observe the intended actor/source and target effect; a background event or mock call is not that outcome. Repair only the causal boundary and rerun affected checks while retaining unaffected results. Return the result and material limits to `verification`, without a six-part disposition or separate handoff record.
 
 Audit AI-authored tests against a source independent of the implementation—requirements/public contracts, final-code branch risks, properties/models, differential or metamorphic relations, or seeded faults. Test count and green execution do not resolve self-confirmation.
 
 ## Stop
 
-Stop when the intended tests are discovered and selected, the target fault is detected for the right reason, fixtures/resources are isolated, runner outcomes are interpreted correctly, and evidence is attributed only to the environment that ran. Do not keep building lanes, frameworks, or cases after the material feedback gap is closed.
+Stop when the observed feedback gap is closed and the native result supports the intended decision. A sensitivity repair must detect the target fault for the right reason. Do not keep building lanes, frameworks or cases, or audit unrelated harness properties, after that gap is closed.
 
 ## Boundaries
 

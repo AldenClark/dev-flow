@@ -4,13 +4,7 @@ Use this reference when the missing capability is project-level feedback rather 
 
 ## New project: minimum sustainable skeleton
 
-Establish the smallest loop that can grow with real slices:
-
-1. Keep one project-native command that developers and automation can run identically.
-2. Add a fast failing test at the unit/component layer for independent logic or the first meaningful rule.
-3. Add one black-box slice through the first real critical boundary—not a mock of that boundary—with a product-facing outcome oracle.
-4. Put both into the smallest CI feedback path—a minimal lane that detects discovery failure and returns actionable output.
-5. Isolate fixtures and make teardown, seeds, prerequisites, and unsupported environments explicit.
+Start with a project-native command and the smallest check that observes the first meaningful rule or outcome. Add a real-boundary slice when that boundary owns the promise, and CI when shared feedback is needed. Isolate the fixtures and resources actually used; do not require separate unit, black-box and CI setup before a small task can finish.
 
 If the first promise is platform-owned, the boundary slice belongs on that platform or device. A host substitute may help develop lower layers but leaves the platform path `NOT RUN`. Do not add empty suites, speculative compatibility matrices, or a universal wrapper merely to look complete.
 
@@ -34,13 +28,13 @@ Partition checks by feedback need and resource cost. A project may call these Fo
 - slower roles may cover broad compatibility, randomized/fuzz exploration, performance, soak, devices, or packaged behavior;
 - a delivery-oriented role, when the project has one, protects exact candidate identity and required target environments.
 
-For a traffic or external-effect oracle, bind the event to the initiating actor/source and request identity, then observe the effect at the promised boundary. A response or log line from background traffic can make a weak check green while the user's flow never ran. Challenge it with a wrong-source event that must fail before accepting the repaired path.
+For a traffic or external-effect oracle, observe the initiating actor/source and effect at the promised boundary. A response or log line from background traffic can make a weak check green while the user's flow never ran. Use a wrong-source challenge when attribution is doubtful or easy to fake; reuse applicable negative evidence.
 
-Every role states what it protects, how selection is proven, what resources it owns, how failures are interpreted, and which evidence remains outside it. Do not duplicate the same tests across roles without a feedback or environment reason. A label never proves a lane ran.
+Describe feedback roles only where contributors need that coordination. Do not duplicate the same tests across roles without a feedback or environment reason. A label never proves a lane ran.
 
 ## Coverage and technique decisions
 
-Use `verification` to derive black-box and white-box obligations and choose the actual layers. The test system makes those choices repeatable and trustworthy:
+Use `verification` to choose checks for the concrete gap. Add only the native capability needed to make those checks repeatable and trustworthy:
 
 - expose line/branch/condition and changed-code coverage only as blind-spot feedback;
 - keep constrained pairwise/t-way generators and model/property/fuzz seeds reproducible;
@@ -48,7 +42,7 @@ Use `verification` to derive black-box and white-box obligations and choose the 
 - retain differential/metamorphic/reference-model oracles where direct expected values are weak;
 - provide controlled fault injection, replay, clocks, schedules, and recovery fixtures where failure lifecycle matters.
 
-For AI-authored tests, require an oracle source independent of the code-generation assumption and run at least one material seeded fault through normal discovery and selection. Do not reward volume, snapshots, or mock expectations that cannot observe the public promise.
+For AI-authored tests, check assertions against the public promise or another source independent of the code-generation assumption. Use a seeded fault only when sensitivity is doubtful or a credible high-consequence failure warrants a challenge. Do not reward volume, snapshots or mock expectations that cannot observe the public promise.
 
 ## Fixtures, data, and resources
 
@@ -60,4 +54,4 @@ Cache keys include relevant source, configuration, toolchain, generated inputs, 
 
 Record cross-layer responsibilities, environment/resource decisions, feedback roles, fixture contracts, and accepted material gaps in the repository's existing testing owner when future contributors will reuse them. If no owner exists, create the smallest discoverable entry; do not require one file name or repeat a per-change matrix.
 
-Stop once the observed feedback gap is closed, the target fault is caught through the native path, and maintenance cost is proportionate. Low-probability, low-consequence, high-cost fringe expansion stops; rare high-consequence security, privacy, financial, corruption, safety, or irreversible risks stay in core scope.
+Stop once the observed feedback gap is closed and the native result supports the decision. A sensitivity repair must catch the target fault through the native path. Further harness work needs a remaining material gap; severity alone does not make an imagined failure part of the task. A credible high-consequence mechanism connected to the change may still justify a focused check even when rare.

@@ -192,20 +192,36 @@ class IncrementalRouteTests(unittest.TestCase):
         self.assertNotIn("draft-archive-v2", corrections[0].stdout)
         self.assertNotIn("protected-path-v2", corrections[1].stdout)
 
-    def test_new_method_or_review_obligation_invalidates_terminal_evidence(self) -> None:
+    def test_method_consultation_preserves_evidence_but_material_review_does_not(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             previous = Path(temporary) / "previous.json"
-            previous.write_text(run_flow("route-task", "--intent", "change").stdout, encoding="utf-8")
+            base = ("route-task", "--intent", "change", "--target-revision", "same-objective")
+            previous.write_text(run_flow(*base).stdout, encoding="utf-8")
             for extra, dimension in (
                 (("--method-signal", "oracle-challenge"), "method"),
+                (("--method-prerequisite", "test-oracle"), "method"),
+                (("--method-depth", "starter"), "method"),
                 (("--material-exposure",), "review"),
             ):
                 with self.subTest(extra=extra):
-                    current = run_flow("route-task", "--intent", "change", *extra, "--previous-route", previous)
+                    current = run_flow(*base, *extra, "--previous-route", previous)
                     self.assertEqual(current.returncode, 0, current.stderr or current.stdout)
                     delta = json.loads(current.stdout)["recalibration"]
                     self.assertIn(dimension, delta["changed_dimensions"])
-                    self.assertIn("terminal-evidence", delta["invalidated_decisions"])
+                    if dimension == "review":
+                        self.assertIn("terminal-evidence", delta["invalidated_decisions"])
+                        self.assertEqual(delta["descendant_result_disposition"], "reject-until-rebased")
+                    else:
+                        self.assertEqual(delta["invalidated_decisions"], ["method-selection"])
+                        self.assertEqual(delta["descendant_result_disposition"], "retain-unaffected")
+            unbound = ("route-task", "--intent", "change")
+            previous.write_text(run_flow(*unbound).stdout, encoding="utf-8")
+            current = run_flow(*unbound, "--method-prerequisite", "test-oracle", "--previous-route", previous)
+            self.assertEqual(current.returncode, 0, current.stderr or current.stdout)
+            self.assertEqual(
+                json.loads(current.stdout)["recalibration"]["descendant_result_disposition"],
+                "reconcile-objective-before-retain",
+            )
 
     def test_compact_previous_route_is_unchanged_or_conservatively_invalidated(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

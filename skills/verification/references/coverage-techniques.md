@@ -1,6 +1,6 @@
 # Coverage expansion and oracle techniques
 
-Use this reference after black-box and white-box derivation identifies a concrete blind spot. Choose the technique because of the problem it exposes, not to make every change exhibit every test type.
+Use this reference for a concrete verification blind spot. Choose the technique because of the problem it exposes, not to make every change exhibit every test type.
 
 ## Input ranges and independent rules
 
@@ -33,7 +33,7 @@ When a direct expected value is expensive or unknown, triangulate the oracle:
 - **Invariant/property:** assert facts that must hold across all valid outcomes, including conservation, ordering, uniqueness, boundedness, or legal state transitions.
 - **Model:** compare with a smaller executable semantic model, not a copy of the production algorithm.
 
-Use at least two reasonably independent sources when AI generated both code and tests—for example, a public contract plus final-code branch analysis, or a property plus a seeded fault. Another agent repeating the same assumption is not an independent oracle.
+Check expected behavior against a source independent of the implementation, such as the public contract or a retained real example. Add a second source or seeded fault only when a concrete blind spot warrants it. Another agent repeating the same assumption is not an independent oracle.
 
 Stop once the target fault is rejected and the sources no longer disagree materially. Preserve disagreement as a requirement or evidence gap rather than choosing the convenient answer.
 

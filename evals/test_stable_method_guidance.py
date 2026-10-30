@@ -78,16 +78,15 @@ class StableMethodGuidanceTests(unittest.TestCase):
         self.assertIn("separately authorized", text)
         self.assertNotIn("pilots with three independent first attempts", text)
 
-    def test_method_budget_is_presentation_guidance_with_a_residual_risk_exception(self) -> None:
+    def test_method_budget_is_optional_guidance_and_stops_when_sufficient(self) -> None:
         text = (ROOT / "skills" / "dev-flow" / "references" / "methodology-system.md").read_text()
         self.assertIn("three ready methods and two relevant blocked methods", text)
-        self.assertIn("presentation budget", text)
-        self.assertIn("named residual failure mechanism", text)
-        self.assertIn("execution limit", text)
+        self.assertRegex(text, r"(?i)none is a required execution list")
+        self.assertRegex(text, r"(?i)stop when[^.\n]*sufficient evidence")
         calibration = (ROOT / "skills" / "dev-flow" / "references" / "quality-calibration.md").read_text()
-        self.assertIn("Normally apply at most three", calibration)
-        self.assertIn("named residual failure mechanism", calibration)
-        self.assertIn("current authority and resource budget", calibration)
+        self.assertRegex(calibration, r"(?i)risk category does not require a method disposition")
+        self.assertRegex(calibration, r"(?i)stop when it resolves the question")
+        self.assertNotIn("Selection without a disposition is incomplete", calibration)
 
     def test_semantic_topology_stops_only_dependent_work(self) -> None:
         payload = json.loads((ROOT / "governance" / "capability-contracts.json").read_text())

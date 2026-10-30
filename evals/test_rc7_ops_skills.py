@@ -86,12 +86,11 @@ class RC7OperationsSkillTests(unittest.TestCase):
         product = skill_text("product-ux-discovery")
         for name, text in (("requirements", requirements), ("product", product)):
             with self.subTest(name=name):
-                self.assertIn("When repository mutation is explicitly in scope", text)
-                self.assertIn(
-                    "If mutation is not authorized, return the proposed owner and exact update in chat without editing the repository",
+                self.assertRegex(
                     text,
+                    r"read-only or design-only request[^\n]*unless repository mutation is explicitly included",
                 )
-                self.assertIn("read-only or design-only request", text)
+                self.assertRegex(text, r"(?:not authorized|Otherwise),[^\n]*chat")
 
 
 if __name__ == "__main__":

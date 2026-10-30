@@ -11,7 +11,7 @@ from typing import Any
 
 
 ROUTE_BASIS_SCHEMA = "dev-flow.route-basis.v1"
-ROUTER_SEMANTICS_VERSION = "dev-flow.route-semantics.v3"
+ROUTER_SEMANTICS_VERSION = "dev-flow.route-semantics.v5"
 MAX_PREVIOUS_ROUTE_BYTES = 512 * 1024
 MAX_BASIS_LIST_ITEMS = 64
 MAX_BASIS_VALUE_CHARS = 256
@@ -57,7 +57,7 @@ INVALIDATIONS = {
     "scope_owners": {"routes", "risk-overlays", "knowledge-disposition", "terminal-evidence", "descendant-results"},
     "capabilities": {"routes", "risk-overlays", "specialist-readiness", "method-selection", "independent-review", "terminal-evidence", "descendant-results"},
     "repository_readiness": {"routes", "specialist-readiness", "method-selection", "terminal-evidence", "descendant-results"},
-    "method": {"method-selection", "terminal-evidence", "descendant-results"},
+    "method": {"method-selection"},
     "review": {"independent-review", "routes", "terminal-evidence", "descendant-results"},
     "knowledge": {"knowledge-disposition"},
 }
@@ -262,7 +262,9 @@ def compare(current: dict[str, Any], previous: dict[str, Any]) -> dict[str, Any]
         "changed_dimensions": changed,
         "invalidated_decisions": invalidated,
         "descendant_result_disposition": (
-            "reject-until-rebased" if "descendant-results" in invalidated else "retain-unaffected"
+            "reject-until-rebased" if "descendant-results" in invalidated
+            else "retain-unaffected" if current["dimensions"]["intent_task"]["target_revision_present"]
+            else "reconcile-objective-before-retain"
         ),
         "next_action": "recalibrate-invalidated-decisions",
     }

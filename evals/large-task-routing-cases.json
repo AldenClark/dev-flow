@@ -43,8 +43,7 @@
           "verification"
         ],
         "capability_activation.method.reasons": [
-          "signal:conflicting-evidence",
-          "signal:state-lifecycle"
+          "signal:conflicting-evidence"
         ],
         "capability_activation.method.selection.selected": "reproduction-minimization"
       }
@@ -80,17 +79,16 @@
       "expect": {
         "work_mode": "managed",
         "requirement_understanding.class": "defect-correction",
-        "capability_activation.method.selection.phase": "diagnosis"
+        "capability_activation.method.selection.phase": "diagnosis",
+        "capability_activation.method.signal_normalization.canonical": [
+          "conflicting-evidence"
+        ]
       },
       "contains": {
         "routes": [
           "systematic-debugging",
           "architecture-decisions",
           "verification"
-        ],
-        "capability_activation.method.signal_normalization.canonical": [
-          "conflicting-evidence",
-          "state-lifecycle"
         ]
       }
     },
@@ -115,7 +113,9 @@
       ],
       "expect": {
         "work_mode": "direct",
-        "requirement_understanding.class": "defect-correction"
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -151,7 +151,7 @@
         "verification"
       ],
       "expect": {
-        "work_mode": "managed",
+        "work_mode": "direct",
         "requirement_understanding.class": "defect-correction"
       },
       "contains": {
@@ -160,7 +160,9 @@
           "architecture-decisions",
           "verification"
         ],
-        "capability_activation.method.reasons": "signal:conflicting-evidence"
+        "capability_activation.method.reasons": [
+          "signal:conflicting-evidence"
+        ]
       }
     },
     {
@@ -181,7 +183,9 @@
       "expect": {
         "work_mode": "direct",
         "requirement_understanding.class": "defect-correction",
-        "capability_activation.independent_review.required": false
+        "capability_activation.independent_review.required": false,
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -218,11 +222,13 @@
       ],
       "expect": {
         "work_mode": "direct",
-        "requirement_understanding.class": "defect-correction"
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.method.signal_normalization.canonical": [],
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
-        "routes": "verification",
-        "capability_activation.method.signal_normalization.canonical": "state-lifecycle"
+        "routes": "verification"
       },
       "excludes": {
         "routes": "change-review"
@@ -251,7 +257,9 @@
       ],
       "expect": {
         "work_mode": "direct",
-        "requirement_understanding.class": "defect-correction"
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -282,7 +290,8 @@
       "expect": {
         "work_mode": "direct",
         "requirement_understanding.class": "mechanical",
-        "capability_activation.method.active_match_required": false
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -322,20 +331,18 @@
       ],
       "expect": {
         "work_mode": "direct",
-        "capability_activation.method.selection.phase": "design",
-        "capability_activation.method.selection.phase_source": "signal-adjacent-owner"
+        "capability_activation.method.selection.phase": "implementation",
+        "capability_activation.method.selection.phase_source": "intent-direct-match",
+        "capability_activation.method.signal_normalization.canonical": [
+          "multi-version-coexistence"
+        ]
       },
       "contains": {
         "risk_overlays": [
           "irreversible",
           "migration"
         ],
-        "capability_activation.method.signal_normalization.canonical": [
-          "multi-version-coexistence",
-          "state-lifecycle"
-        ],
         "capability_activation.method.selection.blocked": [
-          "state-transition-model",
           "branch-abstraction-feature-flag"
         ],
         "routes": [
@@ -372,17 +379,17 @@
         "deep"
       ],
       "expect": {
-        "work_mode": "managed",
-        "requirement_understanding.class": "defect-correction"
+        "work_mode": "direct",
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.method.signal_normalization.canonical": [
+          "cross-participant-flow",
+          "state-lifecycle"
+        ]
       },
       "contains": {
         "routes": [
           "architecture-decisions",
           "verification"
-        ],
-        "capability_activation.method.signal_normalization.canonical": [
-          "cross-participant-flow",
-          "state-lifecycle"
         ]
       }
     },
@@ -410,17 +417,19 @@
         "verification"
       ],
       "expect": {
-        "work_mode": "managed",
+        "work_mode": "direct",
         "requirement_understanding.class": "defect-correction",
-        "capability_activation.independent_review.required": true
+        "capability_activation.independent_review.required": true,
+        "capability_activation.method.signal_normalization.canonical": [],
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
           "verification",
           "change-review"
         ],
-        "risk_overlays": "security",
-        "capability_activation.method.signal_normalization.canonical": "trust-boundary"
+        "risk_overlays": "security"
       }
     },
     {
@@ -448,8 +457,9 @@
         "deep"
       ],
       "expect": {
-        "work_mode": "managed",
-        "requirement_understanding.class": "defect-correction"
+        "work_mode": "direct",
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.method.signal_normalization.canonical": []
       },
       "contains": {
         "routes": [
@@ -459,8 +469,7 @@
         "risk_overlays": [
           "migration",
           "irreversible"
-        ],
-        "capability_activation.method.signal_normalization.canonical": "state-lifecycle"
+        ]
       }
     },
     {
@@ -482,7 +491,9 @@
       "expect": {
         "work_mode": "direct",
         "requirement_understanding.class": "semantic-change",
-        "requirement_understanding.design_allowed": true
+        "requirement_understanding.design_allowed": true,
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -517,7 +528,9 @@
       ],
       "expect": {
         "work_mode": "direct",
-        "requirement_understanding.class": "semantic-change"
+        "requirement_understanding.class": "semantic-change",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -552,16 +565,18 @@
         "verification"
       ],
       "expect": {
-        "work_mode": "managed",
-        "requirement_understanding.class": "semantic-change"
+        "work_mode": "direct",
+        "requirement_understanding.class": "semantic-change",
+        "capability_activation.method.signal_normalization.canonical": [],
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
           "requirements-design",
           "architecture-decisions",
           "verification"
-        ],
-        "capability_activation.method.signal_normalization.canonical": "state-lifecycle"
+        ]
       }
     },
     {
@@ -587,7 +602,9 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "requirement_understanding.class": "semantic-change"
+        "requirement_understanding.class": "semantic-change",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -690,7 +707,10 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "capability_activation.independent_review.required": true
+        "capability_activation.independent_review.required": true,
+        "capability_activation.method.signal_normalization.canonical": [
+          "cross-participant-flow"
+        ]
       },
       "contains": {
         "routes": [
@@ -702,11 +722,6 @@
         "risk_overlays": [
           "external-system",
           "security"
-        ],
-        "capability_activation.method.signal_normalization.canonical": [
-          "cross-participant-flow",
-          "state-lifecycle",
-          "trust-boundary"
         ]
       }
     },
@@ -783,7 +798,8 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "capability_activation.independent_review.required": true
+        "capability_activation.independent_review.required": true,
+        "capability_activation.method.signal_normalization.canonical": []
       },
       "contains": {
         "routes": [
@@ -794,10 +810,6 @@
         "risk_overlays": [
           "security",
           "external-system"
-        ],
-        "capability_activation.method.signal_normalization.canonical": [
-          "state-lifecycle",
-          "trust-boundary"
         ]
       }
     },
@@ -817,7 +829,8 @@
       "expect": {
         "work_mode": "direct",
         "requirement_understanding.class": "mechanical",
-        "capability_activation.method.active_match_required": false
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -848,7 +861,9 @@
       ],
       "expect": {
         "work_mode": "direct",
-        "requirement_understanding.class": "structural-adjustment"
+        "requirement_understanding.class": "structural-adjustment",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -884,8 +899,10 @@
         "verification"
       ],
       "expect": {
-        "work_mode": "managed",
-        "requirement_understanding.class": "structural-adjustment"
+        "work_mode": "direct",
+        "requirement_understanding.class": "structural-adjustment",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -918,7 +935,9 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "requirement_understanding.class": "structural-adjustment"
+        "requirement_understanding.class": "structural-adjustment",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -951,7 +970,9 @@
       ],
       "expect": {
         "work_mode": "direct",
-        "requirement_understanding.class": "defect-correction"
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -983,7 +1004,9 @@
       ],
       "expect": {
         "work_mode": "direct",
-        "requirement_understanding.class": "defect-correction"
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -1015,7 +1038,9 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "requirement_understanding.class": "defect-correction"
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -1055,14 +1080,16 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "requirement_understanding.class": "structural-adjustment"
+        "requirement_understanding.class": "structural-adjustment",
+        "capability_activation.method.signal_normalization.canonical": [
+          "state-lifecycle"
+        ]
       },
       "contains": {
         "routes": [
           "requirements-design",
           "architecture-decisions"
-        ],
-        "capability_activation.method.signal_normalization.canonical": "state-lifecycle"
+        ]
       }
     },
     {
@@ -1148,15 +1175,17 @@
         "deep"
       ],
       "expect": {
-        "work_mode": "managed",
-        "requirement_understanding.class": "defect-correction"
+        "work_mode": "direct",
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.method.signal_normalization.canonical": [
+          "state-lifecycle"
+        ]
       },
       "contains": {
         "routes": [
           "architecture-decisions",
           "verification"
-        ],
-        "capability_activation.method.signal_normalization.canonical": "state-lifecycle"
+        ]
       }
     },
     {
@@ -1186,16 +1215,16 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "requirement_understanding.class": "structural-adjustment"
+        "requirement_understanding.class": "structural-adjustment",
+        "capability_activation.method.signal_normalization.canonical": [
+          "cross-participant-flow",
+          "state-lifecycle"
+        ]
       },
       "contains": {
         "routes": [
           "requirements-design",
           "architecture-decisions"
-        ],
-        "capability_activation.method.signal_normalization.canonical": [
-          "cross-participant-flow",
-          "state-lifecycle"
         ]
       }
     },
@@ -1226,8 +1255,11 @@
         "deep"
       ],
       "expect": {
-        "work_mode": "managed",
-        "requirement_understanding.class": "structural-adjustment"
+        "work_mode": "direct",
+        "requirement_understanding.class": "structural-adjustment",
+        "capability_activation.method.signal_normalization.canonical": [
+          "state-lifecycle"
+        ]
       },
       "contains": {
         "routes": [
@@ -1236,8 +1268,7 @@
         ],
         "risk_overlays": [
           "external-system"
-        ],
-        "capability_activation.method.signal_normalization.canonical": "state-lifecycle"
+        ]
       }
     },
     {
@@ -1271,18 +1302,17 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "requirement_understanding.class": "structural-adjustment"
+        "requirement_understanding.class": "structural-adjustment",
+        "capability_activation.method.signal_normalization.canonical": [
+          "multi-version-coexistence"
+        ]
       },
       "contains": {
         "routes": [
           "architecture-decisions",
           "verification"
         ],
-        "risk_overlays": "migration",
-        "capability_activation.method.signal_normalization.canonical": [
-          "multi-version-coexistence",
-          "state-lifecycle"
-        ]
+        "risk_overlays": "migration"
       }
     },
     {
@@ -1313,7 +1343,10 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "requirement_understanding.class": "semantic-change"
+        "requirement_understanding.class": "semantic-change",
+        "capability_activation.method.signal_normalization.canonical": [
+          "state-lifecycle"
+        ]
       },
       "contains": {
         "routes": [
@@ -1324,10 +1357,6 @@
           "security",
           "irreversible",
           "migration"
-        ],
-        "capability_activation.method.signal_normalization.canonical": [
-          "state-lifecycle",
-          "trust-boundary"
         ]
       }
     },
@@ -1363,18 +1392,17 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "requirement_understanding.class": "structural-adjustment"
+        "requirement_understanding.class": "structural-adjustment",
+        "capability_activation.method.signal_normalization.canonical": [
+          "multi-version-coexistence"
+        ]
       },
       "contains": {
         "routes": [
           "architecture-decisions",
           "verification"
         ],
-        "risk_overlays": "migration",
-        "capability_activation.method.signal_normalization.canonical": [
-          "multi-version-coexistence",
-          "state-lifecycle"
-        ]
+        "risk_overlays": "migration"
       }
     },
     {
@@ -1447,21 +1475,15 @@
         "deep"
       ],
       "expect": {
-        "work_mode": "managed",
-        "capability_activation.method.selection.phase": "requirements",
-        "capability_activation.independent_review.execution": "route-agent"
+        "work_mode": "direct",
+        "capability_activation.method.selection.phase": "implementation",
+        "capability_activation.independent_review.execution": "dispatch-independent-context",
+        "capability_activation.method.signal_normalization.canonical": [
+          "cross-participant-flow"
+        ],
+        "capability_activation.method.selection.actionable": true
       },
       "contains": {
-        "capability_activation.method.signal_normalization.canonical": [
-          "cross-participant-flow",
-          "multi-version-coexistence",
-          "trust-boundary"
-        ],
-        "capability_activation.method.selection.selected": [
-          "contract-consumer-testing",
-          "compatibility-matrix",
-          "data-lineage-provenance"
-        ],
         "routes": [
           "architecture-decisions",
           "verification",
@@ -1495,18 +1517,17 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "requirement_understanding.class": "semantic-change"
+        "requirement_understanding.class": "semantic-change",
+        "capability_activation.method.signal_normalization.canonical": [
+          "multi-version-coexistence"
+        ]
       },
       "contains": {
         "routes": [
           "requirements-design",
           "architecture-decisions"
         ],
-        "risk_overlays": "migration",
-        "capability_activation.method.signal_normalization.canonical": [
-          "multi-version-coexistence",
-          "trust-boundary"
-        ]
+        "risk_overlays": "migration"
       }
     },
     {
@@ -1538,8 +1559,11 @@
         "deep"
       ],
       "expect": {
-        "work_mode": "managed",
-        "requirement_understanding.class": "structural-adjustment"
+        "work_mode": "direct",
+        "requirement_understanding.class": "structural-adjustment",
+        "capability_activation.method.signal_normalization.canonical": [
+          "cross-participant-flow"
+        ]
       },
       "contains": {
         "routes": [
@@ -1549,11 +1573,6 @@
         "risk_overlays": [
           "external-system",
           "migration"
-        ],
-        "capability_activation.method.signal_normalization.canonical": [
-          "cross-participant-flow",
-          "multi-version-coexistence",
-          "trust-boundary"
         ]
       }
     },
@@ -1587,7 +1606,7 @@
         "deep"
       ],
       "expect": {
-        "work_mode": "managed",
+        "work_mode": "direct",
         "capability_activation.independent_review.required": true
       },
       "contains": {
@@ -1619,7 +1638,9 @@
       ],
       "expect": {
         "work_mode": "direct",
-        "requirement_understanding.class": "mechanical"
+        "requirement_understanding.class": "mechanical",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -1668,7 +1689,9 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "capability_activation.independent_review.required": true
+        "capability_activation.independent_review.required": true,
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -1705,8 +1728,10 @@
         "verification"
       ],
       "expect": {
-        "work_mode": "managed",
-        "requirement_understanding.class": "structural-adjustment"
+        "work_mode": "direct",
+        "requirement_understanding.class": "structural-adjustment",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -1739,7 +1764,9 @@
       "expect": {
         "work_mode": "direct",
         "requirement_understanding.class": "read-only",
-        "capability_activation.independent_review.required": true
+        "capability_activation.independent_review.required": true,
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -1767,15 +1794,17 @@
       "expect": {
         "work_mode": "direct",
         "requirement_understanding.class": "read-only",
-        "capability_activation.independent_review.required": true
+        "capability_activation.independent_review.required": true,
+        "capability_activation.method.signal_normalization.canonical": [],
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
           "verification",
           "change-review"
         ],
-        "risk_overlays": "security",
-        "capability_activation.method.signal_normalization.canonical": "trust-boundary"
+        "risk_overlays": "security"
       }
     },
     {
@@ -1843,7 +1872,9 @@
         "work_mode": "direct",
         "requirement_understanding.class": "read-only",
         "mutation_intent": "none",
-        "capability_activation.independent_review.required": true
+        "capability_activation.independent_review.required": true,
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -1883,7 +1914,9 @@
       "expect": {
         "work_mode": "direct",
         "requirement_understanding.class": "defect-correction",
-        "capability_activation.independent_review.required": true
+        "capability_activation.independent_review.required": true,
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -1920,7 +1953,9 @@
       ],
       "expect": {
         "work_mode": "direct",
-        "requirement_understanding.class": "defect-correction"
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -1953,7 +1988,9 @@
       ],
       "expect": {
         "work_mode": "direct",
-        "requirement_understanding.class": "semantic-change"
+        "requirement_understanding.class": "semantic-change",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -1986,7 +2023,9 @@
       ],
       "expect": {
         "work_mode": "direct",
-        "requirement_understanding.class": "defect-correction"
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2028,8 +2067,10 @@
         "verification"
       ],
       "expect": {
-        "work_mode": "managed",
-        "requirement_understanding.class": "semantic-change"
+        "work_mode": "direct",
+        "requirement_understanding.class": "semantic-change",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2128,16 +2169,15 @@
       "expect": {
         "work_mode": "managed",
         "requirement_understanding.class": "defect-correction",
-        "capability_activation.method.selection.phase": "diagnosis"
+        "capability_activation.method.selection.phase": "diagnosis",
+        "capability_activation.method.signal_normalization.canonical": [
+          "repeated-failure"
+        ]
       },
       "contains": {
         "routes": [
           "systematic-debugging",
           "verification"
-        ],
-        "capability_activation.method.signal_normalization.canonical": [
-          "oracle-challenge",
-          "repeated-failure"
         ]
       }
     },
@@ -2197,8 +2237,10 @@
         "verification"
       ],
       "expect": {
-        "work_mode": "managed",
-        "requirement_understanding.class": "structural-adjustment"
+        "work_mode": "direct",
+        "requirement_understanding.class": "structural-adjustment",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2223,7 +2265,9 @@
       "expect": {
         "work_mode": "direct",
         "requirement_understanding.class": "read-only",
-        "capability_activation.independent_review.required": false
+        "capability_activation.independent_review.required": false,
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2255,7 +2299,9 @@
       "expect": {
         "work_mode": "direct",
         "requirement_understanding.class": "read-only",
-        "capability_activation.independent_review.required": false
+        "capability_activation.independent_review.required": false,
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2286,7 +2332,9 @@
       "expect": {
         "work_mode": "direct",
         "requirement_understanding.class": "read-only",
-        "capability_activation.independent_review.required": true
+        "capability_activation.independent_review.required": true,
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2314,7 +2362,9 @@
       "expect": {
         "work_mode": "direct",
         "requirement_understanding.class": "read-only",
-        "capability_activation.independent_review.required": true
+        "capability_activation.independent_review.required": true,
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2344,7 +2394,9 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "requirement_understanding.class": "semantic-change"
+        "requirement_understanding.class": "semantic-change",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2426,18 +2478,17 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "requirement_understanding.class": "structural-adjustment"
+        "requirement_understanding.class": "structural-adjustment",
+        "capability_activation.method.signal_normalization.canonical": [
+          "cross-participant-flow"
+        ]
       },
       "contains": {
         "routes": [
           "requirements-design",
           "architecture-decisions"
         ],
-        "risk_overlays": "external-system",
-        "capability_activation.method.signal_normalization.canonical": [
-          "cross-participant-flow",
-          "state-lifecycle"
-        ]
+        "risk_overlays": "external-system"
       }
     },
     {
@@ -2465,7 +2516,9 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "requirement_understanding.class": "semantic-change"
+        "requirement_understanding.class": "semantic-change",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2492,7 +2545,9 @@
       "expect": {
         "work_mode": "direct",
         "requirement_understanding.class": "read-only",
-        "mutation_intent": "none"
+        "mutation_intent": "none",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": "repo-context"
@@ -2522,7 +2577,9 @@
       ],
       "expect": {
         "work_mode": "direct",
-        "requirement_understanding.class": "read-only"
+        "requirement_understanding.class": "read-only",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2553,7 +2610,9 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "requirement_understanding.class": "read-only"
+        "requirement_understanding.class": "read-only",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": "repo-context",
@@ -2587,7 +2646,9 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "requirement_understanding.class": "read-only"
+        "requirement_understanding.class": "read-only",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2620,7 +2681,9 @@
       ],
       "expect": {
         "work_mode": "direct",
-        "requirement_understanding.class": "defect-correction"
+        "requirement_understanding.class": "defect-correction",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2653,7 +2716,9 @@
       ],
       "expect": {
         "work_mode": "direct",
-        "requirement_understanding.class": "structural-adjustment"
+        "requirement_understanding.class": "structural-adjustment",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2689,7 +2754,9 @@
       ],
       "expect": {
         "work_mode": "direct",
-        "requirement_understanding.class": "structural-adjustment"
+        "requirement_understanding.class": "structural-adjustment",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2730,7 +2797,9 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "requirement_understanding.class": "semantic-change"
+        "requirement_understanding.class": "semantic-change",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2814,7 +2883,9 @@
       "expect": {
         "mutation_intent": "none",
         "work_mode": "direct",
-        "requirement_understanding.class": "read-only"
+        "requirement_understanding.class": "read-only",
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2853,7 +2924,9 @@
         "mutation_intent": "none",
         "work_mode": "direct",
         "requirement_understanding.class": "read-only",
-        "capability_activation.independent_review.required": true
+        "capability_activation.independent_review.required": true,
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2890,7 +2963,9 @@
         "mutation_intent": "none",
         "work_mode": "direct",
         "requirement_understanding.class": "read-only",
-        "capability_activation.independent_review.required": true
+        "capability_activation.independent_review.required": true,
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -2945,7 +3020,7 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "capability_activation.method.selection.phase": "design"
+        "capability_activation.method.selection.phase": "implementation"
       },
       "contains": {
         "capability_activation.method.selection.selected": [
@@ -3041,7 +3116,9 @@
       ],
       "expect": {
         "work_mode": "managed",
-        "continuity.documents_required": true
+        "continuity.documents_required": true,
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null
       },
       "contains": {
         "routes": [
@@ -3100,7 +3177,11 @@
       "expect": {
         "work_mode": "managed",
         "continuity.documents_required": true,
-        "capability_activation.independent_review.required": true
+        "capability_activation.independent_review.required": true,
+        "capability_activation.method.signal_normalization.canonical": [
+          "cross-participant-flow",
+          "state-lifecycle"
+        ]
       },
       "contains": {
         "routes": [
@@ -3108,11 +3189,6 @@
           "architecture-decisions",
           "verification",
           "change-review"
-        ],
-        "capability_activation.method.signal_normalization.canonical": [
-          "cross-participant-flow",
-          "state-lifecycle",
-          "trust-boundary"
         ],
         "continuity.interruption_handoff": "worktree-and-parallel-change-state"
       }

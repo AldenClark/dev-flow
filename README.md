@@ -2,7 +2,7 @@
 
 Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是建立第二套工作流引擎，而是用最少的流程成本保持三件事：长期业务工作不漂移、技术结论有原生工程证据、高后果动作保留明确安全边界。
 
-已发布源码身份为 `2.1.3`。当前工作区处于 `development` 状态，基于 `v2.1.3`。`v2.1.3` 是最近已发布的稳定标签，也是默认固定安装通道。`v2.0.0-rc.9` 是最近已发布的 RC；2.1.3 的回滚目标为 `v2.1.2`。本次收紧 DLP Hook 一次性确认的目录元数据校验，拒绝相对路径及无效目录，不扩大确认范围。现有 Codex 二进制尚未呈现 PR57198/PR57203 的执行目录语义，因此不声明真实宿主上的跨 workdir 确认隔离已通过。提交、正式发布及本地安装更新均已核实，执行事实见[发布记录](docs/workstreams/dev-flow-2.1.3/progress.md)。不升级宿主或安装 alpha，不追加模型评测。2.0 的 1.x 破坏性切换边界保持不变。
+候选源码身份为 `2.2.0`，阶段为 `source-candidate`。当前工作区处于 `development` 状态，基于 `v2.1.3`。`v2.1.3` 是最近已发布的稳定标签，也是默认固定安装通道。`v2.0.0-rc.9` 是最近已发布的 RC；2.2.0 的回滚目标为 `v2.1.3`。本次删减会诱导额外工作的规则，保留及时原生需求澄清、适当设计、代码正确性和必要验证，并修复四处 CLI 残留。独立审计及修复复核已完成；提交、托管 CI、跨平台、标签、制品、公开发布及隔离安装尚未运行。用户在已披露真实宿主验证和五条模型旅程仍为 `NOT RUN` 后，要求提交、推送、正式发布，并在发布成功后更新本机 Dev Flow；此要求不把缺失证据变成 `PASSED` 或既有 `WAIVED`，也不证明成本或效果收益。当前执行事实见[发布记录](docs/workstreams/dev-flow-2.2.0/progress.md)。2.0 的 1.x 破坏性切换边界保持不变。
 
 ## 2.0 核心模型
 
@@ -43,11 +43,11 @@ Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是
 
 Direct 不创建 Dev Flow 状态或连续性文档。它优先更新既有架构、产品规则、契约、runbook、用户或运维事实；只有跨会话、owner 或独立切片的可靠接力确有需要，且代码、测试、issue、changelog、ADR 或既有文档都无法承载时，才增加一份轻量 change record。仓库无约定时使用 `docs/change-notes/<slug>.md`，不写命令、hash、agent 活动或逐文件流水。
 
-`managed` 只由连续性和协调需要触发：跨会话、多个可独立交付切片、跨模块/仓库/团队、重大设计取舍，或者用户明确要求长期计划、设计和交接。大功能、大重构和实质迁移默认使用 managed。
+`managed` 用于现有 owner 无法承载的连续性或协调需要：跨会话、多个交付切片、实际协调或长期计划，也可显式指定。跨模块、重大取舍和任务类别本身不自动产生工作流文档义务。
 
 风险不会自动把 direct 升级为 managed。一个单文件安全修复可以保持 direct，同时叠加安全控制；一个低风险但持续数月的产品重写应使用 managed。
 
-`route-task` 只做无状态诊断：业务未决影响依赖它的设计，重要新功能首次实施通过 `--first-important-implementation` 声明（兼容 `large-feature`），待确认单独反映在 `implementation_allowed`；普通 U1 不自动要求确认；`--understanding-confirmed` 是调用者陈述，CLI 不验证用户同意或授予权限。compact 也保留停顿与证据限制。路由语义更新为 `dev-flow.route-semantics.v3`，旧结果需重算；现有参数、别名和纠错入口保留。
+`route-task` 只做无状态诊断：业务未决只暂停依赖承诺，及时通过合格原生工具提问；重要新功能首次实施通过 `--first-important-implementation` 声明（兼容 `large-feature`），待确认单独反映在 `implementation_allowed`；普通 U1 不自动要求确认；`--understanding-confirmed` 是调用者陈述，CLI 不验证用户同意或授予权限。compact 也保留停顿、独立学习边界与证据限制。路由语义更新为 `dev-flow.route-semantics.v5`，旧结果需重算；现有参数、别名和纠错入口保留。
 
 可用 CLI 查看确定性路由：
 
@@ -132,12 +132,12 @@ Overlay 不自动要求 packet、固定文档、独立代理或一整套最大�
 
 ## 质量校准与高级能力
 
-2.0 保留一条不产生制品的质量主干。每个任务开始时回答：完成结果是什么、哪些是事实和假设、可能影响哪些业务/信任/数据/兼容/依赖/运维/UI/交付边界、最小连贯切片是什么、什么原生证据最敏感。范围/设计变化、新依赖或外部边界、第一次意外失败、同一症状连续两次错误假设、交付或不可逆动作出现时重新校准。
+2.0 保留一条不产生制品的质量主干。先明确当前结果、受影响行为和适当的原生检查，不默认展开风险、设计或证据清单。范围/设计变化、新依赖或外部边界、第一次意外失败、同一症状连续两次错误假设、交付或不可逆动作出现时重新校准。
 
 高级能力在信号出现时介入，而不是常驻主流程：
 
-- 实际委派子代理前使用 `route-agent`，把角色、workload、风险和推理信号映射为 P0-P6 的模型、reasoning effort 和 fork 请求；路由结果不落盘、不生成回执。
-- 迁移/混合版本数据、FFI/ABI/unsafe、并发/非确定性、安全/隐私/权限、公共 API/协议、不可逆/数据丢失、冲突证据或连续失败时，主动使用对应专业 Skill；当方法或 oracle 仍不明确时通过 `route-task` 做一次 bounded 方法匹配，只应用能改变决策的 1–3 个步骤，不保存选择记录，也不为取得方法名称而扩张研究。
+- 常规同模型分工可直接派发；需要选择模型、推理档位或适配宿主能力时再用 `route-agent`。
+- 普通工程做法无法解决具体问题时再使用相关专业指导或方法。`route-task` 不因风险类别自动选方法或进入 deep；显式 `--method-signal` 或 `--method-depth` 才启用方法选择，默认 starter。
 - 独立审查只用于重大安全/数据/兼容/回滚暴露、重要取舍、冲突证据、共享盲点或仓库明确要求的职责分离。
 
 需要确定性查看高级分支时可使用紧凑输出，避免把完整解释性 envelope 带入模型上下文：
@@ -158,7 +158,7 @@ python3 skills/dev-flow/scripts/dev-flow.py route-task \
 
 实施范围同样采用按需收敛：实现/修复默认 `closed`，诊断/评审默认 `bounded`，只有明确要求广泛探索时才进入 `open`。读代码、运行受影响测试和深入推理不会自动授予更宽的写入、依赖、仓库、委派或交付权限；新发现的问题先归类为必要缺陷、必要前置、可选机会或无关项，再决定是否进入当前实现。
 
-方法论不会以“选中了几个方法”作为质量指标。高价值验证、测试、评审和审计场景需要形成一次明确处置：执行已就绪方法、对受阻方法执行 fallback 并保留限制，或因 owner Skill 的原生程序已足够而合理弃用。真正的落地必须改变测试/oracle、反例、状态或兼容模型、评审攻击面、证据矩阵或最终 claim 限制。
+方法论不会以“选中了几个方法”作为质量指标。普通工程做法或 owner Skill 的原生程序已足够时直接使用并停止，无需方法处置记录。只有具体未解问题值得额外成本时才咨询方法；结论可以确认现有选择，不要求改变测试、oracle 或其他制品。保留有用结论与实际限制即可，不因咨询方法自动废弃既有验证或子结果。
 
 子任务模型以语义不确定性和上下文广度决定，风险仍交给验证与交付证据处理：P0=GPT-6 Luna low、P1=GPT-6 Luna medium、P2=GPT-6 Luna high、P3=GPT-6 Luna xhigh 适用于从精确查找到语义已闭合的多步工作；P4=GPT-6.1 Sol medium 是日常编码、普通诊断和评审默认档，P5=GPT-6.1 Sol xhigh 用于有具体证据的深层未解问题或复合判断困难，跨组件实施、普通高风险复核和动态原生验收默认可用 P4；P6=GPT-6 Astra xhigh 只处理交织未知量的深层未决推理，PX=GPT-6 Astra max 仅用于显式评估并确认的例外。根上下文建议 GPT-6.1 Sol medium，但路由器不会切换当前根模型，也不会仅为使用廉价模型而创建子代理。显式高于策略选择 P5/P6 时，AI 调用者需填写具体 `--selection-reason`，这不是用户批准或费用授权；降档不降低验证要求，复杂正向信号仍保留升级。任务分流与质量边界见 [模型选择策略](skills/dev-flow/references/model-selection.md)；本次校准仍是有界策略试用，不声称模型质量等价或节省比例。
 
@@ -181,11 +181,11 @@ Dev Flow 主 Skill 负责自然开发循环、知识接力和最小专业发现�
 - `repository-knowledge`：审计/建立知识体系，并解决缺失、冲突、陈旧、聊天独占或不可发现的知识 owner 与读者路径；
 - `dev-flow-maintainer`：显式维护 Dev Flow 自身。
 
-方法池在普通工作中不启用；遇到上述高杠杆风险或方法不确定性时主动做 bounded、非持久化选择。它不参与生命周期门禁。
+方法池用于尚未解决的具体问题，不由宽泛风险标签自动触发，也不参与生命周期门禁。普通 `--need review` 不自动派生独立复核；明确独立审查使用 `--need independent-review`，实质风险暴露使用 `--material-exposure`。
 
 ## Multi-Agent
 
-单代理是默认。只有隔离并行或独立视角的净收益高于协调成本时才委派。每次实际委派先调用 `route-agent` 并使用返回的模型、reasoning effort 与 fork 请求；如果路由后的上下文和协调成本高于独立收益，就留在 root 执行。brief 只需要：目标/结果、相关上下文、写入路径或只读边界、允许的验证/资源、停止条件、返回内容。
+单代理是默认。只有隔离并行或独立视角的净收益高于协调成本时才委派。常规同模型任务可直接派发；只有模型、预算或宿主能力选择需要时才调用 `route-agent`，协调成本高于收益时留在 root 执行。brief 只需要：目标/结果、相关上下文、写入路径或只读边界、允许的验证/资源、停止条件、返回内容。
 
 不再要求 packet ID、AC/SC/VO、fingerprint、profile 回执、lease epoch、生成报告或 checkpoint。root 按当前 Git diff 集成结果，并重跑受影响检查。
 
@@ -253,14 +253,16 @@ CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job �
 
 ## 版本和发布状态
 
-- `2.1.3` 是当前已发布源码身份；不可变 [v2.1.3](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.3) 来自 `2dc35efe8e76fe3e80c8a5469ee73027e4dfc93d`。精确源码 CI、五组平台检查、四份公开制品及隔离生命周期通过。本机已安装并启用 2.1.3，478 个归档文件匹配、8 项安装态合成检查通过。当前 Codex 执行目录元数据限制和未观察范围见[发布记录](docs/workstreams/dev-flow-2.1.3/progress.md)。
+- `2.2.0` 是当前候选源码身份，阶段为 `source-candidate`；工作区基于 `v2.1.3`，回滚目标为 `v2.1.3`。独立审计及修复复核通过；提交、托管 CI、跨平台、标签、制品、公开发布及隔离安装为 `NOT RUN`。真实宿主验证和五条模型旅程仍为 `NOT RUN`，未声称模型行为或收益已证实。详见[发布记录](docs/workstreams/dev-flow-2.2.0/progress.md)。
+- `v2.0.0-rc.9` 是最近已发布的 RC；最近已发布的稳定版及默认安装通道仍为 `v2.1.3`，其交付证据不自动适用于 2.2.0。
+- `2.1.3` 是已发布的稳定源码身份；不可变 [v2.1.3](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.3) 来自 `2dc35efe8e76fe3e80c8a5469ee73027e4dfc93d`。精确源码 CI、五组平台检查、四份公开制品及隔离生命周期通过。本机已安装并启用 2.1.3，478 个归档文件匹配、8 项安装态合成检查通过。当前 Codex 执行目录元数据限制和未观察范围见[发布记录](docs/workstreams/dev-flow-2.1.3/progress.md)。
 - `2.1.2` 是此前已发布源码身份；不可变 [v2.1.2](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.2) 来自 `176daea484cdbd63abd492c806b36c2dfa5ea16b`。精确源码 CI、五组平台兼容检查、四份公开制品及隔离安装/卸载通过；本机已安装并启用 2.1.2，476 个文件与公开归档匹配，三项安装态 Hook 控制通过。模型旅程和现有聊天重载仍未观察，详情见[发布记录](docs/workstreams/dev-flow-2.1.2/progress.md)。
 - `2.1.1` 是此前已发布源码身份；不可变 [v2.1.1](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.1) 来自 `7c0c950f58e848d5452eb5d6242e9d8661d2095a`。精确源码 CI、五组平台兼容检查与四份公开制品核对通过；模型旅程及安装 NOT RUN，详情见[发布记录](docs/workstreams/dev-flow-2.1.1/progress.md)。
 - `2.1.0` 是此前已发布源码身份；不可变 [v2.1.0](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.0) 来自 `0d0ef9e2eed869e84d78ab2350be0a75fd2c3000`。精确SHA语义全套、5个平台/Python兼容单元、来源/SBOM证明及4份公开下载核对通过。未覆盖的稳定功能旅程明确WAIVED；本次未安装，详情与原始失败见[发布记录](docs/workstreams/dev-flow-upgrade-2026-10/progress.md)。
 - `2.0.3` 是此前已发布的稳定源码身份；不可变 `v2.0.3` 来自候选 `b5951234d50dc03425e17da2c858e8d7aceb97f8`。本地、托管语义及五个平台检查、制品、公开发布与本机安装已核实。用户已于 2026-10-10 明确豁免本次五条真实模型旅程，记录为 WAIVED，不推断模型质量等价。
 - `2.0.2` 是此前已发布源码身份；不可变 `v2.0.2` 来自候选 `e5abd4bbb2dc6758400ea74a299e12d5e0770c39`；其 DLP 豁免和测试证据保留在历史发布记录。
 - 此前稳定版本：[v2.0.3](https://github.com/AldenClark/dev-flow/releases/tag/v2.0.3)。最终本地回归 806 项（805 通过、一项原生 Windows 专属跳过）；累计复核及托管语义/五个平台检查通过，四份公开制品匹配托管文件。2.0.3 的回滚目标为 `v2.0.2`；公开标签隔离安装/卸载和本机 2.0.3 源码/缓存身份已核实；现有会话加载仍单独记录。
-- `v2.0.0-rc.9` 是最近已发布且可固定安装的 personal-assistant-hardening RC，对应不可变提交 `5d4a569dcbbb67fb21cbc7945945597e342151b5`；本次发布检查按用户明确要求豁免，既有开发回归不等同于最终发布字节的验证。
+- 已发布 RC `v2.0.0-rc.9` 可固定安装为 personal-assistant-hardening RC，对应不可变提交 `5d4a569dcbbb67fb21cbc7945945597e342151b5`；本次发布检查按用户明确要求豁免，既有开发回归不等同于最终发布字节的验证。
 - `v2.0.0-rc.8` 是 RC.9 的固定回滚标签；RC.8 的 CI、兼容、制品、证明、隔离安装和公开预发布证据只属于候选提交 `503f5e487580afed9fb905130c4206e1e018ed1d` 对应的不可变标签。
 - `v2.0.0-rc.7` 是 RC.8 的固定回滚标签；RC.7 的交付证据仍只属于它自身。
 - `v2.0.0-rc.2` 是上一 activation-hardening RC，也是 RC.3 的可固定安装回滚标签。
@@ -268,4 +270,4 @@ CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job �
 - `v1.1.2` 是最后一个 1.x 稳定标签；1.1.3 只存在于未发布源码历史，2.0 不提供 1.x 兼容或迁移保证。
 - 源码、commit、push、tag、GitHub Release、Marketplace 安装和生产使用是不同状态；只有逐项执行和复核后才能声称完成。
 
-当前策略发布位于 [2.0.3 workstream](docs/workstreams/dev-flow-2.0.3/)。2.0.2 DLP 历史位于 [2.0.2 workstream](docs/workstreams/dev-flow-2.0.2/)。此前正式版实施位于 [stable workstream](docs/workstreams/dev-flow-2.0-stable/)。RC.9 的发布与豁免边界位于 [docs/workstreams/dev-flow-2.0-rc.9](docs/workstreams/dev-flow-2.0-rc.9/)；RC.8 的已发布历史位于 [docs/workstreams/dev-flow-2.0-rc.8](docs/workstreams/dev-flow-2.0-rc.8/)。发布验证与独立 Bench 的拆分位于 [docs/workstreams/dev-flow-2.0-benchmark-separation](docs/workstreams/dev-flow-2.0-benchmark-separation/)，2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)，历史版本见 [CHANGELOG.md](CHANGELOG.md)。
+当前候选发布位于 [2.2.0 workstream](docs/workstreams/dev-flow-2.2.0/)。2.0.3 策略发布历史位于 [2.0.3 workstream](docs/workstreams/dev-flow-2.0.3/)。2.0.2 DLP 历史位于 [2.0.2 workstream](docs/workstreams/dev-flow-2.0.2/)。此前正式版实施位于 [stable workstream](docs/workstreams/dev-flow-2.0-stable/)。RC.9 的发布与豁免边界位于 [docs/workstreams/dev-flow-2.0-rc.9](docs/workstreams/dev-flow-2.0-rc.9/)；RC.8 的已发布历史位于 [docs/workstreams/dev-flow-2.0-rc.8](docs/workstreams/dev-flow-2.0-rc.8/)。发布验证与独立 Bench 的拆分位于 [docs/workstreams/dev-flow-2.0-benchmark-separation](docs/workstreams/dev-flow-2.0-benchmark-separation/)，2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)，历史版本见 [CHANGELOG.md](CHANGELOG.md)。

@@ -1,50 +1,22 @@
 # Quality calibration and escalation
 
-Use this reference after initial repository discovery, after material requirement confirmation, and when a boundary/failure/final diff invalidates the current posture. Calibration is reasoning, not a document, approval, score, or lifecycle state.
+Use this reference when ordinary repository practice leaves a concrete quality decision unresolved. Revisit only decisions whose premises changed. Calibration is reasoning, not a document, approval, score, or lifecycle state.
 
 ## Initial calibration
 
-Establish the smallest useful quality posture from current repository evidence:
-
-1. Define the observable outcome and the authority boundary.
-2. Separate confirmed facts, working assumptions, and user-owned business decisions.
-3. Scan the changed behavior and its callers/consumers for hidden risk rather than relying only on user-supplied labels.
-4. Choose a coherent slice and the native oracle that is most sensitive to its likely failure.
-5. Decide independently whether an effective-host specialist, bounded method, independent review, or child model/effort can change the outcome enough to justify its cost.
-
-Scan only relevant dimensions, but do not omit a dimension merely because the request did not name it:
-
-- product semantics and user-visible states;
-- trust boundaries, authentication, authorization, secrets, privacy, and untrusted input;
-- persisted data, schema, migration, deletion, recovery, and mixed-version operation;
-- public APIs, protocols, serialization, ABI/FFI, concurrency, and compatibility;
-- dependencies, generated surfaces, external systems, retries, idempotency, and reconciliation;
-- performance, resource ownership, observability, rollout, rollback, delivery, and irreversibility.
+Choose a coherent slice and the appropriate native checks for the requested outcome. Inspect the changed behavior and affected consumers for credible failure mechanisms, including high-consequence security, privacy, corruption, or irreversible failures where reachable. Separate observed facts from assumptions and user-owned business choices. Add a specialist, method, or second context only when it can resolve a specific remaining uncertainty enough to justify its cost.
 
 ## Recalibration triggers
 
-Re-run the scan when:
-
-- scope, architecture, or a public contract changes;
-- a new dependency, repository, external system, persistent-data path, or production action appears;
-- a first failure contradicts the current model or oracle;
-- two repairs or hypotheses fail for the same symptom;
-- the implementation expands beyond the planned slice;
-- release, deployment, migration execution, deletion, or another irreversible action becomes imminent.
+Revisit the affected decision when new scope, changed behavior, contradictory evidence, repeated failure, or an imminent consequential action invalidates its premise. Inspect only the risk or evidence that changed.
 
 Escalation adds only the missing control. It does not change direct work into managed work unless continuity also changed.
 
-An intent change, interruption/resume, fork, new repository or platform, delegated repair, final-diff expansion, or edit that invalidates an affected oracle also requires a bounded recalibration of only the decisions and evidence it changes. An unchanged follow-up within the same objective and boundaries does not justify repeating the route or broadening specialists.
+An unchanged follow-up, interruption/resume, fork, or delegated result does not by itself require recalibration, another route, or broader specialists. Reuse sufficient methods and evidence while their relevant facts remain unchanged.
 
 ## Scope envelope and convergence
 
-Before substantial discovery or mutation, keep one ephemeral scope envelope in working context:
-
-- observable outcome and terminal condition;
-- protected behavior, explicit non-goals, and already rejected expansions;
-- discovery mode: `closed`, `bounded`, or `open`;
-- separate read, mutation, verification, action, external, dependency, and delegation boundaries;
-- facts that permit expansion and facts that require stopping or returning to the user.
+Keep the requested outcome, protected behavior, authority, and stopping point in working context. They do not need a separate record or a field-by-field declaration.
 
 Implementation and repair default to `closed`: inspect causal callers, consumers, generated surfaces, and affected tests as needed, but mutate only admitted work. Diagnosis and review default to `bounded`: inspect enough adjacent context to establish cause or impact, while reporting rather than implementing optional findings. `Open` exploration requires an explicit breadth request such as surveying alternatives, discovering opportunities, or designing beyond a fixed deliverable. `Deep`, red/blue analysis, formal rigor, managed mode, model capability, reasoning effort, or method count never changes the discovery mode.
 
@@ -76,15 +48,15 @@ Preserve the first capability failure and classify its blocking mechanism before
 
 Do not retry an invariant, authority, or external failure while its observable readiness facts are unchanged. Retry once when a relevant fact changes, such as a newly callable tool, changed permission profile, available device/service, repaired configuration, or explicit budget/authority. A time-bounded transient retry must preserve the first failure and must not relabel a repeated or flaky outcome as `PASSED`.
 
-Isolate the blocked gate and continue unrelated safe repository-native checks. A fallback may support a narrower claim only: same-context inspection is not independent review, a native lint is not an unavailable deep scanner, and synthetic evidence is not real-system evidence. Report the original gate as `BLOCKED` or `NOT RUN`, the qualified fallback separately, and the exact claim limit. This classification is turn-local reasoning; do not add a readiness registry, circuit-breaker record, route field, or persisted task state.
+Isolate a blocked required check and continue other necessary safe repository-native checks. A fallback may support a narrower claim only: same-context inspection is not independent review, a native lint is not an unavailable deep scanner, and synthetic evidence is not real-system evidence. Report a missing required check as `BLOCKED` or `NOT RUN` with its claim limit; an unused optional capability needs no gap report. This classification is turn-local reasoning; do not add a readiness registry, circuit-breaker record, route field, or persisted task state.
 
-A missing capability does not grant substitute-tool authority. Judge an alternative against the already-authorized outcome, data, actions, and tool restrictions. For a general request, a relevant read-only alternative that is already exposed and eligible may proceed within the same scope; official public documentation can resolve an API fact without claiming the missing specialist ran. Keep exact-tool and local-only limits, account/target boundaries, and secret protections intact. Never send private repository content or secrets to external retrieval, upload code, install plugins, spend a new budget, or invoke external writes on this basis. Never synthesize a tool identity or use an unrelated local MCP merely because it is present. Use the exact exposed identity and its current mode, purpose, schema, and lifecycle restrictions. Record the original gate as `BLOCKED`/`NOT RUN` and the fallback's narrower coverage separately. Continue safe native checks already requested; do not ask the user to restate their task.
+A missing capability does not grant substitute-tool authority. Judge an alternative against the already-authorized outcome, data, actions, and tool restrictions. For a general request, a relevant read-only alternative that is already exposed and eligible may proceed within the same scope; official public documentation can resolve an API fact without claiming the missing specialist ran. Keep exact-tool and local-only limits, account/target boundaries, and secret protections intact. Never send private repository content or secrets to external retrieval, upload code, install plugins, spend a new budget, or invoke external writes on this basis. Never synthesize a tool identity or use an unrelated local MCP merely because it is present. Use the exact exposed identity and its current mode, purpose, schema, and lifecycle restrictions. Report the missing capability and narrower fallback only when they limit a required claim. Continue necessary safe native checks; do not ask the user to restate their task.
 
 ## Evidence freshness
 
-Bind each conclusion to relevant source and transitive consumers, assertions, fixture, runner/selector, configuration, generated output, toolchain, environment, artifact and compatibility direction. A change that can affect it invalidates that PASS until the smallest affected-scope freshness check runs again. Apply the same rule after delegated edits, review repairs, new platform/repository scope, final-diff expansion and delivery preparation; unchanged product code alone does not establish freshness.
+Bind each conclusion to the source, oracle, and environment facts that could change it. A change to those facts invalidates only the affected claim until its appropriate freshness check runs. Apply the same rule to delegated edits and review repairs; unchanged product code alone does not establish freshness when its relevant runner, configuration, artifact, or environment changed.
 
-Do not rerun an irrelevant oracle merely because any file changed: an unrelated documentation edit leaves unaffected runtime evidence current. At resume or fork, compare current Git roots and changed paths with the prior semantic checkpoint; mark only affected claims stale, carry forward clearly unaffected evidence, and choose the smallest ready next slice.
+Do not rerun an irrelevant oracle merely because any file changed: an unrelated documentation edit leaves unaffected runtime evidence current. At resume or fork, compare relevant current facts with the last known state; mark only affected claims stale, carry forward clearly unaffected evidence, and choose the smallest ready next slice. No checkpoint artifact is required for this comparison.
 
 For intermediate repairs, use changes since the last valid evidence and unresolved conclusions, including transitive impact; cumulative PR breadth alone does not require another full run. Unknown identities or dependencies require a conservative affected check, not assumed reuse or a new tracking system. Frozen delivery candidates still need applicable repository acceptance. User-requested full reruns or repeated stability observations remain authorized outcomes.
 
@@ -92,9 +64,9 @@ For each added check, identify the remaining risk, which decision the result can
 
 ## Semantic continuation checkpoint
 
-Before interruption/handoff and after a material objective, repository, platform, or delivery-boundary change, record only completed/current/next outcomes, the terminal condition, discovery mode, mutation/action boundary, non-goals and rejected expansions, affected Git roots, user-owned changes, active process identity when one exists, stale evidence, blockers or unrun gates, the recommended next slice, and worktree/parallel-change state. This is repository-owned continuity, not a transcript, task database, or authority to create a host task/worktree.
+An ordinary interruption needs no repository-owned checkpoint. Retain relevant live-process identity, pending effects, first failures, and next work in active context when recovery needs them. Use an existing repository continuity owner only for a real cross-session or cross-owner handoff that current owners cannot otherwise carry; record only information needed to resume correctly.
 
-At resume, compaction, fork, or handoff, reconcile that checkpoint against current workstream, Git, runtime, and process facts. Conversation summaries and referenced task prose are recovery hints, not repository authority. Terminal language such as “implement fully” or “keep going” means persist through safe ready slices inside the existing envelope; it does not authorize dependencies, broader discovery, delivery, deployment, destructive/external action, or indefinite retry. Stop at the terminal outcome, a genuine blocker, a material expansion, missing authority, or a predeclared attempt/exploration limit. Before claiming completion, compare the user's current goal, authoritative source/contract, final diff, last applicable oracle, unrun environments, and delivery boundary; a bare completion acknowledgement is not final evidence. A pre-change PASS is stale for an affected claim.
+At resume, compaction, fork, or handoff, reconcile only facts needed for the next action. Conversation summaries and referenced task prose are recovery hints, not repository authority. Terminal language such as “implement fully” or “keep going” means persist through safe ready slices inside the existing envelope; it does not authorize dependencies, broader discovery, delivery, deployment, destructive/external action, or indefinite retry. Stop at the terminal outcome, a genuine blocker, a material expansion, missing authority, or a predeclared attempt/exploration limit. Before claiming completion, compare the user's current goal, authoritative source/contract, final diff, and applicable evidence. Report only required evidence gaps that limit the requested claim. A pre-change PASS is stale for an affected claim.
 
 Supervise only a process or session that was actually launched and whose identity is known. Preserve its first failure, use bounded backoff, distinguish running/failure/completion, and never start duplicate unchanged work merely because an observation timed out. If the host loses the process identity, mark the gate `BLOCKED` instead of guessing or relaunching.
 
@@ -108,7 +80,7 @@ Existing engineering guidance is an input, not a management task. Read effective
 
 ## Agent and reasoning route
 
-When a child agent will actually be dispatched, run:
+Routine same-model delegation can dispatch directly. When a model/effort choice or actual-host capability uncertainty matters, `route-agent` can help:
 
 ```text
 python3 skills/dev-flow/scripts/dev-flow.py route-agent \
@@ -118,7 +90,7 @@ python3 skills/dev-flow/scripts/dev-flow.py route-agent \
   [--signal <reasoning-signal>]
 ```
 
-Use the returned child role, model, reasoning effort, and fork request. P0–P3 use GPT-6 Luna for closed work. P4 uses GPT-6.1 Sol medium for ordinary coding, diagnosis, review, cross-component integration, and adaptive native verification. P5 uses GPT-6.1 Sol xhigh for concrete deep unresolved reasoning or compound decision difficulty; a single oracle challenge, nondeterminism, risk label, or careful review does not select P5. P6 retains compound deep unresolved reasoning; PX remains an explicit exceptional campaign. Read [model-selection.md](model-selection.md) for task examples, signal evidence, explained overrides, material follow-up de-escalation, and the bounded-trial quality limits. For a non-trivial interactive root task with unclear shape, recommend GPT-6.1 Sol medium; this router cannot switch the root model. Check the full relevant actual-host inventory and dispatch only when both `delegate` and `dispatch_ready` are true. An unchecked route is advice; a capability limit cannot silently substitute GPT-6 Sol or GPT-5.6.
+When using the router, respect its child role, model, reasoning effort, fork request, and actual-host dispatch limits. P0–P3 use GPT-6 Luna for closed work. P4 uses GPT-6.1 Sol medium for ordinary coding, diagnosis, review, cross-component integration, and adaptive native verification. P5 uses GPT-6.1 Sol xhigh for concrete deep unresolved reasoning or compound decision difficulty; a single oracle challenge, nondeterminism, risk label, or careful review does not select P5. P6 retains compound deep unresolved reasoning; PX remains an explicit exceptional campaign. Read [model-selection.md](model-selection.md) when that choice matters. The router cannot switch the root model; an unavailable profile does not justify an unreported substitute or extra work.
 
 The 2026-09-30 development update follows OpenAI's [GPT-6.1 Sol model page](https://developers.openai.com/api/docs/models/gpt-6.1-sol) and [model-selection guidance](https://developers.openai.com/api/docs/guides/model-selection): near-Astra performance for complex coding, computer use, and professional work, while Luna remains the focused-work choice and Astra the most demanding-reasoning choice. Preserve P0–P6/PX IDs, efforts, and compound escalation conditions; the model description is not repository-specific proof that Sol can replace every Astra task. `failed-sol-discrimination` must refer to a documented failure of the current GPT-6.1 Sol on the relevant task, not an older model's result or an environment/tool failure. Paid comparisons, live-model qualification, and installed-plugin changes are separate and are not performed by this routing update; the development paired evaluator and frozen acceptance identities remain unchanged.
 
@@ -130,17 +102,9 @@ P0–P6 encode a routing policy order for minimums, downgrade decisions, and hos
 
 ## Method activation
 
-Use the owning specialist Skill directly when its established procedure is sufficient. At one of the following concrete failure mechanisms, either use that procedure or perform one bounded method match through the public task route:
+Use ordinary repository practice or the owning specialist's established procedure when sufficient, then stop. A broad risk category does not require a method disposition or deeper study. Consider another method only for a specific unresolved failure mechanism that could change a decision or oracle.
 
-- migration, mixed-version data, rollback, or reconciliation;
-- FFI/ABI/unsafe ownership and lifecycle;
-- concurrency, nondeterminism, ordering, or distributed state;
-- security/privacy, authorization, public protocol/API, or regulated behavior;
-- irreversible/data-loss consequence;
-- repeated failed hypotheses, conflicting evidence, or an oracle challenge;
-- interacting business rules, state lifecycle, cross-participant flow, or a requirement model that examples can disambiguate.
-
-This is active method matching, not a requirement to call the CLI. When a deterministic lookup would help, use the integrated route and supply only observed facts and prerequisites, for example:
+When explicit method guidance would help, opt in through `--method-signal` or `--method-depth` and supply only observed facts and prerequisites. Risk labels alone do not activate method selection; its default depth is `starter`. For example:
 
 ```text
 python3 skills/dev-flow/scripts/dev-flow.py route-task \
@@ -154,26 +118,19 @@ python3 skills/dev-flow/scripts/dev-flow.py route-task \
 
 The command path is resolved from the loaded Dev Flow Skill/plugin, not from the target repository. Do not use the lower-level `select-methods` maintenance interface from ordinary task execution, and do not pass the target repository as its methodology source root.
 
-Separate five questions: whether the observed failure mechanism makes a method eligible; which candidate fits; whether its prerequisites make it ready; which disposition is taken; and whether realization changed an owned decision or evidence surface. A valid disposition is exactly one of: execute a ready method, execute the explicit fallback for a blocked method while retaining its limitation, or abstain because the owning specialist already supplies a sufficient discriminating procedure. Selection without a disposition is incomplete; absence of a method name is not itself a defect.
-
-Perform at most one selection for the current decision and prefer one directly relevant, ready, lower-cost method. Normally apply at most three for distinct failure mechanisms with concrete evidence obligations. A named residual failure mechanism can justify another focused method within the current authority and resource budget when it changes a decision or oracle; stop when that blind spot is resolved. The three-ready/two-blocked presentation budget is unchanged. Recheck readiness after repository discovery, material requirement confirmation, an oracle-breaking first failure, repeated non-progress, and before material verification/review; do not repeat when the decision, facts, and prerequisites are unchanged. Never invent a repository fact, stable contract, independent implementation, user example, live environment, or authority merely to make a method ready.
+Prefer one directly relevant, ready, lower-cost method and stop when it resolves the question. Returned guidance creates no obligation to execute every candidate, change an owner surface, or produce a disposition record. A result may confirm the existing decision. Reconsider only when a specific remaining uncertainty matters to the requested outcome. Never invent a repository fact, stable contract, independent implementation, user example, live environment, or authority merely to make a method ready.
 
 If a candidate is blocked, use its bounded fallback or retain the evidence limit; do not browse, load the full method pool, or broaden discovery merely to obtain a ready method name.
 
-A ready method or fallback is realized only when it changes an owned surface: a test/property/mutation, counterexample, state/decision/compatibility model, review attack surface, evidence matrix, or explicit claim limitation. A selected ID, method mention, generated method artifact, or invocation count is not realization or quality evidence. Method depth remains subordinate to the active scope envelope. The selection is advisory and non-persisted; code, design, tests, review findings, and runtime evidence remain authoritative.
+Use a useful conclusion in the normal design, implementation, test, or review owner without duplicating it in a method artifact. A selected ID, invocation count, or extra document is not quality evidence. Method depth remains subordinate to the requested outcome and its sufficient checks; code, design, tests, review findings, and runtime evidence remain authoritative.
 
 ## Independent review
 
-Use an independent context when at least one is true:
-
-- material security, privacy, migration, compatibility, rollback, or data-loss exposure;
-- the implementer selected a consequential trade-off with credible alternatives;
-- evidence conflicts or the primary oracle may share the implementation's blind spot;
-- repository or regulatory policy requires separation of duties.
+Use an independent context when the user explicitly requests it, policy requires separation of duties, or concrete material exposure makes it necessary—for example a reachable high-consequence failure or a consequential shared blind spot. An ordinary review request or risk label alone does not require another context. The CLI distinguishes `--need independent-review` and `--material-exposure` from ordinary `--need review`.
 
 Do not recursively review a review. When the primary task is already an independent read-only review, the current context owns that review; add a second context only for an explicit second-opinion/separation requirement or a concrete conflicting-evidence blind spot.
 
-If a child is actually justified, use registered runtime vocabulary rather than guessed labels. For an ordinary independent adversarial review:
+A justified same-model reviewer can dispatch directly. If model/host routing is useful, use registered runtime vocabulary rather than guessed labels. For example:
 
 ```text
 python3 skills/dev-flow/scripts/dev-flow.py route-agent \
@@ -186,4 +143,4 @@ Freeze the relevant objective, contracts, diff/scope, and raw evidence for the r
 
 Use `high-risk-review` when security/data/compatibility/rollback controls apply; it also starts at P4. Only concrete unresolved reasoning signals select P5/P6, not the red-reviewer role itself.
 
-When independent review has decision value, execute that clean-context route without a separate spawn authorization. If the host cannot provide an independent context, explicitly downgrade to same-context review and report `common-mode-risk`. A blue/red sequence performed by the implementer is a pair of useful lenses, not independent evidence. Never turn a capability or resource limit into an authorization claim.
+When independent review is required, execute it without a separate spawn authorization. If the host cannot provide an independent context, report the resulting claim limit and any same-context fallback separately. A blue/red sequence performed by the implementer is a pair of useful lenses, not independent evidence. Never turn a capability or resource limit into an authorization claim.

@@ -762,7 +762,7 @@ def main() -> int:
 
     interaction_reference = ROOT / "skills" / "requirements-design" / "references" / "user-interaction.md"
     reference_text = interaction_reference.read_text(encoding="utf-8") if interaction_reference.is_file() else ""
-    for token in ("Default mode", "request_user_input", "item/tool/requestUserInput", "isBlocking", "isSecret", "None of these outcomes select the recommendation"):
+    for token in ("Default mode", "request_user_input", "required choice is pending", "does not trigger immediate re-prompting or acceptance"):
         if token not in reference_text:
             errors.append(f"user interaction reference is missing {token}")
     for skill_name in {"dev-flow", "requirements-design"}:

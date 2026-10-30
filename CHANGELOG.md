@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-10-30
+
+Current candidate source identity: `2.2.0` (`source-candidate`). Current workspace state: `development` from `v2.1.3`. Independent clean-context review passed, including three audit groups and affected repair rechecks. Commit, hosted CI, cross-platform checks, tag, artifact, publication and isolated installation are NOT RUN; the published stable/default installation channel and rollback target remain `v2.1.3`. The user requested formal publication and a subsequent local Dev Flow update after disclosure that real-host validation and the five live-model journeys remain NOT RUN. That request does not establish a prior waiver, a model-semantic pass or measured cost/effect benefits. Current evidence belongs to the [2.2.0 progress](docs/workstreams/dev-flow-2.2.0/progress.md).
+
+### Changed
+
+- Reduce default process expansion across requirements, design, execution, verification and repository knowledge. Preserve timely native product questions, suitable design, input/state/resource correctness and necessary native checks; add methods, owners, records or broader verification only when they can resolve a concrete remaining decision.
+- Separate business guarantees from candidate mechanisms. User acceptance does not establish a mechanism's engineering value; prefer a simpler mechanism that meets the same outcome and ask before weakening an accepted guarantee.
+
+### Fixed
+
+- Repair four CLI remnants: ask promptly about unresolved product choices and pause only dependent commitments while compact output preserves independent learning; stop inferring managed mode from cross-module, material-trade-off or legacy task labels; retain valid verification and child results after method consultation while reconciling objectives when no target revision is present; allow routine same-model delegation without mandatory `route-agent` calls. Route semantics is now `dev-flow.route-semantics.v5`.
+- Remove automatic deep-method selection from risk labels and automatic independent review from an ordinary review request. Method advice remains optional and requires neither a disposition record nor a changed artifact.
+
 ## [2.1.3] - 2026-10-27
 
 Latest published source identity: `2.1.3`. Current workspace state: `development` from `v2.1.3`. Independent clean-context review passed for the cumulative cwd hardening delta. Formal release and primary installation are observed from immutable `2dc35efe8e76fe3e80c8a5469ee73027e4dfc93d`, with 478 matching archive files and eight installed synthetic checks passing; observations belong to the [2.1.3 progress](docs/workstreams/dev-flow-2.1.3/progress.md). Existing Codex0.164.0-alpha.11.1 still reports host/current-turn cwd instead of actual local execution cwd. This patch hardens metadata validation; it does not claim end-to-end workdir isolation on that host. Live-model journeys remain NOT RUN.

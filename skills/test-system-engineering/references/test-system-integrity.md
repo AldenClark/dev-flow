@@ -1,39 +1,39 @@
 # Test-system integrity obligations
 
-Apply these obligations at the boundary under suspicion. They are independent failure modes, not six boxes that jointly declare product correctness.
+Investigate only the failure mode under suspicion. Native results normally suffice; this reference is not a six-part audit or completion record.
 
 ## Discovery
 
-Enumerate or otherwise prove that the intended tests were collected by the project-native runner. Zero discovery, silent import failure, disabled suites, conditional registration, naming mismatch, missing generated tests, and skipped modules are distinct from a passing test. Check the new/changed test identity, not only a total count.
+When discovery is unclear or suspect, inspect the intended test's identity in native collection or execution output. Enumerate tests only if that resolves the uncertainty. Zero discovery, silent import failure, disabled suites, conditional registration, naming mismatch, missing generated tests and skipped modules are distinct from a passing test.
 
 ## Selection
 
-Prove filters, paths, schemes, tags, feature flags, build variants, shards, and retry rules include the intended target exactly where claimed. Confirm shards cover the full intended set without gaps; check exclusions and quarantine lists. Include one protected negative that must remain excluded when selection correctness is material.
+When selection is suspect, check the relevant filter, path, scheme, tag, flag, variant, shard, exclusion or retry rule against the intended target. Check full-set shard coverage only when that is the claim. Use an excluded negative only when it can reveal a credible selection fault that ordinary output would miss.
 
 ## Sensitivity
 
-Use a pre-fix result, negative fixture, safe changed-code/semantic mutation, seeded fault, deliberate assertion inversion, property violation, or independent oracle to show the gate fails when its claim is false. Confirm it fails because of the target assertion rather than setup or unrelated infrastructure. Restore perturbations before retaining evidence. Reuse this proof while the protected fault, oracle and relevant inputs remain applicable; challenge again when that boundary changes or sensitivity is doubtful, not on every run.
+When sensitivity is doubtful or a credible high-consequence failure warrants a challenge, use a pre-fix result, negative fixture, safe mutation, seeded fault, property violation or independent oracle. Confirm failure at the target assertion rather than setup or unrelated infrastructure, then restore perturbations and rerun the affected check. Reuse applicable sensitivity evidence; do not repeat a challenge on every run.
 
 For an external effect needing an attribution challenge, reuse applicable wrong-source evidence or seed an event from the wrong actor/source or request. The intended user-flow oracle must fail even if a generic health check, network packet, log line, or mock invocation exists. Show the intended actor produces the promised effect at the real boundary; a reused negative control does not replace affected product checks.
 
 ## Isolation
 
-Check fixtures, clocks, randomness/seeds, environment, caches, files, ports, processes, devices, databases, network controls, ordering, reset, and teardown that can leak between cases or runs. Exercise order reversal or a fresh cache when that distinguishes pollution. A shared resource needs isolation or serialization, and production/user data must not become a fixture.
+Trace the fixture, clock, randomness, cache, resource or ordering that could explain the suspected leak between cases or runs. Use order reversal or a fresh cache when it distinguishes pollution. A shared resource needs isolation or serialization, and production/user data must not become a fixture.
 
 ## Interpretation
 
-Distinguish runner launch, collection, executed tests, assertion outcomes, skips, expected failures, quarantines, cached results, retries, flaky disagreement, timeout, crash, cancellation, and infrastructure error. Inspect whether a retry hid the first failure and whether a cache reused results for different bytes/configuration. Do not collapse them into exit zero/nonzero.
+Read native outcomes accurately: runner launch or exit zero is not an assertion pass; skips, expected failures, quarantine, retries, timeout, crash, cancellation and infrastructure errors retain their meanings. Investigate retries or caches when they may have hidden a failure or reused an inapplicable result.
 
-A change to relevant source/consumers, assertions, fixture, runner/selector, configuration, generated inputs, toolchain, environment or selected artifact can invalidate a green result. Apply [evidence freshness](../../verification/references/evidence-contract.md#freshness-binding) and repeat the smallest affected native check; unrelated edits do not invalidate every result. Preserve the first failure and distinguish a repaired observation from a repaired product.
+Apply [evidence freshness](../../verification/references/evidence-contract.md#freshness-binding) when a subsequent change can affect the result, and repeat the smallest affected native check. Ordinary work needs no full input or artifact inventory. Preserve the first failure and distinguish a repaired observation from a repaired product.
 
 ## Representativeness
 
-Name only the platform, runtime, build mode, configuration, account/data class, integration boundary, and compatibility direction actually observed. A mock proves the caller around the mock; host tests, simulators, and emulators prove their own environments. Missing physical-device, native-platform, hosted, production-like, or cross-version evidence remains `BLOCKED` or `NOT RUN`.
+Limit the result to what ran, adding environment or compatibility detail when it distinguishes the claim. A mock proves the caller around the mock; host tests, simulators and emulators prove their own environments. A required unobserved target remains `BLOCKED` or `NOT RUN`; unrelated environments create no obligation.
 
 ## AI self-confirmation audit
 
-When AI produced both implementation and tests, compare them with at least one independent source: user-visible/public contract behavior, a separately derived final-code risk, a small reference model, a property/metamorphic relation, old/new differential behavior, a retained real example, or a seeded fault. Another prose explanation of the same implementation is not independence.
+When AI produced both implementation and tests, check that assertions follow the user-visible/public contract or another independent source rather than repeating the implementation's assumption. A retained real example, property, reference model or differential relation may suffice. AI authorship does not itself require a seeded fault or separate audit record.
 
 Inspect tests for assertions on setup, mocks, call counts, snapshots, or internal representation that can stay green while the promised outcome is wrong. A useful seeded fault changes a material branch, state write, error, boundary call, cleanup, or environment attribution and must make the intended native gate fail.
 
-The completion handoff to `verification` contains the six dispositions, focused negative-control result, commands/environment, and claim limits. It does not claim product correctness by itself.
+Return the affected native result and material limits to `verification`. Include a negative-control result if one was needed; do not create six dispositions or imply that harness repair proves product correctness.

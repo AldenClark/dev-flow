@@ -56,7 +56,7 @@ class Rc7TestSkillIntegrityTests(unittest.TestCase):
             self.assertGreaterEqual(len(short.group(1)), 25)
             self.assertLessEqual(len(short.group(1)), 64)
 
-    def test_verification_derives_and_challenges_material_coverage(self) -> None:
+    def test_verification_selects_checks_for_concrete_gaps(self) -> None:
         guidance = "\n".join(
             (
                 read("skills/verification/SKILL.md"),
@@ -64,105 +64,37 @@ class Rc7TestSkillIntegrityTests(unittest.TestCase):
                 read("skills/verification/references/coverage-techniques.md"),
             )
         )
-        assert_concepts(
-            self,
+        self.assertRegex(guidance, r"(?i)cheapest (?:native check|layer)")
+        self.assertRegex(guidance, r"(?i)credible mechanism connected to this change")
+        self.assertRegex(
             guidance,
-            {
-                "independent black and white derivation": (
-                    "Black-box",
-                    "user outcomes",
-                    "White-box",
-                    "final implementation",
-                    "changed branches",
-                ),
-                "promise-selected native layers": (
-                    "Unit",
-                    "Component",
-                    "Integration",
-                    "Contract/consumer",
-                    "End-to-end",
-                    "Platform/device",
-                ),
-                "problem-driven expansion": (
-                    "coverage-diff",
-                    "pairwise",
-                    "property",
-                    "model-based",
-                    "Fuzzing",
-                    "Differential",
-                    "Metamorphic",
-                    "fault injection",
-                    "replay",
-                    "changed-code mutation",
-                    "seeded fault",
-                ),
-                "value stop and consequence override": (
-                    "Core",
-                    "Extended",
-                    "Fringe",
-                    "low-probability, low-consequence, high-cost",
-                    "Probability alone cannot demote",
-                ),
-                "real environment attribution": (
-                    "simulator or emulator",
-                    "physical-device",
-                    "BLOCKED",
-                    "NOT RUN",
-                ),
-            },
+            r"(?i)simulator or emulator[^.\n]*cannot prove[^.\n]*physical-device",
+        )
+        self.assertRegex(
+            guidance,
+            r"(?i)required unobserved path[^.\n]*BLOCKED[^.\n]*NOT RUN",
         )
 
     def test_test_system_covers_false_green_and_native_growth_modes(self) -> None:
         skill = read("skills/test-system-engineering/SKILL.md")
         integrity = read("skills/test-system-engineering/references/test-system-integrity.md")
         design = read("skills/test-system-engineering/references/system-design.md")
-        for obligation in (
-            "Discovery",
-            "Selection",
-            "Sensitivity",
-            "Isolation",
-            "Interpretation",
-            "Representativeness",
-        ):
-            self.assertIn(f"## {obligation}", integrity)
-        assert_concepts(
-            self,
-            skill + integrity + design,
-            {
-                "runner false-green audit": (
-                    "zero discovery",
-                    "filters",
-                    "fixtures",
-                    "cached results",
-                    "retries",
-                    "skips",
-                    "negative control",
-                ),
-                "AI self-confirmation challenge": (
-                    "AI self-confirmation audit",
-                    "independent source",
-                    "seeded fault",
-                    "public promise",
-                ),
-                "new project minimum": (
-                    "New project: minimum sustainable skeleton",
-                    "project-native command",
-                    "fast failing test",
-                    "black-box slice",
-                    "smallest CI feedback path",
-                ),
-                "mature project restraint": (
-                    "Mature project: strengthen what exists",
-                    "existing runner",
-                    "parallel harness",
-                    "universal runner",
-                ),
-                "lane roles not a matrix": (
-                    "Feedback roles, not prescribed lane names",
-                    "Focused, PR, Nightly, or Release",
-                    "not required names or a fixed matrix",
-                ),
-            },
+        self.assertRegex(skill, r"(?i)investigate the suspect boundary")
+        self.assertRegex(
+            integrity,
+            r"(?i)When discovery is unclear or suspect[^.\n]*native collection or execution output",
+        )
+        self.assertRegex(
+            integrity,
+            r"(?i)AI authorship[^.\n]*does not[^.\n]*require[^.\n]*seeded fault",
+        )
+        self.assertRegex(
+            design,
+            r"(?i)smallest check[^.\n]*first meaningful rule or outcome",
+        )
+        self.assertIn(
+            "Do not replace repository-native runners with a universal runner",
+            skill,
         )
 
     def test_review_reports_only_verified_consequence_and_stops_at_saturation(self) -> None:

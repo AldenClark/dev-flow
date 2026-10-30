@@ -794,7 +794,7 @@ class MethodologySystemContractTests(unittest.TestCase):
         self.assertIn("methodology-system.md", skill)
         self.assertIn("Packet-era functions and templates are unsupported internal residue", skill)
         self.assertIn("Never load the full pool into working context", methodology)
-        self.assertIn("advisory reasoning aid", methodology)
+        self.assertRegex(methodology, r"(?:optional|advisory) reasoning aid")
         self.assertIn("non-persisted", methodology)
         self.assertIn("select-methods", methodology)
         self.assertIn("`record-methods`", methodology)

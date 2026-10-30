@@ -135,11 +135,14 @@ class RC8FeedbackDeliveryTests(unittest.TestCase):
             name: (ROOT / "skills" / name / "SKILL.md").read_text(encoding="utf-8")
             for name in ("repo-context", "test-system-engineering", "verification", "delivery-readiness")
         }
-        self.assertIn("smallest project-native capability", files["test-system-engineering"])
-        self.assertIn("A small closed task with adequate feedback needs no setup expansion", files["test-system-engineering"])
-        self.assertIn("wrong actor/source", files["test-system-engineering"])
-        self.assertIn("actual target and install", files["verification"])
-        self.assertIn("effective configuration and data", files["verification"])
+        self.assertRegex(
+            files["test-system-engineering"],
+            r"(?i)small closed task[^.\n]*adequate feedback[^.\n]*no setup expansion",
+        )
+        self.assertRegex(
+            files["verification"],
+            r"(?i)installed/external/production claims[^.\n]*actual target[^.\n]*effective configuration/data[^.\n]*intended flow or effect",
+        )
         self.assertIn("host-green/device-unknown", files["delivery-readiness"])
         self.assertIn("safe recovery/rollback", files["delivery-readiness"])
         self.assertIn("Configured is not passed", files["repo-context"])

@@ -3,12 +3,13 @@
   "purpose": "Flow Activation Coverage: expected branch entry and negative-trigger restraint without effect scoring.",
   "cases": [
     {
-      "id": "FLOW-U1-STOPS-BEFORE-DESIGN",
+      "id": "FLOW-U1-ASKS-BEFORE-DEPENDENT-COMMITMENTS",
       "command": ["route-task", "--intent", "change", "--requirement-class", "semantic-change", "--first-important-implementation", "--user-choice-open"],
       "expect": {
         "requirement_understanding.confirmation": "required",
         "requirement_understanding.design_allowed": false,
-        "requirement_understanding.next_action": "publish-detailed-understanding-and-stop"
+        "requirement_understanding.next_action": "ask-native-question-and-pause-dependent-commitments",
+        "requirement_understanding.independent_learning_allowed": true
       },
       "contains": {"routes": "requirements-design"},
       "excludes": {"routes": "architecture-decisions"}
@@ -71,7 +72,7 @@
       "id": "FLOW-FFI-ACTIVATES-BOUNDED-METHOD",
       "command": ["route-task", "--intent", "change", "--risk", "ffi", "--method-signal", "multi-version-coexistence"],
       "expect": {"capability_activation.method.active_match_required": true},
-      "contains": {"capability_activation.method.reasons": "risk:ffi"}
+      "contains": {"capability_activation.method.reasons": "signal:multi-version-coexistence"}
     },
     {
       "id": "FLOW-MATERIAL-EXPOSURE-ACTIVATES-REVIEW",
@@ -223,19 +224,14 @@
       }
     },
     {
-      "id": "FLOW-RISK-ONLY-DERIVES-FOUNDATIONAL-METHOD-SIGNAL",
+      "id": "FLOW-RISK-LABEL-KEEPS-METHODS-QUIET",
       "command": ["route-task", "--intent", "change", "--risk", "concurrency"],
       "expect": {
-        "capability_activation.method.active_match_required": true,
-        "capability_activation.method.selection.phase": "design",
-        "capability_activation.method.selection.phase_source": "signal-adjacent-owner",
-        "capability_activation.method.selection.actionable": true
+        "capability_activation.method.active_match_required": false,
+        "capability_activation.method.selection": null,
+        "capability_activation.method.signal_normalization.derived_from_risks": []
       },
-      "contains": {
-        "capability_activation.method.reasons": "signal:state-lifecycle",
-        "capability_activation.method.signal_normalization.derived_from_risks": "state-lifecycle",
-        "capability_activation.method.selection.blocked": "state-transition-model"
-      }
+      "excludes": {"capability_activation.method.reasons": "signal:state-lifecycle"}
     },
     {
       "id": "FLOW-DATA-LOSS-RISK-ALIAS-PRESERVES-CANONICAL-OUTPUT",
@@ -259,7 +255,7 @@
       "command": ["route-task", "--intent", "change", "--risk", "security", "--material-exposure"],
       "expect": {
         "capability_activation.independent_review.required": true,
-        "capability_activation.independent_review.execution": "route-agent",
+        "capability_activation.independent_review.execution": "dispatch-independent-context",
         "capability_activation.independent_review.delegation_authorized": true,
         "capability_activation.independent_review.authorization_from_route": false,
         "capability_activation.independent_review.same_context_is_independent": false,

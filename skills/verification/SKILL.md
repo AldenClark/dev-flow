@@ -13,29 +13,26 @@ Route suspected runner/fixture/cache/retry/skip/isolation false evidence to `tes
 
 ## Procedure
 
-1. State the promise, intended actor or source when relevant, credible failure, target environment, and disproof. An unrelated event cannot satisfy the user's flow.
-2. For new or material behavior, derive both views:
-   - **Black-box:** user outcomes/contracts, including material failure, recovery, permission, and compatibility.
-   - **White-box:** final implementation branches/conditions, states, boundaries, errors, concurrency, resources, cancellation, retry, and rollback.
-   They may share a test. Use views where they add distinct failure sensitivity. Do not require each view or a prose `N/A`.
-3. Choose the cheapest truthful layer that can disprove the claim. For each added check, name its risk, decision and stopping limit. Reuse valid original evidence; rerun only affected claims under `references/evidence-contract.md`. No fixed matrix or duplicate proof bundle.
-4. Preserve the focused run's first failure. For high-risk or easy-to-fake evidence, reuse valid sensitivity proof or challenge the oracle with a pre-fix failure, negative fixture, seeded fault, mutation or independent relation. Confirm failure at the protected assertion, restore any perturbation and recheck affected inputs. Rechallenge when sensitivity is unknown or invalidated.
-5. For installed/external/production claims, connect final bytes, artifact identity, actual target and install, effective configuration and data, intended flow or effect, observation, and consequential recovery. Build, upload, install, or health checks prove only their own link. Recheck affected downstream evidence when a link changes.
-6. Re-read the final diff against the accepted behavior, invalidate only affected claims, and consume native results directly. Report `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, or `WAIVED` with command, actor/source, artifact and target identity where applicable, effective environment, result, and limit. A retry does not turn a flake into `PASSED`; a successful tool exit or output file does not prove its contents satisfy the observation contract.
+1. Start from the changed behavior, affected callers and usage paths, and credible failures. Check the intended user outcome; an unrelated event cannot satisfy the user's flow.
+2. Choose the cheapest native check that can expose a material error. Use black-box outcomes or white-box branches, states and boundaries to resolve a concrete blind spot, rather than deriving both for every change. Add checks only when they can change a correctness or delivery decision.
+3. Reuse valid results and rerun only checks affected by the final changes under `references/evidence-contract.md`. Ordinary tests need no input inventory, per-conclusion proof bundle, or per-check risk and stopping record.
+4. Preserve the focused run's first failure. When evidence is suspicious, easy to fake, or protects a credible high-consequence failure, reuse applicable sensitivity proof or challenge the oracle with a pre-fix failure, negative fixture, seeded fault, mutation or independent relation. Confirm failure at the protected assertion, restore any perturbation and rerun the affected check.
+5. For installed/external/production claims, verify the applicable artifact, actual target, effective configuration/data and intended flow or effect. Build, upload, install, or health checks prove only their own link. Check changed links and affected downstream behavior, including recovery when the promise depends on it.
+6. Re-read the final diff against the accepted behavior and affected callers, then consume native results directly. Report the command, result and material limits; include source, artifact or environment detail only where needed to distinguish the claim. Use `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, or `WAIVED` truthfully. A retry does not turn a flake into `PASSED`; a successful tool exit or output file does not prove its contents satisfy the oracle.
 
-After a semantic correction, reconcile code/data, test expectations, and late child evidence; recheck the example and counterexample. `dev-flow/references/core-lifecycle.md` owns affected freshness.
+After a semantic correction, reconcile code/data, affected callers and test expectations, and discard superseded child evidence. `dev-flow/references/core-lifecycle.md` owns affected freshness.
 
 Read `references/test-strategy.md` for strategy, `references/coverage-techniques.md` for a concrete gap, `references/test-environments.md` before controlled resources, and `references/evidence-contract.md` before retaining artifacts.
 
 ## Budget and stopping
 
-- **Core:** principal outcomes, material failure/recovery, changed structure/contracts, regressions, and high-consequence risks.
-- **Extended:** common combinations/environments and plausible abnormal paths that add confidence.
-- **Fringe:** stop when costly low-probability, low-consequence cases add no obligation or sensitivity. Rare high-consequence failures stay core.
+- **Core:** principal outcomes, material failure/recovery, affected contracts and consumers, regressions, and credible high-consequence failures connected to the change.
+- **Extended:** combinations, environments and abnormal paths only when they add meaningful fault sensitivity.
+- **Stop:** omit further work when it cannot change a material correctness or delivery decision. Severity alone does not make an imagined failure part of this change.
 
 ## Boundaries
 
-- Configuration is not execution or effective runtime state. Host/mock/simulator/emulator evidence cannot prove device/platform/hosted/production behavior. Unobserved required targets remain `NOT RUN` or `BLOCKED`.
+- Configuration is not execution or effective runtime state. Host/mock/simulator/emulator evidence cannot prove device/platform/hosted/production behavior. Unobserved required targets remain `NOT RUN` or `BLOCKED`; unrelated environments create no test obligation.
 - A fallback proves only its own narrower claim, never a blocked real-boundary or target-environment gate.
 - Coverage/counts/method names cannot replace an oracle.
 - Do not modify product code during an explicitly independent test-runner assignment.

@@ -103,6 +103,7 @@ ROUTE_NEEDS = {
     "diagnosis",
     "verification",
     "review",
+    "independent-review",
     "test-system",
     "delivery",
 }
@@ -158,27 +159,6 @@ ARCHITECTURE_ROUTING_RISKS = {
     "version-compatibility",
 }
 DIAGNOSIS_ROUTING_RISKS = {"flaky-baseline", "incomplete-reproduction"}
-METHOD_ACTIVATION_RISKS = {
-    "abi",
-    "authorization",
-    "concurrency",
-    "data-deletion",
-    "distributed-state",
-    "ffi",
-    "migration",
-    "ordering",
-    "persisted-data",
-    "privacy",
-    "protocol",
-    "public-api",
-    "regulated",
-    "rollback",
-    "schema",
-    "security",
-    "unsafe",
-    "version-compatibility",
-    "weak-tests",
-}
 METHOD_ACTIVATION_SIGNALS = {
     "complex-rules",
     "conflicting-evidence",
@@ -212,23 +192,6 @@ METHOD_SIGNAL_ALIASES: dict[str, tuple[str, ...]] = {
 ROUTE_RISK_ALIASES: dict[str, tuple[str, ...]] = {
     "data-loss": ("persisted-data",),
     "external-system": ("external-write",),
-}
-METHOD_RISK_DERIVED_SIGNALS: dict[str, tuple[str, ...]] = {
-    "authorization": ("trust-boundary",),
-    "concurrency": ("state-lifecycle",),
-    "data-deletion": ("state-lifecycle",),
-    "distributed-state": ("cross-participant-flow",),
-    "migration": ("multi-version-coexistence",),
-    "ordering": ("state-lifecycle",),
-    "persisted-data": ("state-lifecycle",),
-    "privacy": ("trust-boundary",),
-    "protocol": ("trust-boundary",),
-    "public-api": ("trust-boundary",),
-    "recovery": ("state-lifecycle",),
-    "rollback": ("multi-version-coexistence",),
-    "security": ("trust-boundary",),
-    "version-compatibility": ("multi-version-coexistence",),
-    "weak-tests": ("oracle-challenge",),
 }
 PRIVACY_METHOD_IDS = {"linddun-privacy-model"}
 AGENT_MEMORY_METHOD_IDS = {"agent-memory-lifecycle-governance"}
@@ -517,10 +480,8 @@ def normalize_route_risks(values: Iterable[str]) -> tuple[list[str], list[dict[s
 
 def normalize_method_activation_signals(
     values: Iterable[str],
-    *,
-    risks: set[str],
-) -> tuple[list[str], list[dict[str, Any]], list[str]]:
-    """Normalize public aliases and supplement them with uncovered risk foundations."""
+) -> tuple[list[str], list[dict[str, Any]]]:
+    """Normalize explicit reasoning requests without expanding broad risk labels."""
     inputs = sorted(set(values))
     unknown = sorted(
         value
@@ -541,12 +502,7 @@ def normalize_method_activation_signals(
                 "kind": "alias" if value in METHOD_SIGNAL_ALIASES else "canonical",
             }
         )
-    risk_foundations: set[str] = set()
-    for risk in sorted(risks):
-        risk_foundations.update(METHOD_RISK_DERIVED_SIGNALS.get(risk, ()))
-    derived = risk_foundations - normalized
-    normalized.update(derived)
-    return sorted(normalized), translations, sorted(derived)
+    return sorted(normalized), translations
 
 
 def corrected_route_command(
@@ -851,14 +807,10 @@ def select_execution_mode(args: argparse.Namespace) -> tuple[str, list[str]]:
     signals = {
         "multi-session": bool(args.multi_session),
         "multi-slice": bool(args.multi_slice),
-        "cross-module": bool(args.cross_module),
         "coordination": bool(args.coordination),
-        "material-tradeoff": bool(args.material_tradeoff),
         "durable-plan": bool(args.durable_plan),
     }
     reasons = [name for name, active in signals.items() if active]
-    if args.task_type in {"large-feature", "large-refactor", "migration"}:
-        reasons.append(args.task_type)
     automatic = "managed" if reasons else "direct"
     if args.work_mode == "auto":
         return automatic, reasons or ["bounded-work"]
@@ -979,21 +931,21 @@ def route_requirement_understanding(
         "implementation_allowed": implementation_allowed,
         "independent_learning_allowed": True,
         "next_action": (
-            "publish-detailed-understanding-and-stop"
+            "ask-native-question-and-pause-dependent-commitments"
             if not design_allowed
             else "design-then-confirm-whole-understanding-before-implementation"
             if not implementation_allowed
             else "continue"
         ),
         "stop_before": (
-            "technical-design" if not design_allowed
+            "dependent-commitments" if not design_allowed
             else "implementation" if not implementation_allowed else None
         ),
         "durable_requirement_source": work_mode == "managed" and requirement_class == "semantic-change",
         "rules": [
             "remain in Default mode",
-            "resolve repository facts before asking the user",
-            "resolve user-owned choices before dependent commitments; confirm whole business and material technical understanding before first important feature implementation",
+            "inspect only facts needed for the next decision; ask an eligible native question as soon as a material user choice is clear",
+            "resolve user-owned choices before dependent commitments; confirm the outcome, scope and major technical trade-offs before first important feature implementation",
             "reuse accepted same-scope understanding; silence, partial answers, and caller flags are not user acceptance",
             "a correction revises the affected understanding and invalidates dependent design, code, tests and child results",
             "independent authorized learning may continue; pending first-implementation confirmation does not block technical investigation",
@@ -1012,29 +964,18 @@ def route_capability_activation(
     understanding: dict[str, Any],
 ) -> dict[str, Any]:
     """Return a non-persisted advanced-capability posture for the current route."""
-    normalized_method_signals, signal_translations, derived_method_signals = (
-        normalize_method_activation_signals(args.method_signal, risks=risks)
+    normalized_method_signals, signal_translations = (
+        normalize_method_activation_signals(args.method_signal)
     )
     method_signals = set(normalized_method_signals)
-    method_risks = sorted(risks & METHOD_ACTIVATION_RISKS)
-    method_reasons = [
-        *(f"risk:{value}" for value in method_risks),
-        *(f"signal:{value}" for value in sorted(method_signals)),
-    ]
+    method_reasons = [f"signal:{value}" for value in sorted(method_signals)]
+    if args.method_depth:
+        method_reasons.append(f"requested-depth:{args.method_depth}")
     review_reasons: list[str] = []
     if args.material_exposure:
         review_reasons.append("material-exposure")
-    if "review" in needs:
-        review_reasons.append("explicit-review-need")
-    for risk in sorted(risks & {"data-deletion", "rollback", "version-compatibility"}):
-        review_reasons.append(f"risk:{risk}")
-    if "persisted-data" in risks and risks & {
-        "backpressure",
-        "distributed-state",
-        "external-write",
-        "idempotency",
-    }:
-        review_reasons.append("cross-system-durability")
+    if "independent-review" in needs:
+        review_reasons.append("explicit-independent-review-need")
     repository_facts = set(args.repo_fact)
     repository_facts.update(f"risk={risk}" for risk in risks)
     invalid_facts = sorted(value for value in repository_facts if "=" not in value)
@@ -1072,29 +1013,7 @@ def route_capability_activation(
             "delivery": "delivery",
         }[intent]
         method_task_type = args.task_type or INTENT_METHOD_TASK_TYPES[intent]
-        method_depth = args.method_depth or (
-            "deep"
-            if risks
-            & {
-                "abi",
-                "authorization",
-                "concurrency",
-                "data-deletion",
-                "distributed-state",
-                "ffi",
-                "migration",
-                "ordering",
-                "persisted-data",
-                "privacy",
-                "recovery",
-                "rollback",
-                "security",
-                "unsafe",
-                "version-compatibility",
-                "weak-tests",
-            }
-            else "starter"
-        )
+        method_depth = args.method_depth or "starter"
         method_payload = methodology_system.read_registry(methodology_registry_path())
         validate_method_domain_gate_ids(method_payload)
         translated_signals = {METHOD_SIGNAL_TRANSLATIONS[value] for value in method_signals}
@@ -1280,25 +1199,17 @@ def route_capability_activation(
             "fallback": (
                 None
                 if bounded_selected or bounded_blocked
-                else "Use the owning specialist's established procedure and state that no bounded methodology match was actionable."
+                else "Continue with the existing procedure; no additional method report is needed."
             ),
             "actionable": bool(bounded_selected or bounded_blocked),
-            "disposition_options": [
-                "execute-ready-method",
-                "execute-blocked-fallback-with-limitation",
-                "reasoned-abstention-when-owner-procedure-is-sufficient",
-            ],
-            "realization_required": (
-                "change an owner test/oracle, counterexample, model, review attack surface, "
-                "evidence matrix, or explicit claim limitation"
-            ),
+            "realization_required": False,
             "selection_count_is_quality": False,
             "persisted": False,
         }
     independent_review_required = bool(review_reasons)
     return {
         "artifact": None,
-        "passes": ["after-repository-discovery", "after-material-requirement-confirmation"],
+        "passes": ["when-a-specific-open-question-needs-it"],
         "specialist": {
             "source": "effective-current-turn-skill-surface",
             "decision": "smallest-applicable-owner-with-positive-value",
@@ -1314,7 +1225,7 @@ def route_capability_activation(
                 "input": sorted(set(args.method_signal)),
                 "canonical": sorted(method_signals),
                 "translations": signal_translations,
-                "derived_from_risks": derived_method_signals,
+                "derived_from_risks": [],
             },
             "risk_normalization": {
                 "canonical": sorted(risks),
@@ -1344,7 +1255,7 @@ def route_capability_activation(
             "authorization_from_route": False,
             "wait_precondition": "successful-dispatch-with-non-empty-reviewer-identity",
             "execution": (
-                "route-agent" if independent_review_required else "not-required"
+                "dispatch-independent-context" if independent_review_required else "not-required"
             ),
             "route_agent": (
                 {
@@ -1366,7 +1277,7 @@ def route_capability_activation(
             ),
         },
         "child_route": {
-            "when": "only after delegation has positive isolation or parallel value",
+            "when": "only when delegation benefits from model/effort or host-capability routing",
             "resolver": "route-agent",
             "persisted": False,
         },
@@ -2171,7 +2082,7 @@ def route_task(args: argparse.Namespace) -> int:
         or "review" in needs
         or capability_activation["independent_review"]["required"]
     ):
-        add("change-review", "material exposure, consequential trade-off, evidence conflict, or policy requires independent review")
+        add("change-review", "requested review or material exposure requiring independent review")
     if intent == "delivery" or "delivery" in needs:
         add("delivery-readiness", "acceptance, rollback, and delivery authority accounting")
     payload = {
@@ -2264,7 +2175,7 @@ def route_task(args: argparse.Namespace) -> int:
                     "delivery-or-irreversibility",
                 ],
             },
-            "delegation": "when a child is actually dispatched, use route-agent and do not persist the route",
+            "delegation": "same-model work may dispatch directly; use route-agent only for a model/effort choice or host-capability uncertainty",
             "excluded": {
                 "manage-engineering-profiles": "ordinary profile consumption does not activate management" if not args.profile_operation else None,
                 "dev-flow-maintainer": "explicit-only" if not args.suite_maintenance else None,
@@ -2321,7 +2232,7 @@ def route_task(args: argparse.Namespace) -> int:
                 key: payload["requirement_understanding"][key]
                 for key in (
                     "class", "next_action", "confirmation", "design_allowed",
-                    "implementation_allowed", "stop_before", "first_important_implementation",
+                    "implementation_allowed", "stop_before", "first_important_implementation", "independent_learning_allowed",
                     "confirmation_evidence", "authorization_granted",
                 )
             },
@@ -2901,7 +2812,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--method-signal",
         action="append",
         default=[],
-        help="Observed high-leverage reasoning shape; model-evaluation is explicit and weak-tests derives the cheaper oracle challenge",
+        help="Explicit reasoning problem needing a bounded method; risk labels alone do not select methods",
     )
     route.add_argument(
         "--method-prerequisite",
@@ -2912,7 +2823,7 @@ def build_parser() -> argparse.ArgumentParser:
     route.add_argument(
         "--method-depth",
         choices=("starter", "deep"),
-        help="Bounded method depth override; formal methods remain an explicit separate choice",
+        help="Explicit bounded method request (default starter); deep and formal analysis are not inferred from risk labels",
     )
     route.add_argument(
         "--requirement-class",
@@ -2929,7 +2840,7 @@ def build_parser() -> argparse.ArgumentParser:
     route_confirmation.add_argument(
         "--understanding-confirmed",
         action="store_true",
-        help="Caller reports explicit acceptance of whole U1 business and technical understanding; retain semantic-change and continue; CLI does not verify consent",
+        help="Caller reports acceptance of the U1 outcome, scope and major technical trade-offs; CLI does not verify consent",
     )
     route_confirmation.add_argument(
         "--waive-understanding-confirmation",
