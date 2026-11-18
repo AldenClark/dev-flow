@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [2.3.0] - 2026-11-18
 
-Current candidate source identity: `2.3.0`. Current workspace state: `development` from `v2.2.0`. Delivery evidence is recorded in the [2.3.0 progress](docs/workstreams/dev-flow-2.3.0/progress.md).
+Latest published source identity: `2.3.0`. Current workspace state: `development` from `v2.3.0`. Independent clean-context review passed for the cumulative delta. The public tag resolves to `b95ccb03715c67be3d078d5be6080cf85dd4a8ca`. Delivery evidence is recorded in the [2.3.0 progress](docs/workstreams/dev-flow-2.3.0/progress.md).
 
 ### Changed
 

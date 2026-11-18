@@ -2,7 +2,7 @@
 
 Dev Flow 是一个面向 Codex 的仓库优先开发流程。2.0 的目标不是建立第二套工作流引擎，而是用最少的流程成本保持三件事：长期业务工作不漂移、技术结论有原生工程证据、高后果动作保留明确安全边界。
 
-候选源码身份为 `2.3.0`，阶段为 `source-candidate`。当前工作区处于 `development` 状态，基于 `v2.2.0`。`v2.2.0` 是最近已发布的稳定标签，也是默认固定安装通道。`v2.0.0-rc.9` 是最近已发布的 RC；2.3.0 的回滚目标为 `v2.2.0`。本次精简 Skill 指引与验证，并将派发建议更新为 GPT-6.2 Sol 和 Astra。当前执行事实见[发布记录](docs/workstreams/dev-flow-2.3.0/progress.md)。
+已发布源码身份为 `2.3.0`，阶段为 `stable`。当前工作区处于 `development` 状态，基于 `v2.3.0`。`v2.3.0` 是最近已发布的稳定标签，也是默认固定安装通道。`v2.0.0-rc.9` 是最近已发布的 RC。2.3.0 的回滚目标为 `v2.2.0`。本次精简 Skill 指引与验证，并将派发建议更新为 GPT-6.2 Sol 和 Astra。交付事实见[发布记录](docs/workstreams/dev-flow-2.3.0/progress.md)。
 
 ## 2.0 核心模型
 
@@ -222,7 +222,7 @@ python3 skills/dev-flow/scripts/dev-flow.py outcomes summary
 固定安装当前公开稳定版：
 
 ```bash
-codex plugin marketplace add AldenClark/dev-flow --ref v2.2.0
+codex plugin marketplace add AldenClark/dev-flow --ref v2.3.0
 codex plugin add dev-flow@dev-flow
 ```
 
@@ -253,8 +253,8 @@ CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job �
 
 ## 版本和发布状态
 
-- `2.3.0` 是当前候选源码身份。工作区基于 `v2.2.0`，回滚目标为 `v2.2.0`。交付进度见[发布记录](docs/workstreams/dev-flow-2.3.0/progress.md)。
-- `v2.0.0-rc.9` 是最近已发布的 RC；最近已发布的稳定版及默认安装通道为 `v2.2.0`，2.3.0 的交付证据见其独立发布记录。
+- `2.3.0` 是当前已发布源码身份，回滚目标为 `v2.2.0`。交付事实见[发布记录](docs/workstreams/dev-flow-2.3.0/progress.md)。
+- `v2.0.0-rc.9` 是最近已发布的 RC；最近已发布的稳定版及默认安装通道为 `v2.3.0`。
 - `2.1.3` 是此前已发布的稳定源码身份；不可变 [v2.1.3](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.3) 来自 `2dc35efe8e76fe3e80c8a5469ee73027e4dfc93d`。精确源码 CI、五组平台检查、四份公开制品及隔离生命周期通过。2.1.3 发布时曾在本机安装并启用，478 个归档文件匹配、8 项安装态合成检查通过。当前 Codex 执行目录元数据限制和未观察范围见[发布记录](docs/workstreams/dev-flow-2.1.3/progress.md)。
 - `2.1.2` 是此前已发布源码身份；不可变 [v2.1.2](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.2) 来自 `176daea484cdbd63abd492c806b36c2dfa5ea16b`。精确源码 CI、五组平台兼容检查、四份公开制品及隔离安装/卸载通过；本机已安装并启用 2.1.2，476 个文件与公开归档匹配，三项安装态 Hook 控制通过。模型旅程和现有聊天重载仍未观察，详情见[发布记录](docs/workstreams/dev-flow-2.1.2/progress.md)。
 - `2.1.1` 是此前已发布源码身份；不可变 [v2.1.1](https://github.com/AldenClark/dev-flow/releases/tag/v2.1.1) 来自 `7c0c950f58e848d5452eb5d6242e9d8661d2095a`。精确源码 CI、五组平台兼容检查与四份公开制品核对通过；模型旅程及安装 NOT RUN，详情见[发布记录](docs/workstreams/dev-flow-2.1.1/progress.md)。
@@ -270,4 +270,4 @@ CI 不再在所有 OS/Python cell 中重复完整套件：一个 semantic job �
 - `v1.1.2` 是最后一个 1.x 稳定标签；1.1.3 只存在于未发布源码历史，2.0 不提供 1.x 兼容或迁移保证。
 - 源码、commit、push、tag、GitHub Release、Marketplace 安装和生产使用是不同状态；只有逐项执行和复核后才能声称完成。
 
-当前候选发布位于 [2.3.0 workstream](docs/workstreams/dev-flow-2.3.0/)。2.0.3 策略发布历史位于 [2.0.3 workstream](docs/workstreams/dev-flow-2.0.3/)。2.0.2 DLP 历史位于 [2.0.2 workstream](docs/workstreams/dev-flow-2.0.2/)。此前正式版实施位于 [stable workstream](docs/workstreams/dev-flow-2.0-stable/)。RC.9 的发布与豁免边界位于 [docs/workstreams/dev-flow-2.0-rc.9](docs/workstreams/dev-flow-2.0-rc.9/)；RC.8 的已发布历史位于 [docs/workstreams/dev-flow-2.0-rc.8](docs/workstreams/dev-flow-2.0-rc.8/)。发布验证与独立 Bench 的拆分位于 [docs/workstreams/dev-flow-2.0-benchmark-separation](docs/workstreams/dev-flow-2.0-benchmark-separation/)，2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)，历史版本见 [CHANGELOG.md](CHANGELOG.md)。
+本次发布记录位于 [2.3.0 workstream](docs/workstreams/dev-flow-2.3.0/)。2.0.3 策略发布历史位于 [2.0.3 workstream](docs/workstreams/dev-flow-2.0.3/)。2.0.2 DLP 历史位于 [2.0.2 workstream](docs/workstreams/dev-flow-2.0.2/)。此前正式版实施位于 [stable workstream](docs/workstreams/dev-flow-2.0-stable/)。RC.9 的发布与豁免边界位于 [docs/workstreams/dev-flow-2.0-rc.9](docs/workstreams/dev-flow-2.0-rc.9/)；RC.8 的已发布历史位于 [docs/workstreams/dev-flow-2.0-rc.8](docs/workstreams/dev-flow-2.0-rc.8/)。发布验证与独立 Bench 的拆分位于 [docs/workstreams/dev-flow-2.0-benchmark-separation](docs/workstreams/dev-flow-2.0-benchmark-separation/)，2.0 基础设计位于 [docs/workstreams/dev-flow-2.0](docs/workstreams/dev-flow-2.0/)，历史版本见 [CHANGELOG.md](CHANGELOG.md)。

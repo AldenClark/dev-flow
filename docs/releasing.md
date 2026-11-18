@@ -2,15 +2,15 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
-## 2.3.0 personal-assistant hardening candidate
+## 2.3.0 personal-assistant hardening release
 
-`2.3.0` consolidates Skill guidance, scopes additional implementation and validation to observed need, replaces wording assertions with executable checks, and upgrades model dispatch advice to GPT-6.2 Sol and Astra.
+`2.3.0` consolidates Skill guidance, scopes additional implementation and validation to observed need, and upgrades model dispatch advice to GPT-6.2 Sol and Astra.
 
-`v2.0.0-rc.9` is the latest public immutable RC tag. `v2.2.0` is the published stable and default installation channel. `v2.2.0` is the rollback target for `2.3.0`.
+`v2.0.0-rc.9` is the latest public immutable RC tag. `v2.3.0` is the published stable and default installation channel. `v2.2.0` is the rollback target for `2.3.0`.
 
-Delivery state: commit=not-run; hosted_ci=not-run; cross_platform=not-run; independent_review=not-run; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+Delivery state: commit=passed; hosted_ci=passed; cross_platform=passed; independent_review=passed; tag=passed; artifact=passed; publication=passed; isolated_install=passed.
 
-The [2.3.0 progress](workstreams/dev-flow-2.3.0/progress.md) records the exact candidate and delivery observations.
+[Public v2.3.0](https://github.com/AldenClark/dev-flow/releases/tag/v2.3.0) is bound to `b95ccb03715c67be3d078d5be6080cf85dd4a8ca`. [CI 44205324628](https://github.com/AldenClark/dev-flow/actions/runs/44205324628) and [artifact run 44205835872](https://github.com/AldenClark/dev-flow/actions/runs/44205835872) passed on that source. The isolated public-tag lifecycle and primary installation were verified. [Progress](workstreams/dev-flow-2.3.0/progress.md) records the exact checks and limits.
 
 ## 2.2.0 personal-assistant hardening release
 
