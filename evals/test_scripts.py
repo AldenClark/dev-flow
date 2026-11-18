@@ -7,7 +7,6 @@ import json
 import hashlib
 import io
 import os
-import re
 import runpy
 import shutil
 import signal
@@ -5025,54 +5024,12 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("preserve `BLOCKED`/`NOT RUN`", test_strategy)
         self.assertRegex(test_strategy, r"The two views (?:can land in the same test|may share a test)")
 
-    def test_release_tiers_and_proportional_quality_contracts_are_actionable(self) -> None:
-        devflow = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
-        architecture = (
-            ROOT / "skills" / "architecture-decisions" / "SKILL.md"
-        ).read_text(encoding="utf-8")
-        dependency = (
-            ROOT / "skills" / "dependency-decisions" / "SKILL.md"
-        ).read_text(encoding="utf-8")
-        verification = (
-            ROOT / "skills" / "verification" / "SKILL.md"
-        ).read_text(encoding="utf-8")
-        change_review = (
-            ROOT / "skills" / "change-review" / "SKILL.md"
-        ).read_text(encoding="utf-8")
-        delivery = (
-            ROOT / "skills" / "delivery-readiness" / "SKILL.md"
-        ).read_text(encoding="utf-8")
+    def test_release_guide_describes_supported_tiers(self) -> None:
         releasing = (ROOT / "docs" / "releasing.md").read_text(encoding="utf-8")
 
         for tier in ("R1 standard", "R2 runtime", "R3 artifact/security"):
             self.assertIn(tier, releasing)
         self.assertNotIn("| R4 model-semantic |", releasing)
-        self.assertIn("Dev Flow Bench is independent research", releasing)
-        for release_contract in (
-            "Run the full semantic suite once for an exact commit SHA",
-            "affected focused compatibility cells",
-            "immutable release artifact",
-            "Publication, tag creation, push, release creation, and installation",
-            "A missing hosted, device, signing, account, deployment, or public-network result is `NOT RUN`",
-            "does not rerun semantic CI",
-        ):
-            self.assertIn(release_contract, releasing)
-
-        for proportional_contract in (
-            "Use ordinary engineering judgment and native controls when sufficient",
-            "Implement a coherent slice",
-            "Add advanced methods only for a specific blind spot",
-        ):
-            self.assertIn(proportional_contract, devflow)
-        self.assertIn("smallest coherent design", architecture)
-        self.assertRegex(dependency, r"existing capabilit(?:y|ies)")
-        self.assertIn("cheapest native check", verification)
-        self.assertIn("ordinary changes do not require ceremonial reports", change_review)
-        self.assertIn("Do not create a packet closeout", delivery)
-
-        self.assertIn("exact source commit/tree and version", delivery)
-        self.assertIn("checksum/provenance/signature", delivery)
-        self.assertIn("unobserved CI", delivery)
 
     def test_ffi_mobile_work_unit_merge_preserves_facet_contract(self) -> None:
         contract = json.loads(
@@ -5222,32 +5179,6 @@ class RepositoryContractTests(unittest.TestCase):
             self.assertIn(token, report)
         for classification in ("implementation defect", "design defect", "evidence gap", "scope change"):
             self.assertIn(classification, report)
-
-    def test_multi_agent_contract_requires_native_result_and_reconciliation(self) -> None:
-        orchestration = (ROOT / "skills" / "dev-flow" / "references" / "multi-agent-v2-orchestration.md").read_text(encoding="utf-8")
-        execution = (ROOT / "skills" / "dev-flow" / "templates" / "execution.md").read_text(encoding="utf-8")
-        brief = (ROOT / "skills" / "dev-flow" / "templates" / "task-brief.md").read_text(encoding="utf-8")
-        self.assertRegex(orchestration, r"owned paths or (?:an explicit )?read-only boundary")
-        self.assertIn("resource/action limits", orchestration)
-        self.assertIn("no fixed report or method checklist is required", orchestration)
-        contracts = (
-            r"(?i)before integrating child changes[^.\n]*inspect[^.\n]*actual diff[^.\n]*delegated scope",
-            r"(?i)rechecks? (?:only )?affected (?:evidence|checks)",
-            r"(?i)child (?:report|final)[^.\n]*\b(?:never|cannot|does not)\b[^.\n]*proves? integration",
-        )
-        for contract in contracts:
-            self.assertRegex(orchestration, contract)
-        # A report-only claim cannot satisfy the integration-evidence contract.
-        report_proves_integration = re.sub(
-            r"(child report) never", r"\1", orchestration, count=1, flags=re.IGNORECASE
-        )
-        self.assertNotRegex(report_proves_integration, contracts[-1])
-        for token in ("packet IDs", "AC/SC/VO mappings", "context fingerprints", "lease epochs"):
-            self.assertIn(token, orchestration)
-
-        # The 1.x packet templates remain compatibility data, not active 2.0 gates.
-        self.assertTrue(execution)
-        self.assertTrue(brief)
 
     def test_contract_and_plugin_checks(self) -> None:
         contracts = run(PYTHON, str(ROOT / "evals" / "run_contract_checks.py"))

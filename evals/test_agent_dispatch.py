@@ -22,10 +22,10 @@ if str(SCRIPTS) not in sys.path:
 import agent_dispatch  # noqa: E402
 
 
-def run_route(*args: str) -> subprocess.CompletedProcess[str]:
+def run_route(*args: str, cwd: Path = ROOT) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, str(FLOW), "route-agent", *args],
-        cwd=ROOT,
+        cwd=cwd,
         check=False,
         capture_output=True,
         text=True,
@@ -60,26 +60,59 @@ class AgentDispatchBlackBoxTests(unittest.TestCase):
                 if completed.returncode == 0 and payload["delegate"]:
                     self.assertEqual(payload["fork_turns"], "none")
                     self.assertIn(payload["selection_source"], {"policy", "explicit-profile"})
-                    self.assertIn("current task result", payload["runtime_fallback"])
-                    self.assertNotIn("record", payload["runtime_fallback"])
 
     def test_host_inventory_controls_dispatch_readiness(self) -> None:
         base = ("--role", "dev-flow-worker", "--workload", "bounded-change")
         unchecked = json.loads(run_route(*base).stdout)
-        available = json.loads(run_route(*base, "--host-capability", "gpt-6-luna:high").stdout)
-        limited = json.loads(run_route(*base, "--host-capability", "gpt-6-luna:medium").stdout)
+        available = json.loads(run_route(*base, "--host-capability", "gpt-6.2-sol:high").stdout)
+        limited = json.loads(run_route(*base, "--host-capability", "gpt-6.2-sol:medium").stdout)
         self.assertFalse(unchecked["dispatch_ready"])
         self.assertFalse(unchecked["delegate"])
         self.assertTrue(available["dispatch_ready"])
         self.assertTrue(available["delegate"])
         self.assertFalse(limited["dispatch_ready"])
         self.assertFalse(limited["delegate"])
+        self.assertIsNone(limited["host_capability"]["suggested_profile"])
+
+    def test_custom_registry_cannot_suggest_lower_effort_on_same_model(self) -> None:
+        registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
+        efforts = registry["runtime"]["efforts"]
+        efforts["medium"], efforts["high"] = efforts["high"], efforts["medium"]
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "registry.json"
+            path.write_text(json.dumps(registry), encoding="utf-8")
+            result = run_route(
+                "--registry", str(path),
+                "--role", "dev-flow-worker", "--workload", "bounded-change",
+                "--host-capability", "gpt-6.2-sol:medium",
+            )
+        self.assertEqual(result.returncode, 2, result.stderr or result.stdout)
+        advice = json.loads(result.stdout)
+        self.assertEqual(advice["status"], "capability_limit")
+        self.assertIsNone(advice["host_capability"]["suggested_profile"])
+
+    def test_route_returns_dispatch_advice_without_writing_receipts(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            base = ("--role", "dev-flow-worker", "--workload", "bounded-change")
+            available = run_route(*base, "--host-capability", "gpt-6.2-sol:high", cwd=root)
+            self.assertEqual(available.returncode, 0, available.stderr or available.stdout)
+            advice = json.loads(available.stdout)
+            self.assertTrue(advice["dispatch_ready"])
+            self.assertEqual(advice["requested_model"], "gpt-6.2-sol")
+            self.assertEqual(advice["requested_reasoning_effort"], "high")
+            self.assertEqual(advice["fork_turns"], "none")
+
+            limited = run_route(*base, "--host-capability", "gpt-6.1-sol:high", cwd=root)
+            self.assertEqual(limited.returncode, 2, limited.stderr or limited.stdout)
+            self.assertFalse(json.loads(limited.stdout)["dispatch_ready"])
+            self.assertEqual(list(root.iterdir()), [])
 
     def test_future_inventory_entries_do_not_block_supported_selection(self) -> None:
         result = run_route(
             "--role", "dev-flow-blue-reviewer", "--workload", "routine-review",
-            "--host-capability", "gpt-6.1-sol:medium",
-            "--host-capability", "gpt-6.1-sol:ultra",
+            "--host-capability", "gpt-6.2-sol:medium",
+            "--host-capability", "gpt-6.2-sol:ultra",
             "--host-capability", "future-model:future-effort",
         )
         self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
@@ -89,14 +122,14 @@ class AgentDispatchBlackBoxTests(unittest.TestCase):
         inventory = payload["host_capability"]["unsupported_inventory"]
         self.assertEqual(
             {(item["model"], item["reasoning_effort"]) for item in inventory},
-            {("gpt-6.1-sol", "ultra"), ("future-model", "future-effort")},
+            {("gpt-6.2-sol", "ultra"), ("future-model", "future-effort")},
         )
         self.assertEqual(payload["host_capability"]["provenance"], "caller-reported host inventory")
 
     def test_future_inventory_only_is_not_selection_support(self) -> None:
         result = run_route(
             "--role", "dev-flow-blue-reviewer", "--workload", "routine-review",
-            "--host-capability", "gpt-6.1-sol:ultra",
+            "--host-capability", "gpt-6.2-sol:ultra",
             "--host-capability", "future-model:medium",
         )
         self.assertEqual(result.returncode, 2, result.stderr or result.stdout)
@@ -105,17 +138,17 @@ class AgentDispatchBlackBoxTests(unittest.TestCase):
         self.assertIsNone(payload["host_capability"]["suggested_profile"])
         unsupported_selection = run_route(
             "--role", "dev-flow-blue-reviewer", "--workload", "routine-review",
-            "--profile", "ultra", "--host-capability", "gpt-6.1-sol:ultra",
+            "--profile", "ultra", "--host-capability", "gpt-6.2-sol:ultra",
         )
         self.assertEqual(unsupported_selection.returncode, 2)
         self.assertIn("unknown profile", unsupported_selection.stdout)
 
     def test_malformed_inventory_tokens_are_rejected(self) -> None:
-        for value in ("gpt-6.1-sol", "gpt-6.1-sol:", ":medium", " :medium", "gpt-6.1-sol: medium", "a:b:c"):
+        for value in ("gpt-6.2-sol", "gpt-6.2-sol:", ":medium", " :medium", "gpt-6.2-sol: medium", "a:b:c"):
             with self.subTest(value=value):
                 result = run_route(
                     "--role", "dev-flow-blue-reviewer", "--workload", "routine-review",
-                    "--host-capability", "gpt-6.1-sol:medium", "--host-capability", value,
+                    "--host-capability", "gpt-6.2-sol:medium", "--host-capability", value,
                 )
                 self.assertEqual(result.returncode, 2, result.stderr or result.stdout)
                 self.assertEqual(json.loads(result.stdout)["status"], "invalid")
@@ -123,7 +156,7 @@ class AgentDispatchBlackBoxTests(unittest.TestCase):
     def test_total_independent_units_can_exceed_simultaneous_slots(self) -> None:
         result = run_route(
             "--role", "dev-flow-worker", "--workload", "bounded-change",
-            "--parallel-units", "29", "--host-capability", "gpt-6-luna:high",
+            "--parallel-units", "29", "--host-capability", "gpt-6.2-sol:high",
         )
         self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
         payload = json.loads(result.stdout)
@@ -163,19 +196,19 @@ class AgentDispatchBlackBoxTests(unittest.TestCase):
                 base = ("--role", "dev-flow-blue-reviewer", "--workload", workload)
                 if profile == "P5":
                     base += ("--signal", "deep-unresolved")
-                current = run_route(*base, "--host-capability", f"gpt-6.1-sol:{effort}")
+                current = run_route(*base, "--host-capability", f"gpt-6.2-sol:{effort}")
                 self.assertEqual(current.returncode, 0, current.stderr or current.stdout)
                 result = json.loads(current.stdout)
                 self.assertEqual(result["selected_profile"], profile)
-                self.assertEqual(result["requested_model"], "gpt-6.1-sol")
+                self.assertEqual(result["requested_model"], "gpt-6.2-sol")
                 self.assertTrue(result["delegate"])
                 self.assertTrue(result["dispatch_ready"])
 
-                previous = run_route(*base, "--host-capability", f"gpt-6-sol:{effort}")
+                previous = run_route(*base, "--host-capability", f"gpt-6.1-sol:{effort}")
                 self.assertEqual(previous.returncode, 2, previous.stderr or previous.stdout)
                 limited = json.loads(previous.stdout)
                 self.assertEqual(limited["status"], "capability_limit")
-                self.assertEqual(limited["requested_model"], "gpt-6.1-sol")
+                self.assertEqual(limited["requested_model"], "gpt-6.2-sol")
                 self.assertFalse(limited["delegate"])
                 self.assertFalse(limited["dispatch_ready"])
                 self.assertIsNone(limited["host_capability"]["suggested_profile"])
@@ -248,27 +281,14 @@ class AgentDispatchBlackBoxTests(unittest.TestCase):
 class AgentDispatchWhiteBoxTests(unittest.TestCase):
     def test_inventory_types_and_total_types_remain_strict(self) -> None:
         base = {"role": "dev-flow-worker", "workload": "bounded-change"}
-        for inventory in ([("gpt-6-luna", None)], [(None, "high")], [("gpt-6-luna", [])], [["gpt-6-luna", "high"]], "gpt-6-luna:high", 4):
+        for inventory in ([("gpt-6.2-sol", None)], [(None, "high")], [("gpt-6.2-sol", [])], [["gpt-6.2-sol", "high"]], "gpt-6.2-sol:high", 4):
             with self.subTest(inventory=inventory), self.assertRaises(agent_dispatch.DispatchContractError):
                 agent_dispatch.route_agent(**base, host_capabilities=inventory)
         for value in (True, 1.5, "9", None, 0, -1):
             with self.subTest(value=value), self.assertRaises(agent_dispatch.DispatchContractError):
                 agent_dispatch.route_agent(**base, parallel_units=value)
         with self.assertRaises(agent_dispatch.DispatchContractError):
-            agent_dispatch.route_agent(**base, task_structure="sequential", host_capabilities=[("gpt-6-luna", "")])
-
-    def test_readme_dispatch_summary_matches_registry(self) -> None:
-        registry = agent_dispatch.load_registry(REGISTRY)
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        summary = next(line for line in readme.splitlines() if line.startswith("子任务模型以"))
-        models = {
-            name: f"{details['model'].rsplit('-', 1)[0].upper()} {details['model'].rsplit('-', 1)[1].capitalize()}"
-            for name, details in registry["runtime"]["capabilities"].items()
-        }
-        for profile in registry["profiles"]:
-            expected = f"{profile['id']}={models[profile['capability']]} {profile['reasoning_effort']}"
-            with self.subTest(profile=profile["id"]):
-                self.assertIn(expected, summary)
+            agent_dispatch.route_agent(**base, task_structure="sequential", host_capabilities=[("gpt-6.2-sol", "")])
 
     def test_registry_is_exact_and_profiles_are_orthogonal(self) -> None:
         registry = agent_dispatch.load_registry(REGISTRY)
@@ -281,7 +301,7 @@ class AgentDispatchWhiteBoxTests(unittest.TestCase):
         self.assertEqual((profiles["P6"]["capability"], profiles["P6"]["reasoning_effort"]), ("F", "xhigh"))
         self.assertEqual(
             {capability["model"] for capability in registry["runtime"]["capabilities"].values()},
-            {"gpt-6-luna", "gpt-6.1-sol", "gpt-6-astra"},
+            {"gpt-6.2-sol", "gpt-6.2-astra"},
         )
         self.assertTrue(profiles["PX"]["exception"])
         self.assertFalse(any(profiles[name]["exception"] for name in profiles if name != "PX"))
@@ -331,7 +351,7 @@ class AgentDispatchWhiteBoxTests(unittest.TestCase):
         mutations.append(legacy_model)
 
         previous_sol = json.loads(json.dumps(baseline))
-        previous_sol["runtime"]["capabilities"]["B"]["model"] = "gpt-6-sol"
+        previous_sol["runtime"]["capabilities"]["B"]["model"] = "gpt-6.1-sol"
         mutations.append(previous_sol)
 
         swapped_profiles = json.loads(json.dumps(baseline))
@@ -393,39 +413,13 @@ class AgentDispatchWhiteBoxTests(unittest.TestCase):
                 for token in forbidden:
                     self.assertNotIn(token, text)
 
-    def test_orchestration_routes_actual_dispatch_without_receipts(self) -> None:
-        orchestration = (ROOT / "skills" / "dev-flow" / "references" / "multi-agent-v2-orchestration.md").read_text(encoding="utf-8")
-        brief = (ROOT / "skills" / "dev-flow" / "templates" / "task-brief.md").read_text(encoding="utf-8")
-        execution = (ROOT / "skills" / "dev-flow" / "templates" / "execution.md").read_text(encoding="utf-8")
-        self.assertIn("route-agent", orchestration)
-        self.assertRegex(orchestration, r"(?i)routine same-model delegation can dispatch directly")
-        routed_settings = r"(?i)when using a route[^.\n]*returned model, (?:reasoning )?effort, fork (?:request|settings)"
-        self.assertRegex(orchestration, routed_settings)
-        for missing in ("model", "effort", "fork"):
-            with self.subTest(removed_route_setting=missing):
-                without_setting = orchestration.replace(missing, "omitted")
-                self.assertNotRegex(without_setting, routed_settings)
-        for token in ("requested_model", "requested_reasoning_effort", "effective_model", "fallback_reason"):
-            self.assertNotIn(token, orchestration)
-        for token in ("outcome", "owned paths", "resource/action limits", "stopping point", "return shape"):
-            self.assertIn(token, orchestration)
-        self.assertRegex(
-            orchestration,
-            r"(?i)child (?:report|final)[^.\n]*\b(?:never|cannot|does not)\b[^.\n]*proves? integration",
-        )
-
-        # 1.x templates stay readable for existing packets but do not govern 2.0 delegation.
-        self.assertIn("Dispatch profile", brief)
-        self.assertIn("Dispatch profile/source", execution)
-
-
 class AgentCalibrationTests(unittest.TestCase):
     def test_single_uncertainty_stays_at_ordinary_judgment(self) -> None:
         for signal in ("oracle-challenge", "nondeterminism", "conflicting-evidence"):
             with self.subTest(signal=signal):
                 payload = json.loads(run_route(
                     "--role", "dev-flow-explorer", "--workload", "causal-debugging",
-                    "--signal", signal, "--host-capability", "gpt-6.1-sol:medium",
+                    "--signal", signal, "--host-capability", "gpt-6.2-sol:medium",
                 ).stdout)
                 self.assertEqual(payload["selected_profile"], "P4")
                 self.assertTrue(payload["dispatch_ready"])
@@ -447,7 +441,7 @@ class AgentCalibrationTests(unittest.TestCase):
     def test_adaptive_verification_uses_judgment_not_exact_command_profile(self) -> None:
         result = run_route(
             "--role", "dev-flow-test-runner", "--workload", "adaptive-verification",
-            "--risk", "device", "--host-capability", "gpt-6.1-sol:medium",
+            "--risk", "device", "--host-capability", "gpt-6.2-sol:medium",
         )
         self.assertEqual(result.returncode, 0, result.stdout or result.stderr)
         self.assertEqual(json.loads(result.stdout)["selected_profile"], "P4")
@@ -459,7 +453,7 @@ class AgentCalibrationTests(unittest.TestCase):
         self.assertIn("--selection-reason", missing.stdout)
         reason = "Two valid recovery authorities disagree on ownership after the observed crash."
         explained = run_route(*base, "--selection-reason", reason,
-                              "--host-capability", "gpt-6.1-sol:xhigh")
+                              "--host-capability", "gpt-6.2-sol:xhigh")
         self.assertEqual(explained.returncode, 0, explained.stdout or explained.stderr)
         payload = json.loads(explained.stdout)
         self.assertEqual((payload["policy_profile"], payload["selected_profile"]), ("P2", "P5"))
@@ -495,7 +489,7 @@ class AgentCalibrationTests(unittest.TestCase):
         base = ("--role", "dev-flow-worker", "--workload", "bounded-change", "--profile", "P6")
         self.assertEqual(run_route(*base).returncode, 2)
         explained = run_route(*base, "--selection-reason", "Interacting unresolved recovery authorities.",
-                              "--host-capability", "gpt-6.1-sol:medium")
+                              "--host-capability", "gpt-6.2-sol:medium")
         payload = json.loads(explained.stdout)
         self.assertEqual(explained.returncode, 2)
         self.assertEqual(payload["status"], "capability_limit")

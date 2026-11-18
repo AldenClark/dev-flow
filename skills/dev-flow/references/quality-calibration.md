@@ -80,25 +80,7 @@ Existing engineering guidance is an input, not a management task. Read effective
 
 ## Agent and reasoning route
 
-Routine same-model delegation can dispatch directly. When a model/effort choice or actual-host capability uncertainty matters, `route-agent` can help:
-
-```text
-python3 skills/dev-flow/scripts/dev-flow.py route-agent \
-  --role <role> \
-  --workload <workload> \
-  [--risk <observed-risk>] \
-  [--signal <reasoning-signal>]
-```
-
-When using the router, respect its child role, model, reasoning effort, fork request, and actual-host dispatch limits. P0–P3 use GPT-6 Luna for closed work. P4 uses GPT-6.1 Sol medium for ordinary coding, diagnosis, review, cross-component integration, and adaptive native verification. P5 uses GPT-6.1 Sol xhigh for concrete deep unresolved reasoning or compound decision difficulty; a single oracle challenge, nondeterminism, risk label, or careful review does not select P5. P6 retains compound deep unresolved reasoning; PX remains an explicit exceptional campaign. Read [model-selection.md](model-selection.md) when that choice matters. The router cannot switch the root model; an unavailable profile does not justify an unreported substitute or extra work.
-
-The 2026-09-30 development update follows OpenAI's [GPT-6.1 Sol model page](https://developers.openai.com/api/docs/models/gpt-6.1-sol) and [model-selection guidance](https://developers.openai.com/api/docs/guides/model-selection): near-Astra performance for complex coding, computer use, and professional work, while Luna remains the focused-work choice and Astra the most demanding-reasoning choice. Preserve P0–P6/PX IDs, efforts, and compound escalation conditions; the model description is not repository-specific proof that Sol can replace every Astra task. `failed-sol-discrimination` must refer to a documented failure of the current GPT-6.1 Sol on the relevant task, not an older model's result or an environment/tool failure. Paid comparisons, live-model qualification, and installed-plugin changes are separate and are not performed by this routing update; the development paired evaluator and frozen acceptance identities remain unchanged.
-
-Under [standard API pricing](https://developers.openai.com/api/docs/pricing) for prompts at most 272K tokens, GPT-6.1 Sol costs $2 input / $0.10 cached input / $10 output per 1M tokens, versus Astra's $10 / $1 / $50. Relative to GPT-6 Sol, ordinary input/output prices are unchanged and cached input is 50% cheaper. These are token prices, not measured per-task savings or Codex-plan usage. API efforts are low/medium/high/xhigh/max; tools require Responses API. This child router only emits host dispatch advice and does not change API clients or model settings.
-
-Routing is task-relative. Do not store the profile, generate a dispatch receipt, or turn a higher profile into a quality claim. If the selected route makes delegation more expensive than doing the work in the root context, do not delegate.
-
-P0–P6 encode a routing policy order for minimums, downgrade decisions, and host-capability suggestions, not an empirical total order of model quality. Report policy requirement, host availability, and observed outcome separately; the task oracle owns success. An above-policy P5/P6 request needs `--selection-reason` from the AI caller, not user approval or a prior lower-profile trial. Existing verification obligations stay fixed; static routing checks do not establish quality equivalence or per-task savings.
+Reuse the parent GPT-6.2 Sol or Astra when its effort fits the child and the host supports that pair. When model, effort, or host support needs a decision, use [model selection](model-selection.md). The work and its evidence determine whether to delegate and how to verify the outcome.
 
 ## Method activation
 
@@ -130,7 +112,7 @@ Use an independent context when the user explicitly requests it, policy requires
 
 Do not recursively review a review. When the primary task is already an independent read-only review, the current context owns that review; add a second context only for an explicit second-opinion/separation requirement or a concrete conflicting-evidence blind spot.
 
-A justified same-model reviewer can dispatch directly. If model/host routing is useful, use registered runtime vocabulary rather than guessed labels. For example:
+An eligible reviewer can reuse the parent GPT-6.2 model at a suitable effort. If model/host routing is useful, use registered runtime vocabulary rather than guessed labels. For example:
 
 ```text
 python3 skills/dev-flow/scripts/dev-flow.py route-agent \

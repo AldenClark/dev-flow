@@ -4,7 +4,7 @@ Use one agent by default. Delegate only an independently useful unit when parall
 
 Starting a child, allowing a child to start another child inside the inherited envelope, and dispatching a clean-context reviewer are internal work allocation and need no separate user authorization. Real actions and scope expansion keep their own authority requirements.
 
-Routine same-model delegation can dispatch directly within available capacity and inherited limits. Use `route-agent` when a real model/effort choice or host-capability uncertainty matters, and reuse its advice while that basis remains unchanged. When using a route, respect the returned model, effort, fork request, and dispatch limits. Do not create routing receipts or treat a profile as proof of quality.
+Routine delegation can reuse GPT-6.2 Sol or Astra directly when the parent effort fits and the host supports the pair for the child. Use `route-agent` when a real model/effort choice or host-capability uncertainty matters, and reuse its advice while that basis remains unchanged. When using a route, respect the returned model, effort, fork request, and dispatch limits. Do not create routing receipts or treat a profile as proof of quality.
 
 Consult [model-selection.md](model-selection.md) when choosing a different profile. Do not inherit the parent's hardest signals or explicitly raise P5/P6 without a concrete `--selection-reason`. This caller explanation is not user approval. Do not split work or spawn solely to change a model label.
 

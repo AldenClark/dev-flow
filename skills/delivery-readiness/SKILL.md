@@ -36,7 +36,7 @@ Use `systematic-debugging` when the cause of a failure is still unknown. The han
 
 ## Boundaries
 
-- A bounded read-only readiness assessment may run alone. Material repository mutation, cross-repository coordination, or high-risk preparation can use `dev-flow` as coordinator while this Skill remains evidence owner.
+- For cross-boundary work, see the shared [development loop](../dev-flow/references/core-lifecycle.md).
 - Do not create a packet closeout, acceptance ledger, or maximum-gate ritual for ordinary work.
 - For an RC, perform one lightweight static review of the final diff through the integrated task route. For a stable release, review the cumulative public-stable-to-candidate semantic delta and apply the consolidated static pass defined in `docs/releasing.md`; each method must yield a finding, counterexample, changed oracle, or explicit no-finding conclusion.
 - Model-facing RC changes use affected semantic smoke; stable releases use the repository's stated cumulative validation. Repeated model studies belong to Bench, not a release gate.

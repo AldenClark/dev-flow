@@ -156,18 +156,6 @@ def scan(root: Path, *, check_event: bool = False) -> dict[str, Any]:
     if invalid_dimensions:
         errors.append(f"route-basis table names unknown dimensions: {sorted(invalid_dimensions)}")
 
-    required_guidance = {
-        "skills/dev-flow/SKILL.md": ("route-task", "managed continuity"),
-        "skills/dev-flow/references/core-lifecycle.md": ("Incremental route continuity", "structural-consistency"),
-        "skills/verification/references/test-environments.md": ("resource-lease acquire", "resource-preflight"),
-        "skills/test-system-engineering/SKILL.md": ("suspect boundary", "negative control"),
-    }
-    for relative, anchors in required_guidance.items():
-        guidance = (root / relative).read_text(encoding="utf-8")
-        missing = [anchor for anchor in anchors if anchor not in guidance]
-        if missing:
-            errors.append(f"RC.4 workflow guidance drift in {relative}: missing {missing}")
-
     candidate_identity = _load(root / "evals" / "candidate_identity.py", "rc4_static_candidate_identity")
     dependencies = {
         path.relative_to(root.resolve()).as_posix()

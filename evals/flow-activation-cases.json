@@ -84,42 +84,42 @@
     {
       "id": "FLOW-P0-LUNA-EXACT",
       "command": ["route-agent", "--role", "dev-flow-explorer", "--workload", "exact-lookup"],
-      "expect": {"selected_profile": "P0", "requested_model": "gpt-6-luna", "requested_reasoning_effort": "low"}
+      "expect": {"selected_profile": "P0", "requested_model": "gpt-6.2-sol", "requested_reasoning_effort": "low"}
     },
     {
       "id": "FLOW-P2-LUNA-CONTAINED-STRUCTURED-WORK",
       "command": ["route-agent", "--role", "dev-flow-worker", "--workload", "bounded-change", "--risk", "concurrency", "--signal", "closed-scope", "--signal", "confirmed-semantics", "--signal", "deterministic-oracle"],
-      "expect": {"selected_profile": "P2", "requested_model": "gpt-6-luna", "requested_reasoning_effort": "high"}
+      "expect": {"selected_profile": "P2", "requested_model": "gpt-6.2-sol", "requested_reasoning_effort": "high"}
     },
     {
       "id": "FLOW-P5-SOL-ORACLE-CHALLENGE",
       "command": ["route-agent", "--role", "dev-flow-explorer", "--workload", "broad-mapping", "--signal", "oracle-challenge"],
-      "expect": {"selected_profile": "P4", "requested_model": "gpt-6.1-sol", "requested_reasoning_effort": "medium"}
+      "expect": {"selected_profile": "P4", "requested_model": "gpt-6.2-sol", "requested_reasoning_effort": "medium"}
     },
     {
       "id": "FLOW-P2-LUNA-CLOSED-RISK",
       "command": ["route-agent", "--role", "dev-flow-worker", "--workload", "bounded-change", "--risk", "authorization"],
-      "expect": {"selected_profile": "P2", "requested_model": "gpt-6-luna", "requested_reasoning_effort": "high"}
+      "expect": {"selected_profile": "P2", "requested_model": "gpt-6.2-sol", "requested_reasoning_effort": "high"}
     },
     {
       "id": "FLOW-P4-SOL-ORDINARY-DIAGNOSIS",
       "command": ["route-agent", "--role", "dev-flow-explorer", "--workload", "causal-debugging"],
-      "expect": {"selected_profile": "P4", "requested_model": "gpt-6.1-sol", "requested_reasoning_effort": "medium"}
+      "expect": {"selected_profile": "P4", "requested_model": "gpt-6.2-sol", "requested_reasoning_effort": "medium"}
     },
     {
       "id": "FLOW-P5-SOL-CRITICAL-ACCEPTANCE",
       "command": ["route-agent", "--role", "dev-flow-red-reviewer", "--workload", "high-risk-review", "--signal", "irreversible"],
-      "expect": {"selected_profile": "P4", "requested_model": "gpt-6.1-sol", "requested_reasoning_effort": "medium"}
+      "expect": {"selected_profile": "P4", "requested_model": "gpt-6.2-sol", "requested_reasoning_effort": "medium"}
     },
     {
       "id": "FLOW-P5-SOL-DISPUTED-ORACLE",
       "command": ["route-agent", "--role", "dev-flow-explorer", "--workload", "causal-debugging", "--signal", "conflicting-evidence", "--signal", "oracle-challenge"],
-      "expect": {"selected_profile": "P5", "requested_model": "gpt-6.1-sol", "requested_reasoning_effort": "xhigh"}
+      "expect": {"selected_profile": "P5", "requested_model": "gpt-6.2-sol", "requested_reasoning_effort": "xhigh"}
     },
     {
       "id": "FLOW-P6-ASTRA-COMPOUND-UNKNOWN",
       "command": ["route-agent", "--role", "dev-flow-worker", "--workload", "cross-component-change", "--signal", "deep-unresolved", "--signal", "interacting-unknowns", "--signal", "cross-boundary-impact"],
-      "expect": {"selected_profile": "P6", "requested_model": "gpt-6-astra", "requested_reasoning_effort": "xhigh"}
+      "expect": {"selected_profile": "P6", "requested_model": "gpt-6.2-astra", "requested_reasoning_effort": "xhigh"}
     },
     {
       "id": "FLOW-DELIVERY-IS-READ-ONLY-UNTIL-AUTHORIZED",
@@ -184,12 +184,12 @@
     {
       "id": "FLOW-P1-LUNA-MECHANICAL",
       "command": ["route-agent", "--role", "dev-flow-worker", "--workload", "mechanical-change"],
-      "expect": {"selected_profile": "P1", "requested_model": "gpt-6-luna", "requested_reasoning_effort": "medium"}
+      "expect": {"selected_profile": "P1", "requested_model": "gpt-6.2-sol", "requested_reasoning_effort": "medium"}
     },
     {
       "id": "FLOW-P3-LUNA-ORDINARY-MULTI-STEP",
       "command": ["route-agent", "--role", "dev-flow-worker", "--workload", "broad-multi-step"],
-      "expect": {"selected_profile": "P3", "requested_model": "gpt-6-luna", "requested_reasoning_effort": "xhigh"}
+      "expect": {"selected_profile": "P3", "requested_model": "gpt-6.2-sol", "requested_reasoning_effort": "xhigh"}
     },
     {
       "id": "FLOW-ROOT-DECISIONS-ARE-NOT-DELEGATED",

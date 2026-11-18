@@ -2175,7 +2175,7 @@ def route_task(args: argparse.Namespace) -> int:
                     "delivery-or-irreversibility",
                 ],
             },
-            "delegation": "same-model work may dispatch directly; use route-agent only for a model/effort choice or host-capability uncertainty",
+            "delegation": "reuse the parent GPT-6.2 Sol or Astra directly when its effort fits and the host supports it; use route-agent for model/effort choice or host uncertainty",
             "excluded": {
                 "manage-engineering-profiles": "ordinary profile consumption does not activate management" if not args.profile_operation else None,
                 "dev-flow-maintainer": "explicit-only" if not args.suite_maintenance else None,

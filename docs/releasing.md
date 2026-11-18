@@ -2,6 +2,16 @@
 
 This runbook selects evidence from the changed surface. It separates implementation, verification, release readiness, artifact construction, publication, and installation; none implies another.
 
+## 2.3.0 personal-assistant hardening candidate
+
+`2.3.0` consolidates Skill guidance, scopes additional implementation and validation to observed need, replaces wording assertions with executable checks, and upgrades model dispatch advice to GPT-6.2 Sol and Astra.
+
+`v2.0.0-rc.9` is the latest public immutable RC tag. `v2.2.0` is the published stable and default installation channel. `v2.2.0` is the rollback target for `2.3.0`.
+
+Delivery state: commit=not-run; hosted_ci=not-run; cross_platform=not-run; independent_review=not-run; tag=not-run; artifact=not-run; publication=not-run; isolated_install=not-run.
+
+The [2.3.0 progress](workstreams/dev-flow-2.3.0/progress.md) records the exact candidate and delivery observations.
+
 ## 2.2.0 personal-assistant hardening release
 
 `2.2.0` is the published stable that removes rules inducing extra process while preserving timely native requirements questions, suitable design, code correctness and necessary verification. Four audited CLI remnants are repaired: unresolved product choices pause only dependent commitments and compact output preserves independent learning; cross-module, material-trade-off and legacy task labels do not force managed mode; method consultation retains valid verification and child results while routes without a target revision still reconcile the objective; routine same-model delegation does not require `route-agent`. Broad risks no longer imply deep methods or independent review. Route semantics is `dev-flow.route-semantics.v5`.
@@ -224,14 +234,14 @@ For an R3 change, two local builds can establish deterministic behavior before h
 ```bash
 git rev-parse HEAD
 python3 tools/build_release.py build \
-  --root . --output dist-a --version 2.2.0 --commit FULL_COMMIT_SHA
+  --root . --output dist-a --version 2.3.0 --commit FULL_COMMIT_SHA
 python3 tools/build_release.py build \
-  --root . --output dist-b --version 2.2.0 --commit FULL_COMMIT_SHA
-cmp dist-a/dev-flow-2.2.0.tar.gz dist-b/dev-flow-2.2.0.tar.gz
+  --root . --output dist-b --version 2.3.0 --commit FULL_COMMIT_SHA
+cmp dist-a/dev-flow-2.3.0.tar.gz dist-b/dev-flow-2.3.0.tar.gz
 cmp dist-a/release-manifest.json dist-b/release-manifest.json
 cmp dist-a/SHA256SUMS dist-b/SHA256SUMS
 python3 tools/build_release.py verify \
-  --artifact-dir dist-a --expected-version 2.2.0 --expected-commit FULL_COMMIT_SHA
+  --artifact-dir dist-a --expected-version 2.3.0 --expected-commit FULL_COMMIT_SHA
 ```
 
 Determinism is asserted within the pinned environment. Promotion reuses attested bytes instead of rebuilding on another zlib/toolchain version.
@@ -242,17 +252,17 @@ After applicable exact-SHA CI is green:
 
 ```bash
 gh workflow run release-candidate.yml \
-  --ref main -f version=2.2.0 -f expected_sha=FULL_COMMIT_SHA
+  --ref main -f version=2.3.0 -f expected_sha=FULL_COMMIT_SHA
 ```
 
 The workflow has `contents: read`, `id-token: write`, and `attestations: write`. It has no release-publication permission. After download:
 
 ```bash
 python3 tools/build_release.py verify \
-  --artifact-dir dist --expected-version 2.2.0 --expected-commit FULL_COMMIT_SHA
-gh attestation verify dist/dev-flow-2.2.0.tar.gz \
+  --artifact-dir dist --expected-version 2.3.0 --expected-commit FULL_COMMIT_SHA
+gh attestation verify dist/dev-flow-2.3.0.tar.gz \
   --repo AldenClark/dev-flow
-gh attestation verify dist/dev-flow-2.2.0.tar.gz \
+gh attestation verify dist/dev-flow-2.3.0.tar.gz \
   --repo AldenClark/dev-flow \
   --predicate-type https://spdx.dev/Document/v2.3
 ```

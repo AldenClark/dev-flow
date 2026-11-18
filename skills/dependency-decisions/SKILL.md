@@ -7,7 +7,7 @@ description: Decide whether a new external dependency is justified and reversibl
 
 Treat dependency cost, compatibility, supply chain, and exit as part of the engineering contract. Use this Skill for a new or materially expanded library, tool, runtime, service, or high-impact update—not merely because a package is discovered or already used. Read [dependency governance](references/dependency-governance.md) when the decision is material.
 
-This Skill may operate alone for a bounded dependency assessment. If the operation becomes a material repository mutation, crosses consumers or repositories, needs managed continuity, or exposes high-risk delivery, load `dev-flow` as the coordinating kernel when it is available and not already active; keep this Skill as the dependency owner.
+For implementation, see the shared [development loop](../dev-flow/references/core-lifecycle.md).
 
 ## Decide the capability, not the package
 

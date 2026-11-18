@@ -14,7 +14,8 @@ SCHEMA_VERSION = "1.1"
 RESULT_SCHEMA_VERSION = "agent.dispatch.result.v1"
 EXPECTED_PROFILES = {"P0", "P1", "P2", "P3", "P4", "P5", "P6", "PX"}
 EXPECTED_CAPABILITIES = {"E", "B", "F"}
-EXPECTED_MODELS = {"E": "gpt-6-luna", "B": "gpt-6.1-sol", "F": "gpt-6-astra"}
+EXPECTED_MODELS = {"E": "gpt-6.2-sol", "B": "gpt-6.2-sol", "F": "gpt-6.2-astra"}
+ORDERED_EFFORTS = ("low", "medium", "high", "xhigh", "max")
 ORDERED_PROFILES = ("P0", "P1", "P2", "P3", "P4", "P5", "P6", "PX")
 EXPECTED_PROFILE_VECTORS = {
     "P0": ("E", "low"),
@@ -93,25 +94,23 @@ def validate_registry(registry: Any) -> dict[str, Any]:
     if not isinstance(capabilities, dict) or set(capabilities) != EXPECTED_CAPABILITIES:
         raise DispatchContractError("runtime capabilities must be exactly E, B, and F")
     capability_ranks: set[int] = set()
-    models: set[str] = set()
     for capability, record in capabilities.items():
         if not isinstance(record, dict) or set(record) != {"rank", "model", "purpose"}:
             raise DispatchContractError(f"capability {capability} has invalid fields")
         if not isinstance(record["rank"], int) or record["rank"] < 0:
             raise DispatchContractError(f"capability {capability} rank must be a non-negative integer")
-        if record["rank"] in capability_ranks or not _nonempty(record["model"]) or record["model"] in models:
-            raise DispatchContractError("capability ranks and models must be unique")
+        if record["rank"] in capability_ranks:
+            raise DispatchContractError("capability ranks must be unique")
         if not _nonempty(record["purpose"]):
             raise DispatchContractError(f"capability {capability} purpose must be non-empty")
         if record["model"] != EXPECTED_MODELS[capability]:
-            raise DispatchContractError(f"capability {capability} must use the active GPT-6 model")
+            raise DispatchContractError(f"capability {capability} must use the active GPT-6.2 model")
         capability_ranks.add(record["rank"])
-        models.add(record["model"])
     if capability_ranks != {0, 1, 2}:
         raise DispatchContractError("capability ranks must be exactly 0, 1, and 2")
 
     efforts = runtime.get("efforts")
-    if not isinstance(efforts, dict) or set(efforts) != {"low", "medium", "high", "xhigh", "max"}:
+    if not isinstance(efforts, dict) or set(efforts) != set(ORDERED_EFFORTS):
         raise DispatchContractError("runtime efforts must be exactly low, medium, high, xhigh, and max")
     if set(efforts.values()) != {0, 1, 2, 3, 4} or any(not isinstance(value, int) for value in efforts.values()):
         raise DispatchContractError("runtime effort ranks must be unique integers 0 through 4")
@@ -129,7 +128,7 @@ def validate_registry(registry: Any) -> dict[str, Any]:
         if vector[0] not in capabilities or vector[1] not in efforts or vector in vectors:
             raise DispatchContractError(f"profile {profile_id} has an invalid or duplicate vector")
         if vector != EXPECTED_PROFILE_VECTORS[profile_id]:
-            raise DispatchContractError(f"profile {profile_id} must use its active GPT-6 capability/effort vector")
+            raise DispatchContractError(f"profile {profile_id} must use its active GPT-6.2 capability/effort vector")
         if not isinstance(record["exception"], bool) or not _nonempty(record["purpose"]):
             raise DispatchContractError(f"profile {profile_id} has invalid exception or purpose")
         if record["exception"] != (profile_id == "PX"):
@@ -264,11 +263,16 @@ def _host_capability_result(
             "suggested_profile": None,
             **diagnostics,
         }
+    minimum_effort = ORDERED_EFFORTS.index(requested[1])
     alternatives = [
         profile for profile in registry["profiles"]
         if not profile["exception"]
         and _profile_rank(profile["id"]) >= _profile_rank(selected["id"])
         and (capabilities[profile["capability"]]["model"], profile["reasoning_effort"]) in available
+        and (
+            capabilities[profile["capability"]]["model"] != requested[0]
+            or ORDERED_EFFORTS.index(profile["reasoning_effort"]) >= minimum_effort
+        )
     ]
     suggested = min(alternatives, key=lambda item: _profile_rank(item["id"])) if alternatives else None
     return {

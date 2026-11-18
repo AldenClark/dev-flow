@@ -8,6 +8,10 @@
 
 Keep ownership separate. A document does not prove runtime behavior; a test does not choose product meaning; a local result does not authorize delivery.
 
+## Coordination
+
+A bounded lookup, diagnosis, design decision, review, or verification can use its specialist directly. Load `dev-flow` to coordinate material edits, cross-boundary work, managed continuation, or high-risk delivery. The specialist keeps its own decision or evidence. A public contract or data lifecycle crossing compatibility, rollout, recovery, privacy, or deletion boundaries needs coordination even in design-only work.
+
 ## Development spine
 
 Establish the observable outcome, relevant repository facts, smallest coherent slice, appropriate native checks, and action limits. Inspect the changed path and affected consumers for credible risks. This creates no file or approval state.
@@ -49,7 +53,7 @@ Re-evaluate mode, design, or overlays when:
 
 The first surprising failure triggers a focused assumption/risk recheck. Two failed repairs or hypotheses for the same symptom trigger explicit recalibration before another repair.
 
-On a user correction or a fact that changes meaning, identify the invalid assumption and trace its affected consumers. Pause or update affected work, invalidate dependent evidence, and preserve unaffected results. Changing only a summary does not repair old implementation or test expectations. Update or cancel affected children through an actually available host control; inspect late child output and actual writes against current semantics before integration. Steering does not automatically cancel tools, and already-executed effects are not automatically undone: report relevant effects and use only authorized recovery. Reverify the affected behavior on current bytes; add a counterexample when needed to protect the changed distinction.
+On a user correction or a fact that changes meaning, identify the invalid assumption and trace its affected consumers. Pause or update affected work, invalidate dependent evidence, and preserve unaffected results. Changing only a summary does not repair old implementation or test expectations. Independent authorized work may continue while dependent scope is unsettled. Update or cancel affected children through an actually available host control; inspect late child output and actual writes against current semantics before integration. Steering does not automatically cancel tools, and already-executed effects are not automatically undone: report relevant effects and use only authorized recovery. Reverify the affected behavior on current bytes; add a counterexample when needed to protect the changed distinction.
 
 After an interrupted state-changing call, inspect relevant process identity, partial writes and external state before replay. Active cells and nested tools may have terminated while retained store values remain; those values are recovery hints, not evidence that a new attempt completed. Cancellation does not roll back external effects. Reconcile late child results once against the current scope and user interruption; host wakeups cannot cross Plan or child-session boundaries. An ordinary interruption creates no repository checkpoint requirement.
 

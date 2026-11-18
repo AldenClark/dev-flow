@@ -7,9 +7,7 @@ description: Clarify new or changed product behavior and scope; prepare importan
 
 Own product meaning and scope. Preserve the whole requested outcome and key relationships, then resolve enough detail for the next implementation slice. Do not turn complete understanding into a complete requirements database or additional product promises.
 
-This Skill may operate alone for a bounded requirements result. If the result leads to material repository mutation, cross-boundary design, managed continuity, or high-risk delivery, load `dev-flow` as the coordinating kernel when it is available and not already active; keep this Skill as the semantic owner.
-
-A public-contract or data-lifecycle design that spans compatibility, rollout, recovery, privacy, or deletion boundaries is cross-boundary even when the user requests design only and no repository mutation. Load `dev-flow` before technical design in that case.
+For cross-boundary work, see the shared [development loop](../dev-flow/references/core-lifecycle.md).
 
 ## First action
 
@@ -26,8 +24,6 @@ Separate the requested result and hard constraints from preferences and suggeste
 7. For U2, stop only when product/compatibility/operational semantics can change. For U3, state expected and protected behavior and proceed when evidence establishes them; upgrade to U1 when they remain open, but ambiguity alone does not prove a user decision is needed. U4 and U5 never acquire a confirmation ceremony merely because Dev Flow is active.
 8. When future work needs a durable product decision and repository mutation is in scope, update the existing product or contract owner. If mutation is not authorized, describe the needed owner update in chat. Use `repository-knowledge` only when a missing or conflicting owner blocks continuation. A separate change record is justified only when existing owners cannot support needed continuity across sessions or owners.
 9. Define verification intent as observable behavior. Leave exact technical oracles to `verification` and structural choices to their owning specialists.
-
-After a user correction or contradictory evidence, replace the affected understanding and trace its consumers in design, code/data, tests, and delegated work. Pause or update dependent work, recheck late child results, and verify the revised user behavior; changing a summary alone is insufficient. Preserve unaffected results and separately account for any already-executed external effects. `dev-flow/references/core-lifecycle.md` owns this continuation rule.
 
 Always stay in Default mode. Read `references/user-interaction.md` before a material question or U1 confirmation checkpoint.
 

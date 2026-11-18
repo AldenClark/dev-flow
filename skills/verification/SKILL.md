@@ -7,7 +7,7 @@ description: Verify changed behavior with risk-based oracles and fresh native ev
 
 Own evidence that can falsify a claim; broaden only for affected promises or risks.
 
-Use `dev-flow` to coordinate material mutation, cross-boundary or managed work. A bounded read-only check may run alone.
+For cross-boundary work, see the shared [development loop](../dev-flow/references/core-lifecycle.md).
 
 Route suspected runner/fixture/cache/retry/skip/isolation false evidence to `test-system-engineering`.
 
@@ -19,8 +19,6 @@ Route suspected runner/fixture/cache/retry/skip/isolation false evidence to `tes
 4. Preserve the focused run's first failure. When evidence is suspicious, easy to fake, or protects a credible high-consequence failure, reuse applicable sensitivity proof or challenge the oracle with a pre-fix failure, negative fixture, seeded fault, mutation or independent relation. Confirm failure at the protected assertion, restore any perturbation and rerun the affected check.
 5. For installed/external/production claims, verify the applicable artifact, actual target, effective configuration/data and intended flow or effect. Build, upload, install, or health checks prove only their own link. Check changed links and affected downstream behavior, including recovery when the promise depends on it.
 6. Re-read the final diff against the accepted behavior and affected callers, then consume native results directly. Report the command, result and material limits; include source, artifact or environment detail only where needed to distinguish the claim. Use `PASSED`, `FAILED`, `FLAKY`, `BLOCKED`, `NOT RUN`, or `WAIVED` truthfully. A retry does not turn a flake into `PASSED`; a successful tool exit or output file does not prove its contents satisfy the oracle.
-
-After a semantic correction, reconcile code/data, affected callers and test expectations, and discard superseded child evidence. `dev-flow/references/core-lifecycle.md` owns affected freshness.
 
 Read `references/test-strategy.md` for strategy, `references/coverage-techniques.md` for a concrete gap, `references/test-environments.md` before controlled resources, and `references/evidence-contract.md` before retaining artifacts.
 

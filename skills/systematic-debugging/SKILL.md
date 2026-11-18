@@ -7,7 +7,7 @@ description: Diagnose uncertain failures from competing causes; exclude routine 
 
 Trace the earliest incorrect state rather than patching the final symptom. Use it when cause is uncertain, reproduction is flaky, or a prior repair did not explain the failure—not for a known, bounded fix with a clear oracle.
 
-This Skill may operate alone for narrow diagnosis. If the repair becomes a material repository mutation, crosses boundaries, needs managed continuity, or exposes high-risk delivery, load `dev-flow` as the coordinating kernel when it is available and not already active; keep this Skill as the causal-diagnosis owner.
+For implementation, see the shared [development loop](../dev-flow/references/core-lifecycle.md).
 
 ## Find the causal boundary
 

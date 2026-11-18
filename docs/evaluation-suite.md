@@ -116,7 +116,7 @@ Keep pairwise and boundary cases for:
 5. specialist routing: applicable effective Skills, plugin-prefixed Skill names, and qualified fallback when a route is absent;
 6. methods: high-leverage eligibility, ready/blocked/fallback/abstain disposition, realization, evidence effect, and ordinary-work quietness;
 7. review: material/explicit activation and generic-label restraint;
-8. child routing: P0-P2 Luna only for closed directed work, Terra for ordinary judgment, Sol for open/consequential work, and root-only decisions;
+8. child routing: GPT-6.2 Sol for directed work and ordinary judgment, GPT-6.2 Astra for compound escalation, exact host model and effort checks, and root-only decisions;
 9. verification, knowledge, delivery authority, and native-adapter boundaries.
 
 Add a case when a real activation omission or over-activation is observed. Prefer the smallest case that distinguishes the boundary; do not create a Cartesian matrix.

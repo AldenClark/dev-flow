@@ -7,9 +7,7 @@ description: Choose minimal, falsifiable boundary and lifecycle designs; exclude
 
 Choose the smallest coherent design that satisfies the product outcome and existing repository contracts. Use it when a technical choice affects a boundary, ownership, state/lifecycle, compatibility, recovery, or a lasting abstraction—not for an already-owned local implementation.
 
-This Skill may operate alone for a bounded design decision. If the decision drives material repository mutation, cross-boundary implementation, managed continuity, or high-risk delivery, load `dev-flow` as the coordinating kernel when it is available and not already active; keep this Skill as the architecture owner.
-
-Public-contract or data-lifecycle design spanning compatibility, rollout, recovery, privacy, or deletion is cross-boundary even when it is read-only. Load `dev-flow` before technical design in that case.
+For cross-boundary work, see the shared [development loop](../dev-flow/references/core-lifecycle.md).
 
 ## Decide from the boundary outward
 
@@ -22,8 +20,6 @@ Public-contract or data-lifecycle design spanning compatibility, rollout, recove
 7. Leave the decision in code/tests or update the existing design owner when future readers need the rationale. Record the consequential choice and why it is sufficient. A durable ADR is for consequential, cross-owner, public, persistent, or costly-to-reverse choices—not routine local design.
 
 Read [neutral engineering policy](references/neutral-engineering-policy.md) for implementation-quality defaults, and the relevant section of [language-native guidance](references/language-native-guidance.md) for language or platform constraints. Revisit a decision when its stated assumption, consumer set, workload, failure mode, or rollback cost changes; do not retain an abstraction merely because it already exists.
-
-After a semantic correction, replace the affected design premise and identify dependent code/data, tests, and delegated work under `dev-flow/references/core-lifecycle.md`. Independent authorized feasibility learning may continue while a user choice is pending; it cannot commit the product to that branch.
 
 ## Boundaries
 

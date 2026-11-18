@@ -7,7 +7,7 @@ description: Use when a user task, UI state, recovery flow, or design truth is u
 
 Use this Skill when a user goal, changed workflow, or design choice is unclear enough to affect implementation. An understood change can use the established flow and components directly.
 
-This Skill may operate alone for bounded product discovery. If the result drives material repository mutation, cross-boundary implementation, managed continuity, or high-risk delivery, load `dev-flow` as the coordinating kernel when it is available and not already active; keep this Skill as the product/UX owner.
+For implementation, see the shared [development loop](../dev-flow/references/core-lifecycle.md).
 
 ## First action
 

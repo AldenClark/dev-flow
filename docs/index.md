@@ -20,6 +20,7 @@ This index routes contributors and agents to the smallest maintained knowledge o
 
 ## Managed work and release history
 
+- [Dev Flow 2.3.0](workstreams/dev-flow-2.3.0/progress.md) tracks guidance consolidation, GPT-6.2 dispatch, and release evidence.
 - [Dev Flow 2.1.3](workstreams/dev-flow-2.1.3/progress.md): published Hook cwd hardening, verified public artifacts/local installation and current host metadata limits.
 - [Dev Flow 2.1.2](workstreams/dev-flow-2.1.2/progress.md): published DLP release, verified public artifacts and local installation, exact identities and remaining limits.
 - [Dev Flow 2.1.1](workstreams/dev-flow-2.1.1/progress.md): published stable guidance update, exact-source CI, hosted/public artifacts and action-specific limits; model journeys and installation not run.

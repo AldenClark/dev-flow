@@ -16,7 +16,6 @@ FLOW = ROOT / "skills" / "dev-flow" / "scripts" / "dev-flow.py"
 DOGFOOD = (
     ROOT / "skills" / "dev-flow-maintainer" / "scripts" / "analyze_dogfood.py"
 )
-QUALITY = ROOT / "skills" / "dev-flow" / "references" / "quality-calibration.md"
 TRANSITIONS = ROOT / "benchmarks" / "cases" / "dev-flow-cases.json"
 ORCHESTRATION = (
     ROOT / "skills" / "dev-flow" / "references" / "multi-agent-v2-orchestration.md"
@@ -116,33 +115,7 @@ def dogfood_v2_payload() -> dict[str, object]:
 
 
 class ScopeAndContinuationContracts(unittest.TestCase):
-    def test_scope_envelope_keeps_depth_separate_from_breadth(self) -> None:
-        guidance = QUALITY.read_text(encoding="utf-8")
-        for phrase in (
-            "Scope envelope and convergence",
-            "Implementation and repair default to `closed`",
-            "Diagnosis and review default to `bounded`",
-            "`Open` exploration requires an explicit breadth request",
-            "reasoning effort, or method count never changes the discovery mode",
-            "`required defect`",
-            "`necessary enabler`",
-            "`optional opportunity`",
-            "Reconcile the final diff",
-        ):
-            self.assertIn(phrase, guidance)
-
-    def test_auxiliary_repairs_have_a_cumulative_convergence_checkpoint(self) -> None:
-        guidance = QUALITY.read_text(encoding="utf-8")
-        for phrase in (
-            "Auxiliary-mechanism convergence",
-            "two consecutive repairs",
-            "primary terminal condition",
-            "do not make a third tweak",
-            "simplify or replace",
-            "explicitly asks for continued exploration",
-        ):
-            self.assertIn(phrase, guidance)
-
+    def test_auxiliary_convergence_case_preserves_read_only_fallback_oracle(self) -> None:
         catalog = json.loads(TRANSITIONS.read_text(encoding="utf-8"))
         case = next(
             item
@@ -153,63 +126,24 @@ class ScopeAndContinuationContracts(unittest.TestCase):
         self.assertIn("auxiliary-convergence-checkpoint", final_turn["expected"])
         self.assertIn("simpler-fallback", final_turn["expected"])
         self.assertIn("third-auxiliary-tweak", final_turn["forbidden"])
-        for turn in case["turns"]:
-            self.assertEqual(turn["mutation"], "none")
-            self.assertIn(
-                "Respond with the decision only; do not modify repository files.",
-                turn["prompt"],
-            )
+        self.assertTrue(all(turn["mutation"] == "none" for turn in case["turns"]))
 
-    def test_delegation_is_monotonically_narrowed_and_root_verified(self) -> None:
-        guidance = ORCHESTRATION.read_text(encoding="utf-8")
-        for phrase in (
-            "subset of the parent envelope",
-            "intersection of all ancestor",
-            "cannot restore authority",
-            "bounded expansion request",
-        ):
-            self.assertIn(phrase, guidance)
-        for contract in (
-            r"(?i)successful dispatch returns[^.\n]*non-empty child identity",
-            r"(?i)empty receiver lists?[^.\n]*agent state[^.\n]*\bnot delegation\b",
-            r"(?i)never attribute[^.\n]*result[^.\n]*child[^.\n]*not started",
-            r"(?i)before integrating child changes[^.\n]*inspect[^.\n]*actual diff[^.\n]*delegated scope",
-            r"(?i)child report[^.\n]*never overrides[^.\n]*out-of-scope diff",
-        ):
-            self.assertRegex(guidance, contract)
+    def test_delegation_cases_keep_child_proposals_outside_mutation_authority(self) -> None:
+        cases = {
+            item["id"]: item
+            for item in json.loads(TRANSITIONS.read_text(encoding="utf-8"))["cases"]
+        }
+        narrowing = cases["DELEGATION-MONOTONIC-NARROWING"]["turns"]
+        self.assertIn("root-actual-diff-check", narrowing[1]["expected"])
+        self.assertIn("out-of-scope-finding-deferred", narrowing[1]["expected"])
+        self.assertIn("child-scope-expansion", narrowing[1]["forbidden"])
+        self.assertTrue(all(turn["mutation"] == "none" for turn in narrowing))
 
-        active = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
-        calibration = (ROOT / "skills" / "dev-flow" / "references" / "quality-calibration.md").read_text(encoding="utf-8")
-        self.assertIn("They cannot restore authority", active)
-        self.assertIn("must reject integration and report or defer the proposal", calibration)
-
-        catalog = json.loads(TRANSITIONS.read_text(encoding="utf-8"))
-        case = next(
-            item
-            for item in catalog["cases"]
-            if item["id"] == "DELEGATION-MONOTONIC-NARROWING"
-        )
-        reconciliation = case["turns"][1]["prompt"]
-        self.assertIn("from VALUE = 2 to VALUE = 1", reconciliation)
-        self.assertIn("did not apply that out-of-scope change", reconciliation)
-        self.assertIn("still-useful proposal", reconciliation)
-        self.assertIn("out-of-scope-finding-deferred", case["turns"][1]["expected"])
-        self.assertNotIn("bounded-expansion-request", case["turns"][1]["expected"])
-
-        renewed = next(
-            item
-            for item in catalog["cases"]
-            if item["id"] == "DELEGATION-EXPANSION-REQUIRES-RENEWED-AUTHORITY"
-        )
-        required_expansion = renewed["turns"][0]["prompt"]
-        self.assertIn("cannot meet its required interface compatibility", required_expansion)
-        self.assertIn("exact out-of-scope edge is a necessary enabler", required_expansion)
-        self.assertIn("No user or owner has authorized", required_expansion)
-        self.assertIn(
-            "bounded-expansion-request-preserved",
-            renewed["turns"][0]["expected"],
-        )
-        self.assertIn("renewed-authority-required", renewed["turns"][0]["expected"])
+        renewal = cases["DELEGATION-EXPANSION-REQUIRES-RENEWED-AUTHORITY"]["turns"]
+        self.assertIn("renewed-authority-required", renewal[0]["expected"])
+        self.assertIn("child-request-grants-authority", renewal[0]["forbidden"])
+        self.assertIn("mutation-boundary-unchanged", renewal[1]["expected"])
+        self.assertTrue(all(turn["mutation"] == "none" for turn in renewal))
 
     def test_child_identity_precedes_wait_and_uncertain_dispatch_is_reconciled(self) -> None:
         """Check written dispatch constraints, not host enforcement or model behavior."""

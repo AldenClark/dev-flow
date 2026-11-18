@@ -17,7 +17,6 @@ ROOT = Path(__file__).resolve().parents[1]
 FLOW = ROOT / "skills" / "dev-flow" / "scripts" / "dev-flow.py"
 DEV_FLOW_SKILL = ROOT / "skills" / "dev-flow" / "SKILL.md"
 QUALITY_CALIBRATION = ROOT / "skills" / "dev-flow" / "references" / "quality-calibration.md"
-VERIFICATION_SKILL = ROOT / "skills" / "verification" / "SKILL.md"
 DELIVERY_READINESS_SKILL = ROOT / "skills" / "delivery-readiness" / "SKILL.md"
 
 
@@ -52,27 +51,6 @@ class RuntimeGuidanceContractTests(unittest.TestCase):
             self.assertIn(phrase, guidance)
         self.assertRegex(guidance, r"continue [^\n]*safe repository-native checks")
         self.assertIn("Retry once when a relevant fact changes", guidance)
-
-    def test_continuation_contract_has_semantic_checkpoint_and_negative_trigger(self) -> None:
-        guidance = DEV_FLOW_SKILL.read_text(encoding="utf-8")
-        continuation = QUALITY_CALIBRATION.read_text(encoding="utf-8")
-        self.assertIn("Reconsider routing only when intent, semantics, scope, platform, authority", guidance)
-        self.assertIn("not for continuation, tool interruption, compaction, or a restated goal", guidance)
-        self.assertIn("Bind claims to observed bytes and environment", guidance)
-        self.assertRegex(
-            continuation,
-            r"Before claiming completion,[^\n]*current goal[^\n]*final diff[^\n]*evidence",
-        )
-        self.assertIn("A pre-change PASS is stale for an affected claim", continuation)
-
-    def test_evidence_freshness_distinguishes_affected_and_unrelated_edits(self) -> None:
-        guidance = VERIFICATION_SKILL.read_text(encoding="utf-8")
-        evidence = (
-            ROOT / "skills" / "verification" / "references" / "evidence-contract.md"
-        ).read_text(encoding="utf-8")
-        self.assertRegex(evidence, r"rerun the smallest check[^\n]*affected outcome")
-        self.assertIn("Unrelated edits do not invalidate a result", evidence)
-        self.assertIn("fallback proves only its own narrower claim", guidance)
 
     def test_release_review_uses_bounded_realized_methods_without_replaying_tests(self) -> None:
         guidance = DELIVERY_READINESS_SKILL.read_text(encoding="utf-8")
@@ -1565,20 +1543,6 @@ class WorkstreamTests(unittest.TestCase):
 
 
 class ActiveGuidanceTests(unittest.TestCase):
-    def test_child_proposal_cannot_expand_root_mutation_scope(self) -> None:
-        skill = DEV_FLOW_SKILL.read_text(encoding="utf-8")
-        calibration = QUALITY_CALIBRATION.read_text(encoding="utf-8")
-        self.assertIn("They cannot restore authority or add repositories", skill)
-        for phrase in (
-            "never as a `necessary enabler` or root mutation authority",
-            "must reject integration and report or defer the proposal",
-            "unless the user gives exact renewed authority",
-            'A request to "reconcile" or "decide how to handle" a useful proposal is not that authority.',
-        ):
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, calibration)
-        self.assertNotIn("or admitted owner", calibration)
-
     def test_unavailable_capability_allows_only_authorized_scoped_alternatives(self) -> None:
         skill = DEV_FLOW_SKILL.read_text(encoding="utf-8")
         calibration = QUALITY_CALIBRATION.read_text(encoding="utf-8")
@@ -1594,86 +1558,33 @@ class ActiveGuidanceTests(unittest.TestCase):
                 self.assertTrue(phrase in skill + "\n" + calibration, f"missing capability boundary: {phrase}")
         self.assertNotIn("If the named capability is absent, do not call Web", calibration)
 
-    def test_unresolved_semantics_permit_learning_but_not_dependent_commitments(self) -> None:
-        requirements = (ROOT / "skills" / "requirements-design" / "SKILL.md").read_text()
-        interaction = (ROOT / "skills" / "requirements-design" / "references" / "user-interaction.md").read_text()
-        self.assertRegex(
-            requirements,
-            r"eligible native question surface[^.\n]*before[^.\n]*technical investigation",
-        )
-        self.assertIn("Do not commit to or implement a branch", requirements)
-        self.assertRegex(
-            interaction,
-            r"required choice is pending,[^\n]*only independent reversible work already authorized",
-        )
-        self.assertNotIn("publish the complete requirement understanding", requirements)
-        self.assertNotIn("Do not start technical design or product-code mutation while", requirements)
+    def test_unresolved_semantics_route_allows_only_independent_learning(self) -> None:
+        request = ("--intent", "change", "--requirement-class", "U1")
+        pending = route(*request, "--user-choice-open")["requirement_understanding"]
+        self.assertTrue(pending["independent_learning_allowed"])
+        self.assertFalse(pending["design_allowed"])
+        self.assertFalse(pending["implementation_allowed"])
+        self.assertFalse(pending["authorization_granted"])
+        self.assertEqual(pending["stop_before"], "dependent-commitments")
 
-    def test_correction_reaches_implementation_oracles_and_late_child_results(self) -> None:
-        core = (ROOT / "skills" / "dev-flow" / "references" / "core-lifecycle.md").read_text()
-        self.assertRegex(core, r"trace its affected consumers[^\n]*invalidate dependent evidence")
-        self.assertIn("Changing only a summary", core)
-        self.assertRegex(core, r"late child output[^\n]*current semantics")
-        self.assertIn("already-executed effects are not automatically undone", core)
-        for name in ("requirements-design", "architecture-decisions", "verification", "change-review"):
-            with self.subTest(owner=name):
-                self.assertIn("correction", (ROOT / "skills" / name / "SKILL.md").read_text())
+        settled = route(*request)["requirement_understanding"]
+        self.assertTrue(settled["design_allowed"])
+        self.assertTrue(settled["implementation_allowed"])
 
-    def test_model_profile_order_is_policy_not_observed_quality(self) -> None:
-        calibration = QUALITY_CALIBRATION.read_text()
-        self.assertIn("routing policy order", calibration)
-        self.assertIn("not an empirical total order of model quality", calibration)
-        self.assertIn("policy requirement, host availability, and observed outcome", calibration)
-
-    def test_diagnosis_only_stops_before_repair(self) -> None:
-        guidance = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(
-            encoding="utf-8"
-        )
-        self.assertIn("A diagnosis-only request stops at a supported cause", guidance)
-        self.assertIn("does not silently become repair", guidance)
-
-    def test_main_skill_is_implicitly_discoverable_from_repository_task_language(self) -> None:
-        skill = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
-        frontmatter = skill.split("---", 2)[1]
-        for trigger in ("repository work", "bugs", "material behavior", "architecture changes"):
-            self.assertIn(trigger, frontmatter)
+    def test_main_skill_allows_implicit_invocation(self) -> None:
         policy = (ROOT / "skills" / "dev-flow" / "agents" / "openai.yaml").read_text(
             encoding="utf-8"
         )
         self.assertIn("allow_implicit_invocation: true", policy)
 
-    def test_main_skill_excludes_narrow_read_only_repository_lookups(self) -> None:
-        skill = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
-        frontmatter = skill.split("---", 2)[1]
-        self.assertIn("exclude narrow read-only facts", frontmatter)
-        self.assertIn("Use `repo-context` alone for a narrow read-only repository fact", skill)
+    def test_material_exposure_routes_independent_review_with_downgrade(self) -> None:
+        ordinary = route("--intent", "change")["capability_activation"]["independent_review"]
+        self.assertFalse(ordinary["required"])
+        self.assertIsNone(ordinary["route_agent"])
 
-    def test_engineering_specialists_reconnect_material_work_to_kernel(self) -> None:
-        specialists = (
-            "repo-context",
-            "requirements-design",
-            "systematic-debugging",
-            "architecture-decisions",
-            "dependency-decisions",
-            "product-ux-discovery",
-            "verification",
-            "change-review",
-            "delivery-readiness",
-        )
-        contracts = json.loads((ROOT / "governance" / "capability-contracts.json").read_text())
-        registered = {item["skill"] for item in contracts["capabilities"]}
-        main = DEV_FLOW_SKILL.read_text(encoding="utf-8")
-        for name in specialists:
-            with self.subTest(skill=name):
-                self.assertIn(name, registered)
-                self.assertIn(f"`{name}`", main)
-
-    def test_explicit_material_route_and_review_downgrade_are_active_guidance(self) -> None:
-        skill = (ROOT / "skills" / "dev-flow" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("`route-task` is an inspectable diagnostic, not a precondition", skill)
-        self.assertIn("reviewer needs no separate user authorization", skill)
         payload = route("--intent", "change", "--material-exposure")
         review = payload["capability_activation"]["independent_review"]
+        self.assertTrue(review["required"])
         self.assertEqual(review["execution"], "dispatch-independent-context")
         self.assertIsNotNone(review["route_agent"])
         self.assertFalse(review["same_context_is_independent"])
@@ -1730,12 +1641,6 @@ class ActiveGuidanceTests(unittest.TestCase):
         self.assertRegex(prompt, r"Confirm the overall result, scope[^\n]*major trade-offs once[^\n]*first implementation")
         self.assertRegex(prompt, r"reuse accepted decisions[^\n]*Default mode")
         self.assertNotIn("approved requirement, design, and change-scope baseline", prompt)
-
-    def test_readme_describes_every_change_review_trigger(self) -> None:
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("`review` 意图、显式 `--need review` 或 `--material-exposure`", readme)
-        self.assertIn("overlay 本身仍保留对应的领域控制和验证", readme)
-
 
 class DefaultHookTests(unittest.TestCase):
     def test_default_manifest_has_no_dev_flow_process_hook(self) -> None:

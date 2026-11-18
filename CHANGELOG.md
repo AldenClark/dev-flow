@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-11-18
+
+Current candidate source identity: `2.3.0`. Current workspace state: `development` from `v2.2.0`. Delivery evidence is recorded in the [2.3.0 progress](docs/workstreams/dev-flow-2.3.0/progress.md).
+
+### Changed
+
+- Keep implementation, defensive logic, and verification scoped to the requested outcome and affected contracts. Share coordination and correction guidance across Skills.
+- Recommend GPT-6.2 Sol and GPT-6.2 Astra for child dispatch. Preserve workload profile IDs and exact host support checks.
+
+### Verification
+
+- Exercise routing decisions and actual mutation and evidence boundaries with executable tests. Keep the release manifest and installation channel projections traceable.
+
 ## [2.2.0] - 2026-10-30
 
 Latest published source identity: `2.2.0` from immutable `80f3b98e7786ecf66712a7afb7a0292b67fbc3d7`. Current workspace state: `development` from `v2.2.0`. Independent clean-context review passed, including three audit groups and affected repair rechecks. Commit, exact-source hosted CI, cross-platform checks, tag and artifact are verified; publication, isolated lifecycle and primary installation are verified; the published stable/default installation channel is `v2.2.0` and rollback target is `v2.1.3`. The user requested formal publication and a subsequent local Dev Flow update after disclosure that real-host validation and the five live-model journeys remain NOT RUN. That request does not establish a prior waiver, a model-semantic pass or measured cost/effect benefits. Current evidence belongs to the [2.2.0 progress](docs/workstreams/dev-flow-2.2.0/progress.md).
